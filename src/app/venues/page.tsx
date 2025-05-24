@@ -12,7 +12,7 @@ export default function VenueDirectory() {
           </div>
           <nav className="hidden md:flex space-x-8">
             <a href="/venues" className="text-black font-medium">Browse Directory</a>
-            <a href="/venues/submit" className="text-gray-700 hover:text-black">Submit Listing</a>
+            <a href="/venues/submit" className="text-gray-700 hover:text-black">Submit Space</a>
             <a href="#" className="text-gray-700 hover:text-black">Scene Reports</a>
             <a href="/auth/login" className="text-gray-700 hover:text-black">Sign In</a>
           </nav>
@@ -22,10 +22,7 @@ export default function VenueDirectory() {
       <div className="container mx-auto px-4 py-12">
         {/* Page Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Find DIY Venues</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Browse authentic venues by location. Connect directly with scene-invested bookers.
-          </p>
+                    <h1 className="text-4xl font-bold text-gray-900 mb-4">Find DIY Spaces</h1>          <p className="text-xl text-gray-600 max-w-2xl mx-auto">            Browse authentic spaces by location. Connect directly with scene-invested bookers.          </p>
         </div>
 
         {/* Search Bar */}
@@ -33,7 +30,7 @@ export default function VenueDirectory() {
           <div className="relative">
             <input
               type="text"
-              placeholder="Search by city, state, venue name..."
+              placeholder="Search by city, state, space name..."
               className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
             />
             <button className="absolute right-2 top-2 bg-black text-white px-6 py-2 rounded-lg hover:bg-gray-800 transition-colors">
@@ -51,11 +48,7 @@ export default function VenueDirectory() {
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="text-xl font-semibold mb-4">United States</h3>
               <div className="space-y-2">
-                <a href="#" className="block text-gray-700 hover:text-black">California (324 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">New York (189 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Texas (156 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Oregon (143 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Pennsylvania (121 venues)</a>
+                                <a href="#" className="block text-gray-700 hover:text-black">California (324 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">New York (189 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Texas (156 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Oregon (143 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Pennsylvania (121 spaces)</a>
                 <a href="#" className="text-black font-medium">View all US states →</a>
               </div>
             </div>
@@ -63,11 +56,7 @@ export default function VenueDirectory() {
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="text-xl font-semibold mb-4">Canada</h3>
               <div className="space-y-2">
-                <a href="#" className="block text-gray-700 hover:text-black">Ontario (89 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">British Columbia (67 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Quebec (45 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Alberta (32 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Nova Scotia (23 venues)</a>
+                                <a href="#" className="block text-gray-700 hover:text-black">Ontario (89 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">British Columbia (67 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Quebec (45 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Alberta (32 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Nova Scotia (23 spaces)</a>
                 <a href="#" className="text-black font-medium">View all provinces →</a>
               </div>
             </div>
@@ -75,11 +64,7 @@ export default function VenueDirectory() {
             <div className="bg-gray-50 rounded-xl p-6">
               <h3 className="text-xl font-semibold mb-4">Europe</h3>
               <div className="space-y-2">
-                <a href="#" className="block text-gray-700 hover:text-black">Germany (178 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">United Kingdom (134 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">France (98 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Netherlands (87 venues)</a>
-                <a href="#" className="block text-gray-700 hover:text-black">Spain (65 venues)</a>
+                                <a href="#" className="block text-gray-700 hover:text-black">Germany (178 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">United Kingdom (134 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">France (98 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Netherlands (87 spaces)</a>                <a href="#" className="block text-gray-700 hover:text-black">Spain (65 spaces)</a>
                 <a href="#" className="text-black font-medium">View all countries →</a>
               </div>
             </div>
@@ -134,11 +119,7 @@ export default function VenueDirectory() {
 
           {/* CTA */}
           <div className="bg-black text-white rounded-xl p-8 mt-12 text-center">
-            <h3 className="text-2xl font-bold mb-4">Don't see your city?</h3>
-            <p className="text-lg mb-6 opacity-90">Help us build the directory by adding venues in your area</p>
-            <a href="/venues/submit" className="bg-white text-black px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium">
-              Submit a Venue
-            </a>
+                        <h3 className="text-2xl font-bold mb-4">Don't see your city?</h3>            <p className="text-lg mb-6 opacity-90">Help us build the directory by adding spaces in your area</p>            <a href="/venues/submit" className="bg-white text-black px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium">              Submit a Space            </a>
           </div>
         </div>
       </div>

@@ -10,7 +10,7 @@ export default function SubmitVenue() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight">Book Yr Life</h1>
           </div>
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">List Your Venue</h2>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">List Your Space</h2>
           <p className="text-xl text-gray-600">
             Help touring artists find your space and connect with your community
           </p>
@@ -24,17 +24,7 @@ export default function SubmitVenue() {
             
             <div className="space-y-6">
               <div>
-                <label htmlFor="venue-name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Venue Name *
-                </label>
-                <input
-                  id="venue-name"
-                  name="venue-name"
-                  type="text"
-                  required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  placeholder="The venue name (e.g., Joe's Basement, The Red House)"
-                />
+                                <label htmlFor="space-name" className="block text-sm font-medium text-gray-700 mb-2">                  Space Name *                </label>                <input                  id="space-name"                  name="space-name"                  type="text"                  required                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"                  placeholder="The space name (e.g., Joe's Basement, The Red House)"                />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -67,16 +57,11 @@ export default function SubmitVenue() {
               </div>
 
               <div>
-                <label htmlFor="venue-type" className="block text-sm font-medium text-gray-700 mb-2">
-                  Venue Type *
-                </label>
-                <select
-                  id="venue-type"
-                  name="venue-type"
+                                <label htmlFor="space-type" className="block text-sm font-medium text-gray-700 mb-2">                  Space Type *                </label>                <select                  id="space-type"                  name="space-type"
                   required
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
-                  <option value="">Select venue type...</option>
+                  <option value="">Select space type...</option>
                   <option value="house">House/Basement Show</option>
                   <option value="vfw">VFW Hall</option>
                   <option value="community-center">Community Center</option>
@@ -91,9 +76,7 @@ export default function SubmitVenue() {
             </div>
           </section>
 
-          {/* Venue Details */}
-          <section className="bg-gray-50 rounded-xl p-6">
-            <h3 className="text-xl font-semibold mb-6">Venue Details</h3>
+                    {/* Space Details */}          <section className="bg-gray-50 rounded-xl p-6">            <h3 className="text-xl font-semibold mb-6">Space Details</h3>
             
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -154,16 +137,7 @@ export default function SubmitVenue() {
               </div>
 
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                  Venue Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  rows={4}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  placeholder="Describe your venue, the vibe, what makes it special, any unique features..."
-                />
+                                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">                  Space Description                </label>                <textarea                  id="description"                  name="description"                  rows={4}                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"                  placeholder="Describe your space, the vibe, what makes it special, any unique features..."                />
               </div>
             </div>
           </section>
@@ -277,7 +251,7 @@ export default function SubmitVenue() {
                   name="scene-info"
                   rows={3}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  placeholder="Tell touring bands about your local scene - active venues, radio stations, record stores, other resources..."
+                  placeholder="Tell touring bands about your local scene - active spaces, radio stations, record stores, other resources..."
                 />
               </div>
             </div>
@@ -285,12 +259,7 @@ export default function SubmitVenue() {
 
           {/* Submit */}
           <div className="flex flex-col sm:flex-row gap-4">
-            <button
-              type="submit"
-              className="flex-1 bg-black text-white py-4 px-6 rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg"
-            >
-              Submit Venue Listing
-            </button>
+                        <button              type="submit"              className="flex-1 bg-black text-white py-4 px-6 rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg"            >              Submit Space Listing            </button>
             <a
               href="/"
               className="flex-1 border border-gray-300 text-gray-700 py-4 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium text-lg text-center"

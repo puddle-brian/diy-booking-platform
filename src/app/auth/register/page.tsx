@@ -36,13 +36,12 @@ export default function Register() {
             </label>
 
             <label className="relative flex cursor-pointer rounded-lg border border-gray-300 p-4 hover:bg-gray-50 focus:outline-none">
-              <input type="radio" name="account-type" value="venue" className="sr-only" />
+              <input type="radio" name="account-type" value="space" className="sr-only" />
               <div className="flex w-full items-center justify-between">
                 <div className="flex items-center">
                   <div className="text-2xl mr-3">🏠</div>
                   <div>
-                    <div className="font-medium text-gray-900">Venue Owner</div>
-                    <div className="text-sm text-gray-500">Want to host shows and connect with artists</div>
+                                        <div className="font-medium text-gray-900">Space Owner</div>                    <div className="text-sm text-gray-500">Want to host shows and connect with artists</div>
                   </div>
                 </div>
                 <div className="h-4 w-4 rounded-full border border-gray-300"></div>
