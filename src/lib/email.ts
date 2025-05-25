@@ -19,12 +19,16 @@ export async function sendBookingInquiryEmail(inquiry: BookingInquiry, recipient
   const recipientType = inquiry.recipientType;
   const inquirerType = inquiry.inquirerType;
   
-  const subject = `Booking Inquiry from ${inquiry.inquirerName} via Book Yr Life`;
+  // Generate email subject
+  // const subject = `Booking Inquiry from ${inquiry.inquirerName} via Book Yr Life`;
+  const subject = `Booking Inquiry from ${inquiry.inquirerName} via diyshows beta`;
   
-  // Create different email content based on the direction of the inquiry
-  const platformIntro = recipientType === 'venue' 
-    ? `A${inquirerType === 'artist' ? 'n artist' : ' venue'} has reached out to your venue through Book Yr Life`
-    : `A venue has reached out to your ${inquirerType === 'artist' ? 'artist project' : 'venue'} through Book Yr Life`;
+  // Generate email body
+  const body = recipientType === 'venue' 
+    // ? `A${inquirerType === 'artist' ? 'n artist' : ' venue'} has reached out to your venue through Book Yr Life`
+    // : `A venue has reached out to your ${inquirerType === 'artist' ? 'artist project' : 'venue'} through Book Yr Life`;
+    ? `A${inquirerType === 'artist' ? 'n artist' : ' venue'} has reached out to your venue through diyshows beta`
+    : `A venue has reached out to your ${recipientType === 'artist' ? 'artist project' : 'venue'} through diyshows beta`;
     
   const claimText = recipientType === 'venue'
     ? 'venue profile'
@@ -37,7 +41,7 @@ export async function sendBookingInquiryEmail(inquiry: BookingInquiry, recipient
   const emailContent = `
 📅 BOOKING INQUIRY
 
-${platformIntro} - this is exactly the kind of connection we facilitate!
+${body} - this is exactly the kind of connection we facilitate!
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -60,9 +64,9 @@ ${inquiry.message}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🎵 ABOUT BOOK YR LIFE
+🎵 ABOUT DIYSHOWS BETA
 
-This inquiry came through Book Yr Life, a DIY booking platform inspired by the legendary "Book Your Own Fuckin' Life" zine. We connect underground artists with venues in the spirit of true DIY culture.
+This inquiry came through diyshows beta, a DIY booking platform inspired by the legendary "Book Your Own Fuckin' Life" zine. We connect underground artists with venues in the spirit of true DIY culture.
 
 🚀 CLAIM YOUR ${claimText.toUpperCase()}
 
@@ -77,7 +81,7 @@ Want to manage your bookings through our platform and connect with more ${recipi
 To respond to this inquiry, simply reply to this email or contact ${inquiry.inquirerName} directly at ${inquiry.inquirerEmail}.
 
 Keep the DIY spirit alive!
-Book Yr Life Team
+diyshows beta Team
   `;
 
   try {

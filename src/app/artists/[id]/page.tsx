@@ -104,80 +104,99 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
   });
   const [contactStatus, setContactStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [venue, setVenue] = useState<any>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    const loadArtist = async () => {
+    const loadData = async () => {
       try {
         const resolvedParams = await params;
-        console.log('🎯 Loading artist with ID:', resolvedParams.id);
+        await loadArtist(resolvedParams.id);
+        await loadTourRequests(resolvedParams.id);
         
-        const response = await fetch(`/api/artists/${resolvedParams.id}`);
-        console.log('🎯 Artist API response:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-          console.error('🎯 Artist API error:', errorData);
-          throw new Error(errorData.error || `Failed to load artist (${response.status})`);
+        // Load venue data if user is a venue
+        if (user?.profileType === 'venue' && user.profileId) {
+          await loadVenue(user.profileId);
         }
-        
-        const artistData = await response.json();
-        console.log('🎯 Artist data loaded:', artistData.name, artistData.id);
-        setArtist(artistData);
-        setError(null);
-      } catch (error) {
-        console.error('🎯 Failed to load artist:', error);
-        setError(error instanceof Error ? error.message : 'Failed to load artist');
-        // Don't redirect immediately, show error state instead
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {
         setLoading(false);
       }
     };
 
-    loadArtist();
-  }, [params, router]);
+    loadData();
+  }, [params, user]);
 
-  // Load tour requests separately
-  useEffect(() => {
-    const loadTourRequests = async () => {
-      if (!artist) {
-        console.log('🎯 No artist, skipping tour requests load');
-        return;
+  const loadVenue = async (venueId: string) => {
+    try {
+      const response = await fetch(`/api/venues/${venueId}`);
+      if (response.ok) {
+        const venueData = await response.json();
+        setVenue(venueData);
+      }
+    } catch (error) {
+      console.error('Error loading venue:', error);
+    }
+  };
+
+  const loadArtist = async (id: string) => {
+    try {
+      console.log('🎯 Loading artist with ID:', id);
+      
+      const response = await fetch(`/api/artists/${id}`);
+      console.log('🎯 Artist API response:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('🎯 Artist API error:', errorData);
+        throw new Error(errorData.error || `Failed to load artist (${response.status})`);
       }
       
-      try {
-        setLoadingTourRequests(true);
-        console.log('🔍 Loading tour requests for artist:', artist.id, artist.name);
-        const response = await fetch(`/api/tour-requests?artistId=${artist.id}&activeOnly=true`);
-        console.log('📡 Tour requests response:', response.status, response.statusText);
+      const artistData = await response.json();
+      console.log('🎯 Artist data loaded:', artistData.name, artistData.id);
+      setArtist(artistData);
+      setError(null);
+    } catch (error) {
+      console.error('🎯 Failed to load artist:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load artist');
+      // Don't redirect immediately, show error state instead
+    }
+  };
+
+  // Load tour requests separately
+  const loadTourRequests = async (id: string) => {
+    try {
+      setLoadingTourRequests(true);
+      console.log('🔍 Loading tour requests for artist:', id, artist?.name);
+      const response = await fetch(`/api/tour-requests?artistId=${id}&activeOnly=true`);
+      console.log('📡 Tour requests response:', response.status, response.statusText);
+      
+      if (response.ok) {
+        const requestsData = await response.json();
+        console.log('📊 Tour requests data:', requestsData);
+        console.log('📊 Tour requests array?', Array.isArray(requestsData));
+        console.log('📊 Tour requests length:', requestsData?.length);
         
-        if (response.ok) {
-          const requestsData = await response.json();
-          console.log('📊 Tour requests data:', requestsData);
-          console.log('📊 Tour requests array?', Array.isArray(requestsData));
-          console.log('📊 Tour requests length:', requestsData?.length);
-          
-          if (Array.isArray(requestsData)) {
-            setTourRequests(requestsData);
-            console.log('✅ Tour requests set:', requestsData.length, 'requests');
-          } else {
-            console.warn('⚠️ Tour requests data is not an array:', requestsData);
-            setTourRequests([]);
-          }
+        if (Array.isArray(requestsData)) {
+          setTourRequests(requestsData);
+          console.log('✅ Tour requests set:', requestsData.length, 'requests');
         } else {
-          console.warn('⚠️ Tour requests API failed:', response.status);
+          console.warn('⚠️ Tour requests data is not an array:', requestsData);
           setTourRequests([]);
         }
-      } catch (error) {
-        console.warn('⚠️ Could not load tour requests:', error);
+      } else {
+        console.warn('⚠️ Tour requests API failed:', response.status);
         setTourRequests([]);
-      } finally {
-        setLoadingTourRequests(false);
-        console.log('🏁 Tour requests loading finished');
       }
-    };
-
-    loadTourRequests();
-  }, [artist]);
+    } catch (error) {
+      console.warn('⚠️ Could not load tour requests:', error);
+      setTourRequests([]);
+    } finally {
+      setLoadingTourRequests(false);
+      console.log('🏁 Tour requests loading finished');
+    }
+  };
 
   // Check if user has already sent an inquiry to this artist
   useEffect(() => {
@@ -453,16 +472,13 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
             title="Tour Dates" 
             editable={false} 
             viewerType={(() => {
-              const { user } = useAuth();
               if (!user) return 'public';
               if (user.profileType === 'venue') return 'venue';
               if (user.profileType === 'artist') return 'artist';
               return 'public';
             })()} 
-            venueId={(() => {
-              const { user } = useAuth();
-              return user?.profileType === 'venue' ? user.profileId : undefined;
-            })()}
+            venueId={user?.profileType === 'venue' ? user.profileId : undefined}
+            venueName={user?.profileType === 'venue' && venue ? venue.name : undefined}
           />
         </div>
 

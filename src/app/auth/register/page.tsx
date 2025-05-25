@@ -8,7 +8,7 @@ export default function Register() {
             <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
               <span className="text-white font-bold text-sm">B</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Book Yr Life</h1>
+            <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Join the community</h2>
           <p className="text-gray-600">Create your account to get started</p>

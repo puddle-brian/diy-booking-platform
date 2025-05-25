@@ -8,7 +8,8 @@ export default function SubmitVenue() {
             <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
               <span className="text-white font-bold text-sm">B</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">Book Yr Life</h1>
+            {/* <h1 className="text-2xl font-bold tracking-tight">Book Yr Life</h1> */}
+            <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
           </div>
           <h2 className="text-4xl font-bold text-gray-900 mb-4">List Your Space</h2>
           <p className="text-xl text-gray-600">

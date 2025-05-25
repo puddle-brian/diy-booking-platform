@@ -8,7 +8,8 @@ export default function VenueDirectory() {
             <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
               <span className="text-white font-bold text-sm">B</span>
             </div>
-            <a href="/" className="text-2xl font-bold tracking-tight">Book Yr Life</a>
+            {/* <a href="/" className="text-2xl font-bold tracking-tight">Book Yr Life</a> */}
+            <a href="/" className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></a>
           </div>
           <nav className="hidden md:flex space-x-8">
             <a href="/venues" className="text-black font-medium">Browse Directory</a>

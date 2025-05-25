@@ -78,9 +78,11 @@ export default function LoginPage() {
             <span className="text-white font-bold text-xl">B</span>
           </div>
         </div>
-        <h2 className="mt-6 text-center text-3xl font-bold tracking-tight text-gray-900">
-          Sign in to Book Yr Life
-        </h2>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
+        <p className="text-gray-600 mb-8">
+          {/* Sign in to Book Yr Life */}
+          Sign in to diyshows beta
+        </p>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
           <Link href="/" className="font-medium text-black hover:text-gray-800">
