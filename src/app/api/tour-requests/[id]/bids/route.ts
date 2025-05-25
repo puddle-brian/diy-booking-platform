@@ -3,31 +3,31 @@ import fs from 'fs';
 import path from 'path';
 import { VenueBid, TourRequest } from '../../../../../../types';
 
-const bidsFilePath = path.join(process.cwd(), 'data', 'venue-bids.json');
+const BIDS_FILE = path.join(process.cwd(), 'data', 'bids.json');
 const tourRequestsFilePath = path.join(process.cwd(), 'data', 'tour-requests.json');
 
-function readBids(): VenueBid[] {
+function readBids() {
   try {
-    if (!fs.existsSync(bidsFilePath)) {
+    if (!fs.existsSync(BIDS_FILE)) {
       return [];
     }
-    const data = fs.readFileSync(bidsFilePath, 'utf8');
+    const data = fs.readFileSync(BIDS_FILE, 'utf8');
     return JSON.parse(data);
   } catch (error) {
-    console.error('Error reading bids file:', error);
+    console.error('Error reading bids:', error);
     return [];
   }
 }
 
-function writeBids(bids: VenueBid[]): void {
+function writeBids(bids: any[]) {
   try {
-    const dir = path.dirname(bidsFilePath);
+    const dir = path.dirname(BIDS_FILE);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(bidsFilePath, JSON.stringify(bids, null, 2));
+    fs.writeFileSync(BIDS_FILE, JSON.stringify(bids, null, 2));
   } catch (error) {
-    console.error('Error writing bids file:', error);
+    console.error('Error writing bids:', error);
     throw error;
   }
 }
@@ -63,20 +63,16 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
+    const { id } = await params;
     const bids = readBids();
-    const tourRequestBids = bids.filter(bid => bid.tourRequestId === resolvedParams.id);
     
-    // Sort by creation date (newest first)
-    tourRequestBids.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Filter bids by tour request ID
+    const tourRequestBids = bids.filter((bid: any) => bid.tourRequestId === id);
     
     return NextResponse.json(tourRequestBids);
   } catch (error) {
-    console.error('Error in GET /api/tour-requests/[id]/bids:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch bids' },
-      { status: 500 }
-    );
+    console.error('Error fetching tour request bids:', error);
+    return NextResponse.json({ error: 'Failed to fetch bids' }, { status: 500 });
   }
 }
 
@@ -85,14 +81,15 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id: tourRequestId } = await params;
     const body = await request.json();
-    const resolvedParams = await params;
-    const tourRequestId = resolvedParams.id;
     
-    // Validate required fields
+    console.log('🎯 Received bid data:', JSON.stringify(body, null, 2));
+    
+    // Validate required fields - updated to match form structure
     const requiredFields = ['venueId', 'venueName', 'proposedDate', 'capacity', 'message'];
     for (const field of requiredFields) {
-      if (!body[field]) {
+      if (body[field] === undefined || body[field] === null || body[field] === '') {
         return NextResponse.json(
           { error: `Missing required field: ${field}` },
           { status: 400 }
@@ -100,121 +97,65 @@ export async function POST(
       }
     }
 
-    // Check if tour request exists and is active
-    const tourRequests = readTourRequests();
-    const tourRequest = tourRequests.find(req => req.id === tourRequestId);
-    
-    if (!tourRequest) {
-      return NextResponse.json(
-        { error: 'Tour request not found' },
-        { status: 404 }
-      );
-    }
-    
-    if (tourRequest.status !== 'active') {
-      return NextResponse.json(
-        { error: 'Tour request is no longer active' },
-        { status: 400 }
-      );
-    }
-
-    // Check if venue already has a pending bid for this request
     const bids = readBids();
-    const existingBid = bids.find(bid => 
-      bid.tourRequestId === tourRequestId && 
-      bid.venueId === body.venueId && 
-      bid.status === 'pending'
+    
+    // Check if venue has already bid on this tour request
+    const existingBid = bids.find((bid: any) => 
+      bid.tourRequestId === tourRequestId && bid.venueId === body.venueId
     );
     
     if (existingBid) {
       return NextResponse.json(
-        { error: 'You already have a pending bid for this tour request' },
+        { error: 'You have already submitted a bid for this tour request' },
         { status: 400 }
       );
     }
-
-    // Validate proposed date is within tour date range
-    const proposedDate = new Date(body.proposedDate);
-    const tourStart = new Date(tourRequest.startDate);
-    const tourEnd = new Date(tourRequest.endDate);
     
-    if (proposedDate < tourStart || proposedDate > tourEnd) {
-      return NextResponse.json(
-        { error: 'Proposed date must be within the tour date range' },
-        { status: 400 }
-      );
-    }
-
-    // Generate new ID
-    const newId = Date.now().toString();
+    // Generate new bid ID
+    const newBidId = `bid-${Date.now()}`;
     
-    // Calculate expiration (7 days from creation)
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-    
-    // Create new bid
-    const newBid: VenueBid = {
-      id: newId,
-      tourRequestId: tourRequestId,
+    // Create new bid with proper structure
+    const newBid = {
+      id: newBidId,
+      tourRequestId,
       venueId: body.venueId,
       venueName: body.venueName,
       proposedDate: body.proposedDate,
       alternativeDates: body.alternativeDates || [],
-      guarantee: body.guarantee,
-      doorDeal: body.doorDeal,
-      ticketPrice: {
-        advance: body.ticketPrice?.advance,
-        door: body.ticketPrice?.door,
-      },
+      guarantee: body.guarantee || undefined,
+      doorDeal: body.doorDeal || undefined,
+      ticketPrice: body.ticketPrice || {},
       merchandiseSplit: body.merchandiseSplit || '90/10',
-      capacity: body.capacity,
+      capacity: parseInt(body.capacity),
       ageRestriction: body.ageRestriction || 'all-ages',
-      equipmentProvided: {
-        pa: body.equipmentProvided?.pa || false,
-        mics: body.equipmentProvided?.mics || false,
-        drums: body.equipmentProvided?.drums || false,
-        amps: body.equipmentProvided?.amps || false,
-        piano: body.equipmentProvided?.piano || false,
-      },
+      equipmentProvided: body.equipmentProvided || {},
       loadIn: body.loadIn || '',
       soundcheck: body.soundcheck || '',
       doorsOpen: body.doorsOpen || '',
       showTime: body.showTime || '',
       curfew: body.curfew || '',
-      promotion: {
-        social: body.promotion?.social || false,
-        flyerPrinting: body.promotion?.flyerPrinting || false,
-        radioSpots: body.promotion?.radioSpots || false,
-        pressCoverage: body.promotion?.pressCoverage || false,
-      },
-      lodging: body.lodging,
+      promotion: body.promotion || {},
+      lodging: body.lodging || undefined,
       message: body.message,
       additionalTerms: body.additionalTerms || '',
       status: 'pending',
       readByArtist: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      expiresAt: expiresAt.toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
     };
 
     bids.push(newBid);
     writeBids(bids);
-    
-    // Update tour request response count
-    const tourRequestIndex = tourRequests.findIndex(req => req.id === tourRequestId);
-    if (tourRequestIndex !== -1) {
-      tourRequests[tourRequestIndex].responses += 1;
-      tourRequests[tourRequestIndex].updatedAt = new Date().toISOString();
-      writeTourRequests(tourRequests);
-    }
 
-    console.log(`🏟️ New bid: ${newBid.venueName} → ${tourRequest.artistName} (${tourRequest.title})`);
+    console.log(`🎯 New bid submitted: ${body.venueName} → Tour Request ${tourRequestId}`);
+    console.log(`🎯 Bid details: $${body.guarantee} guarantee, ${body.doorDeal?.split || 'no door deal'}`);
 
     return NextResponse.json(newBid, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/tour-requests/[id]/bids:', error);
+    console.error('Error creating bid:', error);
     return NextResponse.json(
-      { error: 'Failed to create bid' },
+      { error: 'Failed to submit bid' },
       { status: 500 }
     );
   }

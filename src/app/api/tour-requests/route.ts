@@ -40,31 +40,38 @@ export async function GET(request: NextRequest) {
     const region = searchParams.get('region');
     const genre = searchParams.get('genre');
     const activeOnly = searchParams.get('activeOnly') === 'true';
+    const forVenues = searchParams.get('forVenues') === 'true';
     
     let requests = readTourRequests();
+    
+    console.log(`🗺️ API: Fetching tour requests. Total: ${requests.length}`);
+    console.log(`🗺️ API: Filters - artistId: ${artistId}, activeOnly: ${activeOnly}, forVenues: ${forVenues}`);
     
     // Filter by artistId (for artist's own requests)
     if (artistId) {
       requests = requests.filter(request => request.artistId === artistId);
+      console.log(`🗺️ API: After artistId filter: ${requests.length} requests`);
     }
     
     // Filter by status
     if (status) {
       requests = requests.filter(request => request.status === status);
+      console.log(`🗺️ API: After status filter: ${requests.length} requests`);
     }
     
-    // Filter by city/region (for venues browsing)
+    // Filter by city/region (for venues browsing) - updated for atomic location structure
     if (city) {
       requests = requests.filter(request => 
-        request.cities.some(c => c.toLowerCase().includes(city.toLowerCase())) ||
-        request.regions.some(r => r.toLowerCase().includes(city.toLowerCase()))
+        request.location && request.location.toLowerCase().includes(city.toLowerCase())
       );
+      console.log(`🗺️ API: After city filter: ${requests.length} requests`);
     }
     
     if (region) {
       requests = requests.filter(request =>
-        request.regions.some(r => r.toLowerCase().includes(region.toLowerCase()))
+        request.location && request.location.toLowerCase().includes(region.toLowerCase())
       );
+      console.log(`🗺️ API: After region filter: ${requests.length} requests`);
     }
     
     // Filter by genre
@@ -72,6 +79,7 @@ export async function GET(request: NextRequest) {
       requests = requests.filter(request =>
         request.genres.some(g => g.toLowerCase().includes(genre.toLowerCase()))
       );
+      console.log(`🗺️ API: After genre filter: ${requests.length} requests`);
     }
     
     // Only active requests (default for venue browsing)
@@ -82,6 +90,7 @@ export async function GET(request: NextRequest) {
         new Date(request.expiresAt) > now &&
         new Date(request.startDate) > now
       );
+      console.log(`🗺️ API: After activeOnly filter: ${requests.length} requests`);
     }
     
     // Sort by priority and date
@@ -95,7 +104,43 @@ export async function GET(request: NextRequest) {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
     
-    return NextResponse.json(requests);
+    console.log(`🗺️ API: Final result: ${requests.length} tour requests`);
+    
+    // For venues, transform the data to match VenueBidding component expectations
+    if (forVenues) {
+      const venueRequests = requests.map(request => ({
+        id: request.id,
+        artistId: request.artistId,
+        artistName: request.artistName,
+        city: request.location.split(',')[0]?.trim() || '',
+        state: request.location.split(',')[1]?.trim() || '',
+        country: 'USA', // Default for now
+        requestedDate: request.startDate,
+        genre: request.genres,
+        expectedDraw: request.expectedDraw.description || `${request.expectedDraw.min}-${request.expectedDraw.max}`,
+        guarantee: request.guaranteeRange?.min || 0,
+        doorSplit: 70, // Default door split percentage
+        description: request.description,
+        requirements: [
+          ...(request.equipment.needsPA ? ['PA System'] : []),
+          ...(request.equipment.needsMics ? ['Microphones'] : []),
+          ...(request.equipment.needsDrums ? ['Drum Kit'] : []),
+          ...(request.equipment.needsAmps ? ['Amplifiers'] : []),
+          ...(request.ageRestriction !== 'flexible' ? [`${request.ageRestriction} venue`] : []),
+        ],
+        status: request.status,
+        createdAt: request.createdAt,
+        deadline: request.expiresAt,
+      }));
+      
+      return NextResponse.json(venueRequests);
+    }
+    
+    // Return in the format the frontend expects
+    return NextResponse.json({
+      requests: requests,
+      total: requests.length
+    });
   } catch (error) {
     console.error('Error in GET /api/tour-requests:', error);
     return NextResponse.json(
@@ -158,8 +203,8 @@ export async function POST(request: NextRequest) {
       description: body.description || '',
       startDate: body.startDate,
       endDate: body.endDate,
-      cities: body.cities || [],
-      regions: body.regions || [],
+      location: body.location || '',
+      radius: body.radius || 50,
       flexibility: body.flexibility || 'route-flexible',
       genres: body.genres || [],
       expectedDraw: {

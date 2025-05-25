@@ -22,34 +22,34 @@ export default function VenueBidForm({
   const [error, setError] = useState('');
   
   const [bidForm, setBidForm] = useState({
-    proposedDate: '',
+    proposedDate: tourRequest.startDate,
     alternativeDates: [''],
-    guarantee: '',
+    guarantee: '300',
     doorDeal: {
       split: '70/30',
-      minimumGuarantee: ''
+      minimumGuarantee: '200'
     },
     ticketPrice: {
-      advance: '',
-      door: ''
+      advance: '15',
+      door: '18'
     },
     merchandiseSplit: '90/10',
-    capacity: '',
+    capacity: '150',
     ageRestriction: 'all-ages',
     equipmentProvided: {
-      pa: false,
-      mics: false,
+      pa: true,
+      mics: true,
       drums: false,
       amps: false,
       piano: false
     },
-    loadIn: '',
-    soundcheck: '',
-    doorsOpen: '',
-    showTime: '',
-    curfew: '',
+    loadIn: '17:00',
+    soundcheck: '18:00',
+    doorsOpen: '19:00',
+    showTime: '20:00',
+    curfew: '23:00',
     promotion: {
-      social: false,
+      social: true,
       flyerPrinting: false,
       radioSpots: false,
       pressCoverage: false
@@ -59,7 +59,7 @@ export default function VenueBidForm({
       type: 'floor-space' as 'floor-space' | 'couch' | 'private-room',
       details: ''
     },
-    message: '',
+    message: 'Looking forward to hosting your show! We have a great sound system and enthusiastic local audience.',
     additionalTerms: ''
   });
 

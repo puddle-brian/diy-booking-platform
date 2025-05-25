@@ -31,9 +31,14 @@ export interface Show {
   venueName: string;
   artistName: string;
   
-  // Booking Details  
-  status: 'hold' | 'confirmed' | 'cancelled' | 'completed';
-  holdPosition?: 'first' | 'second' | 'third';
+  // 🎯 HOLD MANAGEMENT - Booking Details with sophisticated hold tracking
+  status: 'hold' | 'confirmed' | 'cancelled' | 'completed' | 'accepted';
+  holdPosition?: 'first' | 'second' | 'third'; // Current hold priority
+  holdExpiresAt?: string; // When hold expires (auto-decline)
+  holdNotes?: string; // Artist's internal notes
+  promotedFrom?: 'second' | 'third'; // Track if this was promoted from lower priority
+  promotedAt?: string; // When promotion happened
+  originalBidId?: string; // Link back to the venue bid that created this
   
   // Financial
   guarantee?: number;
@@ -81,14 +86,14 @@ export interface TourRequest {
   artistName: string;
   
   // Tour Details
-  title: string; // e.g. "Pacific Northwest Tour March 2024"
+  title: string; // e.g. "Seattle Show - June 2025"
   description: string;
   
-  // Geography & Timing
+  // Geography & Timing - ATOMIC: One location per request
   startDate: string;
   endDate: string;
-  cities: string[]; // ["Seattle", "Portland", "Vancouver"] 
-  regions: string[]; // ["Pacific Northwest", "California"] for broader requests
+  location: string; // Single location: "Seattle, WA" or "Pacific Northwest"
+  radius: number; // Search radius in miles (25, 50, 100, 200, 500, 1000+)
   flexibility: 'exact-cities' | 'region-flexible' | 'route-flexible';
   
   // Artist Info
@@ -122,8 +127,8 @@ export interface TourRequest {
   travelMethod: 'van' | 'flying' | 'train' | 'other';
   lodging: 'floor-space' | 'hotel' | 'flexible';
   
-  // Status
-  status: 'active' | 'completed' | 'cancelled' | 'paused';
+  // Status & Conflict Resolution
+  status: 'active' | 'completed' | 'cancelled' | 'paused' | 'fulfilled';
   priority: 'high' | 'medium' | 'low';
   responses: number; // count of bids received
   
@@ -192,9 +197,27 @@ export interface VenueBid {
   message: string;
   additionalTerms?: string;
   
-  // Status
-  status: 'pending' | 'accepted' | 'declined' | 'expired';
+  // 🎯 BID STATUS - Simple industry-standard flow
+  status: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
+  
+  // 🎯 HOLD MANAGEMENT - Automatic priority system
+  holdPosition?: 1 | 2 | 3; // Auto-assigned: first hold = 1, second = 2, etc.
+  heldAt?: string; // When artist placed this bid on hold
+  heldUntil?: string; // Hold expiration (typically 7-14 days)
+  
+  // 🎯 ACCEPTANCE/DECLINE
+  acceptedAt?: string; // When artist accepted this bid
+  declinedAt?: string; // When artist declined this bid
+  declinedReason?: string; // Why artist declined
+  
+  // 🎯 CANCELLATION (automatic when another bid accepted)
+  cancelledAt?: string;
+  cancelledReason?: string; // e.g., "Another venue was selected for this date"
+  
   readByArtist: boolean;
+  
+  // Notification fields
+  notifyVenue?: boolean; // Flag to trigger venue notification
   
   // System
   createdAt: string;
@@ -202,29 +225,154 @@ export interface VenueBid {
   expiresAt: string; // bids expire if not responded to
 }
 
-// Type definitions
-export type VenueType = 'house-show' | 'community-space' | 'record-store' | 'vfw-hall' | 'arts-center' | 'warehouse' | 'bar' | 'club' | 'theater' | 'other';
-export type ArtistType = 'band' | 'solo-artist' | 'collective' | 'electronic-artist' | 'dj' | 'other';
+// Type definitions - Comprehensive DIY space types
+export type SpaceType = 
+  // Residential
+  | 'house' | 'basement' | 'loft' | 'rooftop' | 'apartment'
+  // Industrial/Warehouse  
+  | 'warehouse' | 'factory' | 'garage' | 'storage-unit'
+  // Rural/Alternative
+  | 'barn' | 'farm' | 'park' | 'outdoor-space' | 'festival-ground'
+  // Commercial/Retail
+  | 'record-store' | 'book-store' | 'coffee-shop' | 'restaurant' | 'shop'
+  // Nightlife
+  | 'bar' | 'club' | 'comedy-club' | 'night-club' | 'dive-bar'
+  // Institutional  
+  | 'community-center' | 'church' | 'chapel' | 'vfw-hall' | 'legion-hall' | 'union-hall'
+  // Arts/Culture
+  | 'theater' | 'arts-center' | 'gallery' | 'museum' | 'library'
+  // Alternative/DIY
+  | 'co-op' | 'infoshop' | 'diy-space' | 'rehearsal-space' | 'squat'
+  // Educational
+  | 'school' | 'university' | 'conference-room'
+  | 'other';
+
+export type PerformerType = 
+  // Music
+  | 'band' | 'solo-musician' | 'dj' | 'electronic-artist' | 'choir'
+  // Comedy/Performance
+  | 'comedian' | 'performance-artist' | 'clown' | 'magician'
+  // Literary/Spoken Word  
+  | 'poet' | 'spoken-word-artist' | 'storyteller' | 'writer' | 'author'
+  // Theater/Drama
+  | 'theater-group' | 'actor' | 'improv-group' | 'puppeteer'
+  // Movement/Dance
+  | 'dancer' | 'dance-group' | 'choreographer'
+  // Speaking/Education
+  | 'lecturer' | 'speaker' | 'educator' | 'activist' | 'organizer'
+  // Visual/Media
+  | 'visual-artist' | 'filmmaker' | 'photographer' | 'installation-artist'
+  // Alternative/Experimental
+  | 'noise-artist' | 'sound-artist' | 'collective' | 'art-collective'
+  | 'other';
+
+// Legacy aliases for backward compatibility
+export type VenueType = SpaceType;
+export type ArtistType = PerformerType;
 
 // Label mappings for display
-export const VENUE_TYPE_LABELS: Record<VenueType, string> = {
-  'house-show': 'House Show',
-  'community-space': 'Community Space',
-  'record-store': 'Record Store',
-  'vfw-hall': 'VFW Hall',
-  'arts-center': 'Arts Center',
+export const SPACE_TYPE_LABELS: Record<SpaceType, string> = {
+  // Residential
+  'house': 'House',
+  'basement': 'Basement', 
+  'loft': 'Loft',
+  'rooftop': 'Rooftop',
+  'apartment': 'Apartment',
+  // Industrial/Warehouse
   'warehouse': 'Warehouse',
+  'factory': 'Factory',
+  'garage': 'Garage', 
+  'storage-unit': 'Storage Unit',
+  // Rural/Alternative
+  'barn': 'Barn',
+  'farm': 'Farm',
+  'park': 'Park',
+  'outdoor-space': 'Outdoor Space',
+  'festival-ground': 'Festival Ground',
+  // Commercial/Retail
+  'record-store': 'Record Store',
+  'book-store': 'Book Store',
+  'coffee-shop': 'Coffee Shop',
+  'restaurant': 'Restaurant',
+  'shop': 'Shop',
+  // Nightlife
   'bar': 'Bar',
   'club': 'Club',
+  'comedy-club': 'Comedy Club',
+  'night-club': 'Night Club',
+  'dive-bar': 'Dive Bar',
+  // Institutional
+  'community-center': 'Community Center',
+  'church': 'Church',
+  'chapel': 'Chapel',
+  'vfw-hall': 'VFW Hall',
+  'legion-hall': 'Legion Hall',
+  'union-hall': 'Union Hall',
+  // Arts/Culture
   'theater': 'Theater',
+  'arts-center': 'Arts Center',
+  'gallery': 'Gallery',
+  'museum': 'Museum',
+  'library': 'Library',
+  // Alternative/DIY
+  'co-op': 'Co-op',
+  'infoshop': 'Infoshop',
+  'diy-space': 'DIY Space',
+  'rehearsal-space': 'Rehearsal Space',
+  'squat': 'Squat',
+  // Educational
+  'school': 'School',
+  'university': 'University',
+  'conference-room': 'Conference Room',
   'other': 'Other'
 };
 
-export const ARTIST_TYPE_LABELS: Record<ArtistType, string> = {
+export const PERFORMER_TYPE_LABELS: Record<PerformerType, string> = {
+  // Music
   'band': 'Band',
-  'solo-artist': 'Solo Artist',
-  'collective': 'Collective',
-  'electronic-artist': 'Electronic Artist',
+  'solo-musician': 'Solo Musician',
   'dj': 'DJ',
+  'electronic-artist': 'Electronic Artist',
+  'choir': 'Choir',
+  // Comedy/Performance
+  'comedian': 'Comedian',
+  'performance-artist': 'Performance Artist',
+  'clown': 'Clown',
+  'magician': 'Magician',
+  // Literary/Spoken Word
+  'poet': 'Poet',
+  'spoken-word-artist': 'Spoken Word Artist',
+  'storyteller': 'Storyteller',
+  'writer': 'Writer',
+  'author': 'Author',
+  // Theater/Drama
+  'theater-group': 'Theater Group',
+  'actor': 'Actor',
+  'improv-group': 'Improv Group',
+  'puppeteer': 'Puppeteer',
+  // Movement/Dance
+  'dancer': 'Dancer',
+  'dance-group': 'Dance Group',
+  'choreographer': 'Choreographer',
+  // Speaking/Education
+  'lecturer': 'Lecturer',
+  'speaker': 'Speaker',
+  'educator': 'Educator',
+  'activist': 'Activist',
+  'organizer': 'Organizer',
+  // Visual/Media
+  'visual-artist': 'Visual Artist',
+  'filmmaker': 'Filmmaker',
+  'photographer': 'Photographer',
+  'installation-artist': 'Installation Artist',
+  // Alternative/Experimental
+  'noise-artist': 'Noise Artist',
+  'sound-artist': 'Sound Artist',
+  'collective': 'Collective',
+  'art-collective': 'Art Collective',
   'other': 'Other'
-}; 
+};
+
+// Legacy aliases for backward compatibility
+export const VENUE_TYPE_LABELS = SPACE_TYPE_LABELS;
+export const ARTIST_TYPE_LABELS = PERFORMER_TYPE_LABELS; 

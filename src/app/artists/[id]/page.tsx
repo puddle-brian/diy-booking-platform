@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import BookingInquiryForm from '../../../components/BookingInquiryForm';
 // import TeamManagement from '../../../components/TeamManagement';
 import TourItinerary from '../../../components/TourItinerary';
-import VenueBidForm from '../../../components/VenueBidForm';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface Artist {
   id: string;
@@ -93,8 +93,6 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
   const [loading, setLoading] = useState(true);
   const [loadingTourRequests, setLoadingTourRequests] = useState(true);
   const [showInquiryForm, setShowInquiryForm] = useState(false);
-  const [showBidForm, setShowBidForm] = useState(false);
-  const [selectedTourRequest, setSelectedTourRequest] = useState<TourRequest | null>(null);
   const [hasSentInquiry, setHasSentInquiry] = useState(false);
   const [isClaimingMode, setIsClaimingMode] = useState(false);
   const [claimingForm, setClaimingForm] = useState({
@@ -271,8 +269,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
   };
 
   const handleBidSuccess = (bid: any) => {
-    setShowBidForm(false);
-    setSelectedTourRequest(null);
+    setShowInquiryForm(false);
     setContactStatus('Bid submitted successfully! The artist will review your offer and get back to you.');
     setTimeout(() => setContactStatus(''), 8000);
     
@@ -450,7 +447,23 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
 
         {/* Tour Itinerary - CORE FUNCTIONALITY - Second Most Important */}
         <div className="mb-8">
-          <TourItinerary artistId={artist.id} title="Tour Dates" editable={false} viewerType="artist" />
+          <TourItinerary 
+            artistId={artist.id} 
+            artistName={artist.name}
+            title="Tour Dates" 
+            editable={false} 
+            viewerType={(() => {
+              const { user } = useAuth();
+              if (!user) return 'public';
+              if (user.profileType === 'venue') return 'venue';
+              if (user.profileType === 'artist') return 'artist';
+              return 'public';
+            })()} 
+            venueId={(() => {
+              const { user } = useAuth();
+              return user?.profileType === 'venue' ? user.profileId : undefined;
+            })()}
+          />
         </div>
 
         <div>

@@ -1,644 +1,735 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
-interface Venue {
-  id: string;
-  name: string;
-  city: string;
-  state: string;
-  country: string;
-  venueType: 'house-show' | 'community-space' | 'record-store' | 'vfw-hall' | 'arts-center' | 'warehouse' | 'bar' | 'club' | 'theater' | 'other';
-  genres: string[];
-  capacity: number;
-  ageRestriction: 'all-ages' | '18+' | '21+';
-  equipment: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  features: string[];
-  pricing: {
-    guarantee: number;
-    door: boolean;
-    merchandise: boolean;
-  };
-  contact: {
-    email: string;
-    phone?: string;
-    social?: string;
-    website?: string;
-  };
-  images: string[];
-  description: string;
-  rating: number;
-  showsThisYear: number;
-  createdAt: Date;
-  updatedAt: Date;
-  hasAccount: boolean;
-}
+export default function AdminPage() {
+  const { user, setDebugUser, clearDebugUser } = useAuth();
+  const [activeTab, setActiveTab] = useState<'debug' | 'content' | 'analytics'>('debug');
+  const [loading, setLoading] = useState<{[key: string]: boolean}>({});
+  const [venues, setVenues] = useState<any[]>([]);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
 
-interface Artist {
-  id: string;
-  name: string;
-  city: string;
-  state: string;
-  country: string;
-  artistType: 'band' | 'solo' | 'duo' | 'collective';
-  genres: string[];
-  members: number;
-  yearFormed: number;
-  tourStatus: 'active' | 'hiatus' | 'selective' | 'local-only';
-  equipment: {
-    needsPA: boolean;
-    needsMics: boolean;
-    needsDrums: boolean;
-    needsAmps: boolean;
-    acoustic: boolean;
-  };
-  features: string[];
-  contact: {
-    email: string;
-    phone?: string;
-    social?: string;
-    website?: string;
-  };
-  images: string[];
-  description: string;
-  rating: number;
-  showsThisYear: number;
-  expectedDraw: string;
-  tourRadius: 'local' | 'regional' | 'national' | 'international';
-  hasAccount: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface ArtistClaim {
-  id: string;
-  artistId: string;
-  artistName: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone?: string;
-  message: string;
-  timestamp: string;
-  status: 'pending' | 'approved' | 'rejected';
-  notes?: string;
-}
-
-export default function AdminDashboard() {
-  const [venues, setVenues] = useState<Venue[]>([]);
-  const [artists, setArtists] = useState<Artist[]>([]);
-  const [claims, setClaims] = useState<ArtistClaim[]>([]);
-  const [activeTab, setActiveTab] = useState<'venues' | 'artists' | 'claims'>('venues');
-  const [loading, setLoading] = useState(true);
-  const [deleteMessage, setDeleteMessage] = useState('');
-
+  // Prevent hydration mismatch by only showing browser-specific content after mount
   useEffect(() => {
-    loadData();
+    setMounted(true);
   }, []);
 
-  const loadData = async () => {
+  // Load data for content management
+  useEffect(() => {
+    if (activeTab === 'content') {
+      loadContentData();
+    }
+  }, [activeTab]);
+
+  const loadContentData = async () => {
     try {
-      const [venuesResponse, artistsResponse, claimsResponse] = await Promise.all([
+      const [venuesResponse, artistsResponse] = await Promise.all([
         fetch('/api/venues'),
-        fetch('/api/artists'),
-        fetch('/api/artist-claims')
+        fetch('/api/artists')
       ]);
       
       if (venuesResponse.ok) {
-        const venueData = await venuesResponse.json();
-        setVenues(venueData);
+        const venuesData = await venuesResponse.json();
+        setVenues(Array.isArray(venuesData) ? venuesData : []);
       }
       
       if (artistsResponse.ok) {
-        const artistData = await artistsResponse.json();
-        setArtists(artistData);
-      }
-
-      if (claimsResponse.ok) {
-        const claimsData = await claimsResponse.json();
-        setClaims(claimsData);
+        const artistsData = await artistsResponse.json();
+        setArtists(Array.isArray(artistsData) ? artistsData : []);
       }
     } catch (error) {
-      console.error('Failed to load data:', error);
+      console.error('Error loading content data:', error);
+    }
+  };
+
+  const handleQuickLogin = async (userType: 'artist' | 'venue' | 'logout' | 'member' | 'venue-staff', userData?: any) => {
+    setLoading(prev => ({ ...prev, [userType]: true }));
+    
+    try {
+      if (userType === 'logout') {
+        // Clear debug user and reload
+        clearDebugUser();
+        if (mounted) {
+          window.location.href = '/';
+        }
+        return;
+      }
+
+      // Set debug user in auth context with proper data structure
+      console.log('Admin: Setting debug user for type:', userType, 'with data:', userData);
+      setDebugUser(userData);
+      
+      // Add a small delay to ensure the user is set before redirecting
+      setTimeout(() => {
+        if (mounted) {
+          console.log('Admin: Redirecting to dashboard');
+          window.location.href = '/dashboard';
+        }
+      }, 100);
+    } catch (error) {
+      console.error('Quick login failed:', error);
+      alert('Quick login failed');
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, [userType]: false }));
     }
   };
 
-  const handleDeleteVenue = async (venueId: string, venueName: string) => {
-    if (!confirm(`Are you sure you want to delete "${venueName}"? This action cannot be undone.`)) {
-      return;
-    }
-
+  const handleResetBids = async () => {
+    setLoading(prev => ({ ...prev, resetBids: true }));
+    
     try {
-      const response = await fetch(`/api/venues/${venueId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete venue');
-      }
-
-      setDeleteMessage(`Venue "${venueName}" deleted successfully`);
-      await loadData(); // Reload the data
-      setTimeout(() => setDeleteMessage(''), 3000);
-    } catch (error) {
-      setDeleteMessage(`Error deleting venue: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTimeout(() => setDeleteMessage(''), 5000);
-    }
-  };
-
-  const handleDeleteArtist = async (artistId: string) => {
-    if (!confirm(`Are you sure you want to delete this artist? This action cannot be undone.`)) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/artists/${artistId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete artist');
-      }
-
-      setDeleteMessage(`Artist deleted successfully`);
-      await loadData(); // Reload the data
-      setTimeout(() => setDeleteMessage(''), 3000);
-    } catch (error) {
-      setDeleteMessage(`Error deleting artist: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setTimeout(() => setDeleteMessage(''), 5000);
-    }
-  };
-
-  const handleClaimAction = async (claimId: string, action: 'approve' | 'reject', notes?: string) => {
-    try {
-      const response = await fetch(`/api/artist-claims/${claimId}`, {
-        method: 'PUT',
+      const response = await fetch('/api/admin/reset-bids', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          status: action === 'approve' ? 'approved' : 'rejected',
-          notes: notes || ''
-        }),
       });
 
-      if (response.ok) {
-        // Reload claims data
-        const claimsResponse = await fetch('/api/artist-claims');
-        if (claimsResponse.ok) {
-          const claimsData = await claimsResponse.json();
-          setClaims(claimsData);
-        }
+      if (!response.ok) {
+        throw new Error('Failed to reset bids');
+      }
+
+      alert('✅ All bids have been reset to their original demo state!');
+      // Refresh the page to show updated state
+      if (mounted) {
+        window.location.reload();
       }
     } catch (error) {
-      console.error('Failed to update claim:', error);
+      console.error('Bid reset failed:', error);
+      alert('Failed to reset bids');
+    } finally {
+      setLoading(prev => ({ ...prev, resetBids: false }));
     }
   };
 
-  const getStats = () => {
-    const venueStats = {
-      total: venues.length,
-      withAccounts: venues.filter(v => v.hasAccount).length,
-      averageRating: venues.length > 0 ? venues.reduce((acc, v) => acc + v.rating, 0) / venues.length : 0
-    };
+  const handleClearAllBids = async () => {
+    if (!confirm('⚠️ This will permanently delete ALL bids from the system. This action cannot be undone. Are you sure?')) {
+      return;
+    }
 
-    const artistStats = {
-      total: artists.length,
-      withAccounts: artists.filter(a => a.hasAccount).length,
-      averageRating: artists.length > 0 ? artists.reduce((acc, a) => acc + a.rating, 0) / artists.length : 0
-    };
+    setLoading(prev => ({ ...prev, clearBids: true }));
+    
+    try {
+      const response = await fetch('/api/admin/clear-bids', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    const claimStats = {
-      total: claims.length,
-      pending: claims.filter(c => c.status === 'pending').length,
-      approved: claims.filter(c => c.status === 'approved').length,
-      rejected: claims.filter(c => c.status === 'rejected').length
-    };
+      if (!response.ok) {
+        throw new Error('Failed to clear bids');
+      }
 
-    return { venueStats, artistStats, claimStats };
+      alert('🧹 All bids have been cleared from the system!');
+      // Refresh the page to show updated state
+      if (mounted) {
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Clear bids failed:', error);
+      alert('Failed to clear bids');
+    } finally {
+      setLoading(prev => ({ ...prev, clearBids: false }));
+    }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading data...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleDeleteContent = async (type: 'venue' | 'artist', id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete ${type} "${name}"? This action cannot be undone.`)) {
+      return;
+    }
 
-  const stats = getStats();
+    setLoading(prev => ({ ...prev, [`delete-${type}-${id}`]: true }));
+    
+    try {
+      const response = await fetch(`/api/${type}s/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete ${type}`);
+      }
+
+      alert(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} "${name}" has been deleted!`);
+      
+      // Reload content data
+      await loadContentData();
+    } catch (error) {
+      console.error(`Delete ${type} failed:`, error);
+      alert(`Failed to delete ${type}`);
+    } finally {
+      setLoading(prev => ({ ...prev, [`delete-${type}-${id}`]: false }));
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage venues, artists, and claims</p>
-            </div>
-            <div className="flex space-x-4">
-              <Link 
-                href="/"
-                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Back to Site
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {deleteMessage && (
-          <div className={`mb-6 p-4 rounded-lg ${
-            deleteMessage.includes('Error') 
-              ? 'bg-red-100 text-red-700' 
-              : 'bg-green-100 text-green-700'
-          }`}>
-            {deleteMessage}
-          </div>
-        )}
-
-        {/* Stats Cards */}
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <div className="grid md:grid-cols-3 gap-6 mb-8">
-            {/* Venues Stats */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-blue-100 rounded-lg">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Venues</h3>
-                  <p className="text-2xl font-bold text-blue-600">{stats.venueStats.total}</p>
-                  <p className="text-sm text-gray-600">{stats.venueStats.withAccounts} with accounts</p>
-                </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="bg-white rounded-lg shadow">
+          {/* Header */}
+          <div className="border-b border-gray-200 px-6 py-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">🛠️ Admin Control Panel</h1>
+                <p className="text-gray-600 mt-1">Manage platform content and debug tools</p>
               </div>
-            </div>
-
-            {/* Artists Stats */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-purple-100 rounded-lg">
-                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Artists</h3>
-                  <p className="text-2xl font-bold text-purple-600">{stats.artistStats.total}</p>
-                  <p className="text-sm text-gray-600">{stats.artistStats.withAccounts} with accounts</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Claims Stats */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <div className="flex items-center">
-                <div className="p-3 bg-orange-100 rounded-lg">
-                  <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-semibold text-gray-900">Claims</h3>
-                  <p className="text-2xl font-bold text-orange-600">{stats.claimStats.pending}</p>
-                  <p className="text-sm text-gray-600">pending review</p>
-                </div>
+              
+              {/* Current User Status */}
+              <div className="text-right">
+                <div className="text-sm text-gray-600">Current User:</div>
+                {user ? (
+                  <div className="text-sm">
+                    <div className="font-medium text-gray-900">{user.name}</div>
+                    <div className="text-gray-600">
+                      {user.role} {user.profileType && `• ${user.profileType}`}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500">Not logged in</div>
+                )}
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow mb-6">
+          {/* Tab Navigation */}
           <div className="border-b border-gray-200">
             <nav className="flex space-x-8 px-6">
               <button
-                onClick={() => setActiveTab('venues')}
+                onClick={() => setActiveTab('debug')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'venues'
+                  activeTab === 'debug'
                     ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Venues ({stats.venueStats.total})
+                🐛 Debug Tools
               </button>
               <button
-                onClick={() => setActiveTab('artists')}
+                onClick={() => setActiveTab('content')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'artists'
-                    ? 'border-purple-500 text-purple-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  activeTab === 'content'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Artists ({stats.artistStats.total})
+                📝 Content Management
               </button>
               <button
-                onClick={() => setActiveTab('claims')}
+                onClick={() => setActiveTab('analytics')}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'claims'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                  activeTab === 'analytics'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                 }`}
               >
-                Artist Claims ({stats.claimStats.pending} pending)
+                📊 Analytics
               </button>
             </nav>
           </div>
 
           {/* Tab Content */}
           <div className="p-6">
-            {activeTab === 'venues' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Venues</h2>
-                  <Link
-                    href="/admin/venues"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Add New Venue
-                  </Link>
-                </div>
+            {activeTab === 'debug' && (
+              <div className="space-y-8">
+                {/* Quick User Switcher */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick User Switcher</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    
+                    {/* ARTISTS */}
+                    <div className="col-span-full">
+                      <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">🎵 Artists</h3>
+                    </div>
 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Venue
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Location
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Capacity
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {venues.map((venue) => (
-                        <tr key={venue.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{venue.name}</div>
-                              <div className="text-sm text-gray-500">{venue.contact.email}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {venue.city}, {venue.state}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                            {venue.venueType.replace('-', ' ')}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {venue.capacity}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              venue.hasAccount 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {venue.hasAccount ? 'Active' : 'Unclaimed'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <Link
-                              href={`/admin/venues/edit/${venue.id}`}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => handleDeleteVenue(venue.id, venue.name)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+                    {/* Brian Gibson (Lightning Bolt Member) */}
+                    <button
+                      onClick={() => handleQuickLogin('member', {
+                        id: 'brian-gibson',
+                        name: 'Brian Gibson',
+                        email: 'brian@lightningbolt.com',
+                        role: 'user',
+                        profileType: 'artist',
+                        profileId: '1748101913848', // Lightning Bolt
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading.member}
+                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-purple-800">🥁 Brian Gibson</div>
+                        <div className="text-sm text-purple-600">Lightning Bolt • Drummer</div>
+                        <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
+                      </div>
+                    </button>
 
-            {activeTab === 'artists' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Artists</h2>
-                  <Link
-                    href="/admin/artists"
-                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    Add New Artist
-                  </Link>
-                </div>
+                    {/* Laura Jane Grace (Against Me!) */}
+                    <button
+                      onClick={() => handleQuickLogin('member', {
+                        id: 'laura-jane-grace',
+                        name: 'Laura Jane Grace',
+                        email: 'laura@againstme.com',
+                        role: 'user',
+                        profileType: 'artist',
+                        profileId: '1', // Against Me!
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading.member}
+                      className="p-4 border-2 border-red-200 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-red-800">🎸 Laura Jane Grace</div>
+                        <div className="text-sm text-red-600">Against Me! • Vocalist/Guitar</div>
+                        <div className="text-xs text-red-500 mt-1">Gainesville, FL • Folk Punk</div>
+                      </div>
+                    </button>
 
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Artist
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Location
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Members
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {artists.map((artist) => (
-                        <tr key={artist.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{artist.name}</div>
-                              <div className="text-sm text-gray-500">{artist.contact.email}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {artist.city}, {artist.state}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                            {artist.artistType}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {artist.members}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              artist.hasAccount 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {artist.hasAccount ? 'Active' : 'Unclaimed'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                            <Link
-                              href={`/admin/artists/edit/${artist.id}`}
-                              className="text-purple-600 hover:text-purple-900"
-                            >
-                              Edit
-                            </Link>
-                            <button
-                              onClick={() => handleDeleteArtist(artist.id)}
-                              className="text-red-600 hover:text-red-900"
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+                    {/* Tom May (The Menzingers) */}
+                    <button
+                      onClick={() => handleQuickLogin('member', {
+                        id: 'tom-may',
+                        name: 'Tom May',
+                        email: 'tom@themenzingers.com',
+                        role: 'user',
+                        profileType: 'artist',
+                        profileId: '2', // The Menzingers
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading.member}
+                      className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-blue-800">🎤 Tom May</div>
+                        <div className="text-sm text-blue-600">The Menzingers • Vocalist/Guitar</div>
+                        <div className="text-xs text-blue-500 mt-1">Scranton, PA • Punk Rock</div>
+                      </div>
+                    </button>
 
-            {activeTab === 'claims' && (
-              <div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Artist Claims</h2>
-                  <div className="text-sm text-gray-600">
-                    {stats.claimStats.pending} pending • {stats.claimStats.approved} approved • {stats.claimStats.rejected} rejected
+                    {/* Patti Smith */}
+                    <button
+                      onClick={() => handleQuickLogin('member', {
+                        id: 'patti-smith',
+                        name: 'Patti Smith',
+                        email: 'patti@pattismith.net',
+                        role: 'user',
+                        profileType: 'artist',
+                        profileId: '3', // Patti Smith
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading.member}
+                      className="p-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-indigo-800">📖 Patti Smith</div>
+                        <div className="text-sm text-indigo-600">Solo Artist • Poet/Musician</div>
+                        <div className="text-xs text-indigo-500 mt-1">New York, NY • Punk Poetry</div>
+                      </div>
+                    </button>
+
+                    {/* Barry Johnson (Joyce Manor) */}
+                    <button
+                      onClick={() => handleQuickLogin('member', {
+                        id: 'barry-johnson',
+                        name: 'Barry Johnson',
+                        email: 'barry@joycemanor.org',
+                        role: 'user',
+                        profileType: 'artist',
+                        profileId: '5', // Joyce Manor
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading.member}
+                      className="p-4 border-2 border-orange-200 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-orange-800">🎸 Barry Johnson</div>
+                        <div className="text-sm text-orange-600">Joyce Manor • Vocalist/Guitar</div>
+                        <div className="text-xs text-orange-500 mt-1">Torrance, CA • Punk/Emo</div>
+                      </div>
+                    </button>
+
+                    {/* VENUES */}
+                    <div className="col-span-full mt-6">
+                      <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">🏢 Venues</h3>
+                    </div>
+
+                    {/* Lidz Bierenday (Lost Bag Staff) */}
+                    <button
+                      onClick={() => handleQuickLogin('venue-staff', {
+                        id: 'lidz-bierenday',
+                        name: 'Lidz Bierenday',
+                        email: 'lidz@lostbag.com',
+                        role: 'user',
+                        profileType: 'venue',
+                        profileId: '1748094967307', // Lost Bag
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading['venue-staff']}
+                      className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-green-800">🏠 Lidz Bierenday</div>
+                        <div className="text-sm text-green-600">Lost Bag • House Show</div>
+                        <div className="text-xs text-green-500 mt-1">Providence, RI • 300 cap</div>
+                      </div>
+                    </button>
+
+                    {/* Joe (Joe's Basement) */}
+                    <button
+                      onClick={() => handleQuickLogin('venue-staff', {
+                        id: 'joe-basement',
+                        name: 'Joe Martinez',
+                        email: 'joe@joesbasement.com',
+                        role: 'user',
+                        profileType: 'venue',
+                        profileId: '1', // Joe's Basement
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading['venue-staff']}
+                      className="p-4 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-yellow-800">🏠 Joe Martinez</div>
+                        <div className="text-sm text-yellow-600">Joe's Basement • House Show</div>
+                        <div className="text-xs text-yellow-500 mt-1">Portland, OR • 35 cap</div>
+                      </div>
+                    </button>
+
+                    {/* Sarah (Community Arts Center) */}
+                    <button
+                      onClick={() => handleQuickLogin('venue-staff', {
+                        id: 'sarah-arts',
+                        name: 'Sarah Chen',
+                        email: 'sarah@communityarts.org',
+                        role: 'user',
+                        profileType: 'venue',
+                        profileId: '2', // Community Arts Center
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading['venue-staff']}
+                      className="p-4 border-2 border-teal-200 rounded-lg hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-teal-800">🎭 Sarah Chen</div>
+                        <div className="text-sm text-teal-600">Community Arts Center • Booker</div>
+                        <div className="text-xs text-teal-500 mt-1">Austin, TX • 120 cap</div>
+                      </div>
+                    </button>
+
+                    {/* Mike (The Underground) */}
+                    <button
+                      onClick={() => handleQuickLogin('venue-staff', {
+                        id: 'mike-underground',
+                        name: 'Mike Rodriguez',
+                        email: 'mike@theunderground.nyc',
+                        role: 'user',
+                        profileType: 'venue',
+                        profileId: '4', // The Underground
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading['venue-staff']}
+                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-gray-800">🏠 Mike Rodriguez</div>
+                        <div className="text-sm text-gray-600">The Underground • House Show</div>
+                        <div className="text-xs text-gray-500 mt-1">Brooklyn, NY • 50 cap</div>
+                      </div>
+                    </button>
+
+                    {/* Alex (VFW Post 1138) */}
+                    <button
+                      onClick={() => handleQuickLogin('venue-staff', {
+                        id: 'alex-vfw',
+                        name: 'Alex Thompson',
+                        email: 'alex@vfw1138.org',
+                        role: 'user',
+                        profileType: 'venue',
+                        profileId: '5', // VFW Post 1138
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading['venue-staff']}
+                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-purple-800">🏛️ Alex Thompson</div>
+                        <div className="text-sm text-purple-600">VFW Post 1138 • Event Coordinator</div>
+                        <div className="text-xs text-purple-500 mt-1">Richmond, VA • 150 cap</div>
+                      </div>
+                    </button>
+
+                    {/* ADMIN/PUBLIC */}
+                    <div className="col-span-full mt-6">
+                      <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">👤 Other</h3>
+                    </div>
+
+                    {/* Logout */}
+                    <button
+                      onClick={() => handleQuickLogin('logout')}
+                      disabled={loading.logout}
+                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-gray-900">👤 Public View</div>
+                        <div className="text-sm text-gray-600">Not logged in</div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {loading.logout ? 'Logging out...' : 'Browse as public user'}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  
+                  {/* Usage Instructions */}
+                  <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <span className="text-2xl">💡</span>
+                      </div>
+                      <div className="ml-3">
+                        <h3 className="text-sm font-medium text-blue-800">Testing Instructions</h3>
+                        <div className="mt-1 text-sm text-blue-700">
+                          <p className="mb-2">Use these accounts to test the bidding and hold system:</p>
+                          <ul className="list-disc list-inside space-y-1 text-xs">
+                            <li><strong>Artists:</strong> Create tour requests, view/manage bids, place holds, accept/decline offers</li>
+                            <li><strong>Venues:</strong> Browse tour requests, submit bids, view bid status, confirm accepted shows</li>
+                            <li><strong>Cross-testing:</strong> Switch between accounts to see both sides of the booking process</li>
+                            <li><strong>Hold System:</strong> Test first/second/third hold priority and automatic promotion</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  {claims.length === 0 ? (
-                    <div className="text-center py-12">
-                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <p className="text-gray-500">No artist claims yet</p>
-                    </div>
-                  ) : (
-                    claims.map((claim) => (
-                      <div key={claim.id} className={`border rounded-lg p-6 ${
-                        claim.status === 'pending' ? 'border-orange-200 bg-orange-50' :
-                        claim.status === 'approved' ? 'border-green-200 bg-green-50' :
-                        'border-red-200 bg-red-50'
-                      }`}>
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <h3 className="text-lg font-semibold text-gray-900">{claim.artistName}</h3>
-                            <p className="text-sm text-gray-600">
-                              Claim by {claim.contactName} ({claim.contactEmail})
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(claim.timestamp).toLocaleDateString()} at {new Date(claim.timestamp).toLocaleTimeString()}
-                            </p>
-                          </div>
-                          <span className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                            claim.status === 'pending' ? 'bg-orange-100 text-orange-800' :
-                            claim.status === 'approved' ? 'bg-green-100 text-green-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {claim.status}
-                          </span>
-                        </div>
-
-                        <div className="mb-4">
-                          <h4 className="font-medium text-gray-900 mb-2">Message:</h4>
-                          <p className="text-gray-700 text-sm bg-white p-3 rounded border">
-                            {claim.message}
-                          </p>
-                        </div>
-
-                        {claim.contactPhone && (
-                          <div className="mb-4">
-                            <span className="text-sm text-gray-600">Phone: {claim.contactPhone}</span>
-                          </div>
-                        )}
-
-                        {claim.notes && (
-                          <div className="mb-4">
-                            <h4 className="font-medium text-gray-900 mb-2">Admin Notes:</h4>
-                            <p className="text-gray-700 text-sm bg-white p-3 rounded border">
-                              {claim.notes}
-                            </p>
-                          </div>
-                        )}
-
-                        {claim.status === 'pending' && (
-                          <div className="flex gap-3">
-                            <button
-                              onClick={() => {
-                                const notes = prompt('Add notes (optional):');
-                                handleClaimAction(claim.id, 'approve', notes || undefined);
-                              }}
-                              className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
-                            >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() => {
-                                const notes = prompt('Add rejection reason:');
-                                if (notes) {
-                                  handleClaimAction(claim.id, 'reject', notes);
-                                }
-                              }}
-                              className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm"
-                            >
-                              Reject
-                            </button>
-                            <Link
-                              href={`/artists/${claim.artistId}`}
-                              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm"
-                            >
-                              View Artist
-                            </Link>
-                          </div>
-                        )}
+                {/* Data Reset Tools */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Data Reset Tools</h2>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <span className="text-2xl">⚠️</span>
                       </div>
-                    ))
-                  )}
+                      <div className="ml-3 flex-1">
+                        <h3 className="text-sm font-medium text-yellow-800">Reset All Bids</h3>
+                        <p className="mt-1 text-sm text-yellow-700">
+                          This will reset all venue bids and restore any missing tour requests back to their original demo state. 
+                          Useful when bids get stuck in cancelled/declined states during testing.
+                        </p>
+                        <div className="mt-4">
+                          <button
+                            onClick={handleResetBids}
+                            disabled={loading.resetBids}
+                            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loading.resetBids ? 'Resetting...' : '🔄 Reset All Bids & Tour Requests'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Clear All Bids</h2>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="flex items-start">
+                      <div className="flex-shrink-0">
+                        <span className="text-2xl">⚠️</span>
+                      </div>
+                      <div className="ml-3 flex-1">
+                        <h3 className="text-sm font-medium text-yellow-800">Clear All Bids</h3>
+                        <p className="mt-1 text-sm text-yellow-700">
+                          This will permanently delete ALL bids from the system. This action cannot be undone. Are you sure?
+                        </p>
+                        <div className="mt-4">
+                          <button
+                            onClick={handleClearAllBids}
+                            disabled={loading.clearBids}
+                            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {loading.clearBids ? 'Clearing...' : '🧹 Clear All Bids'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'content' && (
+              <div className="space-y-8">
+                {/* Quick Actions */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <a 
+                    href="/admin/venues"
+                    className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors text-center"
+                  >
+                    <div className="font-semibold text-green-900">+ Add New Space</div>
+                    <div className="text-sm text-green-600">Create a new venue/space</div>
+                  </a>
+                  <a 
+                    href="/admin/artists"
+                    className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-center"
+                  >
+                    <div className="font-semibold text-blue-900">+ Add New Performer</div>
+                    <div className="text-sm text-blue-600">Create a new artist/performer</div>
+                  </a>
+                </div>
+
+                {/* Venues Management */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Manage Spaces ({venues.length})</h2>
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="max-h-64 overflow-y-auto">
+                      {venues.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">No venues found</div>
+                      ) : (
+                        <table className="w-full">
+                          <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {venues.map((venue: any) => (
+                              <tr key={venue.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-2 text-sm font-medium text-gray-900">{venue.name}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500">{venue.city}, {venue.state}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500 capitalize">{venue.venueType}</td>
+                                <td className="px-4 py-2 text-sm space-x-2">
+                                  <a 
+                                    href={`/venues/${venue.id}`}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    View
+                                  </a>
+                                  <a 
+                                    href={`/admin/venues/${venue.id}`}
+                                    className="text-green-600 hover:text-green-800"
+                                  >
+                                    Edit
+                                  </a>
+                                  <button
+                                    onClick={() => handleDeleteContent('venue', venue.id, venue.name)}
+                                    disabled={loading[`delete-venue-${venue.id}`]}
+                                    className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                  >
+                                    {loading[`delete-venue-${venue.id}`] ? 'Deleting...' : 'Delete'}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Artists Management */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Manage Performers ({artists.length})</h2>
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="max-h-64 overflow-y-auto">
+                      {artists.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">No artists found</div>
+                      ) : (
+                        <table className="w-full">
+                          <thead className="bg-gray-50 sticky top-0">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-200">
+                            {artists.map((artist: any) => (
+                              <tr key={artist.id} className="hover:bg-gray-50">
+                                <td className="px-4 py-2 text-sm font-medium text-gray-900">{artist.name}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500">{artist.city}, {artist.state}</td>
+                                <td className="px-4 py-2 text-sm text-gray-500 capitalize">{artist.artistType}</td>
+                                <td className="px-4 py-2 text-sm space-x-2">
+                                  <a 
+                                    href={`/artists/${artist.id}`}
+                                    className="text-blue-600 hover:text-blue-800"
+                                  >
+                                    View
+                                  </a>
+                                  <a 
+                                    href={`/admin/artists/${artist.id}`}
+                                    className="text-green-600 hover:text-green-800"
+                                  >
+                                    Edit
+                                  </a>
+                                  <button
+                                    onClick={() => handleDeleteContent('artist', artist.id, artist.name)}
+                                    disabled={loading[`delete-artist-${artist.id}`]}
+                                    className="text-red-600 hover:text-red-800 disabled:opacity-50"
+                                  >
+                                    {loading[`delete-artist-${artist.id}`] ? 'Deleting...' : 'Delete'}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'analytics' && (
+              <div className="space-y-8">
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span className="text-2xl">📊</span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Analytics Coming Soon</h3>
+                  <p className="text-gray-600 mb-6">
+                    Platform analytics, booking statistics, and performance metrics will be available here.
+                  </p>
+                  <div className="text-sm text-gray-500">
+                    • Booking success rates<br/>
+                    • Popular venues and artists<br/>
+                    • Geographic distribution<br/>
+                    • Platform growth metrics
+                  </div>
                 </div>
               </div>
             )}
           </div>
+
+          {/* Footer Navigation */}
+          <div className="border-t border-gray-200 px-6 py-4">
+            <a 
+              href="/"
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              ← Back to main site
+            </a>
+          </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 } 

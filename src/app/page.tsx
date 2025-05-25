@@ -1,9 +1,29 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../types';
+import LocationSorting from '../components/LocationSorting';
+import CommunitySection from '../components/CommunitySection';
+import UserStatus from '../components/UserStatus';
+
+// Custom hook for debounced search
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 // Multi-select dropdown component
 function MultiSelectDropdown({ 
@@ -121,11 +141,17 @@ export default function Home() {
   const [selectedDraws, setSelectedDraws] = useState<string[]>([]);
   const [selectedTourStatus, setSelectedTourStatus] = useState<string[]>([]);
   
-  // Search states
+  // Search states - with immediate and debounced versions
   const [venueSearchLocation, setVenueSearchLocation] = useState('');
   const [venueSearchDate, setVenueSearchDate] = useState('');
   const [artistSearchLocation, setArtistSearchLocation] = useState('');
   const [artistSearchDate, setArtistSearchDate] = useState('');
+
+  // Debounced search values for better performance
+  const debouncedVenueLocation = useDebounce(venueSearchLocation, 300);
+  const debouncedVenueDate = useDebounce(venueSearchDate, 100);
+  const debouncedArtistLocation = useDebounce(artistSearchLocation, 300);
+  const debouncedArtistDate = useDebounce(artistSearchDate, 100);
 
   // Genre options
   const genreOptions = {
@@ -211,163 +237,204 @@ export default function Home() {
     loadData();
   }, []);
 
-  // Filter venues based on selected filters
-  const filteredVenues = loading ? [] : (venues && Array.isArray(venues) ? venues : []).filter(venue => {
-    // Safety check - ensure venue is a valid object
-    if (!venue || typeof venue !== 'object') {
-      return false;
-    }
-
-    try {
-      // Location search - search in name, city, state, description
-      if (venueSearchLocation && venueSearchLocation.trim()) {
-        const searchTerm = venueSearchLocation.toLowerCase().trim();
-        const searchableText = [
-          venue.name || '',
-          venue.city || '',
-          venue.state || '',
-          venue.description || '',
-          `${venue.city || ''}, ${venue.state || ''}`
-        ].join(' ').toLowerCase();
-        
-        if (!searchableText.includes(searchTerm)) {
-          return false;
-        }
+  // Filter venues based on selected filters - memoized for performance
+  const filteredVenues = useMemo(() => {
+    if (loading || !venues || !Array.isArray(venues)) return [];
+    
+    return venues.filter(venue => {
+      // Safety check - ensure venue is a valid object
+      if (!venue || typeof venue !== 'object') {
+        return false;
       }
 
-      // Date availability check - wrapped in additional safety
-      if (venueSearchDate && venueSearchDate.trim()) {
-        try {
-          if (!isVenueAvailableOnDate(venue, venueSearchDate)) {
+      try {
+        // Location search - search in name, city, state, description
+        if (debouncedVenueLocation && debouncedVenueLocation.trim()) {
+          const searchTerm = debouncedVenueLocation.toLowerCase().trim();
+          const searchableText = [
+            venue.name || '',
+            venue.city || '',
+            venue.state || '',
+            venue.description || '',
+            `${venue.city || ''}, ${venue.state || ''}`
+          ].join(' ').toLowerCase();
+          
+          if (!searchableText.includes(searchTerm)) {
             return false;
           }
-        } catch (error) {
-          console.warn('Error in date availability check:', error);
-          // Continue filtering without date restriction if there's an error
         }
-      }
 
-      if (selectedVenueTypes.length > 0 && !selectedVenueTypes.includes(venue.venueType)) {
-        return false;
-      }
-      if (selectedGenres.length > 0 && !selectedGenres.some(genre => venue.genres && venue.genres.includes(genre))) {
-        return false;
-      }
-      if (selectedAgeRestrictions.length > 0 && !selectedAgeRestrictions.includes(venue.ageRestriction)) {
-        return false;
-      }
-      if (selectedCapacities.length > 0) {
-        const matchesCapacity = selectedCapacities.some(range => {
-          const capacity = venue.capacity || 0;
-          switch (range) {
-            case '0-50': return capacity < 50;
-            case '50-200': return capacity >= 50 && capacity <= 200;
-            case '200-500': return capacity > 200 && capacity <= 500;
-            case '500+': return capacity > 500;
-            default: return false;
+        // Date availability check - wrapped in additional safety
+        if (debouncedVenueDate && debouncedVenueDate.trim()) {
+          try {
+            if (!isVenueAvailableOnDate(venue, debouncedVenueDate)) {
+              return false;
+            }
+          } catch (error) {
+            console.warn('Error in date availability check:', error);
+            // Continue filtering without date restriction if there's an error
           }
-        });
-        if (!matchesCapacity) return false;
-      }
-      return true;
-    } catch (error) {
-      console.warn('Error filtering venue:', error, venue);
-      return false; // Exclude problematic venues
-    }
-  });
+        }
 
-  // Filter artists based on selected filters
-  const filteredArtists = loading ? [] : (artists && Array.isArray(artists) ? artists : []).filter(artist => {
-    // Safety check - ensure artist is a valid object
-    if (!artist || typeof artist !== 'object') {
-      return false;
-    }
-
-    try {
-      // Location search - search in name, city, state, description
-      if (artistSearchLocation && artistSearchLocation.trim()) {
-        const searchTerm = artistSearchLocation.toLowerCase().trim();
-        const searchableText = [
-          artist.name || '',
-          artist.city || '',
-          artist.state || '',
-          artist.description || '',
-          `${artist.city || ''}, ${artist.state || ''}`
-        ].join(' ').toLowerCase();
-        
-        if (!searchableText.includes(searchTerm)) {
+        if (selectedVenueTypes.length > 0 && !selectedVenueTypes.includes(venue.venueType)) {
           return false;
         }
+        if (selectedGenres.length > 0 && !selectedGenres.some(genre => venue.genres && venue.genres.includes(genre))) {
+          return false;
+        }
+        if (selectedAgeRestrictions.length > 0 && !selectedAgeRestrictions.includes(venue.ageRestriction)) {
+          return false;
+        }
+        if (selectedCapacities.length > 0) {
+          const matchesCapacity = selectedCapacities.some(range => {
+            const capacity = venue.capacity || 0;
+            switch (range) {
+              case '0-50': return capacity < 50;
+              case '50-200': return capacity >= 50 && capacity <= 200;
+              case '200-500': return capacity > 200 && capacity <= 500;
+              case '500+': return capacity > 500;
+              default: return false;
+            }
+          });
+          if (!matchesCapacity) return false;
+        }
+        return true;
+      } catch (error) {
+        console.warn('Error filtering venue:', error, venue);
+        return false; // Exclude problematic venues
+      }
+    });
+  }, [
+    loading, 
+    venues, 
+    debouncedVenueLocation, 
+    debouncedVenueDate, 
+    selectedVenueTypes, 
+    selectedGenres, 
+    selectedAgeRestrictions, 
+    selectedCapacities
+  ]);
+
+  // Filter artists based on selected filters - memoized for performance
+  const filteredArtists = useMemo(() => {
+    if (loading || !artists || !Array.isArray(artists)) return [];
+    
+    return artists.filter(artist => {
+      // Safety check - ensure artist is a valid object
+      if (!artist || typeof artist !== 'object') {
+        return false;
       }
 
-      // Date availability check - wrapped in additional safety
-      if (artistSearchDate && artistSearchDate.trim()) {
-        try {
-          if (!isArtistAvailableOnDate(artist, artistSearchDate)) {
+      try {
+        // Location search - search in name, city, state, description
+        if (debouncedArtistLocation && debouncedArtistLocation.trim()) {
+          const searchTerm = debouncedArtistLocation.toLowerCase().trim();
+          const searchableText = [
+            artist.name || '',
+            artist.city || '',
+            artist.state || '',
+            artist.description || '',
+            `${artist.city || ''}, ${artist.state || ''}`
+          ].join(' ').toLowerCase();
+          
+          if (!searchableText.includes(searchTerm)) {
             return false;
           }
-        } catch (error) {
-          console.warn('Error in artist date availability check:', error);
-          // Continue filtering without date restriction if there's an error
         }
-      }
 
-      if (selectedArtistTypes.length > 0 && !selectedArtistTypes.includes(artist.artistType)) {
-        return false;
-      }
-      if (selectedGenres.length > 0 && !selectedGenres.some(genre => artist.genres && artist.genres.includes(genre))) {
-        return false;
-      }
-      if (selectedDraws.length > 0) {
-        const matchesDraw = selectedDraws.some(range => {
-          const expectedDraw = (artist.expectedDraw || '').toLowerCase();
-          switch (range) {
-            case 'local': 
-              return expectedDraw.includes('local') || 
-                     (expectedDraw.match(/\d+/) && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') < 50);
-            case 'regional': 
-              return expectedDraw.includes('regional') || 
-                     (expectedDraw.match(/\d+/) && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') >= 50 && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') <= 200);
-            case 'national': 
-              return expectedDraw.includes('national') || 
-                     (expectedDraw.match(/\d+/) && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') > 200);
-            case 'international': 
-              return expectedDraw.includes('international') || expectedDraw.includes('touring');
-            default: return false;
+        // Date availability check - wrapped in additional safety
+        if (debouncedArtistDate && debouncedArtistDate.trim()) {
+          try {
+            if (!isArtistAvailableOnDate(artist, debouncedArtistDate)) {
+              return false;
+            }
+          } catch (error) {
+            console.warn('Error in artist date availability check:', error);
+            // Continue filtering without date restriction if there's an error
           }
-        });
-        if (!matchesDraw) return false;
-      }
-      if (selectedTourStatus.length > 0) {
-        const matchesTourStatus = selectedTourStatus.some(status => {
-          switch (status) {
-            case 'seeking-shows':
-              // For now, simulate active tour requests - in real implementation we'd check tour requests
-              // Artists with certain keywords in description or who are actively touring
-              const description = (artist.description || '').toLowerCase();
-              const tourStatus = (artist.tourStatus || '').toLowerCase();
-              return description.includes('tour') || description.includes('dates') || 
-                     description.includes('booking') || tourStatus.includes('active') ||
-                     description.includes('shows') || description.includes('looking');
-            case 'active':
-              return artist.tourStatus === 'active';
-            case 'local-only':
-              return artist.tourStatus === 'local-only';
-            case 'on-hiatus':
-              return artist.tourStatus === 'hiatus';
-            default: return false;
-          }
-        });
-        if (!matchesTourStatus) return false;
-      }
-      return true;
-    } catch (error) {
-      console.warn('Error filtering artist:', error, artist);
-      return false; // Exclude problematic artists
-    }
-  });
+        }
 
-  const clearAllFilters = () => {
+        if (selectedArtistTypes.length > 0 && !selectedArtistTypes.includes(artist.artistType)) {
+          return false;
+        }
+        if (selectedGenres.length > 0 && !selectedGenres.some(genre => artist.genres && artist.genres.includes(genre))) {
+          return false;
+        }
+        if (selectedDraws.length > 0) {
+          const matchesDraw = selectedDraws.some(range => {
+            const expectedDraw = (artist.expectedDraw || '').toLowerCase();
+            switch (range) {
+              case 'local': 
+                return expectedDraw.includes('local') || 
+                       (expectedDraw.match(/\d+/) && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') < 50);
+              case 'regional': 
+                return expectedDraw.includes('regional') || 
+                       (expectedDraw.match(/\d+/) && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') >= 50 && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') <= 200);
+              case 'national': 
+                return expectedDraw.includes('national') || 
+                       (expectedDraw.match(/\d+/) && parseInt(expectedDraw.match(/\d+/)?.[0] || '0') > 200);
+              case 'international': 
+                return expectedDraw.includes('international') || expectedDraw.includes('touring');
+              default: return false;
+            }
+          });
+          if (!matchesDraw) return false;
+        }
+        if (selectedTourStatus.length > 0) {
+          const matchesTourStatus = selectedTourStatus.some(status => {
+            switch (status) {
+              case 'seeking-shows':
+                // For now, simulate active tour requests - in real implementation we'd check tour requests
+                // Artists with certain keywords in description or who are actively touring
+                const description = (artist.description || '').toLowerCase();
+                const tourStatus = (artist.tourStatus || '').toLowerCase();
+                return description.includes('tour') || description.includes('dates') || 
+                       description.includes('booking') || tourStatus.includes('active') ||
+                       description.includes('shows') || description.includes('looking');
+              case 'active':
+                return artist.tourStatus === 'active';
+              case 'local-only':
+                return artist.tourStatus === 'local-only';
+              case 'on-hiatus':
+                return artist.tourStatus === 'hiatus';
+              default: return false;
+            }
+          });
+          if (!matchesTourStatus) return false;
+        }
+        return true;
+      } catch (error) {
+        console.warn('Error filtering artist:', error, artist);
+        return false; // Exclude problematic artists
+      }
+    });
+  }, [
+    loading, 
+    artists, 
+    debouncedArtistLocation, 
+    debouncedArtistDate, 
+    selectedArtistTypes, 
+    selectedGenres, 
+    selectedDraws, 
+    selectedTourStatus
+  ]);
+
+  // Memoized active filters check using debounced values
+  const hasActiveFilters = useMemo(() => {
+    return selectedVenueTypes.length > 0 || selectedArtistTypes.length > 0 || 
+           selectedGenres.length > 0 || selectedAgeRestrictions.length > 0 ||
+           selectedCapacities.length > 0 || selectedDraws.length > 0 ||
+           selectedTourStatus.length > 0 ||
+           debouncedVenueLocation.trim() || debouncedVenueDate.trim() ||
+           debouncedArtistLocation.trim() || debouncedArtistDate.trim();
+  }, [
+    selectedVenueTypes, selectedArtistTypes, selectedGenres, selectedAgeRestrictions,
+    selectedCapacities, selectedDraws, selectedTourStatus,
+    debouncedVenueLocation, debouncedVenueDate, debouncedArtistLocation, debouncedArtistDate
+  ]);
+
+  // Optimized clear filters function
+  const clearAllFilters = useCallback(() => {
     setSelectedVenueTypes([]);
     setSelectedArtistTypes([]);
     setSelectedGenres([]);
@@ -380,7 +447,106 @@ export default function Home() {
     setVenueSearchDate('');
     setArtistSearchLocation('');
     setArtistSearchDate('');
-  };
+    
+    // Clear URL parameters
+    const params = new URLSearchParams(searchParams.toString());
+    // Keep only the tab parameter
+    const tab = params.get('tab');
+    
+    // Manually delete all search/filter parameters
+    params.delete('venueLocation');
+    params.delete('venueDate');
+    params.delete('artistLocation');
+    params.delete('artistDate');
+    params.delete('venueTypes');
+    params.delete('artistTypes');
+    params.delete('genres');
+    params.delete('ageRestrictions');
+    params.delete('capacities');
+    params.delete('draws');
+    params.delete('tourStatus');
+    
+    if (tab) params.set('tab', tab);
+    router.push(`/?${params.toString()}`, { scroll: false });
+  }, [router, searchParams]);
+
+  // Update URL when filters change (debounced to avoid too many history entries)
+  useEffect(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Update search parameters in URL
+    if (debouncedVenueLocation.trim()) {
+      params.set('venueLocation', debouncedVenueLocation);
+    } else {
+      params.delete('venueLocation');
+    }
+    
+    if (debouncedVenueDate.trim()) {
+      params.set('venueDate', debouncedVenueDate);
+    } else {
+      params.delete('venueDate');
+    }
+    
+    if (debouncedArtistLocation.trim()) {
+      params.set('artistLocation', debouncedArtistLocation);
+    } else {
+      params.delete('artistLocation');
+    }
+    
+    if (debouncedArtistDate.trim()) {
+      params.set('artistDate', debouncedArtistDate);
+    } else {
+      params.delete('artistDate');
+    }
+
+    // Update filter parameters
+    if (selectedVenueTypes.length > 0) {
+      params.set('venueTypes', selectedVenueTypes.join(','));
+    } else {
+      params.delete('venueTypes');
+    }
+
+    if (selectedArtistTypes.length > 0) {
+      params.set('artistTypes', selectedArtistTypes.join(','));
+    } else {
+      params.delete('artistTypes');
+    }
+
+    if (selectedGenres.length > 0) {
+      params.set('genres', selectedGenres.join(','));
+    } else {
+      params.delete('genres');
+    }
+
+    // Only update URL if there are actual changes
+    const newUrl = `/?${params.toString()}`;
+    if (window.location.search !== `?${params.toString()}`) {
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [
+    debouncedVenueLocation, debouncedVenueDate, debouncedArtistLocation, debouncedArtistDate,
+    selectedVenueTypes, selectedArtistTypes, selectedGenres,
+    router, searchParams
+  ]);
+
+  // Initialize filters from URL parameters on component mount
+  useEffect(() => {
+    const venueLocation = searchParams.get('venueLocation');
+    const venueDate = searchParams.get('venueDate');
+    const artistLocation = searchParams.get('artistLocation');
+    const artistDate = searchParams.get('artistDate');
+    const venueTypes = searchParams.get('venueTypes');
+    const artistTypes = searchParams.get('artistTypes');
+    const genres = searchParams.get('genres');
+
+    if (venueLocation) setVenueSearchLocation(venueLocation);
+    if (venueDate) setVenueSearchDate(venueDate);
+    if (artistLocation) setArtistSearchLocation(artistLocation);
+    if (artistDate) setArtistSearchDate(artistDate);
+    if (venueTypes) setSelectedVenueTypes(venueTypes.split(','));
+    if (artistTypes) setSelectedArtistTypes(artistTypes.split(','));
+    if (genres) setSelectedGenres(genres.split(','));
+  }, []); // Only run once on mount
 
   // Helper function to check if a venue is available on a specific date
   const isVenueAvailableOnDate = (venue: Venue, dateString: string): boolean => {
@@ -457,13 +623,6 @@ export default function Home() {
     }
   };
 
-  const hasActiveFilters = selectedVenueTypes.length > 0 || selectedArtistTypes.length > 0 || 
-                         selectedGenres.length > 0 || selectedAgeRestrictions.length > 0 ||
-                         selectedCapacities.length > 0 || selectedDraws.length > 0 ||
-                         selectedTourStatus.length > 0 ||
-                         venueSearchLocation.trim() || venueSearchDate.trim() ||
-                         artistSearchLocation.trim() || artistSearchDate.trim();
-
   // Update URL when tab changes
   const handleTabChange = (tab: 'venues' | 'artists') => {
     setActiveTab(tab);
@@ -502,7 +661,7 @@ export default function Home() {
                   : 'text-gray-600 hover:text-black'
               }`}
             >
-              🏠 Spaces
+              Spaces
             </button>
             <button
               onClick={() => handleTabChange('artists')}
@@ -512,24 +671,22 @@ export default function Home() {
                   : 'text-gray-600 hover:text-black'
               }`}
             >
-              🎵 Artists
+              Artists
             </button>
           </div>
           
+          {/* Right side - User Status */}
           <div className="flex items-center space-x-4">
             {/* Prominent CTAs */}
             <a 
               href={activeTab === 'venues' ? '/admin/venues' : '/admin/artists'}
               className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
             >
-              {activeTab === 'venues' ? '+ List a Space' : '+ List an Artist'}
+              {activeTab === 'venues' ? '+ List a Space' : '+ List a Performer'}
             </a>
             
-            {/* Regular Nav */}
-            <nav className="hidden md:flex space-x-6">
-              <a href="/admin" className="text-gray-700 hover:text-black">Admin</a>
-              <a href="/auth/login" className="text-gray-700 hover:text-black">Sign In</a>
-            </nav>
+            {/* User Status Component */}
+            <UserStatus />
           </div>
         </div>
       </header>
@@ -580,7 +737,7 @@ export default function Home() {
           <div className="max-w-4xl mx-auto mb-8">
             <div className="flex flex-wrap gap-3 items-center justify-center">
               <MultiSelectDropdown
-                label="Venue Types"
+                label="Space Types"
                 options={VENUE_TYPE_LABELS}
                 selectedValues={selectedVenueTypes}
                 onSelectionChange={setSelectedVenueTypes}
@@ -621,19 +778,19 @@ export default function Home() {
             {hasActiveFilters && (
               <div className="mt-3 text-sm text-gray-600">
                 Showing {filteredVenues.length} of {venues.length} spaces
-                {venueSearchLocation.trim() && (
+                {debouncedVenueLocation.trim() && (
                   <span className="ml-2 text-blue-600">
-                    • searching "{venueSearchLocation}"
+                    • searching "{debouncedVenueLocation}"
                   </span>
                 )}
-                {venueSearchDate && (
+                {debouncedVenueDate && (
                   <span className="ml-2 text-blue-600">
-                    • available {new Date(venueSearchDate).toLocaleDateString()}
+                    • available {new Date(debouncedVenueDate).toLocaleDateString()}
                   </span>
                 )}
                 {selectedVenueTypes.length > 0 && (
                   <span className="ml-2 text-blue-600">
-                    • {selectedVenueTypes.length} venue type{selectedVenueTypes.length !== 1 ? 's' : ''}
+                    • {selectedVenueTypes.length} space type{selectedVenueTypes.length !== 1 ? 's' : ''}
                   </span>
                 )}
                 {selectedGenres.length > 0 && (
@@ -679,11 +836,11 @@ export default function Home() {
                     <span className="text-2xl">🏠</span>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    {venueSearchLocation.trim() ? `No spaces found for "${venueSearchLocation}"` : 
+                    {debouncedVenueLocation.trim() ? `No spaces found for "${debouncedVenueLocation}"` : 
                      hasActiveFilters ? 'No matching spaces found' : 'Help Build the Network'}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {venueSearchLocation.trim() ? `Try searching for a different city or venue name, or browse all spaces below.` :
+                    {debouncedVenueLocation.trim() ? `Try searching for a different city or venue name, or browse all spaces below.` :
                      hasActiveFilters 
                       ? 'Try adjusting your filters to see more results.'
                       : 'Know a DIY space, basement, record store, or community center that hosts shows? Add it to help touring artists discover authentic venues.'
@@ -784,7 +941,7 @@ export default function Home() {
                     <div className="text-xs font-semibold text-gray-700 mb-1">Where</div>
                     <input
                       type="text"
-                      placeholder="Search artists"
+                      placeholder="Search performers"
                       value={artistSearchLocation}
                       onChange={(e) => setArtistSearchLocation(e.target.value)}
                       className="w-full text-sm placeholder-gray-500 border-none outline-none"
@@ -817,7 +974,7 @@ export default function Home() {
           <div className="max-w-4xl mx-auto mb-8">
             <div className="flex flex-wrap gap-3 items-center justify-center">
               <MultiSelectDropdown
-                label="Artist Types"
+                label="Performer Types"
                 options={ARTIST_TYPE_LABELS}
                 selectedValues={selectedArtistTypes}
                 onSelectionChange={setSelectedArtistTypes}
@@ -857,20 +1014,20 @@ export default function Home() {
             {/* Active Filter Summary */}
             {hasActiveFilters && (
               <div className="mt-3 text-sm text-gray-600">
-                Showing {filteredArtists.length} of {artists.length} artists
-                {artistSearchLocation.trim() && (
+                Showing {filteredArtists.length} of {artists.length} performers
+                {debouncedArtistLocation.trim() && (
                   <span className="ml-2 text-blue-600">
-                    • searching "{artistSearchLocation}"
+                    • searching "{debouncedArtistLocation}"
                   </span>
                 )}
-                {artistSearchDate && (
+                {debouncedArtistDate && (
                   <span className="ml-2 text-blue-600">
-                    • available {new Date(artistSearchDate).toLocaleDateString()}
+                    • available {new Date(debouncedArtistDate).toLocaleDateString()}
                   </span>
                 )}
                 {selectedArtistTypes.length > 0 && (
                   <span className="ml-2 text-blue-600">
-                    • {selectedArtistTypes.length} artist type{selectedArtistTypes.length !== 1 ? 's' : ''}
+                    • {selectedArtistTypes.length} performer type{selectedArtistTypes.length !== 1 ? 's' : ''}
                   </span>
                 )}
                 {selectedGenres.length > 0 && (
@@ -916,14 +1073,14 @@ export default function Home() {
                     <span className="text-2xl">🎵</span>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    {artistSearchLocation.trim() ? `No artists found for "${artistSearchLocation}"` : 
-                     hasActiveFilters ? 'No matching artists found' : 'Showcase DIY Artists'}
+                    {debouncedArtistLocation.trim() ? `No performers found for "${debouncedArtistLocation}"` : 
+                     hasActiveFilters ? 'No matching performers found' : 'Showcase DIY Performers'}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {artistSearchLocation.trim() ? `Try searching for a different city or artist name, or browse all artists below.` :
+                    {debouncedArtistLocation.trim() ? `Try searching for a different city or performer name, or browse all performers below.` :
                      hasActiveFilters 
                       ? 'Try adjusting your filters to see more results.'
-                      : 'Know touring bands, solo artists, or collectives looking for authentic venues? Add them to connect with spaces that book real music.'
+                      : 'Know touring bands, comedians, poets, or other performers looking for authentic spaces? Add them to connect with venues that book real talent.'
                     }
                   </p>
                   <div className="space-y-3">
@@ -939,7 +1096,7 @@ export default function Home() {
                         href="/admin/artists" 
                         className="block bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 font-medium"
                       >
-                        + List an Artist
+                        + List a Performer
                       </a>
                     )}
                   </div>
@@ -1030,44 +1187,54 @@ export default function Home() {
       )}
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-12 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-6xl mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-6 h-6 bg-black rounded flex items-center justify-center">
-                  <span className="text-white font-bold text-xs">B</span>
-                </div>
-                <span className="font-bold">Book Yr Life</span>
-              </div>
-              <p className="text-sm text-gray-600">
-                Connecting DIY spaces with touring artists worldwide.
+              <h3 className="text-lg font-semibold mb-4">DIY Booking</h3>
+              <p className="text-gray-400">
+                Connecting artists with authentic spaces. Book your own fucking life.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold mb-3">For Artists</h4>
-              <ul className="text-sm text-gray-600 space-y-2">
-                <li><a href="/" className="hover:text-black">Find Spaces</a></li>
-                <li><a href="/admin/artists" className="hover:text-black">List Your Project</a></li>
+              <h4 className="text-md font-semibold mb-3">For Artists</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">Find Venues</a></li>
+                <li><a href="#" className="hover:text-white">Submit Tour Requests</a></li>
+                <li><a href="#" className="hover:text-white">Manage Bookings</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-3">For Spaces</h4>
-              <ul className="text-sm text-gray-600 space-y-2">
-                <li><a href="/admin/venues" className="hover:text-black">List Your Space</a></li>
-                <li><a href="/" className="hover:text-black">Find Artists</a></li>
+              <h4 className="text-md font-semibold mb-3">For Venues</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">List Your Space</a></li>
+                <li><a href="#" className="hover:text-white">Browse Artists</a></li>
+                <li><a href="#" className="hover:text-white">Venue Tools</a></li>
               </ul>
             </div>
             <div>
-              <h4 className="font-semibold mb-3">Community</h4>
-              <ul className="text-sm text-gray-600 space-y-2">
-                <li><a href="/admin" className="hover:text-black">Admin</a></li>
-                <li><a href="/auth/login" className="hover:text-black">Sign In</a></li>
+              <h4 className="text-md font-semibold mb-3">Community</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">About BYOFL</a></li>
+                <li><a href="#" className="hover:text-white">Support</a></li>
+                <li><a href="#" className="hover:text-white">Guidelines</a></li>
               </ul>
             </div>
           </div>
-          <div className="border-t border-gray-200 mt-8 pt-8 text-center text-sm text-gray-600">
-            <p>© 2024 Book Yr Life. Connecting the underground music community.</p>
+          <div className="border-t border-gray-800 mt-8 pt-8 flex justify-between items-center">
+            <p className="text-gray-400">
+              © 2025 DIY Booking Platform. Inspired by the BYOFL zine.
+            </p>
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-500 text-xs">DEV:</span>
+              <a 
+                href="/admin" 
+                className="text-gray-500 hover:text-gray-300 text-xs"
+                title="Admin Debug Tools"
+              >
+                🛠️ Admin
+              </a>
+            </div>
           </div>
         </div>
       </footer>
