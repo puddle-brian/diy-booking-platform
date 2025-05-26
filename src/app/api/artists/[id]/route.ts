@@ -10,7 +10,7 @@ export async function GET(
     const resolvedParams = await params;
     
     const artist = await prisma.artist.findUnique({
-      where: { id: parseInt(resolvedParams.id) },
+      where: { id: resolvedParams.id },
       include: {
         location: true
       }
@@ -81,7 +81,7 @@ export async function PUT(
     
     // Check if artist exists
     const existingArtist = await prisma.artist.findUnique({
-      where: { id: parseInt(resolvedParams.id) }
+      where: { id: resolvedParams.id }
     });
     
     if (!existingArtist) {
@@ -104,7 +104,7 @@ export async function PUT(
 
     // Update artist
     const updatedArtist = await prisma.artist.update({
-      where: { id: parseInt(resolvedParams.id) },
+      where: { id: resolvedParams.id },
       data: {
         name: body.name,
         artistType: body.artistType?.toUpperCase(),
@@ -181,7 +181,7 @@ export async function DELETE(
     
     // Check if artist exists
     const existingArtist = await prisma.artist.findUnique({
-      where: { id: parseInt(resolvedParams.id) }
+      where: { id: resolvedParams.id }
     });
     
     if (!existingArtist) {
@@ -193,7 +193,7 @@ export async function DELETE(
 
     // Delete artist
     await prisma.artist.delete({
-      where: { id: parseInt(resolvedParams.id) }
+      where: { id: resolvedParams.id }
     });
 
     return NextResponse.json({ message: 'Artist deleted successfully' });

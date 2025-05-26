@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     if (entityType === 'artist') {
       // Find the artist and its owner
       const artist = await prisma.artist.findUnique({
-        where: { id: parseInt(entityId) },
+        where: { id: entityId },
         include: {
           submittedBy: true
         }
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     } else if (entityType === 'venue') {
       // Find the venue and its owner
       const venue = await prisma.venue.findUnique({
-        where: { id: parseInt(entityId) },
+        where: { id: entityId },
         include: {
           submittedBy: true
         }
