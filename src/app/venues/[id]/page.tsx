@@ -331,28 +331,45 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
               </div>
             </div>
             
-            {/* Claim Venue Button - Only show to unauthenticated users or users without access */}
-            {!venue.hasAccount && !user && (
-              <div className="flex-shrink-0 text-center">
-                <div className="text-xs text-gray-600 mb-1">Is this you?</div>
-                <button 
-                  onClick={() => {
-                    setIsClaimingMode(true);
-                    setShowBookingForm(true);
-                    setClaimingForm({
-                      venueName: venue.name,
-                      contactEmail: venue.contact.email,
-                      contactPhone: venue.contact.phone || '',
-                      contactName: '',
-                      message: `I am the owner/manager of ${venue.name} and would like to claim this venue profile to manage bookings and venue information.`,
-                    });
-                  }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm text-sm"
+            {/* Action Buttons */}
+            <div className="flex-shrink-0 flex items-center space-x-3">
+              {/* Message Button - Show to logged in users */}
+              {user && (
+                <MessageButton
+                  recipientId={venue.id}
+                  recipientName={venue.name}
+                  recipientType="venue"
+                  variant="primary"
+                  size="md"
+                  className="whitespace-nowrap"
                 >
-                  Claim this venue
-                </button>
-              </div>
-            )}
+                  Send Message
+                </MessageButton>
+              )}
+              
+              {/* Claim Venue Button - Only show to unauthenticated users or users without access */}
+              {!venue.hasAccount && !user && (
+                <div className="text-center">
+                  <div className="text-xs text-gray-600 mb-1">Is this you?</div>
+                  <button 
+                    onClick={() => {
+                      setIsClaimingMode(true);
+                      setShowBookingForm(true);
+                      setClaimingForm({
+                        venueName: venue.name,
+                        contactEmail: venue.contact.email,
+                        contactPhone: venue.contact.phone || '',
+                        contactName: '',
+                        message: `I am the owner/manager of ${venue.name} and would like to claim this venue profile to manage bookings and venue information.`,
+                      });
+                    }}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm text-sm"
+                  >
+                    Claim this venue
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -518,21 +535,7 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
             </div>
           </div>
 
-          {/* Contact Actions */}
-          {user && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-3">Get In Touch</h3>
-              <MessageButton
-                recipientId={venue.id}
-                recipientName={venue.name}
-                recipientType="venue"
-                variant="primary"
-                className="w-full"
-              >
-                Send Message to {venue.name}
-              </MessageButton>
-            </div>
-          )}
+
         </div>
 
         {/* Team Management Section - Role-Based Access Control */}

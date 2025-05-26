@@ -486,9 +486,9 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-1">
       {categories.map((category) => (
-        <section key={category.id} className="space-y-3">
+        <section key={category.id} className="space-y-1">
           {/* Header with title and navigation buttons */}
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-gray-900">{category.title}</h2>

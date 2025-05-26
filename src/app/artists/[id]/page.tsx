@@ -459,28 +459,45 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               </div>
             </div>
             
-            {/* Claim Artist Button - Only show to unauthenticated users or users without access */}
-            {!artist.hasAccount && !user && (
-              <div className="flex-shrink-0 text-center">
-                <div className="text-xs text-gray-600 mb-1">Is this you?</div>
-                <button 
-                  onClick={() => {
-                    setIsClaimingMode(true);
-                    setShowInquiryForm(true);
-                    setClaimingForm({
-                      artistName: artist.name,
-                      contactEmail: artist.contact.email,
-                      contactPhone: artist.contact.phone || '',
-                      contactName: '',
-                      message: `I am a member of ${artist.name} and would like to claim this artist profile to manage bookings and profile information.`,
-                    });
-                  }}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm text-sm"
+            {/* Action Buttons */}
+            <div className="flex-shrink-0 flex items-center space-x-3">
+              {/* Message Button - Show to logged in users */}
+              {user && (
+                <MessageButton
+                  recipientId={artist.id}
+                  recipientName={artist.name}
+                  recipientType="artist"
+                  variant="primary"
+                  size="md"
+                  className="whitespace-nowrap"
                 >
-                  Claim this project
-                </button>
-              </div>
-            )}
+                  Send Message
+                </MessageButton>
+              )}
+              
+              {/* Claim Artist Button - Only show to unauthenticated users or users without access */}
+              {!artist.hasAccount && !user && (
+                <div className="text-center">
+                  <div className="text-xs text-gray-600 mb-1">Is this you?</div>
+                  <button 
+                    onClick={() => {
+                      setIsClaimingMode(true);
+                      setShowInquiryForm(true);
+                      setClaimingForm({
+                        artistName: artist.name,
+                        contactEmail: artist.contact.email,
+                        contactPhone: artist.contact.phone || '',
+                        contactName: '',
+                        message: `I am a member of ${artist.name} and would like to claim this artist profile to manage bookings and profile information.`,
+                      });
+                    }}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm text-sm"
+                  >
+                    Claim this project
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -604,19 +621,6 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
             
             {/* Contact Buttons */}
             <div className="mt-4 space-y-3">
-              {/* Message Button - Always available for logged in users */}
-              {user && (
-                <MessageButton
-                  recipientId={artist.id}
-                  recipientName={artist.name}
-                  recipientType="artist"
-                  variant="outline"
-                  className="w-full"
-                >
-                  Send Message
-                </MessageButton>
-              )}
-
               {/* Booking Inquiry Button */}
               {(() => {
                 const contactContent = getContactContent();

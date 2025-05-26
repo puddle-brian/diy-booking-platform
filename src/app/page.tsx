@@ -1176,10 +1176,10 @@ function HomeContent() {
               </div>
             ) : getLocationBasedArtistSections.hasLocationData ? (
               // Location-based sections for venues
-              <div className="space-y-6">
+              <div className="space-y-1">
                 {getLocationBasedArtistSections.sections.map((section, sectionIndex) => (
                   <div key={sectionIndex}>
-                    <div className="mb-3">
+                    <div className="mb-1">
                       <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
                     </div>
                     
