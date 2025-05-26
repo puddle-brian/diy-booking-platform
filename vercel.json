@@ -1,9 +1,6 @@
 {
   "framework": "nextjs",
   "regions": ["iad1"],
-  "includeFiles": [
-    "data/**"
-  ],
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30

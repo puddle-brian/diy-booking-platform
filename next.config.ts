@@ -16,9 +16,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   // Ensure static files are properly handled
-  trailingSlash: false,
-  // Optimize for Vercel deployment
-  output: 'standalone'
+  trailingSlash: false
 };
 
 export default nextConfig;
