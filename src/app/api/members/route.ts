@@ -1,67 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
-const ARTIST_MEMBERSHIPS_FILE = path.join(DATA_DIR, 'artist-memberships.json');
-const VENUE_MEMBERSHIPS_FILE = path.join(DATA_DIR, 'venue-memberships.json');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
-
-interface ArtistMembership {
-  id: string;
-  userId: string;
-  artistId: string;
-  role: string;
-  permissions: string[];
-  joinedAt: string;
-  invitedBy: string;
-  status: string;
-}
-
-interface VenueMembership {
-  id: string;
-  userId: string;
-  venueId: string;
-  role: string;
-  permissions: string[];
-  joinedAt: string;
-  invitedBy: string;
-  status: string;
-}
-
-const loadUsers = (): User[] => {
-  try {
-    if (!fs.existsSync(USERS_FILE)) return [];
-    return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
-};
-
-const loadArtistMemberships = (): ArtistMembership[] => {
-  try {
-    if (!fs.existsSync(ARTIST_MEMBERSHIPS_FILE)) return [];
-    return JSON.parse(fs.readFileSync(ARTIST_MEMBERSHIPS_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
-};
-
-const loadVenueMemberships = (): VenueMembership[] => {
-  try {
-    if (!fs.existsSync(VENUE_MEMBERSHIPS_FILE)) return [];
-    return JSON.parse(fs.readFileSync(VENUE_MEMBERSHIPS_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
-};
+import { prisma } from '../../../../lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -73,32 +11,55 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'entityType and entityId are required' }, { status: 400 });
     }
 
-    const users = loadUsers();
-    let memberships: (ArtistMembership | VenueMembership)[] = [];
+    console.log(`👥 API: Fetching members for ${entityType} ${entityId}`);
+
+    let membersWithUserData: any[] = [];
 
     if (entityType === 'artist') {
-      const artistMemberships = loadArtistMemberships();
-      memberships = artistMemberships.filter(m => m.artistId === entityId && m.status === 'active');
+      // Find the artist and its owner
+      const artist = await prisma.artist.findUnique({
+        where: { id: parseInt(entityId) },
+        include: {
+          submittedBy: true
+        }
+      });
+
+      if (artist && artist.submittedBy) {
+        membersWithUserData = [{
+          id: artist.submittedBy.id,
+          membershipId: `artist-${artist.id}-owner`,
+          name: artist.submittedBy.username,
+          role: 'Owner',
+          email: artist.submittedBy.email,
+          avatar: null,
+          profileUrl: `/profile/${artist.submittedBy.id}`,
+          joinedAt: artist.createdAt.toISOString()
+        }];
+      }
     } else if (entityType === 'venue') {
-      const venueMemberships = loadVenueMemberships();
-      memberships = venueMemberships.filter(m => m.venueId === entityId && m.status === 'active');
+      // Find the venue and its owner
+      const venue = await prisma.venue.findUnique({
+        where: { id: parseInt(entityId) },
+        include: {
+          submittedBy: true
+        }
+      });
+
+      if (venue && venue.submittedBy) {
+        membersWithUserData = [{
+          id: venue.submittedBy.id,
+          membershipId: `venue-${venue.id}-owner`,
+          name: venue.submittedBy.username,
+          role: 'Owner',
+          email: venue.submittedBy.email,
+          avatar: null,
+          profileUrl: `/profile/${venue.submittedBy.id}`,
+          joinedAt: venue.createdAt.toISOString()
+        }];
+      }
     }
 
-    // Join with user data
-    const membersWithUserData = memberships.map(membership => {
-      const user = users.find(u => u.id === membership.userId);
-      return {
-        id: membership.userId, // Use the actual user ID for profile navigation
-        membershipId: membership.id, // Keep the membership ID for reference
-        name: user?.name || 'Unknown User',
-        role: membership.role,
-        email: user?.email,
-        avatar: null, // We can add avatar support later
-        profileUrl: `/profile/${membership.userId}`, // Generate profile URL using user ID
-        joinedAt: membership.joinedAt
-      };
-    });
-
+    console.log(`👥 API: Found ${membersWithUserData.length} members`);
     return NextResponse.json(membersWithUserData);
   } catch (error) {
     console.error('Failed to load members:', error);

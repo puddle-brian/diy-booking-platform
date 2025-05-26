@@ -1,35 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { prisma } from '../../../../../lib/prisma';
 import { Artist } from '../../../../../types/index';
-
-const artistsFilePath = path.join(process.cwd(), 'data', 'artists.json');
-
-function readArtists(): Artist[] {
-  try {
-    if (!fs.existsSync(artistsFilePath)) {
-      return [];
-    }
-    const data = fs.readFileSync(artistsFilePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading artists file:', error);
-    return [];
-  }
-}
-
-function writeArtists(artists: Artist[]): void {
-  try {
-    const dir = path.dirname(artistsFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(artistsFilePath, JSON.stringify(artists, null, 2));
-  } catch (error) {
-    console.error('Error writing artists file:', error);
-    throw error;
-  }
-}
 
 export async function GET(
   request: NextRequest,
@@ -37,8 +8,13 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
-    const artists = readArtists();
-    const artist = artists.find(a => a.id === resolvedParams.id);
+    
+    const artist = await prisma.artist.findUnique({
+      where: { id: parseInt(resolvedParams.id) },
+      include: {
+        location: true
+      }
+    });
     
     if (!artist) {
       return NextResponse.json(
@@ -47,7 +23,45 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(artist);
+    // Transform data to match frontend expectations
+    const transformedArtist = {
+      id: artist.id,
+      name: artist.name,
+      city: artist.location.city,
+      state: artist.location.stateProvince,
+      country: artist.location.country,
+      artistType: artist.artistType?.toLowerCase() || 'band',
+      genres: artist.genres || [],
+      members: artist.members,
+      yearFormed: artist.yearFormed,
+      tourStatus: artist.tourStatus?.toLowerCase() || 'active',
+      equipment: artist.equipmentNeeds || {},
+      contact: {
+        email: artist.contactEmail,
+        phone: '',
+        social: (artist.socialHandles as any)?.social,
+        website: artist.website,
+        booking: artist.contactEmail,
+      },
+      images: artist.images || ['/api/placeholder/band'],
+      description: artist.description || '',
+      expectedDraw: '',
+      rating: 0,
+      reviewCount: 0,
+      verified: artist.verified,
+      claimed: false,
+      lastUpdated: artist.updatedAt.toISOString(),
+      tourDates: [],
+      bookedDates: [],
+      homeBase: false,
+      showsThisYear: 0,
+      tourRadius: 'regional',
+      hasAccount: false,
+      createdAt: artist.createdAt,
+      updatedAt: artist.updatedAt,
+    };
+
+    return NextResponse.json(transformedArtist);
   } catch (error) {
     console.error('Error in GET /api/artists/[id]:', error);
     return NextResponse.json(
@@ -65,11 +79,12 @@ export async function PUT(
     const resolvedParams = await params;
     const body = await request.json();
     
-    const artists = readArtists();
+    // Check if artist exists
+    const existingArtist = await prisma.artist.findUnique({
+      where: { id: parseInt(resolvedParams.id) }
+    });
     
-    const artistIndex = artists.findIndex(a => a.id === resolvedParams.id);
-    
-    if (artistIndex === -1) {
+    if (!existingArtist) {
       return NextResponse.json(
         { error: 'Artist not found' },
         { status: 404 }
@@ -87,18 +102,67 @@ export async function PUT(
       }
     }
 
-    // Update artist with provided fields
-    const updatedArtist: Artist = {
-      ...artists[artistIndex],
-      ...body,
-      id: resolvedParams.id, // Ensure ID doesn't change
-      updatedAt: new Date(),
+    // Update artist
+    const updatedArtist = await prisma.artist.update({
+      where: { id: parseInt(resolvedParams.id) },
+      data: {
+        name: body.name,
+        artistType: body.artistType?.toUpperCase(),
+        genres: body.genres,
+        members: body.members,
+        yearFormed: body.yearFormed,
+        tourStatus: body.tourStatus?.toUpperCase(),
+        equipmentNeeds: body.equipment,
+        contactEmail: body.contact?.email,
+        website: body.contact?.website,
+        socialHandles: body.contact?.social ? { social: body.contact.social } : undefined,
+        description: body.description,
+        images: body.images
+      },
+      include: {
+        location: true
+      }
+    });
+
+    // Transform response
+    const transformedArtist = {
+      id: updatedArtist.id,
+      name: updatedArtist.name,
+      city: updatedArtist.location.city,
+      state: updatedArtist.location.stateProvince,
+      country: updatedArtist.location.country,
+      artistType: updatedArtist.artistType?.toLowerCase() || 'band',
+      genres: updatedArtist.genres || [],
+      members: updatedArtist.members,
+      yearFormed: updatedArtist.yearFormed,
+      tourStatus: updatedArtist.tourStatus?.toLowerCase() || 'active',
+      equipment: updatedArtist.equipmentNeeds || {},
+      contact: {
+        email: updatedArtist.contactEmail,
+        phone: '',
+        social: (updatedArtist.socialHandles as any)?.social,
+        website: updatedArtist.website,
+        booking: updatedArtist.contactEmail,
+      },
+      images: updatedArtist.images || ['/api/placeholder/band'],
+      description: updatedArtist.description || '',
+      expectedDraw: '',
+      rating: 0,
+      reviewCount: 0,
+      verified: updatedArtist.verified,
+      claimed: false,
+      lastUpdated: updatedArtist.updatedAt.toISOString(),
+      tourDates: [],
+      bookedDates: [],
+      homeBase: false,
+      showsThisYear: 0,
+      tourRadius: 'regional',
+      hasAccount: false,
+      createdAt: updatedArtist.createdAt,
+      updatedAt: updatedArtist.updatedAt,
     };
 
-    artists[artistIndex] = updatedArtist;
-    writeArtists(artists);
-
-    return NextResponse.json(updatedArtist);
+    return NextResponse.json(transformedArtist);
   } catch (error) {
     console.error('Error in PUT /api/artists/[id]:', error);
     return NextResponse.json(
@@ -114,20 +178,23 @@ export async function DELETE(
 ) {
   try {
     const resolvedParams = await params;
-    const artists = readArtists();
     
-    const artistIndex = artists.findIndex(a => a.id === resolvedParams.id);
+    // Check if artist exists
+    const existingArtist = await prisma.artist.findUnique({
+      where: { id: parseInt(resolvedParams.id) }
+    });
     
-    if (artistIndex === -1) {
+    if (!existingArtist) {
       return NextResponse.json(
         { error: 'Artist not found' },
         { status: 404 }
       );
     }
 
-    // Remove artist from array
-    artists.splice(artistIndex, 1);
-    writeArtists(artists);
+    // Delete artist
+    await prisma.artist.delete({
+      where: { id: parseInt(resolvedParams.id) }
+    });
 
     return NextResponse.json({ message: 'Artist deleted successfully' });
   } catch (error) {
