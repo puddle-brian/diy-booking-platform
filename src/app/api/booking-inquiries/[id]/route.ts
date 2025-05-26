@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { BookingInquiry, BookingResponse } from '../../../../../types';
+import { BookingInquiry, BookingResponse } from '../../../../../types/index';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const INQUIRIES_FILE = path.join(DATA_DIR, 'booking-inquiries.json');

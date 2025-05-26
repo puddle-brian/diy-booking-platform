@@ -8,7 +8,7 @@ interface Message {
   threadId: string;
   senderId: string;
   senderName: string;
-  senderType: 'artist' | 'venue';
+  senderType: 'artist' | 'venue' | 'user';
   content: string;
   timestamp: string;
   read: boolean;
@@ -18,7 +18,7 @@ interface MessageThreadProps {
   threadId: string;
   recipientId: string;
   recipientName: string;
-  recipientType: 'artist' | 'venue';
+  recipientType: 'artist' | 'venue' | 'user';
   subject: string;
 }
 

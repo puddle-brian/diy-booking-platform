@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../types';
+import { VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../types/index';
 
 interface CommunitySectionProps<T> {
   title: string;
@@ -65,7 +65,7 @@ export default function CommunitySection<T extends {
             href={`/${entityType}/${item.id}`}
             className="group"
           >
-            <div className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border border-gray-100">
+            <div className="bg-white rounded-xl overflow-hidden cursor-pointer border border-gray-100">
               <div className="aspect-square relative">
                 <img 
                   src={(() => {
@@ -93,7 +93,7 @@ export default function CommunitySection<T extends {
                     }
                   })()}
                   alt={item.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-all duration-200 group-hover:brightness-75"
                   onError={(e) => {
                     if (entityType === 'venues') {
                       const venue = item as any;

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArtistType, ARTIST_TYPE_LABELS } from '../../../../types';
+import { ArtistType, ARTIST_TYPE_LABELS } from '../../../../types/index';
 
 export default function AddArtist() {
   const router = useRouter();

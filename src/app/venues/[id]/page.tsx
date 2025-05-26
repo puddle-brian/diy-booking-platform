@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import BookingInquiryForm from '../../../components/BookingInquiryForm';
 import TeamManagement from '../../../components/TeamManagement';
 import TourItinerary from '../../../components/TourItinerary';
+import TeamMembers from '../../../components/TeamMembers';
+import InviteMemberModal from '../../../components/InviteMemberModal';
+import ClaimEntityModal from '../../../components/ClaimEntityModal';
+import MessageButton from '../../../components/MessageButton';
 import { useAuth } from '../../../contexts/AuthContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 
@@ -77,6 +81,10 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
   });
   const [bookingStatus, setBookingStatus] = useState('');
   const [dateAvailable, setDateAvailable] = useState<boolean | null>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
 
   useEffect(() => {
     const loadVenue = async () => {
@@ -88,6 +96,9 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
         }
         const venueData = await response.json();
         setVenue(venueData);
+        
+        // Load members
+        await loadMembers(resolvedParams.id);
       } catch (error) {
         console.error('Failed to load venue:', error);
         router.push('/');
@@ -98,6 +109,26 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
 
     loadVenue();
   }, [params, router]);
+
+  const loadMembers = async (id: string) => {
+    try {
+      setLoadingMembers(true);
+      const response = await fetch(`/api/members?entityType=venue&entityId=${id}`);
+      
+      if (response.ok) {
+        const membersData = await response.json();
+        setMembers(Array.isArray(membersData) ? membersData : []);
+      } else {
+        console.warn('Failed to load members:', response.status);
+        setMembers([]);
+      }
+    } catch (error) {
+      console.warn('Could not load members:', error);
+      setMembers([]);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
 
   // Check if selected date is available
   const checkDateAvailability = (date: string) => {
@@ -300,8 +331,8 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
               </div>
             </div>
             
-            {/* Claim Venue Button - Compact Top Right */}
-            {!venue.hasAccount && (
+            {/* Claim Venue Button - Only show to unauthenticated users or users without access */}
+            {!venue.hasAccount && !user && (
               <div className="flex-shrink-0 text-center">
                 <div className="text-xs text-gray-600 mb-1">Is this you?</div>
                 <button 
@@ -332,6 +363,19 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
           }`}>
             {bookingStatus}
           </div>
+        )}
+
+        {/* Members */}
+        {!loadingMembers && (
+          <TeamMembers 
+            members={members}
+            entityType="venue"
+            entityName={venue.name}
+            maxDisplay={8}
+            canInviteMembers={permissions.canManageVenueStaff(venue.id)}
+            onInviteClick={() => setShowInviteModal(true)}
+            onClaimClick={members.length === 0 ? () => setShowClaimModal(true) : undefined}
+          />
         )}
 
         {/* Show Dates Table - CORE FUNCTIONALITY - Most Important */}
@@ -473,6 +517,22 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
               )}
             </div>
           </div>
+
+          {/* Contact Actions */}
+          {user && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-3">Get In Touch</h3>
+              <MessageButton
+                recipientId={venue.id}
+                recipientName={venue.name}
+                recipientType="venue"
+                variant="primary"
+                className="w-full"
+              >
+                Send Message to {venue.name}
+              </MessageButton>
+            </div>
+          )}
         </div>
 
         {/* Team Management Section - Role-Based Access Control */}
@@ -520,6 +580,36 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
             </div>
           </div>
         )}
+
+        {/* Invite Member Modal */}
+        <InviteMemberModal
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          entityType="venue"
+          entityName={venue.name}
+          entityId={venue.id}
+          onSuccess={() => {
+            setBookingStatus('Invitation sent successfully! They will receive an email from DIY Shows.');
+            setTimeout(() => setBookingStatus(''), 5000);
+            // Reload members
+            loadMembers(venue.id);
+          }}
+        />
+
+        {/* Claim Entity Modal */}
+        <ClaimEntityModal
+          isOpen={showClaimModal}
+          onClose={() => setShowClaimModal(false)}
+          entityType="venue"
+          entityName={venue.name}
+          entityId={venue.id}
+          onSuccess={() => {
+            setBookingStatus('Venue claimed successfully! You are now a member.');
+            setTimeout(() => setBookingStatus(''), 5000);
+            // Reload members
+            loadMembers(venue.id);
+          }}
+        />
       </div>
     </div>
   );

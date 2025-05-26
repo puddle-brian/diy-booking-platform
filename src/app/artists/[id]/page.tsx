@@ -6,6 +6,10 @@ import { useRouter } from 'next/navigation';
 import BookingInquiryForm from '../../../components/BookingInquiryForm';
 // import TeamManagement from '../../../components/TeamManagement';
 import TourItinerary from '../../../components/TourItinerary';
+import TeamMembers from '../../../components/TeamMembers';
+import InviteMemberModal from '../../../components/InviteMemberModal';
+import ClaimEntityModal from '../../../components/ClaimEntityModal';
+import MessageButton from '../../../components/MessageButton';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface Artist {
@@ -105,6 +109,10 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
   const [contactStatus, setContactStatus] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [venue, setVenue] = useState<any>(null);
+  const [members, setMembers] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -113,6 +121,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
         const resolvedParams = await params;
         await loadArtist(resolvedParams.id);
         await loadTourRequests(resolvedParams.id);
+        await loadMembers(resolvedParams.id);
         
         // Load venue data if user is a venue
         if (user?.profileType === 'venue' && user.profileId) {
@@ -195,6 +204,26 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     } finally {
       setLoadingTourRequests(false);
       console.log('🏁 Tour requests loading finished');
+    }
+  };
+
+  const loadMembers = async (id: string) => {
+    try {
+      setLoadingMembers(true);
+      const response = await fetch(`/api/members?entityType=artist&entityId=${id}`);
+      
+      if (response.ok) {
+        const membersData = await response.json();
+        setMembers(Array.isArray(membersData) ? membersData : []);
+      } else {
+        console.warn('Failed to load members:', response.status);
+        setMembers([]);
+      }
+    } catch (error) {
+      console.warn('Could not load members:', error);
+      setMembers([]);
+    } finally {
+      setLoadingMembers(false);
     }
   };
 
@@ -430,8 +459,8 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               </div>
             </div>
             
-            {/* Claim Artist Button - Compact Top Right */}
-            {!artist.hasAccount && (
+            {/* Claim Artist Button - Only show to unauthenticated users or users without access */}
+            {!artist.hasAccount && !user && (
               <div className="flex-shrink-0 text-center">
                 <div className="text-xs text-gray-600 mb-1">Is this you?</div>
                 <button 
@@ -464,13 +493,26 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
           </div>
         )}
 
+        {/* Members */}
+        {!loadingMembers && (
+          <TeamMembers 
+            members={members}
+            entityType="artist"
+            entityName={artist.name}
+            maxDisplay={6}
+            canInviteMembers={user?.profileType === 'artist' && user?.profileId === artist.id}
+            onInviteClick={() => setShowInviteModal(true)}
+            onClaimClick={members.length === 0 ? () => setShowClaimModal(true) : undefined}
+          />
+        )}
+
         {/* Tour Itinerary - CORE FUNCTIONALITY - Second Most Important */}
         <div className="mb-8">
           <TourItinerary 
             artistId={artist.id} 
             artistName={artist.name}
             title="Tour Dates" 
-            editable={false} 
+            editable={user?.profileType === 'artist' && user?.profileId === artist.id} 
             viewerType={(() => {
               if (!user) return 'public';
               if (user.profileType === 'venue') return 'venue';
@@ -560,74 +602,90 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               )}
             </div>
             
-            {/* Booking Inquiry Button */}
-            {(() => {
-              const contactContent = getContactContent();
-              
-              if (contactContent.type === 'no-account') {
-                return !showInquiryForm ? (
-                  <div className="mt-4 space-y-3">
-                    <button
-                      onClick={() => {
-                        if (!hasSentInquiry) {
-                          setShowInquiryForm(true);
-                        }
-                      }}
-                      className={`py-2 px-4 rounded-lg font-medium transition-colors ${
-                        hasSentInquiry 
-                          ? 'bg-green-100 text-green-700 border border-green-300 cursor-default'
-                          : 'bg-black text-white hover:bg-gray-800'
-                      }`}
-                      disabled={hasSentInquiry}
-                    >
-                      {hasSentInquiry ? 'Inquiry Sent ✓' : 'Send Booking Inquiry'}
-                    </button>
-                    
-                    {hasSentInquiry && (
-                      <button
-                        onClick={() => setShowInquiryForm(true)}
-                        className="block text-sm text-gray-600 hover:text-gray-800 py-1"
-                      >
-                        Send Another Inquiry
-                      </button>
-                    )}
-                  </div>
-                ) : null;
-              }
+            {/* Contact Buttons */}
+            <div className="mt-4 space-y-3">
+              {/* Message Button - Always available for logged in users */}
+              {user && (
+                <MessageButton
+                  recipientId={artist.id}
+                  recipientName={artist.name}
+                  recipientType="artist"
+                  variant="outline"
+                  className="w-full"
+                >
+                  Send Message
+                </MessageButton>
+              )}
 
-              if (contactContent.type === 'can-contact') {
-                return !showInquiryForm ? (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => {
-                        if (!hasSentInquiry) {
-                          setShowInquiryForm(true);
-                        }
-                      }}
-                      className={`py-2 px-4 rounded-lg font-medium transition-colors ${
-                        hasSentInquiry 
-                          ? 'bg-green-100 text-green-700 border border-green-300 cursor-default'
-                          : 'bg-black text-white hover:bg-gray-800'
-                      }`}
-                      disabled={hasSentInquiry}
-                    >
-                      {hasSentInquiry ? 'Inquiry Sent ✓' : 'Send Booking Inquiry'}
-                    </button>
-                    
-                    {hasSentInquiry && (
+              {/* Booking Inquiry Button */}
+              {(() => {
+                const contactContent = getContactContent();
+                
+                if (contactContent.type === 'no-account') {
+                  return !showInquiryForm ? (
+                    <div className="space-y-2">
                       <button
-                        onClick={() => setShowInquiryForm(true)}
-                        className="block text-sm text-gray-600 hover:text-gray-800 py-1 mt-2"
+                        onClick={() => {
+                          if (!hasSentInquiry) {
+                            setShowInquiryForm(true);
+                          }
+                        }}
+                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                          hasSentInquiry 
+                            ? 'bg-green-100 text-green-700 border border-green-300 cursor-default'
+                            : 'bg-black text-white hover:bg-gray-800'
+                        }`}
+                        disabled={hasSentInquiry}
                       >
-                        Send Another Inquiry
+                        {hasSentInquiry ? 'Inquiry Sent ✓' : 'Send Booking Inquiry'}
                       </button>
-                    )}
-                  </div>
-                ) : null;
-              }
+                      
+                      {hasSentInquiry && (
+                        <button
+                          onClick={() => setShowInquiryForm(true)}
+                          className="block text-sm text-gray-600 hover:text-gray-800 py-1 w-full text-center"
+                        >
+                          Send Another Inquiry
+                        </button>
+                      )}
+                    </div>
+                  ) : null;
+                }
 
-              return null;
-            })()}
+                if (contactContent.type === 'can-contact') {
+                  return !showInquiryForm ? (
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => {
+                          if (!hasSentInquiry) {
+                            setShowInquiryForm(true);
+                          }
+                        }}
+                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
+                          hasSentInquiry 
+                            ? 'bg-green-100 text-green-700 border border-green-300 cursor-default'
+                            : 'bg-black text-white hover:bg-gray-800'
+                        }`}
+                        disabled={hasSentInquiry}
+                      >
+                        {hasSentInquiry ? 'Inquiry Sent ✓' : 'Send Booking Inquiry'}
+                      </button>
+                      
+                      {hasSentInquiry && (
+                        <button
+                          onClick={() => setShowInquiryForm(true)}
+                          className="block text-sm text-gray-600 hover:text-gray-800 py-1 w-full text-center"
+                        >
+                          Send Another Inquiry
+                        </button>
+                      )}
+                    </div>
+                  ) : null;
+                }
+
+                return null;
+              })()}
+            </div>
           </div>
           
           {/* Show booking inquiry form if needed */}
@@ -740,6 +798,36 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
           )}
         </div>
       </div>
+
+      {/* Invite Member Modal */}
+      <InviteMemberModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        entityType="artist"
+        entityName={artist.name}
+        entityId={artist.id}
+        onSuccess={() => {
+          setContactStatus('Invitation sent successfully! They will receive an email from DIY Shows.');
+          setTimeout(() => setContactStatus(''), 5000);
+          // Reload members
+          loadMembers(artist.id);
+        }}
+      />
+
+      {/* Claim Entity Modal */}
+      <ClaimEntityModal
+        isOpen={showClaimModal}
+        onClose={() => setShowClaimModal(false)}
+        entityType="artist"
+        entityName={artist.name}
+        entityId={artist.id}
+        onSuccess={() => {
+          setContactStatus('Artist claimed successfully! You are now a member.');
+          setTimeout(() => setContactStatus(''), 5000);
+          // Reload members
+          loadMembers(artist.id);
+        }}
+      />
     </div>
   );
 } 

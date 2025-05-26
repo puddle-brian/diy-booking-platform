@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { BookingInquiry } from '../../types';
+import { BookingInquiry } from '../../types/index';
 
 // Email configuration - you'll want to use environment variables for production
 const transporter = nodemailer.createTransport({

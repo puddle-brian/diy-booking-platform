@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Venue, VenueType, VENUE_TYPE_LABELS } from '../../../../types';
+import { Venue, VenueType, VENUE_TYPE_LABELS } from '../../../../types/index';
 import Link from 'next/link';
 
 interface VenueFormData {

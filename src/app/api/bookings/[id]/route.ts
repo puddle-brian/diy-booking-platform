@@ -60,11 +60,12 @@ function writeShows(shows: Show[]): void {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const bookings = readBookings();
-    const booking = bookings.find(b => b.id === params.id);
+    const booking = bookings.find(b => b.id === resolvedParams.id);
     
     if (!booking) {
       return NextResponse.json(
@@ -85,12 +86,13 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const resolvedParams = await params;
     const body = await request.json();
     const bookings = readBookings();
-    const bookingIndex = bookings.findIndex(b => b.id === params.id);
+    const bookingIndex = bookings.findIndex(b => b.id === resolvedParams.id);
     
     if (bookingIndex === -1) {
       return NextResponse.json(

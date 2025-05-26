@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { ArtistMembership, VenueMembership, ArtistPermission, VenuePermission } from '../../types';
+import { ArtistMembership, VenueMembership, ArtistPermission, VenuePermission } from '../../types/index';
 
 const ARTIST_MEMBERSHIPS_FILE = path.join(process.cwd(), 'data', 'artist-memberships.json');
 const VENUE_MEMBERSHIPS_FILE = path.join(process.cwd(), 'data', 'venue-memberships.json');

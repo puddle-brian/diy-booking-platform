@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate required fields
-    const requiredFields = ['artistId', 'venueId', 'date', 'city', 'state', 'venueName', 'artistName'];
+    const requiredFields = ['date', 'city', 'state', 'venueName', 'artistName'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -216,6 +216,16 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // artistId is optional - if not provided, use a placeholder for external artists
+    if (!body.artistId) {
+      body.artistId = 'external-artist';
+    }
+
+    // venueId is optional - if not provided, use a placeholder for external venues
+    if (!body.venueId) {
+      body.venueId = 'external-venue';
     }
 
     const shows = readShows();

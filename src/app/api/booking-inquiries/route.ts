@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { BookingInquiry } from '../../../../types';
+import { BookingInquiry } from '../../../../types/index';
 import { sendBookingInquiryEmail, logBookingInquiry } from '../../../lib/email';
 
 const DATA_DIR = path.join(process.cwd(), 'data');

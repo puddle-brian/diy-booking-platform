@@ -103,6 +103,35 @@ export default function TourItinerary({
   const [selectedBid, setSelectedBid] = useState<VenueBid | null>(null);
   const [showBidDetailsModal, setShowBidDetailsModal] = useState(false);
   const [showTourRequestForm, setShowTourRequestForm] = useState(false);
+  const [showAddDateForm, setShowAddDateForm] = useState(false);
+  const [addDateForm, setAddDateForm] = useState({
+    type: 'request' as 'request' | 'confirmed',
+    date: '',
+    startDate: '',
+    endDate: '',
+    location: '',
+    artistId: '',
+    artistName: '',
+    venueId: '',
+    venueName: '',
+    title: '',
+    description: '',
+    guarantee: '',
+    capacity: '',
+    ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+',
+    loadIn: '',
+    soundcheck: '',
+    doorsOpen: '',
+    showTime: '',
+    curfew: '',
+    notes: ''
+  });
+  const [venues, setVenues] = useState<any[]>([]);
+  const [venueSearchResults, setVenueSearchResults] = useState<any[]>([]);
+  const [showVenueDropdown, setShowVenueDropdown] = useState(false);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [artistSearchResults, setArtistSearchResults] = useState<any[]>([]);
+  const [showArtistDropdown, setShowArtistDropdown] = useState(false);
   const [tourRequestForm, setTourRequestForm] = useState({
     title: '',
     description: '',
@@ -137,6 +166,91 @@ export default function TourItinerary({
     priority: 'medium' as 'high' | 'medium' | 'low'
   });
 
+  // Fetch venues for search functionality
+  const fetchVenues = async () => {
+    try {
+      const response = await fetch('/api/venues');
+      if (response.ok) {
+        const venuesData = await response.json();
+        setVenues(venuesData);
+      }
+    } catch (error) {
+      console.error('Error fetching venues:', error);
+    }
+  };
+
+  // Fetch artists for search functionality
+  const fetchArtists = async () => {
+    try {
+      const response = await fetch('/api/artists');
+      if (response.ok) {
+        const artistsData = await response.json();
+        setArtists(artistsData);
+      }
+    } catch (error) {
+      console.error('Error fetching artists:', error);
+    }
+  };
+
+  // Handle venue search
+  const handleVenueSearch = (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setVenueSearchResults([]);
+      setShowVenueDropdown(false);
+      return;
+    }
+
+    const filtered = venues.filter(venue => 
+      venue.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.city.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    setVenueSearchResults(filtered.slice(0, 5)); // Limit to 5 results
+    setShowVenueDropdown(filtered.length > 0);
+  };
+
+  // Handle artist search
+  const handleArtistSearch = (searchTerm: string) => {
+    if (!searchTerm.trim()) {
+      setArtistSearchResults([]);
+      setShowArtistDropdown(false);
+      return;
+    }
+
+    const filtered = artists.filter(artist => 
+      artist.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      artist.city.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    setArtistSearchResults(filtered.slice(0, 5)); // Limit to 5 results
+    setShowArtistDropdown(filtered.length > 0);
+  };
+
+  // Select venue from search results
+  const selectVenue = (venue: any) => {
+    setAddDateForm(prev => ({
+      ...prev,
+      venueId: venue.id,
+      venueName: venue.name,
+      location: `${venue.city}, ${venue.state}`,
+      capacity: venue.capacity?.toString() || '',
+      ageRestriction: venue.ageRestriction || 'all-ages'
+    }));
+    setShowVenueDropdown(false);
+    setVenueSearchResults([]);
+  };
+
+  // Select artist from search results
+  const selectArtist = (artist: any) => {
+    setAddDateForm(prev => ({
+      ...prev,
+      artistId: artist.id,
+      artistName: artist.name
+    }));
+    setShowArtistDropdown(false);
+    setArtistSearchResults([]);
+  };
+
   // Data fetching function
   const fetchData = async () => {
     if (!artistId && !venueId) return;
@@ -156,7 +270,7 @@ export default function TourItinerary({
         throw new Error('Failed to fetch shows');
       }
       const showsData = await showsResponse.json();
-      setShows(showsData.shows || []);
+      setShows(Array.isArray(showsData) ? showsData : []);
 
       if (artistId) {
         // Fetch tour requests for artists
@@ -252,6 +366,8 @@ export default function TourItinerary({
 
   useEffect(() => {
     fetchData();
+    fetchVenues(); // Fetch venues for search functionality
+    fetchArtists(); // Fetch artists for search functionality
   }, [artistId, viewerType, venueId]);
 
   // Combine shows, tour requests, and bids into unified timeline
@@ -570,6 +686,118 @@ export default function TourItinerary({
     }
   };
 
+  const handleAddDateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      if (addDateForm.type === 'request') {
+        // Create a tour request
+        if (!artistId || !artistName) {
+          alert('Missing artist information. Please try again.');
+          return;
+        }
+
+        const response = await fetch('/api/tour-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: addDateForm.title || `${addDateForm.location} - ${new Date(addDateForm.startDate).toLocaleDateString()}`,
+            description: addDateForm.description || `Looking for a show in ${addDateForm.location}`,
+            startDate: addDateForm.startDate,
+            endDate: addDateForm.endDate,
+            location: addDateForm.location,
+            radius: 50,
+            flexibility: 'exact-cities',
+            genres: [],
+            expectedDraw: { min: 0, max: 0, description: '' },
+            tourStatus: 'exploring-interest',
+            ageRestriction: addDateForm.ageRestriction,
+            equipment: { needsPA: false, needsMics: false, needsDrums: false, needsAmps: false, acoustic: false },
+            guaranteeRange: { min: 0, max: 0 },
+            acceptsDoorDeals: true,
+            merchandising: true,
+            travelMethod: 'van',
+            lodging: 'flexible',
+            priority: 'medium',
+            artistId,
+            artistName,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create tour request');
+        }
+      } else {
+        // Create a confirmed show
+        const response = await fetch('/api/shows', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            artistId: artistId || addDateForm.artistId || 'external-artist',
+            artistName: artistName || addDateForm.artistName,
+            venueId: venueId || addDateForm.venueId,
+            venueName: venueName || addDateForm.venueName,
+            date: addDateForm.date,
+            city: addDateForm.location.split(',')[0]?.trim() || 'Unknown',
+            state: addDateForm.location.split(',')[1]?.trim() || 'Unknown',
+            capacity: parseInt(addDateForm.capacity) || 0,
+            ageRestriction: addDateForm.ageRestriction,
+            guarantee: addDateForm.guarantee ? parseInt(addDateForm.guarantee) : undefined,
+            loadIn: addDateForm.loadIn,
+            soundcheck: addDateForm.soundcheck,
+            doorsOpen: addDateForm.doorsOpen,
+            showTime: addDateForm.showTime,
+            curfew: addDateForm.curfew,
+            notes: addDateForm.notes,
+            status: 'confirmed',
+            createdBy: viewerType || 'user'
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create show');
+        }
+      }
+
+      // Reset form and close modal
+      setShowAddDateForm(false);
+      setAddDateForm({
+        type: 'request',
+        date: '',
+        startDate: '',
+        endDate: '',
+        location: '',
+        artistId: '',
+        artistName: '',
+        venueId: '',
+        venueName: '',
+        title: '',
+        description: '',
+        guarantee: '',
+        capacity: '',
+        ageRestriction: 'all-ages',
+        loadIn: '',
+        soundcheck: '',
+        doorsOpen: '',
+        showTime: '',
+        curfew: '',
+        notes: ''
+      });
+
+      // Refresh data
+      await fetchData();
+    } catch (error) {
+      console.error('Error adding date:', error);
+      alert(`Failed to add date: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   const handleAutoFillTourRequest = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -599,6 +827,42 @@ export default function TourItinerary({
       lodging: 'flexible',
       priority: 'medium'
     });
+  };
+
+  const handleAutoFillAddDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + Math.floor(Math.random() * 30) + 1); // Random date in next 30 days
+    const nextWeek = new Date(tomorrow);
+    nextWeek.setDate(nextWeek.getDate() + 3); // 3 days later for end date
+    
+    const cities = ['Seattle, WA', 'Portland, OR', 'San Francisco, CA', 'Los Angeles, CA', 'Denver, CO', 'Austin, TX', 'Nashville, TN', 'Atlanta, GA', 'Chicago, IL', 'Detroit, MI', 'New York, NY', 'Boston, MA'];
+    const venues = ['The Underground', 'Basement Shows', 'DIY Warehouse', 'Community Center', 'Record Store', 'Art Gallery', 'Coffee House', 'Local Bar'];
+    const artists = ['The Midnight Riders', 'Electric Dreams', 'Broken Compass', 'Neon Wolves', 'Paper Tigers', 'Ghost Machine', 'Wild Hearts', 'Silver Lining'];
+    
+    const randomCity = cities[Math.floor(Math.random() * cities.length)];
+    const randomVenue = venues[Math.floor(Math.random() * venues.length)];
+    const randomArtist = artists[Math.floor(Math.random() * artists.length)];
+    
+    setAddDateForm(prev => ({
+      ...prev,
+      date: tomorrow.toISOString().split('T')[0],
+      startDate: tomorrow.toISOString().split('T')[0],
+      endDate: nextWeek.toISOString().split('T')[0],
+      location: randomCity,
+      title: `${randomCity.split(',')[0]} Show - ${new Date().getFullYear()}`,
+      description: 'Test show for debugging purposes. Great venue, good crowd expected!',
+      venueName: randomVenue,
+      artistName: randomArtist,
+      guarantee: '300',
+      capacity: '150',
+      ageRestriction: 'all-ages',
+      loadIn: '18:00',
+      soundcheck: '19:00',
+      doorsOpen: '20:00',
+      showTime: '21:00',
+      curfew: '23:30',
+      notes: 'Auto-filled for testing purposes - external artist not on platform'
+    }));
   };
 
   if (loading) {
@@ -702,10 +966,42 @@ export default function TourItinerary({
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm font-medium text-gray-900">
-                        {artistId ? show.venueName : show.artistName}
+                        {artistId ? (
+                          // Show venue name - link if it's a platform venue
+                          show.venueId && show.venueId !== 'external-venue' ? (
+                            <a 
+                              href={`/venues/${show.venueId}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                              title="View venue page"
+                            >
+                              {show.venueName}
+                            </a>
+                          ) : (
+                            show.venueName
+                          )
+                        ) : (
+                          // Show artist name - link if it's a platform artist
+                          show.artistId && show.artistId !== 'external-artist' ? (
+                            <a 
+                              href={`/artists/${show.artistId}`}
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                              title="View artist page"
+                            >
+                              {show.artistName}
+                            </a>
+                          ) : (
+                            show.artistName
+                          )
+                        )}
                       </div>
                       <div className="text-sm text-gray-500">
                         {show.capacity} capacity • {show.ageRestriction}
+                        {artistId && show.venueId && show.venueId !== 'external-venue' && (
+                          <span className="ml-2 text-blue-500">• Platform venue</span>
+                        )}
+                        {venueId && show.artistId && show.artistId !== 'external-artist' && (
+                          <span className="ml-2 text-blue-500">• Platform artist</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -1117,18 +1413,57 @@ export default function TourItinerary({
               return null;
             })}
             
-            {/* Add Tour Request Row for Artists */}
-            {artistId && viewerType === 'artist' && (
+            {/* Add Date Row for Artists - Only show if user is viewing their own artist profile */}
+            {artistId && viewerType === 'artist' && editable && (
               <tr>
                 <td colSpan={6} className="px-6 py-3">
                   <button
-                    onClick={() => setShowTourRequestForm(true)}
+                    onClick={() => {
+                      // Initialize form with default values for artists
+                      setAddDateForm(prev => ({
+                        ...prev,
+                        type: 'request',
+                        artistId: artistId || '',
+                        artistName: artistName || '',
+                        venueId: '',
+                        venueName: ''
+                      }));
+                      setShowAddDateForm(true);
+                    }}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 px-6 rounded-lg transition-colors duration-150 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    <span>Add Request</span>
+                    <span>Add Date</span>
+                  </button>
+                </td>
+              </tr>
+            )}
+
+            {/* Add Date Row for Venues - Only show if user is viewing their own venue profile */}
+            {venueId && viewerType === 'venue' && editable && (
+              <tr>
+                <td colSpan={6} className="px-6 py-3">
+                  <button
+                    onClick={() => {
+                      // Initialize form with default values for venues
+                      setAddDateForm(prev => ({
+                        ...prev,
+                        type: 'confirmed',
+                        artistId: '',
+                        artistName: '',
+                        venueId: venueId || '',
+                        venueName: venueName || ''
+                      }));
+                      setShowAddDateForm(true);
+                    }}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-4 px-6 rounded-lg transition-colors duration-150 flex items-center justify-center space-x-2 shadow-sm hover:shadow-md"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    <span>Add Date</span>
                   </button>
                 </td>
               </tr>
@@ -1341,6 +1676,414 @@ export default function TourItinerary({
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Date Form Modal */}
+      {showAddDateForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Add Date
+                </h3>
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    onClick={handleAutoFillAddDate}
+                    className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors"
+                  >
+                    Auto-Fill
+                  </button>
+                  <button
+                    onClick={() => setShowAddDateForm(false)}
+                    className="text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            
+            <form onSubmit={handleAddDateSubmit} className="px-6 py-4 space-y-6">
+              {/* Type Selection - Only for Artists */}
+              {artistId && viewerType === 'artist' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Type *
+                  </label>
+                  <select
+                    required
+                    value={addDateForm.type}
+                    onChange={(e) => setAddDateForm(prev => ({ ...prev, type: e.target.value as 'request' | 'confirmed' }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="request">Request (looking for venues)</option>
+                    <option value="confirmed">Confirmed (already booked)</option>
+                  </select>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {addDateForm.type === 'request' 
+                      ? 'Create a tour request to find venues for this date'
+                      : 'Add a confirmed show that was booked outside the platform'
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* Basic Information */}
+              {addDateForm.type === 'request' ? (
+                // Date range for requests
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Start Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={addDateForm.startDate}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, startDate: e.target.value }))}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        End Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={addDateForm.endDate}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, endDate: e.target.value }))}
+                        min={addDateForm.startDate || new Date().toISOString().split('T')[0]}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={addDateForm.location}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="e.g., Seattle, WA"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              ) : (
+                // Single date for confirmed shows
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={addDateForm.date}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, date: e.target.value }))}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Location *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={addDateForm.location}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, location: e.target.value }))}
+                      placeholder="e.g., Seattle, WA"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Conditional Fields for Confirmed Shows */}
+              {(addDateForm.type === 'confirmed' || (venueId && viewerType === 'venue')) && (
+                <>
+                  {/* Artist/Venue Information */}
+                  {venueId && viewerType === 'venue' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Artist Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addDateForm.artistName}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setAddDateForm(prev => ({ ...prev, artistName: value, artistId: '' }));
+                            handleArtistSearch(value);
+                          }}
+                          onFocus={() => {
+                            if (addDateForm.artistName && artistSearchResults.length > 0) {
+                              setShowArtistDropdown(true);
+                            }
+                          }}
+                          onBlur={() => {
+                            // Delay hiding dropdown to allow clicks
+                            setTimeout(() => setShowArtistDropdown(false), 200);
+                          }}
+                          placeholder="Search artists or enter any name"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        
+                        {/* Artist Search Dropdown */}
+                        {showArtistDropdown && artistSearchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {artistSearchResults.map((artist) => (
+                              <button
+                                key={artist.id}
+                                type="button"
+                                onClick={() => selectArtist(artist)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium text-gray-900">{artist.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {artist.city}, {artist.state} • {artist.genres?.join(', ') || 'Various genres'}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <p className="text-xs text-gray-500 mt-1">
+                          {addDateForm.artistId 
+                            ? '✓ Artist found on platform - will be linked' 
+                            : 'Type to search platform artists or enter any name'
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Capacity
+                        </label>
+                        <input
+                          type="number"
+                          value={addDateForm.capacity}
+                          onChange={(e) => setAddDateForm(prev => ({ ...prev, capacity: e.target.value }))}
+                          placeholder="Expected attendance"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {artistId && viewerType === 'artist' && addDateForm.type === 'confirmed' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Venue Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addDateForm.venueName}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setAddDateForm(prev => ({ ...prev, venueName: value, venueId: '' }));
+                            handleVenueSearch(value);
+                          }}
+                          onFocus={() => {
+                            if (addDateForm.venueName && venueSearchResults.length > 0) {
+                              setShowVenueDropdown(true);
+                            }
+                          }}
+                          onBlur={() => {
+                            // Delay hiding dropdown to allow clicks
+                            setTimeout(() => setShowVenueDropdown(false), 200);
+                          }}
+                          placeholder="Search venues or enter any name"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        
+                        {/* Venue Search Dropdown */}
+                        {showVenueDropdown && venueSearchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {venueSearchResults.map((venue) => (
+                              <button
+                                key={venue.id}
+                                type="button"
+                                onClick={() => selectVenue(venue)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium text-gray-900">{venue.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {venue.city}, {venue.state} • {venue.capacity} capacity
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <p className="text-xs text-gray-500 mt-1">
+                          {addDateForm.venueId 
+                            ? '✓ Venue found on platform - will be linked' 
+                            : 'Type to search platform venues or enter any name'
+                          }
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Guarantee ($)
+                        </label>
+                        <input
+                          type="number"
+                          value={addDateForm.guarantee}
+                          onChange={(e) => setAddDateForm(prev => ({ ...prev, guarantee: e.target.value }))}
+                          placeholder="0"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show Times */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Load In
+                      </label>
+                      <input
+                        type="time"
+                        value={addDateForm.loadIn}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, loadIn: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Doors
+                      </label>
+                      <input
+                        type="time"
+                        value={addDateForm.doorsOpen}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, doorsOpen: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Show Time
+                      </label>
+                      <input
+                        type="time"
+                        value={addDateForm.showTime}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, showTime: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Curfew
+                      </label>
+                      <input
+                        type="time"
+                        value={addDateForm.curfew}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, curfew: e.target.value }))}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Title and Description for Requests */}
+              {addDateForm.type === 'request' && artistId && viewerType === 'artist' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={addDateForm.title}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g., Seattle Show - June 2025"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={addDateForm.description}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Tell venues about what you're looking for..."
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Age Restriction */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Age Restriction
+                </label>
+                <select
+                  value={addDateForm.ageRestriction}
+                  onChange={(e) => setAddDateForm(prev => ({ ...prev, ageRestriction: e.target.value as 'all-ages' | '18+' | '21+' }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all-ages">All Ages</option>
+                  <option value="18+">18+</option>
+                  <option value="21+">21+</option>
+                </select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes
+                </label>
+                <textarea
+                  rows={2}
+                  value={addDateForm.notes}
+                  onChange={(e) => setAddDateForm(prev => ({ ...prev, notes: e.target.value }))}
+                  placeholder="Additional details..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <button
+                  type="submit"
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  {addDateForm.type === 'request' || (venueId && viewerType === 'venue') 
+                    ? (addDateForm.type === 'request' ? 'Create Request' : 'Add Confirmed Date')
+                    : 'Add Confirmed Show'
+                  }
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddDateForm(false)}
+                  className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../types';
+import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../types/index';
 import LocationSorting from '../components/LocationSorting';
 import CommunitySection from '../components/CommunitySection';
 import UserStatus from '../components/UserStatus';
+import SmartGallery from '../components/SmartGallery';
 import { useAuth } from '../contexts/AuthContext';
 
 // Custom hook for debounced search
@@ -119,7 +120,7 @@ function MultiSelectDropdown({
   );
 }
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
@@ -688,7 +689,7 @@ export default function Home() {
 
     const sections = [
       {
-        title: `🗺️ Artists Seeking Shows Near ${userVenue.city}`,
+        title: `Artists Seeking Shows Near ${userVenue.city}`,
         subtitle: `${artistsSeekingNearby.length} artists with active tour requests in your area`,
         artists: artistsSeekingNearby,
         priority: 'high' as const,
@@ -696,7 +697,7 @@ export default function Home() {
         borderColor: 'border-blue-200'
       },
       {
-        title: `🏠 Local Artists (${userVenue.state})`,
+        title: `Local Artists (${userVenue.state})`,
         subtitle: `${localArtists.length} artists based in your area`,
         artists: localArtists,
         priority: 'medium' as const,
@@ -704,7 +705,7 @@ export default function Home() {
         borderColor: 'border-green-200'
       },
       {
-        title: `🌎 Regional Artists`,
+        title: `Regional Artists`,
         subtitle: `${regionalArtists.length} artists within touring distance`,
         artists: regionalArtists,
         priority: 'medium' as const,
@@ -712,7 +713,7 @@ export default function Home() {
         borderColor: 'border-yellow-200'
       },
       {
-        title: `🎵 All Other Artists`,
+        title: `All Other Artists`,
         subtitle: `${otherArtists.length} artists from other regions`,
         artists: otherArtists,
         priority: 'low' as const,
@@ -898,9 +899,17 @@ export default function Home() {
             )}
           </div>
 
-          {/* Venues Grid */}
+          {/* Venues Content */}
           <div className="max-w-7xl mx-auto">
-            {loading ? (
+            {!hasActiveFilters ? (
+              // Smart Gallery when no filters are active
+              <SmartGallery 
+                venues={venues}
+                artists={artists}
+                activeTab={activeTab}
+                loading={loading}
+              />
+            ) : loading ? (
               // Loading state
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -952,16 +961,16 @@ export default function Home() {
                 </div>
               </div>
             ) : (
-              // Venue cards
+              // Filtered venue cards
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredVenues.map((venue) => (
                   <Link key={venue.id} href={`/venues/${venue.id}`}>
-                    <div className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="bg-white rounded-xl overflow-hidden cursor-pointer group">
                       <div className="aspect-square relative">
                         <img 
                           src={venue.images[0] || '/api/placeholder/other'} 
                           alt={venue.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-all duration-200 group-hover:brightness-75"
                           style={{ borderRadius: '1.25rem' }}
                           onError={(e) => {
                             e.currentTarget.src = '/api/placeholder/other';
@@ -1104,9 +1113,17 @@ export default function Home() {
             )}
           </div>
 
-          {/* Artists Grid */}
+          {/* Artists Content */}
           <div className="max-w-7xl mx-auto">
-            {loading ? (
+            {!hasActiveFilters ? (
+              // Smart Gallery when no filters are active
+              <SmartGallery 
+                venues={venues}
+                artists={artists}
+                activeTab={activeTab}
+                loading={loading}
+              />
+            ) : loading ? (
               // Loading state
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {Array.from({ length: 8 }).map((_, i) => (
@@ -1159,22 +1176,22 @@ export default function Home() {
               </div>
             ) : getLocationBasedArtistSections.hasLocationData ? (
               // Location-based sections for venues
-              <div className="space-y-8">
+              <div className="space-y-6">
                 {getLocationBasedArtistSections.sections.map((section, sectionIndex) => (
                   <div key={sectionIndex}>
-                    <div className="mb-4">
+                    <div className="mb-3">
                       <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
                     </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                       {section.artists.map((artist) => (
                         <Link key={artist.id} href={`/artists/${artist.id}`}>
-                          <div className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                          <div className="bg-white rounded-xl overflow-hidden cursor-pointer group">
                             <div className="aspect-square relative">
                               <img 
                                 src={artist.images?.[0] || `/api/placeholder/${artist.artistType}`}
                                 alt={artist.name}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-cover transition-all duration-200 group-hover:brightness-75"
                                 style={{ borderRadius: '1.25rem' }}
                                 onError={(e) => {
                                   e.currentTarget.src = `/api/placeholder/${artist.artistType}`;
@@ -1226,12 +1243,12 @@ export default function Home() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredArtists.map((artist) => (
                   <Link key={artist.id} href={`/artists/${artist.id}`}>
-                    <div className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                    <div className="bg-white rounded-xl overflow-hidden cursor-pointer group">
                       <div className="aspect-square relative">
                         <img 
                           src={artist.images?.[0] || `/api/placeholder/${artist.artistType}`}
                           alt={artist.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover transition-all duration-200 group-hover:brightness-75"
                           style={{ borderRadius: '1.25rem' }}
                           onError={(e) => {
                             e.currentTarget.src = `/api/placeholder/${artist.artistType}`;
@@ -1347,5 +1364,20 @@ export default function Home() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -484,6 +484,19 @@ const placeholders = {
       <path d="M130,145 Q150,155 170,145" stroke="#FFF" stroke-width="3" fill="none"/>
       <text x="150" y="260" font-family="Arial" font-size="14" fill="#FFF" text-anchor="middle">ARTIST</text>
     `
+  },
+  'person': {
+    background: '#4F46E5',
+    accent: '#818CF8',
+    svg: `
+      <rect width="300" height="300" fill="#4F46E5"/>
+      <circle cx="150" cy="120" r="35" fill="#818CF8" stroke="#FFF" stroke-width="3"/>
+      <circle cx="140" cy="110" r="4" fill="#FFF"/>
+      <circle cx="160" cy="110" r="4" fill="#FFF"/>
+      <path d="M135,130 Q150,140 165,130" stroke="#FFF" stroke-width="3" fill="none"/>
+      <ellipse cx="150" cy="200" rx="50" ry="30" fill="#6366F1" stroke="#FFF" stroke-width="3"/>
+      <text x="150" y="270" font-family="Arial" font-size="14" fill="#FFF" text-anchor="middle">PERSON</text>
+    `
   }
 };
 

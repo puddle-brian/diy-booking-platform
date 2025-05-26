@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { Artist } from '../../../../types';
+import { Artist } from '../../../../types/index';
 
 const artistsFilePath = path.join(process.cwd(), 'data', 'artists.json');
 
@@ -101,9 +101,16 @@ export async function POST(request: NextRequest) {
       },
       images: body.images || ['https://via.placeholder.com/400x400/6b7280/ffffff?text=' + encodeURIComponent(body.name)],
       description: body.description || '',
-      rating: 0,
-      showsThisYear: 0,
       expectedDraw: body.expectedDraw || '',
+      rating: 0,
+      reviewCount: 0,
+      verified: false,
+      claimed: false,
+      lastUpdated: new Date().toISOString(),
+      tourDates: [],
+      bookedDates: [],
+      homeBase: body.tourRadius === 'local',
+      showsThisYear: 0,
       tourRadius: body.tourRadius || 'regional',
       hasAccount: false,
       createdAt: new Date(),

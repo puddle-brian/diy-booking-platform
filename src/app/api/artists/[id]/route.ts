@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { Artist } from '../../../../../types';
+import { Artist } from '../../../../../types/index';
 
 const artistsFilePath = path.join(process.cwd(), 'data', 'artists.json');
 

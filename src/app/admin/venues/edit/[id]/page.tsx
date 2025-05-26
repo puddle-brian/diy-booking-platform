@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Venue, VenueType, VENUE_TYPE_LABELS } from '../../../../../../types';
+import { Venue, VenueType, VENUE_TYPE_LABELS } from '../../../../../../types/index';
 
 export default function EditVenue({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();

@@ -262,8 +262,30 @@ export default function AdminPage() {
                       className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50"
                     >
                       <div className="text-left">
-                        <div className="font-semibold text-purple-800">🥁 Brian Gibson</div>
-                        <div className="text-sm text-purple-600">Lightning Bolt • Drummer</div>
+                        <div className="font-semibold text-purple-800">🎸 Brian Gibson</div>
+                        <div className="text-sm text-purple-600">Lightning Bolt • Bass</div>
+                        <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
+                      </div>
+                    </button>
+
+                    {/* Brian Chippendale (Lightning Bolt Member) */}
+                    <button
+                      onClick={() => handleQuickLogin('member', {
+                        id: 'brian-chippendale',
+                        name: 'Brian Chippendale',
+                        email: 'brian.chippendale@lightningbolt.com',
+                        role: 'user',
+                        profileType: 'artist',
+                        profileId: '1748101913848', // Lightning Bolt
+                        isVerified: true,
+                        createdAt: '2024-01-01T00:00:00.000Z'
+                      })}
+                      disabled={loading.member}
+                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                    >
+                      <div className="text-left">
+                        <div className="font-semibold text-purple-800">🥁 Brian Chippendale</div>
+                        <div className="text-sm text-purple-600">Lightning Bolt • Drums</div>
                         <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
                       </div>
                     </button>

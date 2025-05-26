@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Artist, ArtistType, ARTIST_TYPE_LABELS } from '../../../../../../types';
+import { Artist, ArtistType, ARTIST_TYPE_LABELS } from '../../../../../../types/index';
 
 export default function EditArtist({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();

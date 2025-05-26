@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { VenueMembership, MemberInvitation, DEFAULT_ROLE_PERMISSIONS } from '../../../../../../types';
+import { VenueMembership, MemberInvitation, DEFAULT_ROLE_PERMISSIONS } from '../../../../../../types/index';
 import crypto from 'crypto';
 
 const MEMBERSHIPS_FILE = path.join(process.cwd(), 'data', 'venue-memberships.json');

@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { Venue, VenueType, AgeRestriction } from '../types';
+import { Venue, VenueType, AgeRestriction } from '../types/index';
 
 const DB_FILE = path.join(process.cwd(), 'data', 'venues.json');
 
