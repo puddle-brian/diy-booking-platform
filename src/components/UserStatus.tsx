@@ -14,6 +14,15 @@ export default function UserStatus() {
     window.location.href = '/';
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center space-x-2">
@@ -51,10 +60,16 @@ export default function UserStatus() {
 
   return (
     <div className="flex items-center space-x-4">
-      <Link href="/dashboard" className="text-sm hover:bg-gray-50 rounded-lg p-2 transition-colors">
-        <div className="font-medium text-gray-900">{user.name}</div>
-        <div className="text-gray-600 capitalize">
-          {user.role} {user.profileType && `• ${user.profileType}`}
+      {/* User Avatar Circle */}
+      <Link 
+        href="/dashboard" 
+        className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+        title={`${user.name} - Go to Dashboard`}
+      >
+        <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+          <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+            {getInitials(user.name)}
+          </div>
         </div>
       </Link>
       

@@ -154,12 +154,6 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
-                <p className="text-gray-600 capitalize">{profile.role}</p>
-                {profile.profileType && (
-                  <p className="text-sm text-gray-500">
-                    {profile.profileType === 'artist' ? '🎵 Artist' : '🏢 Venue'} Profile
-                  </p>
-                )}
               </div>
             </div>
           </div>
@@ -190,7 +184,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         {/* Memberships */}
         {profile.memberships && profile.memberships.length > 0 && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Bands & Venues</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Memberships</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {profile.memberships.map((membership, index) => (
                 <a 
