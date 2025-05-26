@@ -3,6 +3,9 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["iad1"],
+  "includeFiles": [
+    "data/**"
+  ],
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
