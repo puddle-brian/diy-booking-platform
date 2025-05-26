@@ -295,7 +295,16 @@ async function initializeDB() {
     await fs.access(DB_FILE);
   } catch (error) {
     // File doesn't exist, create it with default venues
-    await saveVenues(defaultVenues);
+    console.log('Venues file not found, using default venues');
+    // In production, we can't write files, so we'll just use defaults
+    if (process.env.NODE_ENV === 'production') {
+      return;
+    }
+    try {
+      await saveVenues(defaultVenues);
+    } catch (writeError) {
+      console.warn('Could not write venues file, using defaults:', writeError);
+    }
   }
 }
 
@@ -313,7 +322,7 @@ async function loadVenues(): Promise<Venue[]> {
       updatedAt: new Date(venue.updatedAt),
     }));
   } catch (error) {
-    console.error('Error loading venues:', error);
+    console.warn('Error loading venues from file, using defaults:', error);
     return defaultVenues;
   }
 }
@@ -324,6 +333,11 @@ async function saveVenues(venues: Venue[]): Promise<void> {
     await fs.writeFile(DB_FILE, JSON.stringify(venues, null, 2));
   } catch (error) {
     console.error('Error saving venues:', error);
+    // In production, we can't write files, so just log the error
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('Cannot save venues in production environment');
+      return;
+    }
     throw error;
   }
 }
