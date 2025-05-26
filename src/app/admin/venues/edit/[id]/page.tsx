@@ -124,6 +124,7 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
     try {
       const formDataObj = new FormData();
       formDataObj.append('file', file);
+      formDataObj.append('type', 'venue');
 
       const response = await fetch('/api/upload', {
         method: 'POST',

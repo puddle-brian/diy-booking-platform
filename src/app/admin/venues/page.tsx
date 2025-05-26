@@ -120,6 +120,7 @@ export default function AdminVenues() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('type', 'venue');
 
       const response = await fetch('/api/upload', {
         method: 'POST',
