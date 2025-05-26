@@ -545,19 +545,21 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
           {/* Artist Details */}
           <div className="mb-8">
             {/* Features */}
-            <div>
-              <h3 className="text-lg font-semibold mb-3">Artist Features</h3>
-              <div className="flex flex-wrap gap-2">
-                {artist.features.map((feature) => (
-                  <span
-                    key={feature}
-                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm capitalize"
-                  >
-                    {feature}
-                  </span>
-                ))}
+            {artist.features && artist.features.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Artist Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {artist.features.map((feature) => (
+                    <span
+                      key={feature}
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm capitalize"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           
           {/* Description */}
@@ -567,19 +569,21 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
           </div>
 
           {/* Genres */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-3">Genres</h3>
-            <div className="flex flex-wrap gap-2">
-              {artist.genres.map((genre) => (
-                <span
-                  key={genre}
-                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm capitalize"
-                >
-                  {genre}
-                </span>
-              ))}
+          {artist.genres && artist.genres.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-3">Genres</h3>
+              <div className="flex flex-wrap gap-2">
+                {artist.genres.map((genre) => (
+                  <span
+                    key={genre}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm capitalize"
+                  >
+                    {genre}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Contact Info */}
           <div className="mb-8">

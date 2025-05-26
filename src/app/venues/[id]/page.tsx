@@ -421,35 +421,39 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
             </div>
 
             {/* Features */}
+            {venue.features && venue.features.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-3">Venue Features</h3>
+                <div className="flex flex-wrap gap-2">
+                  {venue.features.map((feature) => (
+                    <span
+                      key={feature}
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm capitalize"
+                    >
+                      {feature}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Genres */}
+          {venue.genres && venue.genres.length > 0 && (
             <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-3">Venue Features</h3>
+              <h3 className="text-lg font-semibold mb-3">Preferred Genres</h3>
               <div className="flex flex-wrap gap-2">
-                {venue.features.map((feature) => (
+                {venue.genres.map((genre) => (
                   <span
-                    key={feature}
-                    className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm capitalize"
+                    key={genre}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm capitalize"
                   >
-                    {feature}
+                    {genre}
                   </span>
                 ))}
               </div>
             </div>
-          </div>
-
-          {/* Genres */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-3">Preferred Genres</h3>
-            <div className="flex flex-wrap gap-2">
-              {venue.genres.map((genre) => (
-                <span
-                  key={genre}
-                  className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm capitalize"
-                >
-                  {genre}
-                </span>
-              ))}
-            </div>
-          </div>
+          )}
 
           {/* Contact Info */}
           <div className="mb-8">

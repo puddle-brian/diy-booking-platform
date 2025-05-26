@@ -27,6 +27,7 @@ export async function GET(
       state: venue.location.stateProvince,
       country: venue.location.country,
       venueType: venue.venueType.toLowerCase().replace('_', '-'),
+      genres: [], // Venues don't have genres in schema, but frontend expects this field
       capacity: venue.capacity,
       ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
       equipment: venue.equipment || {},
@@ -45,6 +46,7 @@ export async function GET(
       reviewCount: 0, // TODO: Count from reviews
       showsThisYear: 0, // TODO: Count from shows
       hasAccount: false, // TODO: Check if venue has user account
+      unavailableDates: [], // Add this field for compatibility
       createdAt: venue.createdAt,
       updatedAt: venue.updatedAt
     };
@@ -104,6 +106,7 @@ export async function PUT(
       state: updatedVenue.location.stateProvince,
       country: updatedVenue.location.country,
       venueType: updatedVenue.venueType.toLowerCase().replace('_', '-'),
+      genres: [], // Venues don't have genres in schema, but frontend expects this field
       capacity: updatedVenue.capacity,
       ageRestriction: updatedVenue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
       equipment: updatedVenue.equipment || {},
@@ -122,6 +125,7 @@ export async function PUT(
       reviewCount: 0,
       showsThisYear: 0,
       hasAccount: false,
+      unavailableDates: [], // Add this field for compatibility
       createdAt: updatedVenue.createdAt,
       updatedAt: updatedVenue.updatedAt
     };
