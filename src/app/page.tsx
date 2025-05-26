@@ -7,6 +7,7 @@ import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LA
 import LocationSorting from '../components/LocationSorting';
 import CommunitySection from '../components/CommunitySection';
 import UserStatus from '../components/UserStatus';
+import { useAuth } from '../contexts/AuthContext';
 
 // Custom hook for debounced search
 function useDebounce<T>(value: T, delay: number): T {
@@ -121,6 +122,7 @@ function MultiSelectDropdown({
 export default function Home() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   
   // Get initial tab from URL parameter, default to 'venues' if not specified
   const [activeTab, setActiveTab] = useState<'venues' | 'artists'>(() => {
@@ -131,6 +133,8 @@ export default function Home() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [artists, setArtists] = useState<Artist[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tourRequests, setTourRequests] = useState<any[]>([]);
+  const [userVenue, setUserVenue] = useState<Venue | null>(null);
   
   // Filter states
   const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
@@ -143,15 +147,11 @@ export default function Home() {
   
   // Search states - with immediate and debounced versions
   const [venueSearchLocation, setVenueSearchLocation] = useState('');
-  const [venueSearchDate, setVenueSearchDate] = useState('');
   const [artistSearchLocation, setArtistSearchLocation] = useState('');
-  const [artistSearchDate, setArtistSearchDate] = useState('');
 
   // Debounced search values for better performance
   const debouncedVenueLocation = useDebounce(venueSearchLocation, 300);
-  const debouncedVenueDate = useDebounce(venueSearchDate, 100);
   const debouncedArtistLocation = useDebounce(artistSearchLocation, 300);
-  const debouncedArtistDate = useDebounce(artistSearchDate, 100);
 
   // Genre options
   const genreOptions = {
@@ -224,10 +224,40 @@ export default function Home() {
       setVenues(Array.isArray(venuesData) ? venuesData : []);
       setArtists(Array.isArray(artistsData) ? artistsData : []);
       
+      // Load tour requests for location-based sorting
+      try {
+        const tourRequestsResponse = await fetch('/api/tour-requests?status=active&forVenues=true');
+        if (tourRequestsResponse.ok) {
+          const tourRequestsData = await tourRequestsResponse.json();
+          setTourRequests(Array.isArray(tourRequestsData) ? tourRequestsData : []);
+        }
+      } catch (error) {
+        console.error('Failed to load tour requests:', error);
+        setTourRequests([]);
+      }
+
+      // Load user's venue data if they're a venue
+      if (user?.profileType === 'venue' && user?.profileId) {
+        try {
+          const userVenueResponse = await fetch(`/api/venues/${user.profileId}`);
+          if (userVenueResponse.ok) {
+            const userVenueData = await userVenueResponse.json();
+            setUserVenue(userVenueData);
+          }
+        } catch (error) {
+          console.error('Failed to load user venue:', error);
+          setUserVenue(null);
+        }
+      } else {
+        setUserVenue(null);
+      }
+      
     } catch (error) {
       console.error('Error loading data:', error);
       setVenues([]);
       setArtists([]);
+      setTourRequests([]);
+      setUserVenue(null);
     } finally {
       setLoading(false);
     }
@@ -235,7 +265,7 @@ export default function Home() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user]);
 
   // Filter venues based on selected filters - memoized for performance
   const filteredVenues = useMemo(() => {
@@ -261,18 +291,6 @@ export default function Home() {
           
           if (!searchableText.includes(searchTerm)) {
             return false;
-          }
-        }
-
-        // Date availability check - wrapped in additional safety
-        if (debouncedVenueDate && debouncedVenueDate.trim()) {
-          try {
-            if (!isVenueAvailableOnDate(venue, debouncedVenueDate)) {
-              return false;
-            }
-          } catch (error) {
-            console.warn('Error in date availability check:', error);
-            // Continue filtering without date restriction if there's an error
           }
         }
 
@@ -308,7 +326,6 @@ export default function Home() {
     loading, 
     venues, 
     debouncedVenueLocation, 
-    debouncedVenueDate, 
     selectedVenueTypes, 
     selectedGenres, 
     selectedAgeRestrictions, 
@@ -339,18 +356,6 @@ export default function Home() {
           
           if (!searchableText.includes(searchTerm)) {
             return false;
-          }
-        }
-
-        // Date availability check - wrapped in additional safety
-        if (debouncedArtistDate && debouncedArtistDate.trim()) {
-          try {
-            if (!isArtistAvailableOnDate(artist, debouncedArtistDate)) {
-              return false;
-            }
-          } catch (error) {
-            console.warn('Error in artist date availability check:', error);
-            // Continue filtering without date restriction if there's an error
           }
         }
 
@@ -412,7 +417,6 @@ export default function Home() {
     loading, 
     artists, 
     debouncedArtistLocation, 
-    debouncedArtistDate, 
     selectedArtistTypes, 
     selectedGenres, 
     selectedDraws, 
@@ -425,12 +429,11 @@ export default function Home() {
            selectedGenres.length > 0 || selectedAgeRestrictions.length > 0 ||
            selectedCapacities.length > 0 || selectedDraws.length > 0 ||
            selectedTourStatus.length > 0 ||
-           debouncedVenueLocation.trim() || debouncedVenueDate.trim() ||
-           debouncedArtistLocation.trim() || debouncedArtistDate.trim();
+           debouncedVenueLocation.trim() || debouncedArtistLocation.trim();
   }, [
     selectedVenueTypes, selectedArtistTypes, selectedGenres, selectedAgeRestrictions,
     selectedCapacities, selectedDraws, selectedTourStatus,
-    debouncedVenueLocation, debouncedVenueDate, debouncedArtistLocation, debouncedArtistDate
+    debouncedVenueLocation, debouncedArtistLocation
   ]);
 
   // Optimized clear filters function
@@ -444,9 +447,7 @@ export default function Home() {
     setSelectedTourStatus([]);
     // Clear search inputs
     setVenueSearchLocation('');
-    setVenueSearchDate('');
     setArtistSearchLocation('');
-    setArtistSearchDate('');
     
     // Clear URL parameters
     const params = new URLSearchParams(searchParams.toString());
@@ -455,9 +456,7 @@ export default function Home() {
     
     // Manually delete all search/filter parameters
     params.delete('venueLocation');
-    params.delete('venueDate');
     params.delete('artistLocation');
-    params.delete('artistDate');
     params.delete('venueTypes');
     params.delete('artistTypes');
     params.delete('genres');
@@ -481,22 +480,10 @@ export default function Home() {
       params.delete('venueLocation');
     }
     
-    if (debouncedVenueDate.trim()) {
-      params.set('venueDate', debouncedVenueDate);
-    } else {
-      params.delete('venueDate');
-    }
-    
     if (debouncedArtistLocation.trim()) {
       params.set('artistLocation', debouncedArtistLocation);
     } else {
       params.delete('artistLocation');
-    }
-    
-    if (debouncedArtistDate.trim()) {
-      params.set('artistDate', debouncedArtistDate);
-    } else {
-      params.delete('artistDate');
     }
 
     // Update filter parameters
@@ -524,7 +511,7 @@ export default function Home() {
       router.replace(newUrl, { scroll: false });
     }
   }, [
-    debouncedVenueLocation, debouncedVenueDate, debouncedArtistLocation, debouncedArtistDate,
+    debouncedVenueLocation, debouncedArtistLocation,
     selectedVenueTypes, selectedArtistTypes, selectedGenres,
     router, searchParams
   ]);
@@ -532,17 +519,13 @@ export default function Home() {
   // Initialize filters from URL parameters on component mount
   useEffect(() => {
     const venueLocation = searchParams.get('venueLocation');
-    const venueDate = searchParams.get('venueDate');
     const artistLocation = searchParams.get('artistLocation');
-    const artistDate = searchParams.get('artistDate');
     const venueTypes = searchParams.get('venueTypes');
     const artistTypes = searchParams.get('artistTypes');
     const genres = searchParams.get('genres');
 
     if (venueLocation) setVenueSearchLocation(venueLocation);
-    if (venueDate) setVenueSearchDate(venueDate);
     if (artistLocation) setArtistSearchLocation(artistLocation);
-    if (artistDate) setArtistSearchDate(artistDate);
     if (venueTypes) setSelectedVenueTypes(venueTypes.split(','));
     if (artistTypes) setSelectedArtistTypes(artistTypes.split(','));
     if (genres) setSelectedGenres(genres.split(','));
@@ -639,13 +622,125 @@ export default function Home() {
     }
   }, [searchParams]);
 
+  // Smart location-based artist sorting for venues
+  const getLocationBasedArtistSections = useMemo(() => {
+    if (!userVenue || activeTab !== 'artists') {
+      return { sections: [], hasLocationData: false };
+    }
+
+    const venueCity = userVenue.city.toLowerCase();
+    const venueState = userVenue.state.toLowerCase();
+    
+    // Artists seeking shows near this venue
+    const artistsSeekingNearby = filteredArtists.filter(artist => {
+      return tourRequests.some(request => {
+        const requestLocation = request.city?.toLowerCase() + ', ' + request.state?.toLowerCase();
+        const venueLocation = venueCity + ', ' + venueState;
+        
+        // Check if tour request is in the same city/state as venue
+        return request.artistId === artist.id && 
+               (requestLocation.includes(venueCity) || 
+                requestLocation.includes(venueState) ||
+                venueLocation.includes(request.city?.toLowerCase()) ||
+                venueLocation.includes(request.state?.toLowerCase()));
+      });
+    });
+
+    // Local artists (same city/state)
+    const localArtists = filteredArtists.filter(artist => {
+      const artistCity = artist.city.toLowerCase();
+      const artistState = artist.state.toLowerCase();
+      
+      return (artistCity === venueCity || artistState === venueState) &&
+             !artistsSeekingNearby.some(seeking => seeking.id === artist.id);
+    });
+
+    // Regional artists (within reasonable distance, not local)
+    const regionalArtists = filteredArtists.filter(artist => {
+      const artistState = artist.state.toLowerCase();
+      
+      // Define regional states (this could be more sophisticated with actual distance calculation)
+      const regionalStates: { [key: string]: string[] } = {
+        'ca': ['or', 'wa', 'nv', 'az'],
+        'or': ['ca', 'wa', 'id'],
+        'wa': ['or', 'ca', 'id'],
+        'ny': ['nj', 'ct', 'pa', 'ma', 'vt'],
+        'ma': ['ny', 'ct', 'ri', 'nh', 'vt'],
+        'tx': ['ok', 'nm', 'ar', 'la'],
+        'fl': ['ga', 'al', 'sc'],
+        'il': ['in', 'wi', 'ia', 'mo'],
+        // Add more regional groupings as needed
+      };
+      
+      const venueRegionalStates = regionalStates[venueState] || [];
+      
+      return venueRegionalStates.includes(artistState) &&
+             !artistsSeekingNearby.some(seeking => seeking.id === artist.id) &&
+             !localArtists.some(local => local.id === artist.id);
+    });
+
+    // All other artists
+    const otherArtists = filteredArtists.filter(artist => {
+      return !artistsSeekingNearby.some(seeking => seeking.id === artist.id) &&
+             !localArtists.some(local => local.id === artist.id) &&
+             !regionalArtists.some(regional => regional.id === artist.id);
+    });
+
+    const sections = [
+      {
+        title: `🗺️ Artists Seeking Shows Near ${userVenue.city}`,
+        subtitle: `${artistsSeekingNearby.length} artists with active tour requests in your area`,
+        artists: artistsSeekingNearby,
+        priority: 'high' as const,
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200'
+      },
+      {
+        title: `🏠 Local Artists (${userVenue.state})`,
+        subtitle: `${localArtists.length} artists based in your area`,
+        artists: localArtists,
+        priority: 'medium' as const,
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200'
+      },
+      {
+        title: `🌎 Regional Artists`,
+        subtitle: `${regionalArtists.length} artists within touring distance`,
+        artists: regionalArtists,
+        priority: 'medium' as const,
+        bgColor: 'bg-yellow-50',
+        borderColor: 'border-yellow-200'
+      },
+      {
+        title: `🎵 All Other Artists`,
+        subtitle: `${otherArtists.length} artists from other regions`,
+        artists: otherArtists,
+        priority: 'low' as const,
+        bgColor: 'bg-gray-50',
+        borderColor: 'border-gray-200'
+      }
+    ].filter(section => section.artists.length > 0);
+
+    return { sections, hasLocationData: true };
+  }, [userVenue, activeTab, filteredArtists, tourRequests]);
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header with Centered Toggle */}
       <header className="border-b border-gray-200">
         <div className="container mx-auto px-4 py-6 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
+            <img 
+              src="/logo.png" 
+              alt="diyshows logo" 
+              className="w-8 h-8 rounded-sm"
+              onError={(e) => {
+                // Fallback to the original "B" logo if image fails to load
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling?.classList.remove('hidden');
+              }}
+            />
+            <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
               <span className="text-white font-bold text-sm">B</span>
             </div>
             {/* <h1 className="text-2xl font-bold tracking-tight">Book Yr Life</h1> */}
@@ -653,38 +748,47 @@ export default function Home() {
           </div>
           
           {/* Centered Toggle */}
-          <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => handleTabChange('venues')}
-              className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'venues'
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-600 hover:text-black'
-              }`}
-            >
-              Spaces
-            </button>
-            <button
-              onClick={() => handleTabChange('artists')}
-              className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
-                activeTab === 'artists'
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-600 hover:text-black'
-              }`}
-            >
-              Artists
-            </button>
+          <div className="absolute left-1/2 transform -translate-x-1/2" style={{ marginLeft: '-24px' }}>
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => handleTabChange('venues')}
+                className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'venues'
+                    ? 'bg-white text-black shadow-sm'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                Spaces
+              </button>
+              <button
+                onClick={() => handleTabChange('artists')}
+                className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'artists'
+                    ? 'bg-white text-black shadow-sm'
+                    : 'text-gray-600 hover:text-black'
+                }`}
+              >
+                Artists
+              </button>
+            </div>
           </div>
           
           {/* Right side - User Status */}
           <div className="flex items-center space-x-4">
-            {/* Prominent CTAs */}
-            <a 
-              href={activeTab === 'venues' ? '/admin/venues' : '/admin/artists'}
+            {/* Always visible CTAs */}
+            <Link 
+              href="/admin/venues"
               className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
             >
-              {activeTab === 'venues' ? '+ List a Space' : '+ List a Performer'}
-            </a>
+              + List a Space
+            </Link>
+            
+            <Link 
+              href="/admin/artists"
+              className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+            >
+              + List an Artist
+            </Link>
             
             {/* User Status Component */}
             <UserStatus />
@@ -696,36 +800,22 @@ export default function Home() {
       {activeTab === 'venues' ? (
         // VENUES VIEW - Browse venues
         <section className="container mx-auto px-4 py-8">
-          {/* Airbnb-style Search Bar */}
-          <div className="max-w-3xl mx-auto mb-8">
-            <div className="bg-white rounded-full shadow-lg border border-gray-200 p-2">
+          {/* Simplified Search Bar */}
+          <div className="max-w-2xl mx-auto mb-8">
+            <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
               <div className="flex items-center">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-1">
-                  <div className="p-4">
-                    <div className="text-xs font-semibold text-gray-700 mb-1">Where</div>
-                    <input
-                      type="text"
-                      placeholder="Search spaces"
-                      value={venueSearchLocation}
-                      onChange={(e) => setVenueSearchLocation(e.target.value)}
-                      className="w-full text-sm placeholder-gray-500 border-none outline-none"
-                    />
-                  </div>
-                  <div className="p-4 border-l border-gray-200">
-                    <div className="text-xs font-semibold text-gray-700 mb-1">When</div>
-                    <input
-                      type="date"
-                      placeholder="Show date"
-                      value={venueSearchDate}
-                      onChange={(e) => setVenueSearchDate(e.target.value)}
-                      className="w-full text-sm placeholder-gray-500 border-none outline-none"
-                      min={new Date().toISOString().split('T')[0]} // Can't book in the past
-                    />
-                  </div>
+                <div className="flex-1 px-4 py-2">
+                  <input
+                    type="text"
+                    placeholder="Search spaces by name or location..."
+                    value={venueSearchLocation}
+                    onChange={(e) => setVenueSearchLocation(e.target.value)}
+                    className="w-full text-sm placeholder-gray-500 border-none outline-none"
+                  />
                 </div>
-                <div className="p-2">
-                  <button className="w-12 h-12 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-1">
+                  <button className="w-8 h-8 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </button>
@@ -782,11 +872,6 @@ export default function Home() {
                 {debouncedVenueLocation.trim() && (
                   <span className="ml-2 text-blue-600">
                     • searching "{debouncedVenueLocation}"
-                  </span>
-                )}
-                {debouncedVenueDate && (
-                  <span className="ml-2 text-blue-600">
-                    • available {new Date(debouncedVenueDate).toLocaleDateString()}
                   </span>
                 )}
                 {selectedVenueTypes.length > 0 && (
@@ -877,6 +962,7 @@ export default function Home() {
                           src={venue.images[0] || '/api/placeholder/other'} 
                           alt={venue.name}
                           className="w-full h-full object-cover"
+                          style={{ borderRadius: '1.25rem' }}
                           onError={(e) => {
                             e.currentTarget.src = '/api/placeholder/other';
                           }}
@@ -887,32 +973,19 @@ export default function Home() {
                           </svg>
                         </div>
                       </div>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold text-gray-900 truncate">{venue.name}</h3>
+                      <div className="p-2">
+                        <div className="flex items-start justify-between mb-0.5">
+                          <h3 className="font-bold text-gray-900 truncate flex-1 text-sm">{venue.name}</h3>
                           {venue.rating > 0 && (
-                            <div className="flex items-center gap-1">
-                              <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                            <div className="flex items-center gap-1 ml-2">
+                              <svg className="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                               </svg>
-                              <span className="text-sm font-medium">{venue.rating.toFixed(1)}</span>
+                              <span className="text-xs font-medium">{venue.rating.toFixed(1)}</span>
                             </div>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{venue.city}, {venue.state}</p>
-                        <p className="text-sm text-gray-500 mb-3 capitalize">
-                          {VENUE_TYPE_LABELS[venue.venueType]} • {venue.ageRestriction} • 
-                          {venue.equipment.pa ? ' PA system' : ' No PA'}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-semibold">{venue.capacity}</span>
-                            <span className="text-sm text-gray-600"> capacity</span>
-                          </div>
-                          {venue.equipment.pa && (
-                            <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">PA System</span>
-                          )}
-                        </div>
+                        <p className="text-xs text-gray-600">{venue.city}, {venue.state} • {venue.capacity} capacity</p>
                       </div>
                     </div>
                   </Link>
@@ -933,36 +1006,22 @@ export default function Home() {
       ) : (
         // ARTISTS VIEW - Browse artists
         <section className="container mx-auto px-4 py-8">
-          {/* Search Bar for Artists */}
-          <div className="max-w-3xl mx-auto mb-8">
-            <div className="bg-white rounded-full shadow-lg border border-gray-200 p-2">
+          {/* Simplified Search Bar for Artists */}
+          <div className="max-w-2xl mx-auto mb-8">
+            <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
               <div className="flex items-center">
-                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-1">
-                  <div className="p-4">
-                    <div className="text-xs font-semibold text-gray-700 mb-1">Where</div>
-                    <input
-                      type="text"
-                      placeholder="Search performers"
-                      value={artistSearchLocation}
-                      onChange={(e) => setArtistSearchLocation(e.target.value)}
-                      className="w-full text-sm placeholder-gray-500 border-none outline-none"
-                    />
-                  </div>
-                  <div className="p-4 border-l border-gray-200">
-                    <div className="text-xs font-semibold text-gray-700 mb-1">When</div>
-                    <input
-                      type="date"
-                      placeholder="Available dates"
-                      value={artistSearchDate}
-                      onChange={(e) => setArtistSearchDate(e.target.value)}
-                      className="w-full text-sm placeholder-gray-500 border-none outline-none"
-                      min={new Date().toISOString().split('T')[0]} // Can't book in the past
-                    />
-                  </div>
+                <div className="flex-1 px-4 py-2">
+                  <input
+                    type="text"
+                    placeholder="Search artists by name or location..."
+                    value={artistSearchLocation}
+                    onChange={(e) => setArtistSearchLocation(e.target.value)}
+                    className="w-full text-sm placeholder-gray-500 border-none outline-none"
+                  />
                 </div>
-                <div className="p-2">
-                  <button className="w-12 h-12 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-1">
+                  <button className="w-8 h-8 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
                   </button>
@@ -1019,11 +1078,6 @@ export default function Home() {
                 {debouncedArtistLocation.trim() && (
                   <span className="ml-2 text-blue-600">
                     • searching "{debouncedArtistLocation}"
-                  </span>
-                )}
-                {debouncedArtistDate && (
-                  <span className="ml-2 text-blue-600">
-                    • available {new Date(debouncedArtistDate).toLocaleDateString()}
                   </span>
                 )}
                 {selectedArtistTypes.length > 0 && (
@@ -1097,14 +1151,78 @@ export default function Home() {
                         href="/admin/artists" 
                         className="block bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 font-medium"
                       >
-                        + List a Performer
+                        + List an Artist
                       </a>
                     )}
                   </div>
                 </div>
               </div>
+            ) : getLocationBasedArtistSections.hasLocationData ? (
+              // Location-based sections for venues
+              <div className="space-y-8">
+                {getLocationBasedArtistSections.sections.map((section, sectionIndex) => (
+                  <div key={sectionIndex}>
+                    <div className="mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">{section.title}</h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                      {section.artists.map((artist) => (
+                        <Link key={artist.id} href={`/artists/${artist.id}`}>
+                          <div className="bg-white rounded-xl overflow-hidden hover:shadow-lg transition-shadow cursor-pointer">
+                            <div className="aspect-square relative">
+                              <img 
+                                src={artist.images?.[0] || `/api/placeholder/${artist.artistType}`}
+                                alt={artist.name}
+                                className="w-full h-full object-cover"
+                                style={{ borderRadius: '1.25rem' }}
+                                onError={(e) => {
+                                  e.currentTarget.src = `/api/placeholder/${artist.artistType}`;
+                                }}
+                              />
+                              <div className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md">
+                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                                </svg>
+                              </div>
+                              
+                              {/* Tour Status Badge */}
+                              {(() => {
+                                const hasActiveRequest = tourRequests.some(request => request.artistId === artist.id);
+                                
+                                if (hasActiveRequest) {
+                                  return (
+                                    <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                                      Seeking shows
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                            <div className="p-2">
+                              <div className="flex items-start justify-between mb-0.5">
+                                <h3 className="font-bold text-gray-900 truncate flex-1 text-sm">{artist.name}</h3>
+                                {artist.rating > 0 && (
+                                  <div className="flex items-center gap-1 ml-2">
+                                    <svg className="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                    </svg>
+                                    <span className="text-xs font-medium">{artist.rating.toFixed(1)}</span>
+                                  </div>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-600">{artist.city}, {artist.state} • {ARTIST_TYPE_LABELS[artist.artistType]}</p>
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
-              // Artist cards
+              // Standard artist grid for non-venues or when no location data
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {filteredArtists.map((artist) => (
                   <Link key={artist.id} href={`/artists/${artist.id}`}>
@@ -1114,6 +1232,7 @@ export default function Home() {
                           src={artist.images?.[0] || `/api/placeholder/${artist.artistType}`}
                           alt={artist.name}
                           className="w-full h-full object-cover"
+                          style={{ borderRadius: '1.25rem' }}
                           onError={(e) => {
                             e.currentTarget.src = `/api/placeholder/${artist.artistType}`;
                           }}
@@ -1135,39 +1254,26 @@ export default function Home() {
                           if (isSeekingShows || artist.tourStatus === 'active') {
                             return (
                               <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-                                🗺️ Seeking shows
+                                Seeking shows
                               </div>
                             );
                           }
                           return null;
                         })()}
                       </div>
-                      <div className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="font-semibold text-gray-900 truncate">{artist.name}</h3>
+                      <div className="p-2">
+                        <div className="flex items-start justify-between mb-0.5">
+                          <h3 className="font-bold text-gray-900 truncate flex-1 text-sm">{artist.name}</h3>
                           {artist.rating > 0 && (
-                            <div className="flex items-center gap-1">
-                              <svg className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                            <div className="flex items-center gap-1 ml-2">
+                              <svg className="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20">
                                 <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                               </svg>
-                              <span className="text-sm font-medium">{artist.rating.toFixed(1)}</span>
+                              <span className="text-xs font-medium">{artist.rating.toFixed(1)}</span>
                             </div>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{artist.city}, {artist.state}</p>
-                        <p className="text-sm text-gray-500 mb-3 capitalize">
-                          {ARTIST_TYPE_LABELS[artist.artistType]} • {artist.tourStatus} • 
-                          {artist.equipment.acoustic ? ' Acoustic' : ' Full band'}
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="font-semibold">{artist.expectedDraw}</span>
-                            <span className="text-sm text-gray-600"> draw</span>
-                          </div>
-                          {artist.equipment.acoustic && (
-                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">Acoustic</span>
-                          )}
-                        </div>
+                        <p className="text-xs text-gray-600">{artist.city}, {artist.state} • {ARTIST_TYPE_LABELS[artist.artistType]}</p>
                       </div>
                     </div>
                   </Link>

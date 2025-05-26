@@ -139,6 +139,12 @@ export default function AddArtist() {
             </div>
             <div className="flex space-x-4">
               <Link 
+                href="/"
+                className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
+              >
+                ← Back to Site
+              </Link>
+              <Link 
                 href="/admin"
                 className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
               >

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Venue, VenueType, VENUE_TYPE_LABELS } from '../../../../types';
+import Link from 'next/link';
 
 interface VenueFormData {
   name: string;
@@ -232,11 +233,36 @@ export default function AdminVenues() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Add New Venue</h1>
+              <p className="text-gray-600 mt-1">Create a new venue profile</p>
+            </div>
+            <div className="flex space-x-4">
+              <Link 
+                href="/"
+                className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
+              >
+                ← Back to Site
+              </Link>
+              <Link 
+                href="/admin"
+                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Back to Admin
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="bg-white rounded-lg shadow p-8">
-          <h1 className="text-3xl font-bold mb-8">Add New Venue</h1>
-          
           {submitMessage && (
             <div className={`mb-6 p-4 rounded-lg ${submitMessage.startsWith('Error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
               {submitMessage}
@@ -539,7 +565,7 @@ export default function AdminVenues() {
             </button>
           </form>
         </div>
-      </div>
+      </main>
     </div>
   );
 } 
