@@ -1,0 +1,22 @@
+[
+  {
+    "id": "artist-member-1",
+    "userId": "brian-gibson",
+    "artistId": "1748101913848",
+    "role": "member",
+    "permissions": ["edit_profile", "manage_bookings"],
+    "joinedAt": "2024-01-15T10:00:00.000Z",
+    "invitedBy": "system",
+    "status": "active"
+  },
+  {
+    "id": "artist-member-2",
+    "userId": "brian-chippendale",
+    "artistId": "1748101913848",
+    "role": "member",
+    "permissions": ["edit_profile", "manage_bookings"],
+    "joinedAt": "2024-01-15T10:00:00.000Z",
+    "invitedBy": "system",
+    "status": "active"
+  }
+] 

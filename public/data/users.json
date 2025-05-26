@@ -1,0 +1,42 @@
+[
+  {
+    "id": "1",
+    "email": "admin@bookyourlife.com",
+    "password": "$2b$12$l.gyfC0h/tByASFNAgV9rujU2IaOstz63cQ0B8.T87Wwk6WAUq2CK",
+    "name": "BYOFL Admin",
+    "role": "admin",
+    "isVerified": true,
+    "createdAt": "2025-05-24T15:53:03.917Z",
+    "lastLogin": "2025-05-24T15:54:31.782Z"
+  },
+  {
+    "id": "brian-gibson",
+    "email": "brian@lightningbolt.com",
+    "password": "$2b$12$l.gyfC0h/tByASFNAgV9rujU2IaOstz63cQ0B8.T87Wwk6WAUq2CK",
+    "name": "Brian Gibson",
+    "role": "user",
+    "isVerified": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "lastLogin": "2024-12-15T10:00:00.000Z"
+  },
+  {
+    "id": "brian-chippendale",
+    "email": "brian.chippendale@lightningbolt.com",
+    "password": "$2b$12$l.gyfC0h/tByASFNAgV9rujU2IaOstz63cQ0B8.T87Wwk6WAUq2CK",
+    "name": "Brian Chippendale",
+    "role": "user",
+    "isVerified": true,
+    "createdAt": "2024-01-15T10:00:00.000Z",
+    "lastLogin": "2024-12-15T10:00:00.000Z"
+  },
+  {
+    "id": "lidz-bierenday",
+    "email": "lidz@lostbag.com",
+    "password": "$2b$12$l.gyfC0h/tByASFNAgV9rujU2IaOstz63cQ0B8.T87Wwk6WAUq2CK",
+    "name": "Lidz Bierenday",
+    "role": "user",
+    "isVerified": true,
+    "createdAt": "2024-02-01T10:00:00.000Z",
+    "lastLogin": "2024-12-20T10:00:00.000Z"
+  }
+]

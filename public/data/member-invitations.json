@@ -1,0 +1,35 @@
+[
+  {
+    "id": "1748113716936",
+    "entityType": "artist",
+    "entityId": "1748101913848",
+    "entityName": "Unknown Artist",
+    "inviterName": "Current User",
+    "inviterEmail": "user@example.com",
+    "inviteeEmail": "brian@drool.ws",
+    "role": "member",
+    "permissions": [
+      "edit_profile",
+      "view_analytics"
+    ],
+    "token": "e3ca5b8cb98ed289a8a40364b14618a1536593b8d8232651ab5b90572d9bdc7f",
+    "expiresAt": "2025-05-31T19:08:36.936Z",
+    "createdAt": "2025-05-24T19:08:36.936Z",
+    "status": "pending"
+  },
+  {
+    "id": "1748113907076",
+    "entityType": "venue",
+    "entityId": "3",
+    "entityName": "Unknown Venue",
+    "inviterName": "Current User",
+    "inviterEmail": "user@example.com",
+    "inviteeEmail": "brian@drool.ws",
+    "role": "member",
+    "permissions": [],
+    "token": "c461e7cd477dad7d4dc43783168c0e57c1051c69f5ce7c8f13beb4acdf80b53a",
+    "expiresAt": "2025-05-31T19:11:47.076Z",
+    "createdAt": "2025-05-24T19:11:47.076Z",
+    "status": "pending"
+  }
+]

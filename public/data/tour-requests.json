@@ -1,0 +1,705 @@
+[
+  {
+    "id": "tour-req-002-northeast",
+    "artistId": "4",
+    "artistName": "Fugazi",
+    "title": "Northeast House Shows - Summer 2025",
+    "description": "All-ages focused tour seeking community spaces and DIY venues. $5 admission policy, anti-corporate stance.",
+    "startDate": "2025-07-01",
+    "endDate": "2025-07-05",
+    "location": "Boston, MA",
+    "radius": 200,
+    "flexibility": "region-flexible",
+    "genres": [
+      "post-hardcore",
+      "punk",
+      "alternative"
+    ],
+    "expectedDraw": {
+      "min": 200,
+      "max": 400,
+      "description": "Legendary draw, but prefer smaller intimate venues"
+    },
+    "tourStatus": "exploring-interest",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 0,
+      "max": 300
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "floor-space",
+    "status": "active",
+    "priority": "medium",
+    "responses": 3,
+    "createdAt": "2024-01-20T14:30:00Z",
+    "updatedAt": "2024-01-20T14:30:00Z",
+    "expiresAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "tour-req-002-midatlantic",
+    "artistId": "4",
+    "artistName": "Fugazi",
+    "title": "Mid-Atlantic House Shows - Summer 2025",
+    "description": "All-ages focused tour seeking community spaces and DIY venues. $5 admission policy, anti-corporate stance.",
+    "startDate": "2025-07-06",
+    "endDate": "2025-07-10",
+    "location": "Philadelphia, PA",
+    "radius": 200,
+    "flexibility": "region-flexible",
+    "genres": [
+      "post-hardcore",
+      "punk",
+      "alternative"
+    ],
+    "expectedDraw": {
+      "min": 250,
+      "max": 500,
+      "description": "Legendary draw, but prefer smaller intimate venues"
+    },
+    "tourStatus": "exploring-interest",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 0,
+      "max": 400
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "floor-space",
+    "status": "active",
+    "priority": "medium",
+    "responses": 2,
+    "createdAt": "2024-01-20T14:30:00Z",
+    "updatedAt": "2024-01-20T14:30:00Z",
+    "expiresAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "tour-req-002-southeast",
+    "artistId": "4",
+    "artistName": "Fugazi",
+    "title": "Southeast House Shows - Summer 2025",
+    "description": "All-ages focused tour seeking community spaces and DIY venues. $5 admission policy, anti-corporate stance.",
+    "startDate": "2025-07-11",
+    "endDate": "2025-07-14",
+    "location": "Richmond, VA",
+    "radius": 200,
+    "flexibility": "region-flexible",
+    "genres": [
+      "post-hardcore",
+      "punk",
+      "alternative"
+    ],
+    "expectedDraw": {
+      "min": 200,
+      "max": 350,
+      "description": "Legendary draw, but prefer smaller intimate venues"
+    },
+    "tourStatus": "exploring-interest",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 0,
+      "max": 350
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "floor-space",
+    "status": "active",
+    "priority": "medium",
+    "responses": 2,
+    "createdAt": "2024-01-20T14:30:00Z",
+    "updatedAt": "2024-01-20T14:30:00Z",
+    "expiresAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "tour-req-003-chicago",
+    "artistId": "1",
+    "artistName": "Against Me!",
+    "title": "Chicago Acoustic Show - August 2025",
+    "description": "Stripped-down acoustic tour hitting record stores and smaller venues. Laura Jane Grace solo acoustic performance.",
+    "startDate": "2025-08-10",
+    "endDate": "2025-08-11",
+    "location": "Chicago, IL",
+    "radius": 50,
+    "flexibility": "route-flexible",
+    "genres": [
+      "folk-punk",
+      "acoustic",
+      "punk"
+    ],
+    "expectedDraw": {
+      "min": 80,
+      "max": 120,
+      "description": "Intimate acoustic shows, seeking smaller venues"
+    },
+    "tourStatus": "confirmed-routing",
+    "ageRestriction": "flexible",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": true
+    },
+    "guaranteeRange": {
+      "min": 300,
+      "max": 500
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "hotel",
+    "status": "active",
+    "priority": "high",
+    "responses": 1,
+    "createdAt": "2024-02-01T09:15:00Z",
+    "updatedAt": "2024-02-01T09:15:00Z",
+    "expiresAt": "2025-12-10T00:00:00Z"
+  },
+  {
+    "id": "tour-req-003-milwaukee",
+    "artistId": "1",
+    "artistName": "Against Me!",
+    "title": "Milwaukee Acoustic Show - August 2025",
+    "description": "Stripped-down acoustic tour hitting record stores and smaller venues. Laura Jane Grace solo acoustic performance.",
+    "startDate": "2025-08-13",
+    "endDate": "2025-08-14",
+    "location": "Milwaukee, WI",
+    "radius": 50,
+    "flexibility": "route-flexible",
+    "genres": [
+      "folk-punk",
+      "acoustic",
+      "punk"
+    ],
+    "expectedDraw": {
+      "min": 50,
+      "max": 80,
+      "description": "Intimate acoustic shows, seeking smaller venues"
+    },
+    "tourStatus": "confirmed-routing",
+    "ageRestriction": "flexible",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": true
+    },
+    "guaranteeRange": {
+      "min": 200,
+      "max": 400
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "hotel",
+    "status": "active",
+    "priority": "high",
+    "responses": 0,
+    "createdAt": "2024-02-01T09:15:00Z",
+    "updatedAt": "2024-02-01T09:15:00Z",
+    "expiresAt": "2025-12-10T00:00:00Z"
+  },
+  {
+    "id": "tour-req-003-minneapolis",
+    "artistId": "1",
+    "artistName": "Against Me!",
+    "title": "Minneapolis Acoustic Show - August 2025",
+    "description": "Stripped-down acoustic tour hitting record stores and smaller venues. Laura Jane Grace solo acoustic performance.",
+    "startDate": "2025-08-15",
+    "endDate": "2025-08-16",
+    "location": "Minneapolis, MN",
+    "radius": 50,
+    "flexibility": "route-flexible",
+    "genres": [
+      "folk-punk",
+      "acoustic",
+      "punk"
+    ],
+    "expectedDraw": {
+      "min": 70,
+      "max": 110,
+      "description": "Intimate acoustic shows, seeking smaller venues"
+    },
+    "tourStatus": "confirmed-routing",
+    "ageRestriction": "flexible",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": true
+    },
+    "guaranteeRange": {
+      "min": 300,
+      "max": 500
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "hotel",
+    "status": "active",
+    "priority": "high",
+    "responses": 0,
+    "createdAt": "2024-02-01T09:15:00Z",
+    "updatedAt": "2024-02-01T09:15:00Z",
+    "expiresAt": "2025-12-10T00:00:00Z"
+  },
+  {
+    "id": "tour-req-003-madison",
+    "artistId": "1",
+    "artistName": "Against Me!",
+    "title": "Madison Acoustic Show - August 2025",
+    "description": "Stripped-down acoustic tour hitting record stores and smaller venues. Laura Jane Grace solo acoustic performance.",
+    "startDate": "2025-08-17",
+    "endDate": "2025-08-18",
+    "location": "Madison, WI",
+    "radius": 50,
+    "flexibility": "route-flexible",
+    "genres": [
+      "folk-punk",
+      "acoustic",
+      "punk"
+    ],
+    "expectedDraw": {
+      "min": 40,
+      "max": 80,
+      "description": "Intimate acoustic shows, seeking smaller venues"
+    },
+    "tourStatus": "confirmed-routing",
+    "ageRestriction": "flexible",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": true
+    },
+    "guaranteeRange": {
+      "min": 200,
+      "max": 400
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "hotel",
+    "status": "active",
+    "priority": "high",
+    "responses": 1,
+    "createdAt": "2024-02-01T09:15:00Z",
+    "updatedAt": "2024-02-01T09:15:00Z",
+    "expiresAt": "2025-12-10T00:00:00Z"
+  },
+  {
+    "id": "tour-req-004-sf",
+    "artistId": "2",
+    "artistName": "The Menzingers",
+    "title": "San Francisco Show - May 2025",
+    "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
+    "startDate": "2025-05-15",
+    "endDate": "2025-05-16",
+    "location": "San Francisco, CA",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [
+      "indie rock",
+      "punk",
+      "alternative"
+    ],
+    "expectedDraw": {
+      "min": 200,
+      "max": 300,
+      "description": "Strong SF following, prefer 200-300 cap venues"
+    },
+    "tourStatus": "flexible-routing",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 800,
+      "max": 1200
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 2,
+    "createdAt": "2024-02-10T16:45:00Z",
+    "updatedAt": "2024-02-10T16:45:00Z",
+    "expiresAt": "2025-12-05T00:00:00Z"
+  },
+  {
+    "id": "tour-req-004-sac",
+    "artistId": "2",
+    "artistName": "The Menzingers",
+    "title": "Sacramento Show - September 2025",
+    "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
+    "startDate": "2025-09-13",
+    "endDate": "2025-09-14",
+    "location": "Sacramento, CA",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [
+      "indie rock",
+      "punk",
+      "alternative"
+    ],
+    "expectedDraw": {
+      "min": 120,
+      "max": 200,
+      "description": "Solid Sacramento following, prefer 120-200 cap venues"
+    },
+    "tourStatus": "flexible-routing",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 500,
+      "max": 800
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 1,
+    "createdAt": "2024-02-10T16:45:00Z",
+    "updatedAt": "2024-02-10T16:45:00Z",
+    "expiresAt": "2025-12-05T00:00:00Z"
+  },
+  {
+    "id": "tour-req-004-la",
+    "artistId": "2",
+    "artistName": "The Menzingers",
+    "title": "Los Angeles Show - May 2025",
+    "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
+    "startDate": "2025-05-17",
+    "endDate": "2025-05-18",
+    "location": "Los Angeles, CA",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [
+      "indie rock",
+      "punk",
+      "alternative"
+    ],
+    "expectedDraw": {
+      "min": 250,
+      "max": 400,
+      "description": "Growing LA following, prefer 250-400 cap venues"
+    },
+    "tourStatus": "flexible-routing",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 1000,
+      "max": 1500
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 1,
+    "createdAt": "2024-02-10T16:45:00Z",
+    "updatedAt": "2024-02-10T16:45:00Z",
+    "expiresAt": "2025-12-05T00:00:00Z"
+  },
+  {
+    "id": "tour-req-004-sd",
+    "artistId": "2",
+    "artistName": "The Menzingers",
+    "title": "San Diego Show - September 2025",
+    "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
+    "startDate": "2025-09-11",
+    "endDate": "2025-09-12",
+    "location": "San Diego, CA",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [
+      "indie rock",
+      "punk",
+      "alternative"
+    ],
+    "expectedDraw": {
+      "min": 150,
+      "max": 250,
+      "description": "Growing San Diego following, prefer 150-250 cap venues"
+    },
+    "tourStatus": "flexible-routing",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 600,
+      "max": 1000
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 1,
+    "createdAt": "2024-02-10T16:45:00Z",
+    "updatedAt": "2024-02-10T16:45:00Z",
+    "expiresAt": "2025-12-05T00:00:00Z"
+  },
+  {
+    "id": "1748188754359",
+    "artistId": "2",
+    "artistName": "The Menzingers",
+    "title": "portsmith, nh Show - May 2025",
+    "description": "Looking for shows in portsmith, nh",
+    "startDate": "2025-05-28",
+    "endDate": "2025-05-30",
+    "location": "portsmith, nh",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [
+      "punk",
+      "indie",
+      "alt-rock"
+    ],
+    "expectedDraw": {
+      "min": 50,
+      "max": 150,
+      "description": "Expected draw range"
+    },
+    "tourStatus": "flexible-routing",
+    "ageRestriction": "flexible",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 0,
+    "createdAt": "2025-05-25T15:59:14.359Z",
+    "updatedAt": "2025-05-25T15:59:14.359Z",
+    "expiresAt": "2025-05-28T00:00:00.000Z"
+  },
+  {
+    "id": "1748208385505",
+    "artistId": "1748101913848",
+    "artistName": "lightning bolt",
+    "title": "Seattle Show - 2025",
+    "description": "Looking for a great venue to play an energetic show. We bring our own energy and expect the same from the crowd!",
+    "startDate": "2025-05-26",
+    "endDate": "2025-06-01",
+    "location": "providence",
+    "radius": 50,
+    "flexibility": "route-flexible",
+    "genres": [
+      "rock",
+      "indie"
+    ],
+    "expectedDraw": {
+      "min": 50,
+      "max": 200,
+      "description": "varies by market"
+    },
+    "tourStatus": "exploring-interest",
+    "ageRestriction": "flexible",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 200,
+      "max": 800
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 0,
+    "createdAt": "2025-05-25T21:26:25.505Z",
+    "updatedAt": "2025-05-25T21:26:25.505Z",
+    "expiresAt": "2025-05-26T00:00:00.000Z"
+  },
+  {
+    "id": "1748255983585",
+    "artistId": "1748101913848",
+    "artistName": "lightning bolt",
+    "title": "Chicago Show - 2025",
+    "description": "Test show for debugging purposes. Great venue, good crowd expected!",
+    "startDate": "2025-06-07",
+    "endDate": "2025-06-09",
+    "location": "Chicago, IL",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [],
+    "expectedDraw": {
+      "min": 0,
+      "max": 0,
+      "description": ""
+    },
+    "tourStatus": "exploring-interest",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": false,
+      "needsMics": false,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 0,
+      "max": 0
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "fulfilled",
+    "priority": "medium",
+    "responses": 0,
+    "createdAt": "2025-05-26T10:39:43.585Z",
+    "updatedAt": "2025-05-26T11:16:54.489Z",
+    "expiresAt": "2025-06-06T00:00:00.000Z"
+  },
+  {
+    "id": "1748258185504",
+    "artistId": "1748101913848",
+    "artistName": "lightning bolt",
+    "title": "Seattle Show - 2025",
+    "description": "Test show for debugging purposes. Great venue, good crowd expected!",
+    "startDate": "2025-06-01",
+    "endDate": "2025-06-04",
+    "location": "lost bag",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [],
+    "expectedDraw": {
+      "min": 0,
+      "max": 0,
+      "description": ""
+    },
+    "tourStatus": "exploring-interest",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": false,
+      "needsMics": false,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 0,
+      "max": 0
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 0,
+    "createdAt": "2025-05-26T11:16:25.504Z",
+    "updatedAt": "2025-05-26T11:16:25.504Z",
+    "expiresAt": "2025-06-01T00:00:00.000Z"
+  },
+  {
+    "id": "1748268579827",
+    "artistId": "1748101913848",
+    "artistName": "lightning bolt",
+    "title": "Portland Show - 2025",
+    "description": "Test show for debugging purposes. Great venue, good crowd expected!",
+    "startDate": "2025-06-10",
+    "endDate": "2025-06-13",
+    "location": "Portland, OR",
+    "radius": 50,
+    "flexibility": "exact-cities",
+    "genres": [],
+    "expectedDraw": {
+      "min": 0,
+      "max": 0,
+      "description": ""
+    },
+    "tourStatus": "exploring-interest",
+    "ageRestriction": "all-ages",
+    "equipment": {
+      "needsPA": false,
+      "needsMics": false,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": false
+    },
+    "guaranteeRange": {
+      "min": 0,
+      "max": 0
+    },
+    "acceptsDoorDeals": true,
+    "merchandising": true,
+    "travelMethod": "van",
+    "lodging": "flexible",
+    "status": "active",
+    "priority": "medium",
+    "responses": 0,
+    "createdAt": "2025-05-26T14:09:39.827Z",
+    "updatedAt": "2025-05-26T14:09:39.827Z",
+    "expiresAt": "2025-06-10T00:00:00.000Z"
+  }
+]

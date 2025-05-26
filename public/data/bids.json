@@ -1,0 +1,48 @@
+[
+  {
+    "id": "bid-1748215417887",
+    "tourRequestId": "1748208385505",
+    "venueId": "1748094967307",
+    "venueName": "Lost Bag",
+    "proposedDate": "2025-05-26",
+    "alternativeDates": [],
+    "guarantee": 300,
+    "doorDeal": {
+      "split": "70/30",
+      "minimumGuarantee": 200
+    },
+    "ticketPrice": {
+      "advance": 15,
+      "door": 18
+    },
+    "merchandiseSplit": "90/10",
+    "capacity": 150,
+    "ageRestriction": "all-ages",
+    "equipmentProvided": {
+      "pa": true,
+      "mics": true,
+      "drums": false,
+      "amps": false,
+      "piano": false
+    },
+    "loadIn": "17:00",
+    "soundcheck": "18:00",
+    "doorsOpen": "19:00",
+    "showTime": "20:00",
+    "curfew": "23:00",
+    "promotion": {
+      "social": true,
+      "flyerPrinting": false,
+      "radioSpots": false,
+      "pressCoverage": false
+    },
+    "message": "Looking forward to hosting your show! We have a great sound system and enthusiastic local audience.",
+    "additionalTerms": "",
+    "status": "accepted",
+    "readByArtist": true,
+    "createdAt": "2025-05-25T23:23:37.887Z",
+    "updatedAt": "2025-05-26T10:55:31.068Z",
+    "expiresAt": "2025-06-24T23:23:37.887Z",
+    "acceptedAt": "2025-05-26T10:55:31.068Z"
+  }
+]

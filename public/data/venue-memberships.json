@@ -1,0 +1,12 @@
+[
+  {
+    "id": "venue-member-1",
+    "userId": "lidz-bierenday",
+    "venueId": "1748094967307",
+    "role": "staff",
+    "permissions": ["edit_profile", "manage_bookings"],
+    "joinedAt": "2024-02-01T10:00:00.000Z",
+    "invitedBy": "system",
+    "status": "active"
+  }
+] 

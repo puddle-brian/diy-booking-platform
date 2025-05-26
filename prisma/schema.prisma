@@ -1,0 +1,355 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Users & Authentication
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  passwordHash  String?  // Optional for OAuth users
+  role          Role     @default(USER)
+  verified      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  submittedVenues     Venue[]
+  submittedArtists    Artist[]
+  submittedInfrastructure SceneInfrastructure[]
+  sceneReports        SceneReport[]
+  tourRequests        TourRequest[]
+  sentMessages        Message[] @relation("SentMessages")
+  receivedMessages    Message[] @relation("ReceivedMessages")
+  conversations       ConversationParticipant[]
+  bids                Bid[]
+  shows               Show[]
+
+  @@map("users")
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+// Geographic Organization (like original BYOFL)
+model Location {
+  id               String  @id @default(cuid())
+  country          String
+  stateProvince    String?
+  city             String
+  latitude         Float?
+  longitude        Float?
+  sceneHealthScore Int?    // Integration with Scene Health Index
+  createdAt        DateTime @default(now())
+
+  // Relations
+  venues           Venue[]
+  artists          Artist[]
+  sceneInfrastructure SceneInfrastructure[]
+  sceneReports     SceneReport[]
+
+  @@map("locations")
+}
+
+// Venues (Core BYOFL functionality)
+model Venue {
+  id              String      @id @default(cuid())
+  name            String
+  locationId      String
+  venueType       VenueType
+  capacity        Int?
+  ageRestriction  AgeRestriction?
+  contactEmail    String?
+  contactPhone    String?
+  website         String?
+  socialHandles   Json?       // {instagram: "@venue", facebook: "venue"}
+  equipment       Json?       // {pa: true, mics: true, drums: false}
+  features        Json?       // ["basement", "intimate", "bar"]
+  pricing         Json?       // {guarantee: 200, door: true, merchandise: true}
+  description     String?
+  images          Json?       // ["image1.jpg", "image2.jpg"]
+  verified        Boolean     @default(false)
+  submittedById   String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  location        Location    @relation(fields: [locationId], references: [id])
+  submittedBy     User?       @relation(fields: [submittedById], references: [id])
+  sceneReports    SceneReport[]
+  shows           Show[]
+  bids            Bid[]
+
+  @@map("venues")
+}
+
+enum VenueType {
+  HOUSE_SHOW
+  BASEMENT
+  CLUB
+  BAR
+  COFFEE_SHOP
+  RECORD_STORE
+  VFW_HALL
+  COMMUNITY_CENTER
+  WAREHOUSE
+  PARK
+  AMPHITHEATER
+  OTHER
+}
+
+enum AgeRestriction {
+  ALL_AGES
+  EIGHTEEN_PLUS
+  TWENTY_ONE_PLUS
+}
+
+// Artists/Bands
+model Artist {
+  id              String      @id @default(cuid())
+  name            String
+  locationId      String
+  artistType      ArtistType?
+  genres          Json?       // ["punk", "rock", "indie"]
+  members         Int?
+  yearFormed      Int?
+  tourStatus      TourStatus?
+  contactEmail    String?
+  website         String?
+  socialHandles   Json?
+  equipmentNeeds  Json?       // {needsPA: true, needsMics: true}
+  description     String?
+  images          Json?       // ["image1.jpg", "image2.jpg"]
+  verified        Boolean     @default(false)
+  submittedById   String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  location        Location    @relation(fields: [locationId], references: [id])
+  submittedBy     User?       @relation(fields: [submittedById], references: [id])
+  tourRequests    TourRequest[]
+  shows           Show[]
+
+  @@map("artists")
+}
+
+enum ArtistType {
+  BAND
+  SOLO
+  COLLECTIVE
+  DJ
+  OTHER
+}
+
+enum TourStatus {
+  ACTIVE
+  INACTIVE
+  HIATUS
+  SEEKING_MEMBERS
+}
+
+// Scene Infrastructure (Labels, Radio, Stores, Zines)
+model SceneInfrastructure {
+  id              String      @id @default(cuid())
+  name            String
+  type            InfrastructureType
+  locationId      String
+  contactInfo     Json?
+  description     String?
+  specialties     Json?       // ["vinyl", "cassettes", "local bands"]
+  verified        Boolean     @default(false)
+  submittedById   String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  location        Location    @relation(fields: [locationId], references: [id])
+  submittedBy     User?       @relation(fields: [submittedById], references: [id])
+
+  @@map("scene_infrastructure")
+}
+
+enum InfrastructureType {
+  LABEL
+  RADIO
+  RECORD_STORE
+  ZINE
+  DISTRIBUTOR
+  PHOTOGRAPHER
+  SOUND_ENGINEER
+  PROMOTER
+}
+
+// Tour Requests (Modern addition)
+model TourRequest {
+  id              String      @id @default(cuid())
+  artistId        String
+  createdById     String
+  title           String
+  description     String?
+  startDate       DateTime?
+  endDate         DateTime?
+  targetLocations Json?       // Array of location IDs
+  genres          Json?       // ["punk", "rock", "indie"]
+  status          RequestStatus @default(ACTIVE)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  artist          Artist      @relation(fields: [artistId], references: [id])
+  createdBy       User        @relation(fields: [createdById], references: [id])
+  bids            Bid[]
+
+  @@map("tour_requests")
+}
+
+enum RequestStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+// Community Reviews/Reports
+model SceneReport {
+  id              String      @id @default(cuid())
+  locationId      String?
+  venueId         String?
+  authorId        String
+  title           String?
+  content         String
+  reportType      ReportType
+  rating          Int?        // 1-5 rating
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  location        Location?   @relation(fields: [locationId], references: [id])
+  venue           Venue?      @relation(fields: [venueId], references: [id])
+  author          User        @relation(fields: [authorId], references: [id])
+
+  @@map("scene_reports")
+}
+
+enum ReportType {
+  VENUE_REVIEW
+  SCENE_REPORT
+  TOUR_REPORT
+  GENERAL
+}
+
+// Shows/Events
+model Show {
+  id              String      @id @default(cuid())
+  title           String
+  date            DateTime
+  venueId         String
+  artistId        String
+  description     String?
+  ticketPrice     Float?
+  ageRestriction  AgeRestriction?
+  status          ShowStatus  @default(CONFIRMED)
+  createdById     String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  venue           Venue       @relation(fields: [venueId], references: [id])
+  artist          Artist      @relation(fields: [artistId], references: [id])
+  createdBy       User        @relation(fields: [createdById], references: [id])
+
+  @@map("shows")
+}
+
+enum ShowStatus {
+  CONFIRMED
+  PENDING
+  CANCELLED
+}
+
+// Bidding System
+model Bid {
+  id              String      @id @default(cuid())
+  tourRequestId   String
+  venueId         String
+  bidderId        String
+  proposedDate    DateTime?
+  message         String?
+  amount          Float?
+  status          BidStatus   @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  tourRequest     TourRequest @relation(fields: [tourRequestId], references: [id])
+  venue           Venue       @relation(fields: [venueId], references: [id])
+  bidder          User        @relation(fields: [bidderId], references: [id])
+
+  @@map("bids")
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+// Messaging System
+model Conversation {
+  id              String      @id @default(cuid())
+  title           String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  participants    ConversationParticipant[]
+  messages        Message[]
+
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  id              String      @id @default(cuid())
+  conversationId  String
+  userId          String
+  joinedAt        DateTime    @default(now())
+
+  // Relations
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  user            User        @relation(fields: [userId], references: [id])
+
+  @@unique([conversationId, userId])
+  @@map("conversation_participants")
+}
+
+model Message {
+  id              String      @id @default(cuid())
+  conversationId  String
+  senderId        String
+  receiverId      String?
+  content         String
+  createdAt       DateTime    @default(now())
+
+  // Relations
+  conversation    Conversation @relation(fields: [conversationId], references: [id])
+  sender          User        @relation("SentMessages", fields: [senderId], references: [id])
+  receiver        User?       @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}

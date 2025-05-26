@@ -1,0 +1,257 @@
+[
+  {
+    "id": "1",
+    "name": "Against Me!",
+    "city": "Gainesville",
+    "state": "FL",
+    "country": "USA",
+    "artistType": "band",
+    "genres": [
+      "punk",
+      "folk-punk",
+      "acoustic"
+    ],
+    "members": 4,
+    "yearFormed": 1997,
+    "tourStatus": "active",
+    "equipment": {
+      "needsPA": false,
+      "needsMics": false,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": true
+    },
+    "features": [
+      "touring",
+      "experienced",
+      "draw"
+    ],
+    "contact": {
+      "email": "booking@againstme.com",
+      "phone": "",
+      "social": "@againstme",
+      "website": "againstme.com"
+    },
+    "images": [
+      "/api/placeholder/band"
+    ],
+    "description": "Pioneering folk-punk band with over 25 years of touring experience. Known for intimate acoustic performances and high-energy full band shows.",
+    "rating": 4.9,
+    "showsThisYear": 67,
+    "expectedDraw": "200-500",
+    "tourRadius": "national",
+    "hasAccount": false,
+    "createdAt": "2024-01-15T00:00:00.000Z",
+    "updatedAt": "2024-01-15T00:00:00.000Z"
+  },
+  {
+    "id": "2",
+    "name": "The Menzingers",
+    "city": "Scranton",
+    "state": "PA",
+    "country": "USA",
+    "artistType": "band",
+    "genres": [
+      "punk",
+      "indie",
+      "alt-rock"
+    ],
+    "members": 4,
+    "yearFormed": 2006,
+    "tourStatus": "active",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "features": [
+      "touring",
+      "professional",
+      "merchandise"
+    ],
+    "contact": {
+      "email": "info@themenzingers.com",
+      "social": "@themenzingers",
+      "website": "themenzingers.com"
+    },
+    "images": [
+      "/api/placeholder/band"
+    ],
+    "description": "Anthemic punk rock band from Scranton. Known for passionate live performances and strong community connection.",
+    "rating": 4.7,
+    "showsThisYear": 45,
+    "expectedDraw": "300-800",
+    "tourRadius": "national",
+    "hasAccount": false,
+    "createdAt": "2024-02-01T00:00:00.000Z",
+    "updatedAt": "2024-02-01T00:00:00.000Z"
+  },
+  {
+    "id": "3",
+    "name": "Patti Smith",
+    "city": "New York",
+    "state": "NY",
+    "country": "USA",
+    "artistType": "solo",
+    "genres": [
+      "punk",
+      "poetry",
+      "rock"
+    ],
+    "members": 1,
+    "yearFormed": 1971,
+    "tourStatus": "selective",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": true
+    },
+    "features": [
+      "legendary",
+      "poetry",
+      "intimate"
+    ],
+    "contact": {
+      "email": "management@pattismith.net",
+      "website": "pattismith.net"
+    },
+    "images": [
+      "/api/placeholder/solo"
+    ],
+    "description": "Legendary punk poet and musician. Godmother of punk rock seeking intimate venues for poetry and music performances.",
+    "rating": 5,
+    "showsThisYear": 12,
+    "expectedDraw": "sold out",
+    "tourRadius": "international",
+    "hasAccount": false,
+    "createdAt": "2024-03-01T00:00:00.000Z",
+    "updatedAt": "2024-03-01T00:00:00.000Z"
+  },
+  {
+    "id": "4",
+    "name": "Fugazi",
+    "city": "Washington",
+    "state": "DC",
+    "country": "USA",
+    "artistType": "band",
+    "genres": [
+      "post-hardcore",
+      "punk",
+      "alternative"
+    ],
+    "members": 4,
+    "yearFormed": 1987,
+    "tourStatus": "hiatus",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "features": [
+      "legendary",
+      "all-ages",
+      "no-major-venues"
+    ],
+    "contact": {
+      "email": "info@dischord.com",
+      "website": "dischord.com"
+    },
+    "images": [
+      "/api/placeholder/band"
+    ],
+    "description": "Legendary post-hardcore band. Known for $5 all-ages shows and refusing to play corporate venues. Currently on hiatus.",
+    "rating": 5,
+    "showsThisYear": 0,
+    "expectedDraw": "sold out",
+    "tourRadius": "national",
+    "hasAccount": false,
+    "createdAt": "2024-01-20T00:00:00.000Z",
+    "updatedAt": "2024-01-20T00:00:00.000Z"
+  },
+  {
+    "id": "5",
+    "name": "Joyce Manor",
+    "city": "Torrance",
+    "state": "CA",
+    "country": "USA",
+    "artistType": "band",
+    "genres": [
+      "punk",
+      "emo",
+      "indie"
+    ],
+    "members": 4,
+    "yearFormed": 2008,
+    "tourStatus": "active",
+    "equipment": {
+      "needsPA": true,
+      "needsMics": true,
+      "needsDrums": true,
+      "needsAmps": true,
+      "acoustic": false
+    },
+    "features": [
+      "touring",
+      "young-crowd",
+      "energetic"
+    ],
+    "contact": {
+      "email": "booking@joycemanor.org",
+      "social": "@joycemanor"
+    },
+    "images": [
+      "/api/placeholder/band"
+    ],
+    "description": "Energetic punk-emo band from California. Known for fast songs and enthusiastic young crowds.",
+    "rating": 4.5,
+    "showsThisYear": 38,
+    "expectedDraw": "150-400",
+    "tourRadius": "national",
+    "hasAccount": false,
+    "createdAt": "2024-02-15T00:00:00.000Z",
+    "updatedAt": "2024-02-15T00:00:00.000Z"
+  },
+  {
+    "id": "1748101913848",
+    "name": "lightning bolt",
+    "city": "providence",
+    "state": "Rhode Island",
+    "country": "USA",
+    "artistType": "band",
+    "genres": [],
+    "members": 2,
+    "yearFormed": 1994,
+    "tourStatus": "active",
+    "equipment": {
+      "needsPA": false,
+      "needsMics": false,
+      "needsDrums": false,
+      "needsAmps": false,
+      "acoustic": false
+    },
+    "features": [],
+    "contact": {
+      "email": "brian@drool.ws",
+      "phone": "4013780186",
+      "social": "laserboeast.com",
+      "website": "http://laserbeast.com"
+    },
+    "images": [
+      "/uploads/artist-1748103167137.webp"
+    ],
+    "description": "",
+    "rating": 0,
+    "showsThisYear": 0,
+    "expectedDraw": "",
+    "tourRadius": "regional",
+    "hasAccount": false,
+    "createdAt": "2025-05-24T15:51:53.848Z",
+    "updatedAt": "2025-05-24T16:12:54.582Z"
+  }
+]
