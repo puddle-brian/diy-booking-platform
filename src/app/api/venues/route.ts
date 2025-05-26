@@ -47,8 +47,15 @@ export async function GET(request: NextRequest) {
       where.ageRestriction = ageRestriction.toUpperCase().replace('-', '_').replace('+', '_PLUS');
     }
     
+    // Apply genre filter
+    if (genre) {
+      where.genres = {
+        has: genre
+      };
+    }
+    
     // Fetch venues with location data
-    let venues = await prisma.venue.findMany({
+    const venues = await prisma.venue.findMany({
       where,
       include: {
         location: true
@@ -61,50 +68,36 @@ export async function GET(request: NextRequest) {
     
     console.log(`🏢 API: Found ${venues.length} venues in database`);
     
-              // Apply genre filter (since genres are stored as JSON)
-     if (genre) {
-       venues = venues.filter(venue => {
-         const venueData = venue as any;
-         if (!venueData.genres) return false;
-         const genres = Array.isArray(venueData.genres) ? venueData.genres as string[] : [];
-         return genres.some((g: string) => g.toLowerCase().includes(genre.toLowerCase()));
-       });
-       console.log(`🏢 API: After genre filter: ${venues.length} venues`);
-     }
-     
-     // Transform data to match frontend expectations
-     const transformedVenues = venues.map(venue => {
-       const venueData = venue as any;
-       return {
-         id: venue.id,
-         name: venue.name,
-         city: venue.location.city,
-         state: venue.location.stateProvince,
-         country: venue.location.country,
-         venueType: venue.venueType.toLowerCase().replace('_', '-'),
-         genres: Array.isArray(venueData.genres) ? venueData.genres as string[] : [],
-         capacity: venue.capacity,
-         ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
-         equipment: venue.equipment || {},
-         features: Array.isArray(venueData.features) ? venueData.features as string[] : [],
-         pricing: venue.pricing || {},
-         contact: {
-           email: venue.contactEmail,
-           phone: venue.contactPhone,
-           website: venue.website,
-           social: venueData.socialHandles?.social
-         },
-         description: venue.description,
-         images: Array.isArray(venueData.images) ? venueData.images as string[] : [],
-         verified: venue.verified,
-         rating: 0, // TODO: Calculate from reviews
-         reviewCount: 0, // TODO: Count from reviews
-         showsThisYear: 0, // TODO: Count from shows
-         hasAccount: false, // TODO: Check if venue has user account
-         createdAt: venue.createdAt,
-         updatedAt: venue.updatedAt
-       };
-     });
+    // Transform data to match frontend expectations
+    const transformedVenues = venues.map((venue: any) => ({
+      id: venue.id,
+      name: venue.name,
+      city: venue.location.city,
+      state: venue.location.stateProvince,
+      country: venue.location.country,
+      venueType: venue.venueType.toLowerCase().replace('_', '-'),
+      genres: venue.genres || [],
+      capacity: venue.capacity,
+      ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
+      equipment: venue.equipment || {},
+      features: venue.features || [],
+      pricing: venue.pricing || {},
+      contact: {
+        email: venue.contactEmail,
+        phone: venue.contactPhone,
+        website: venue.website,
+        social: (venue.socialHandles as any)?.social
+      },
+      description: venue.description,
+      images: venue.images || [],
+      verified: venue.verified,
+      rating: 0, // TODO: Calculate from reviews
+      reviewCount: 0, // TODO: Count from reviews
+      showsThisYear: 0, // TODO: Count from shows
+      hasAccount: false, // TODO: Check if venue has user account
+      createdAt: venue.createdAt,
+      updatedAt: venue.updatedAt
+    }));
     
     console.log(`🏢 API: Returning ${transformedVenues.length} venues`);
     
@@ -154,47 +147,46 @@ export async function POST(request: NextRequest) {
         website: venueData.contact?.website,
         socialHandles: venueData.contact?.social ? { social: venueData.contact.social } : undefined,
         equipment: venueData.equipment,
-        features: venueData.features,
+        features: venueData.features || [],
         pricing: venueData.pricing,
         description: venueData.description,
-        images: venueData.images
+        images: venueData.images || []
       },
       include: {
         location: true
       }
     });
     
-         // Transform response to match frontend expectations
-     const createdVenueData = venue as any;
-     const transformedVenue = {
-       id: venue.id,
-       name: venue.name,
-       city: venue.location.city,
-       state: venue.location.stateProvince,
-       country: venue.location.country,
-       venueType: venue.venueType.toLowerCase().replace('_', '-'),
-       genres: Array.isArray(createdVenueData.genres) ? createdVenueData.genres : [],
-       capacity: venue.capacity,
-       ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
-       equipment: venue.equipment || {},
-       features: Array.isArray(createdVenueData.features) ? createdVenueData.features : [],
-       pricing: venue.pricing || {},
-       contact: {
-         email: venue.contactEmail,
-         phone: venue.contactPhone,
-         website: venue.website,
-         social: createdVenueData.socialHandles?.social
-       },
-       description: venue.description,
-       images: Array.isArray(createdVenueData.images) ? createdVenueData.images : [],
-       verified: venue.verified,
-       rating: 0,
-       reviewCount: 0,
-       showsThisYear: 0,
-       hasAccount: false,
-       createdAt: venue.createdAt,
-       updatedAt: venue.updatedAt
-     };
+    // Transform response to match frontend expectations
+    const transformedVenue = {
+      id: venue.id,
+      name: venue.name,
+      city: venue.location.city,
+      state: venue.location.stateProvince,
+      country: venue.location.country,
+      venueType: venue.venueType.toLowerCase().replace('_', '-'),
+      genres: venue.genres || [],
+      capacity: venue.capacity,
+      ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
+      equipment: venue.equipment || {},
+      features: venue.features || [],
+      pricing: venue.pricing || {},
+      contact: {
+        email: venue.contactEmail,
+        phone: venue.contactPhone,
+        website: venue.website,
+        social: (venue.socialHandles as any)?.social
+      },
+      description: venue.description,
+      images: venue.images || [],
+      verified: venue.verified,
+      rating: 0,
+      reviewCount: 0,
+      showsThisYear: 0,
+      hasAccount: false,
+      createdAt: venue.createdAt,
+      updatedAt: venue.updatedAt
+    };
     
     return NextResponse.json(transformedVenue);
   } catch (error) {

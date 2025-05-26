@@ -6,12 +6,11 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Users & Authentication
@@ -79,10 +78,10 @@ model Venue {
   website         String?
   socialHandles   Json?       // {instagram: "@venue", facebook: "venue"}
   equipment       Json?       // {pa: true, mics: true, drums: false}
-  features        Json?       // ["basement", "intimate", "bar"]
+  features        String[]    // ["basement", "intimate", "bar"]
   pricing         Json?       // {guarantee: 200, door: true, merchandise: true}
   description     String?
-  images          Json?       // ["image1.jpg", "image2.jpg"]
+  images          String[]
   verified        Boolean     @default(false)
   submittedById   String?
   createdAt       DateTime    @default(now())
@@ -125,7 +124,7 @@ model Artist {
   name            String
   locationId      String
   artistType      ArtistType?
-  genres          Json?       // ["punk", "rock", "indie"]
+  genres          String[]    // ["punk", "rock", "indie"]
   members         Int?
   yearFormed      Int?
   tourStatus      TourStatus?
@@ -134,7 +133,7 @@ model Artist {
   socialHandles   Json?
   equipmentNeeds  Json?       // {needsPA: true, needsMics: true}
   description     String?
-  images          Json?       // ["image1.jpg", "image2.jpg"]
+  images          String[]
   verified        Boolean     @default(false)
   submittedById   String?
   createdAt       DateTime    @default(now())
@@ -172,7 +171,7 @@ model SceneInfrastructure {
   locationId      String
   contactInfo     Json?
   description     String?
-  specialties     Json?       // ["vinyl", "cassettes", "local bands"]
+  specialties     String[]    // ["vinyl", "cassettes", "local bands"]
   verified        Boolean     @default(false)
   submittedById   String?
   createdAt       DateTime    @default(now())
@@ -205,8 +204,8 @@ model TourRequest {
   description     String?
   startDate       DateTime?
   endDate         DateTime?
-  targetLocations Json?       // Array of location IDs
-  genres          Json?       // ["punk", "rock", "indie"]
+  targetLocations String[]    // Array of location IDs
+  genres          String[]    // ["punk", "rock", "indie"]
   status          RequestStatus @default(ACTIVE)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt

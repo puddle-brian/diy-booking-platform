@@ -1,4 +1,4 @@
-const { PrismaClient } = require('../src/generated/prisma')
+const { PrismaClient } = require('@prisma/client')
 const fs = require('fs')
 const path = require('path')
 
@@ -120,10 +120,10 @@ async function migrateData() {
             website: venue.contact?.website || null,
             socialHandles: venue.contact?.social ? { social: venue.contact.social } : undefined,
             equipment: venue.equipment || null,
-            features: venue.features || null,
+            features: venue.features || [],
             pricing: venue.pricing || null,
             description: venue.description || null,
-            images: venue.images || null,
+            images: venue.images || [],
             verified: venue.verified || false,
             createdAt: venue.createdAt ? new Date(venue.createdAt) : undefined,
             updatedAt: venue.updatedAt ? new Date(venue.updatedAt) : undefined
@@ -157,7 +157,7 @@ async function migrateData() {
             name: artist.name,
             locationId,
             artistType: artist.artistType ? mapArtistType(artist.artistType) : null,
-            genres: artist.genres || null,
+            genres: artist.genres || [],
             members: artist.members || null,
             yearFormed: artist.yearFormed || null,
             tourStatus: artist.tourStatus ? mapTourStatus(artist.tourStatus) : null,
@@ -166,7 +166,7 @@ async function migrateData() {
             socialHandles: artist.contact?.social ? { social: artist.contact.social } : undefined,
             equipmentNeeds: artist.equipment || null,
             description: artist.description || null,
-            images: artist.images || null,
+            images: artist.images || [],
             verified: artist.verified || false,
             createdAt: artist.createdAt ? new Date(artist.createdAt) : undefined,
             updatedAt: artist.updatedAt ? new Date(artist.updatedAt) : undefined
