@@ -152,12 +152,36 @@ export async function POST(request: NextRequest) {
     const uploadPath = path.join(process.cwd(), 'public', 'uploads', filename);
     const thumbnailPath = path.join(process.cwd(), 'public', 'uploads', 'thumbnails', thumbnailFilename);
 
+    // Check if we're in a serverless environment (read-only filesystem)
+    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NETLIFY;
+    
+    if (isServerless) {
+      console.warn('🚨 Serverless environment detected - file uploads not supported');
+      return NextResponse.json({ 
+        error: 'File uploads are not supported in serverless environments. Please configure cloud storage (AWS S3, Cloudinary, etc.) for production use.',
+        details: 'The application is running in a serverless environment where the filesystem is read-only. You need to integrate with a cloud storage service to enable file uploads.'
+      }, { status: 501 });
+    }
+
     // Save main image
     try {
       await writeFile(uploadPath, processedImage);
       console.log('✅ Saved main image:', uploadPath);
     } catch (writeError) {
       console.error('❌ Failed to save main image:', writeError);
+      
+      // Check if it's a read-only filesystem error
+      if (writeError instanceof Error && (
+        writeError.message.includes('EROFS') || 
+        writeError.message.includes('read-only') ||
+        writeError.message.includes('EACCES')
+      )) {
+        return NextResponse.json({ 
+          error: 'File uploads are not supported in this environment. Please configure cloud storage for production use.',
+          details: 'The filesystem is read-only. You need to integrate with a cloud storage service like AWS S3, Cloudinary, or similar.'
+        }, { status: 501 });
+      }
+      
       throw new Error(`Failed to save image: ${writeError instanceof Error ? writeError.message : 'Unknown error'}`);
     }
 

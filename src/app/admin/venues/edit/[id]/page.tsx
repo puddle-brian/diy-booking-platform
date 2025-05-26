@@ -134,6 +134,10 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
       const result = await response.json();
 
       if (!response.ok) {
+        if (response.status === 501) {
+          // Serverless environment - provide helpful message
+          throw new Error(`${result.error}\n\nFor development: Use 'npm run dev' instead of the production build.\nFor production: Configure cloud storage (AWS S3, Cloudinary, etc.)`);
+        }
         throw new Error(result.error || 'Upload failed');
       }
 
