@@ -47,12 +47,8 @@ export async function GET(request: NextRequest) {
       where.ageRestriction = ageRestriction.toUpperCase().replace('-', '_').replace('+', '_PLUS');
     }
     
-    // Apply genre filter
-    if (genre) {
-      where.genres = {
-        has: genre
-      };
-    }
+    // Note: Venues don't have genres in our schema - genres are for artists
+    // If genre filtering is needed, it would be through associated shows/artists
     
     // Fetch venues with location data
     const venues = await prisma.venue.findMany({
@@ -76,7 +72,6 @@ export async function GET(request: NextRequest) {
       state: venue.location.stateProvince,
       country: venue.location.country,
       venueType: venue.venueType.toLowerCase().replace('_', '-'),
-      genres: venue.genres || [],
       capacity: venue.capacity,
       ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
       equipment: venue.equipment || {},
@@ -165,7 +160,6 @@ export async function POST(request: NextRequest) {
       state: venue.location.stateProvince,
       country: venue.location.country,
       venueType: venue.venueType.toLowerCase().replace('_', '-'),
-      genres: venue.genres || [],
       capacity: venue.capacity,
       ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
       equipment: venue.equipment || {},
