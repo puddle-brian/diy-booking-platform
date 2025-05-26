@@ -23,12 +23,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
+      console.warn('❌ Invalid file type:', file.type);
       return NextResponse.json({ 
-        error: 'Invalid file type. Only JPG, PNG, and WebP are allowed.' 
+        error: `Invalid file type: ${file.type}. Only JPG, PNG, WebP, and GIF are allowed.` 
       }, { status: 400 });
     }
+    
+    console.log('✅ File type validation passed:', file.type);
 
     // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
@@ -51,12 +54,28 @@ export async function POST(request: NextRequest) {
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+    
+    console.log('📦 Buffer created:', { 
+      size: buffer.length, 
+      firstBytes: buffer.slice(0, 8).toString('hex'),
+      isValidBuffer: buffer.length > 0
+    });
 
     // Process main image with Sharp (optimize and resize if too large)
     let processedImage: Buffer;
     let thumbnail: Buffer;
     
     try {
+      // First, try to get image metadata to validate the format
+      const metadata = await sharp(buffer).metadata();
+      console.log('📊 Image metadata:', { 
+        format: metadata.format, 
+        width: metadata.width, 
+        height: metadata.height,
+        channels: metadata.channels
+      });
+      
+      // Process the image
       processedImage = await sharp(buffer)
         .resize({ 
           width: 1200, 
@@ -79,13 +98,40 @@ export async function POST(request: NextRequest) {
       console.log('✅ Image processing successful');
     } catch (sharpError) {
       console.warn('⚠️ Sharp processing failed, using original image:', sharpError);
-      // Fallback: use original image if Sharp fails
-      processedImage = buffer;
-      thumbnail = buffer;
       
-      // Update filenames to use original extension
-      filename = `${type}-${timestamp}${originalExtension}`;
-      thumbnailFilename = `${type}-${timestamp}-thumb${originalExtension}`;
+      // Try a more basic Sharp operation to see if the image is valid at all
+      try {
+        const basicMetadata = await sharp(buffer).metadata();
+        console.log('📊 Basic metadata successful:', basicMetadata.format);
+        
+        // If metadata works, try without WebP conversion
+        processedImage = await sharp(buffer)
+          .resize({ 
+            width: 1200, 
+            height: 1200, 
+            fit: 'inside',
+            withoutEnlargement: true 
+          })
+          .toBuffer();
+          
+        thumbnail = await sharp(buffer)
+          .resize(300, 300, { 
+            fit: 'cover',
+            position: 'center'
+          })
+          .toBuffer();
+          
+        console.log('✅ Image processing successful without WebP conversion');
+      } catch (basicError) {
+        console.error('❌ Even basic Sharp processing failed:', basicError);
+        // Complete fallback: use original image
+        processedImage = buffer;
+        thumbnail = buffer;
+        
+        // Update filenames to use original extension
+        filename = `${type}-${timestamp}${originalExtension}`;
+        thumbnailFilename = `${type}-${timestamp}-thumb${originalExtension}`;
+      }
     }
 
     // Ensure upload directories exist
