@@ -30,7 +30,6 @@ export async function GET() {
       country: artist.location.country,
       artistType: artist.artistType?.toLowerCase() || 'band',
       genres: artist.genres || [],
-      features: artist.features || [], // Add features field for consistency
       members: artist.members,
       yearFormed: artist.yearFormed,
       tourStatus: artist.tourStatus?.toLowerCase() || 'active',
@@ -152,7 +151,6 @@ export async function POST(request: NextRequest) {
       country: artist.location.country,
       artistType: artist.artistType?.toLowerCase() || 'band',
       genres: artist.genres || [],
-      features: artist.features || [], // Add features field for consistency
       members: artist.members,
       yearFormed: artist.yearFormed,
       tourStatus: artist.tourStatus?.toLowerCase() || 'active',

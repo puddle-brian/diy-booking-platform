@@ -30,7 +30,6 @@ interface Artist {
     needsAmps: boolean;
     acoustic: boolean;
   };
-  features: string[];
   contact: {
     email: string;
     phone?: string;
@@ -542,26 +541,6 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
         </div>
 
         <div>
-          {/* Artist Details */}
-          <div className="mb-8">
-            {/* Features */}
-            {artist.features && artist.features.length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold mb-3">Artist Features</h3>
-                <div className="flex flex-wrap gap-2">
-                  {artist.features.map((feature) => (
-                    <span
-                      key={feature}
-                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm capitalize"
-                    >
-                      {feature}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-          
           {/* Description */}
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4">About {artist.name}</h2>
