@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import fs from 'fs';
-import path from 'path';
-import sharp from 'sharp';
+import { v2 as cloudinary } from 'cloudinary';
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,180 +37,85 @@ export async function POST(request: NextRequest) {
     
     console.log('✅ File type validation passed:', file.type);
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (10MB max for Cloudinary)
+    if (file.size > 10 * 1024 * 1024) {
       return NextResponse.json({ 
-        error: 'File too large. Maximum size is 5MB.' 
+        error: 'File too large. Maximum size is 10MB.' 
       }, { status: 400 });
     }
 
-    // Generate unique filename based on type
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-    const originalExtension = path.extname(file.name).toLowerCase();
-    
-    // Use .webp if Sharp processing succeeds, otherwise use original extension
-    let filename = `${type}-${timestamp}.webp`;
-    let thumbnailFilename = `${type}-${timestamp}-thumb.webp`;
-    
-    // We'll update these after processing if Sharp fails
-    
+    // Check if Cloudinary is configured
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('❌ Cloudinary not configured');
+      return NextResponse.json({ 
+        error: 'Cloud storage not configured. Please set up Cloudinary environment variables.',
+        details: 'Missing CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, or CLOUDINARY_API_SECRET'
+      }, { status: 500 });
+    }
+
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
     console.log('📦 Buffer created:', { 
       size: buffer.length, 
-      firstBytes: buffer.slice(0, 8).toString('hex'),
       isValidBuffer: buffer.length > 0
     });
 
-    // Process main image with Sharp (optimize and resize if too large)
-    let processedImage: Buffer;
-    let thumbnail: Buffer;
+    // Generate unique public ID
+    const timestamp = Date.now();
+    const originalName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+    const publicId = `diy-booking/${type}s/${timestamp}-${originalName}`;
+
+    // Upload to Cloudinary with automatic optimization
+    const uploadResult = await new Promise((resolve, reject) => {
+      cloudinary.uploader.upload_stream(
+        {
+          resource_type: 'image',
+          public_id: publicId,
+          folder: `diy-booking/${type}s`,
+          transformation: [
+            { width: 1200, height: 1200, crop: 'limit' },
+            { quality: 'auto', fetch_format: 'auto' }
+          ],
+          eager: [
+            { width: 300, height: 300, crop: 'fill', gravity: 'center' } // Generate thumbnail
+          ]
+        },
+        (error, result) => {
+          if (error) {
+            console.error('❌ Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            console.log('✅ Cloudinary upload successful:', result?.public_id);
+            resolve(result);
+          }
+        }
+      ).end(buffer);
+    });
+
+    const result = uploadResult as any;
     
-    try {
-      // First, try to get image metadata to validate the format
-      const metadata = await sharp(buffer).metadata();
-      console.log('📊 Image metadata:', { 
-        format: metadata.format, 
-        width: metadata.width, 
-        height: metadata.height,
-        channels: metadata.channels
-      });
-      
-      // Process the image
-      processedImage = await sharp(buffer)
-        .resize({ 
-          width: 1200, 
-          height: 1200, 
-          fit: 'inside',
-          withoutEnlargement: true 
-        })
-        .webp({ quality: 85 })
-        .toBuffer();
-
-      // Generate thumbnail (300x300)
-      thumbnail = await sharp(buffer)
-        .resize(300, 300, { 
-          fit: 'cover',
-          position: 'center'
-        })
-        .webp({ quality: 80 })
-        .toBuffer();
-        
-      console.log('✅ Image processing successful');
-    } catch (sharpError) {
-      console.warn('⚠️ Sharp processing failed, using original image:', sharpError);
-      
-      // Try a more basic Sharp operation to see if the image is valid at all
-      try {
-        const basicMetadata = await sharp(buffer).metadata();
-        console.log('📊 Basic metadata successful:', basicMetadata.format);
-        
-        // If metadata works, try without WebP conversion
-        processedImage = await sharp(buffer)
-          .resize({ 
-            width: 1200, 
-            height: 1200, 
-            fit: 'inside',
-            withoutEnlargement: true 
-          })
-          .toBuffer();
-          
-        thumbnail = await sharp(buffer)
-          .resize(300, 300, { 
-            fit: 'cover',
-            position: 'center'
-          })
-          .toBuffer();
-          
-        console.log('✅ Image processing successful without WebP conversion');
-      } catch (basicError) {
-        console.error('❌ Even basic Sharp processing failed:', basicError);
-        // Complete fallback: use original image
-        processedImage = buffer;
-        thumbnail = buffer;
-        
-        // Update filenames to use original extension
-        filename = `${type}-${timestamp}${originalExtension}`;
-        thumbnailFilename = `${type}-${timestamp}-thumb${originalExtension}`;
-      }
-    }
-
-    // Ensure upload directories exist
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    const thumbnailDir = path.join(process.cwd(), 'public', 'uploads', 'thumbnails');
+    // Get the URLs
+    const imageUrl = result.secure_url;
+    const thumbnailUrl = result.eager?.[0]?.secure_url || imageUrl;
     
-    if (!fs.existsSync(uploadDir)) {
-      console.log('📁 Creating uploads directory');
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    
-    if (!fs.existsSync(thumbnailDir)) {
-      console.log('📁 Creating thumbnails directory');
-      fs.mkdirSync(thumbnailDir, { recursive: true });
-    }
-
-    // Prepare file paths
-    const uploadPath = path.join(process.cwd(), 'public', 'uploads', filename);
-    const thumbnailPath = path.join(process.cwd(), 'public', 'uploads', 'thumbnails', thumbnailFilename);
-
-    // Check if we're in a serverless environment (read-only filesystem)
-    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NETLIFY;
-    
-    if (isServerless) {
-      console.warn('🚨 Serverless environment detected - file uploads not supported');
-      return NextResponse.json({ 
-        error: 'File uploads are not supported in serverless environments. Please configure cloud storage (AWS S3, Cloudinary, etc.) for production use.',
-        details: 'The application is running in a serverless environment where the filesystem is read-only. You need to integrate with a cloud storage service to enable file uploads.'
-      }, { status: 501 });
-    }
-
-    // Save main image
-    try {
-      await writeFile(uploadPath, processedImage);
-      console.log('✅ Saved main image:', uploadPath);
-    } catch (writeError) {
-      console.error('❌ Failed to save main image:', writeError);
-      
-      // Check if it's a read-only filesystem error
-      if (writeError instanceof Error && (
-        writeError.message.includes('EROFS') || 
-        writeError.message.includes('read-only') ||
-        writeError.message.includes('EACCES')
-      )) {
-        return NextResponse.json({ 
-          error: 'File uploads are not supported in this environment. Please configure cloud storage for production use.',
-          details: 'The filesystem is read-only. You need to integrate with a cloud storage service like AWS S3, Cloudinary, or similar.'
-        }, { status: 501 });
-      }
-      
-      throw new Error(`Failed to save image: ${writeError instanceof Error ? writeError.message : 'Unknown error'}`);
-    }
-
-    // Save thumbnail
-    try {
-      await writeFile(thumbnailPath, thumbnail);
-      console.log('✅ Saved thumbnail:', thumbnailPath);
-    } catch (writeError) {
-      console.error('❌ Failed to save thumbnail:', writeError);
-      // Don't fail the entire upload if thumbnail fails
-      console.warn('⚠️ Continuing without thumbnail');
-    }
-
-    // Return the public URLs
-    const imageUrl = `/uploads/${filename}`;
-    const thumbnailUrl = `/uploads/thumbnails/${thumbnailFilename}`;
-    
-    console.log('🎉 Upload successful:', { imageUrl, thumbnailUrl });
+    console.log('🎉 Upload successful:', { imageUrl, thumbnailUrl, publicId: result.public_id });
     
     return NextResponse.json({ 
       success: true, 
       imageUrl,
       thumbnailUrl,
-      filename,
-      originalName: originalName
+      filename: result.public_id,
+      originalName: originalName,
+      cloudinaryData: {
+        publicId: result.public_id,
+        version: result.version,
+        format: result.format,
+        width: result.width,
+        height: result.height,
+        bytes: result.bytes
+      }
     });
 
   } catch (error) {
@@ -218,12 +127,12 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof Error) {
       errorDetails = error.message;
-      if (error.message.includes('sharp')) {
-        errorMessage = 'Image processing failed. Please try a different image format.';
-      } else if (error.message.includes('ENOENT')) {
-        errorMessage = 'Upload directory not accessible. Please try again.';
-      } else if (error.message.includes('EACCES')) {
-        errorMessage = 'Permission denied. Please contact support.';
+      if (error.message.includes('Invalid image file')) {
+        errorMessage = 'Invalid image file. Please try a different image.';
+      } else if (error.message.includes('File size too large')) {
+        errorMessage = 'File too large. Please try a smaller image.';
+      } else if (error.message.includes('Unauthorized')) {
+        errorMessage = 'Cloud storage authentication failed. Please contact support.';
       } else {
         errorMessage = `Upload failed: ${error.message}`;
       }
