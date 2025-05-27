@@ -59,6 +59,12 @@ export default function VenueBidForm({
       type: 'floor-space' as 'floor-space' | 'couch' | 'private-room',
       details: ''
     },
+    // Billing order fields
+    billingPosition: 'headliner' as 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener',
+    lineupPosition: '1',
+    setLength: '60',
+    otherActs: '',
+    billingNotes: '',
     message: 'Looking forward to hosting your show! We have a great sound system and enthusiastic local audience.',
     additionalTerms: ''
   });
@@ -99,6 +105,12 @@ export default function VenueBidForm({
           curfew: bidForm.curfew,
           promotion: bidForm.promotion,
           lodging: bidForm.lodging.offered ? bidForm.lodging : undefined,
+          // Billing order information
+          billingPosition: bidForm.billingPosition,
+          lineupPosition: bidForm.lineupPosition ? parseInt(bidForm.lineupPosition) : undefined,
+          setLength: bidForm.setLength ? parseInt(bidForm.setLength) : undefined,
+          otherActs: bidForm.otherActs,
+          billingNotes: bidForm.billingNotes,
           message: bidForm.message,
           additionalTerms: bidForm.additionalTerms
         }),
@@ -527,6 +539,64 @@ export default function VenueBidForm({
             className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Any special conditions, requirements, or additional notes"
           />
+        </div>
+
+        {/* Billing & Lineup Information */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Billing & Lineup Information
+          </label>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Billing Position</label>
+              <select
+                value={bidForm.billingPosition}
+                onChange={(e) => setBidForm(prev => ({ 
+                  ...prev, 
+                  billingPosition: e.target.value as 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener'
+                }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="headliner">Headliner</option>
+                <option value="co-headliner">Co-Headliner</option>
+                <option value="direct-support">Direct Support</option>
+                <option value="opener">Opener</option>
+                <option value="local-opener">Local Opener</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Set Length (minutes)</label>
+              <input
+                type="number"
+                value={bidForm.setLength}
+                onChange={(e) => setBidForm(prev => ({ ...prev, setLength: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="e.g. 60"
+              />
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <label className="block text-sm text-gray-600 mb-1">Other Acts on Bill (Optional)</label>
+            <input
+              type="text"
+              value={bidForm.otherActs}
+              onChange={(e) => setBidForm(prev => ({ ...prev, otherActs: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="e.g. Local Band A, Local Band B"
+            />
+          </div>
+          
+          <div className="mt-4">
+            <label className="block text-sm text-gray-600 mb-1">Billing Notes (Optional)</label>
+            <textarea
+              rows={2}
+              value={bidForm.billingNotes}
+              onChange={(e) => setBidForm(prev => ({ ...prev, billingNotes: e.target.value }))}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Any specific notes about the lineup or billing arrangement"
+            />
+          </div>
         </div>
 
         {/* Action Buttons */}

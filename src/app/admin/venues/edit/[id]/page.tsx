@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import MediaEmbedSection from '../../../../../components/MediaEmbedSection';
 import { Venue, VenueType, VENUE_TYPE_LABELS } from '../../../../../../types/index';
 
 export default function EditVenue({ params }: { params: Promise<{ id: string }> }) {
@@ -248,15 +249,27 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <Link 
-            href="/admin"
-            className="inline-flex items-center text-gray-600 hover:text-black mb-4"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to Admin Dashboard
-          </Link>
+          <div className="flex justify-between items-start mb-4">
+            <Link 
+              href="/admin"
+              className="inline-flex items-center text-gray-600 hover:text-black"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Admin Dashboard
+            </Link>
+            
+            <Link 
+              href="/"
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Main Site
+            </Link>
+          </div>
           <h1 className="text-3xl font-bold text-gray-900">Edit Venue</h1>
           <p className="text-gray-600 mt-1">Update venue information and settings</p>
         </div>
@@ -635,6 +648,25 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
                 <p className="text-xs text-gray-500">
                   Add dates that are already booked to prevent double-booking requests
                 </p>
+              </div>
+            </div>
+
+            {/* Media Embeds */}
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Media Content</h3>
+                  <p className="text-sm text-gray-600">Add videos and music to showcase your venue</p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-6">
+                <MediaEmbedSection
+                  entityId={venueId || ''}
+                  entityType="venue"
+                  canEdit={true}
+                  maxEmbeds={5}
+                />
               </div>
             </div>
 

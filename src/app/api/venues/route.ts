@@ -89,6 +89,7 @@ export async function GET(request: NextRequest) {
       verified: venue.verified,
       rating: 0, // TODO: Calculate from reviews
       reviewCount: 0, // TODO: Count from reviews
+      totalRatings: 0, // TODO: Count from reviews
       showsThisYear: 0, // TODO: Count from shows
       hasAccount: false, // TODO: Check if venue has user account
       unavailableDates: [], // Add this field for compatibility
@@ -179,6 +180,7 @@ export async function POST(request: NextRequest) {
       verified: venue.verified,
       rating: 0,
       reviewCount: 0,
+      totalRatings: 0,
       showsThisYear: 0,
       hasAccount: false,
       unavailableDates: [], // Add this field for compatibility

@@ -40,6 +40,15 @@ export interface Show {
   promotedAt?: string; // When promotion happened
   originalBidId?: string; // Link back to the venue bid that created this
   
+  // 🎯 BILLING ORDER - Lineup position (only relevant for confirmed shows)
+  billingOrder?: {
+    position: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+    lineupPosition?: number; // 1 = headliner, 2 = direct support, etc.
+    setLength?: number; // minutes
+    otherActs?: string[]; // names of other acts on the bill
+    notes?: string; // "co-headlining with X", "festival slot", etc.
+  };
+  
   // Financial
   guarantee?: number;
   doorDeal?: {
@@ -192,6 +201,13 @@ export interface VenueBid {
     type: 'floor-space' | 'couch' | 'private-room';
     details?: string;
   };
+  
+  // 🎯 BILLING ORDER - What type of show the venue is offering
+  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  lineupPosition?: number; // 1 = headliner, 2 = direct support, etc.
+  setLength?: number; // minutes
+  otherActs?: string; // names of other acts on the bill
+  billingNotes?: string; // "co-headlining with X", "festival slot", etc.
   
   // Message & Terms
   message: string;

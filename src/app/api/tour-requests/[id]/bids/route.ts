@@ -136,6 +136,12 @@ export async function POST(
       curfew: body.curfew || '',
       promotion: body.promotion || {},
       lodging: body.lodging || undefined,
+      // Billing order information
+      billingPosition: body.billingPosition || 'headliner', // Default to headliner
+      lineupPosition: body.lineupPosition || undefined,
+      setLength: body.setLength || undefined,
+      otherActs: body.otherActs || '',
+      billingNotes: body.billingNotes || '',
       message: body.message,
       additionalTerms: body.additionalTerms || '',
       status: 'pending',

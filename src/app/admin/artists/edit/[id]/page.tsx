@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import MediaEmbedSection from '../../../../../components/MediaEmbedSection';
 import { Artist, ArtistType, ARTIST_TYPE_LABELS } from '../../../../../../types/index';
 
 export default function EditArtist({ params }: { params: Promise<{ id: string }> }) {
@@ -55,21 +56,32 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
         
         // Populate form with artist data
         setFormData({
-          name: artistData.name,
-          city: artistData.city,
-          state: artistData.state,
-          country: artistData.country,
-          artistType: artistData.artistType,
+          name: artistData.name || '',
+          city: artistData.city || '',
+          state: artistData.state || '',
+          country: artistData.country || 'USA',
+          artistType: artistData.artistType || 'band',
           genres: artistData.genres || [],
-          members: artistData.members,
-          yearFormed: artistData.yearFormed,
-          tourStatus: artistData.tourStatus,
-          equipment: artistData.equipment,
+          members: artistData.members || 1,
+          yearFormed: artistData.yearFormed || new Date().getFullYear(),
+          tourStatus: artistData.tourStatus || 'active',
+          equipment: artistData.equipment || {
+            needsPA: false,
+            needsMics: false,
+            needsDrums: false,
+            needsAmps: false,
+            acoustic: false,
+          },
           features: artistData.features || [],
-          contact: artistData.contact,
-          description: artistData.description,
-          expectedDraw: artistData.expectedDraw,
-          tourRadius: artistData.tourRadius,
+          contact: artistData.contact || {
+            email: '',
+            phone: '',
+            social: '',
+            website: '',
+          },
+          description: artistData.description || '',
+          expectedDraw: artistData.expectedDraw || '',
+          tourRadius: artistData.tourRadius || 'regional',
           images: artistData.images || [],
         });
       } catch (error) {
@@ -149,11 +161,17 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
 
       const result = await response.json();
       
-      // Add the image URL to the form data
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, result.imageUrl]
-      }));
+      // Replace placeholder images with the new upload
+      setFormData(prev => {
+        // Filter out any placeholder images (those that start with /api/placeholder)
+        const nonPlaceholderImages = prev.images.filter(img => !img.includes('/api/placeholder'));
+        
+        // Add the new image
+        return {
+          ...prev,
+          images: [...nonPlaceholderImages, result.imageUrl]
+        };
+      });
 
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Failed to upload image');
@@ -207,6 +225,15 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
               <p className="text-gray-600 mt-1">Update {artist.name}'s profile</p>
             </div>
             <div className="flex space-x-4">
+              <Link 
+                href="/"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Main Site
+              </Link>
               <Link 
                 href="/admin"
                 className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
@@ -280,17 +307,43 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
               </div>
 
               <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700 mb-2">
+                  Country *
+                </label>
+                <select
+                  id="country"
+                  required
+                  value={formData.country}
+                  onChange={(e) => setFormData({ ...formData, country: e.target.value, state: '' })}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                >
+                  <option value="USA">United States</option>
+                  <option value="Canada">Canada</option>
+                  <option value="UK">United Kingdom</option>
+                  <option value="Germany">Germany</option>
+                  <option value="France">France</option>
+                  <option value="Japan">Japan</option>
+                  <option value="Australia">Australia</option>
+                  <option value="Netherlands">Netherlands</option>
+                  <option value="Sweden">Sweden</option>
+                  <option value="Denmark">Denmark</option>
+                  <option value="Ireland">Ireland</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <div>
                 <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                  State/Province *
+                  State/Province {(formData.country === 'USA' || formData.country === 'Canada') ? '*' : ''}
                 </label>
                 <input
                   type="text"
                   id="state"
-                  required
+                  required={formData.country === 'USA' || formData.country === 'Canada'}
                   value={formData.state}
                   onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="FL"
+                  placeholder={formData.country === 'USA' ? 'FL' : formData.country === 'Canada' ? 'ON' : 'Optional'}
                 />
               </div>
 
@@ -333,16 +386,35 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
             {/* Image Upload */}
             <div className="mb-6">
               <label htmlFor="image-upload" className="block text-sm font-medium text-gray-700 mb-2">
-                Upload Images
+                {formData.images.some(img => img.includes('/api/placeholder')) 
+                  ? 'Replace Placeholder with Custom Image' 
+                  : 'Upload Images'
+                }
               </label>
               <div className="flex items-center justify-center w-full">
-                <label htmlFor="image-upload" className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                <label htmlFor="image-upload" className={`flex flex-col items-center justify-center w-full h-64 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  formData.images.some(img => img.includes('/api/placeholder'))
+                    ? 'border-blue-400 bg-blue-50 hover:bg-blue-100'
+                    : 'border-gray-300 bg-gray-50 hover:bg-gray-100'
+                }`}>
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <svg className="w-8 h-8 mb-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-8 h-8 mb-4 ${
+                      formData.images.some(img => img.includes('/api/placeholder'))
+                        ? 'text-blue-500'
+                        : 'text-gray-500'
+                    }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
-                    <p className="mb-2 text-sm text-gray-500">
-                      <span className="font-semibold">Click to upload</span> artist images
+                    <p className={`mb-2 text-sm ${
+                      formData.images.some(img => img.includes('/api/placeholder'))
+                        ? 'text-blue-600'
+                        : 'text-gray-500'
+                    }`}>
+                      <span className="font-semibold">Click to upload</span> {
+                        formData.images.some(img => img.includes('/api/placeholder'))
+                          ? 'and replace placeholder'
+                          : 'artist images'
+                      }
                     </p>
                     <p className="text-xs text-gray-500">PNG, JPG or WebP (MAX. 5MB)</p>
                   </div>
@@ -373,35 +445,54 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
             {/* Image Previews */}
             {formData.images.length > 0 && (
               <div>
-                <h3 className="text-lg font-medium mb-4">Uploaded Images ({formData.images.length})</h3>
+                <h3 className="text-lg font-medium mb-4">Artist Images ({formData.images.length})</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {formData.images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={image.includes('/uploads/') 
-                          ? image.replace('/uploads/', '/uploads/thumbnails/').replace('.webp', '-thumb.webp')
-                          : image
-                        }
-                        alt={`Artist image ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg border border-gray-300"
-                        onError={(e) => {
-                          e.currentTarget.src = image; // Fallback to original if thumbnail doesn't exist
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <button
-                          type="button"
-                          onClick={() => handleImageRemove(index)}
-                          className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
-                        </button>
+                  {formData.images.map((image, index) => {
+                    const isPlaceholder = image.includes('/api/placeholder');
+                    return (
+                      <div key={index} className="relative group">
+                        <img
+                          src={image.includes('/uploads/') 
+                            ? image.replace('/uploads/', '/uploads/thumbnails/').replace('.webp', '-thumb.webp')
+                            : image
+                          }
+                          alt={`Artist image ${index + 1}`}
+                          className={`w-full h-32 object-cover rounded-lg border ${
+                            isPlaceholder ? 'border-yellow-300 border-2' : 'border-gray-300'
+                          }`}
+                          onError={(e) => {
+                            e.currentTarget.src = image; // Fallback to original if thumbnail doesn't exist
+                          }}
+                        />
+                        {isPlaceholder && (
+                          <div className="absolute top-1 left-1 bg-yellow-500 text-white text-xs px-2 py-1 rounded">
+                            Placeholder
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <button
+                            type="button"
+                            onClick={() => handleImageRemove(index)}
+                            className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+                
+                {/* Show helpful message if there are placeholder images */}
+                {formData.images.some(img => img.includes('/api/placeholder')) && (
+                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      💡 <strong>Tip:</strong> Upload a new image to automatically replace the placeholder thumbnail with your custom image.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -534,12 +625,11 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email *
+                  Email
                 </label>
                 <input
                   type="email"
                   id="email"
-                  required
                   value={formData.contact.email}
                   onChange={(e) => setFormData({
                     ...formData,
@@ -589,15 +679,25 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
                   Website
                 </label>
                 <input
-                  type="url"
+                  type="text"
                   id="website"
                   value={formData.contact.website}
                   onChange={(e) => setFormData({
                     ...formData,
                     contact: { ...formData.contact, website: e.target.value }
                   })}
+                  onBlur={(e) => {
+                    // Auto-add https:// if missing
+                    const value = e.target.value.trim();
+                    if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
+                      setFormData({
+                        ...formData,
+                        contact: { ...formData.contact, website: `https://${value}` }
+                      });
+                    }
+                  }}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="https://example.com"
+                  placeholder="example.com or https://example.com"
                 />
               </div>
             </div>
@@ -618,6 +718,25 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 placeholder="Describe the artist's style, experience, and what makes them unique..."
+              />
+            </div>
+          </div>
+
+          {/* Media Embeds */}
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">Media Content</h2>
+                <p className="text-sm text-gray-600 mt-1">Add videos and music to showcase your artist</p>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 rounded-lg p-6">
+              <MediaEmbedSection
+                entityId={artist?.id || ''}
+                entityType="artist"
+                canEdit={true}
+                maxEmbeds={5}
               />
             </div>
           </div>

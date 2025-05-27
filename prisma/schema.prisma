@@ -352,3 +352,63 @@ model Message {
 
   @@map("messages")
 }
+
+// Feedback System
+model Feedback {
+  id              String      @id @default(cuid())
+  type            FeedbackType
+  priority        FeedbackPriority
+  title           String
+  description     String
+  context         String?     // JSON string with browser info, URL, etc.
+  status          FeedbackStatus @default(NEW)
+  adminNotes      String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("feedback")
+}
+
+enum FeedbackType {
+  BUG
+  FEATURE
+  UX
+  CONTENT
+  OTHER
+}
+
+enum FeedbackPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum FeedbackStatus {
+  NEW
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  WONT_FIX
+}
+
+// Media Embeds
+model MediaEmbed {
+  id              String      @id @default(cuid())
+  entityType      EntityType  // VENUE or ARTIST
+  entityId        String      // ID of the venue or artist
+  url             String      // YouTube, Spotify, SoundCloud, Bandcamp URL
+  title           String
+  description     String?
+  order           Int         @default(0)
+  isFeatured      Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("media_embeds")
+}
+
+enum EntityType {
+  VENUE
+  ARTIST
+}

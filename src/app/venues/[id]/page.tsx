@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import BookingInquiryForm from '../../../components/BookingInquiryForm';
-import TeamManagement from '../../../components/TeamManagement';
-import TourItinerary from '../../../components/TourItinerary';
+import MessageButton from '../../../components/MessageButton';
 import TeamMembers from '../../../components/TeamMembers';
 import InviteMemberModal from '../../../components/InviteMemberModal';
 import ClaimEntityModal from '../../../components/ClaimEntityModal';
-import MessageButton from '../../../components/MessageButton';
+import MediaSection from '../../../components/MediaSection';
+import TabbedTourItinerary from '../../../components/TabbedTourItinerary';
+import TeamManagement from '../../../components/TeamManagement';
 import { useAuth } from '../../../contexts/AuthContext';
 import { usePermissions } from '../../../hooks/usePermissions';
 
@@ -382,32 +383,54 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
-        {/* Members */}
+        {/* Members - Moved to top for trust/credibility */}
         {!loadingMembers && (
-          <TeamMembers 
-            members={members}
-            entityType="venue"
-            entityName={venue.name}
-            maxDisplay={8}
-            canInviteMembers={permissions.canManageVenueStaff(venue.id)}
-            onInviteClick={() => setShowInviteModal(true)}
-            onClaimClick={members.length === 0 ? () => setShowClaimModal(true) : undefined}
-          />
+          <div className="mb-6">
+            <TeamMembers 
+              members={members}
+              entityType="venue"
+              entityName={venue.name}
+              maxDisplay={8}
+              canInviteMembers={(() => {
+                if (!user) return false;
+                // Check if user is a member of this venue (either direct owner or member)
+                const isMember = members.some(member => member.id === user.id);
+                return isMember;
+              })()}
+              onInviteClick={() => setShowInviteModal(true)}
+              onClaimClick={members.length === 0 ? () => setShowClaimModal(true) : undefined}
+            />
+          </div>
         )}
 
-        {/* Show Dates Table - CORE FUNCTIONALITY - Most Important */}
+        {/* Show Dates Table - CORE BOOKING FUNCTIONALITY - Highest Priority */}
         <div className="mb-8">
-          <TourItinerary 
+          <TabbedTourItinerary 
             venueId={venue.id} 
             venueName={venue.name}
             title="Show Dates" 
-            editable={permissions.canManageVenueBookings(venue.id)}
+            editable={(() => {
+              if (!user) return false;
+              // Check if user is a member of this venue (either direct owner or member)
+              const isMember = members.some(member => member.id === user.id);
+              return isMember;
+            })()}
             viewerType={(() => {
               if (!user) return 'public';
               if (user.profileType === 'venue') return 'venue';
               if (user.profileType === 'artist') return 'artist';
               return 'public';
             })()} 
+          />
+        </div>
+
+        {/* Compact Media Section - Supporting content */}
+        <div className="mb-8">
+          <MediaSection
+            entityId={venue.id}
+            entityType="venue"
+            className="w-full"
+            compact={true}
           />
         </div>
 

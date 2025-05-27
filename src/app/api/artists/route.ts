@@ -52,6 +52,7 @@ export async function GET() {
       expectedDraw: '', // TODO: Add to schema if needed
       rating: 0, // TODO: Calculate from reviews
       reviewCount: 0, // TODO: Count from reviews
+      totalRatings: 0, // TODO: Count from reviews
       verified: artist.verified,
       claimed: false, // TODO: Check if artist has user account
       lastUpdated: artist.updatedAt.toISOString(),
@@ -167,6 +168,7 @@ export async function POST(request: NextRequest) {
       expectedDraw: '',
       rating: 0,
       reviewCount: 0,
+      totalRatings: 0,
       verified: artist.verified,
       claimed: false,
       lastUpdated: artist.updatedAt.toISOString(),

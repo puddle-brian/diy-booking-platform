@@ -32,7 +32,7 @@ function MessagesContent() {
       loadConversations();
       
       // Check if there's a conversation ID in the URL
-      const conversationId = searchParams.get('conversation');
+      const conversationId = searchParams?.get('conversation');
       if (conversationId) {
         setSelectedConversation(conversationId);
       }

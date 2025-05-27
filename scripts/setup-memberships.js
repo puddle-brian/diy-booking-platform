@@ -79,6 +79,41 @@ async function setupMemberships() {
       console.log(`✅ Updated ${venue.name} to be owned by venue owner`);
     }
 
+    // Find Lost Bag venue and create Lidz user
+    const lostBag = await prisma.venue.findFirst({
+      where: { name: { contains: 'Lost Bag', mode: 'insensitive' } }
+    });
+
+    if (lostBag) {
+      console.log(`✅ Found Lost Bag venue: ${lostBag.name} (ID: ${lostBag.id})`);
+
+      // Find or create Lidz user
+      let lidzUser = await prisma.user.findFirst({
+        where: { email: 'lidz@lostbag.com' }
+      });
+
+      if (!lidzUser) {
+        console.log('Creating Lidz Bierenday user...');
+        lidzUser = await prisma.user.create({
+          data: {
+            email: 'lidz@lostbag.com',
+            username: 'lidzbierenday',
+            role: 'USER'
+          }
+        });
+      }
+
+      console.log(`✅ Lidz user ID: ${lidzUser.id}`);
+
+      // Update Lost Bag to be submitted by Lidz
+      await prisma.venue.update({
+        where: { id: lostBag.id },
+        data: { submittedById: lidzUser.id }
+      });
+
+      console.log(`✅ Updated ${lostBag.name} to be owned by Lidz`);
+    }
+
     // List all users and their submissions
     const allUsers = await prisma.user.findMany({
       include: {

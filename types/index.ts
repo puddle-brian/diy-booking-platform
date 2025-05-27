@@ -95,6 +95,7 @@ export interface Venue {
   description: string;
   rating: number;
   reviewCount: number;
+  totalRatings: number;
   verified: boolean;
   lastUpdated: string;
   // New availability fields
@@ -139,6 +140,7 @@ export interface Artist {
   expectedDraw: string;
   rating: number;
   reviewCount: number;
+  totalRatings: number;
   verified: boolean;
   claimed: boolean;
   lastUpdated: string;

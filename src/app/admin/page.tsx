@@ -5,11 +5,29 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminPage() {
   const { user, setDebugUser, clearDebugUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<'debug' | 'content' | 'analytics'>('debug');
+  const [activeTab, setActiveTab] = useState<'debug' | 'content' | 'feedback' | 'analytics'>('debug');
   const [loading, setLoading] = useState<{[key: string]: boolean}>({});
   const [venues, setVenues] = useState<any[]>([]);
   const [artists, setArtists] = useState<any[]>([]);
+  const [feedback, setFeedback] = useState<any[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [venueSearch, setVenueSearch] = useState('');
+  const [artistSearch, setArtistSearch] = useState('');
+
+  // Filter functions for search
+  const filteredVenues = venues.filter(venue => 
+    venue.name.toLowerCase().includes(venueSearch.toLowerCase()) ||
+    venue.city.toLowerCase().includes(venueSearch.toLowerCase()) ||
+    venue.state.toLowerCase().includes(venueSearch.toLowerCase()) ||
+    venue.venueType.toLowerCase().includes(venueSearch.toLowerCase())
+  );
+
+  const filteredArtists = artists.filter(artist => 
+    artist.name.toLowerCase().includes(artistSearch.toLowerCase()) ||
+    artist.city.toLowerCase().includes(artistSearch.toLowerCase()) ||
+    artist.state.toLowerCase().includes(artistSearch.toLowerCase()) ||
+    artist.artistType.toLowerCase().includes(artistSearch.toLowerCase())
+  );
 
   // Prevent hydration mismatch by only showing browser-specific content after mount
   useEffect(() => {
@@ -20,6 +38,8 @@ export default function AdminPage() {
   useEffect(() => {
     if (activeTab === 'content') {
       loadContentData();
+    } else if (activeTab === 'feedback') {
+      loadFeedbackData();
     }
   }, [activeTab]);
 
@@ -41,6 +61,18 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Error loading content data:', error);
+    }
+  };
+
+  const loadFeedbackData = async () => {
+    try {
+      const response = await fetch('/api/feedback');
+      if (response.ok) {
+        const feedbackData = await response.json();
+        setFeedback(Array.isArray(feedbackData) ? feedbackData : []);
+      }
+    } catch (error) {
+      console.error('Error loading feedback data:', error);
     }
   };
 
@@ -179,19 +211,32 @@ export default function AdminPage() {
                 <p className="text-gray-600 mt-1">Manage platform content and debug tools</p>
               </div>
               
-              {/* Current User Status */}
-              <div className="text-right">
-                <div className="text-sm text-gray-600">Current User:</div>
-                {user ? (
-                  <div className="text-sm">
-                    <div className="font-medium text-gray-900">{user.name}</div>
-                    <div className="text-gray-600">
-                      {user.role} {user.profileType && `• ${user.profileType}`}
+              <div className="flex items-center space-x-4">
+                {/* Back to Main Site Button */}
+                <a
+                  href="/"
+                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                >
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                  </svg>
+                  Back to Main Site
+                </a>
+                
+                {/* Current User Status */}
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">Current User:</div>
+                  {user ? (
+                    <div className="text-sm">
+                      <div className="font-medium text-gray-900">{user.name}</div>
+                      <div className="text-gray-600">
+                        {user.role} {user.profileType && `• ${user.profileType}`}
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-gray-500">Not logged in</div>
-                )}
+                  ) : (
+                    <div className="text-sm text-gray-500">Not logged in</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -218,6 +263,16 @@ export default function AdminPage() {
                 }`}
               >
                 📝 Content Management
+              </button>
+              <button
+                onClick={() => setActiveTab('feedback')}
+                className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                  activeTab === 'feedback'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                💬 Feedback ({feedback.filter(f => f.status === 'NEW').length})
               </button>
               <button
                 onClick={() => setActiveTab('analytics')}
@@ -249,7 +304,7 @@ export default function AdminPage() {
                     {/* Brian Gibson (Lightning Bolt Member) */}
                     <button
                       onClick={() => handleQuickLogin('member', {
-                        id: 'brian-gibson',
+                        id: 'cmb5eu6c2001e2k0vbnltkbrm', // Actual database ID
                         name: 'Brian Gibson',
                         email: 'brian@lightningbolt.com',
                         role: 'user',
@@ -386,7 +441,7 @@ export default function AdminPage() {
                     {/* Lidz Bierenday (Lost Bag Staff) */}
                     <button
                       onClick={() => handleQuickLogin('venue-staff', {
-                        id: 'lidz-bierenday',
+                        id: 'cmb72e0vy0002zv0w6zy4vtzc', // Actual database ID
                         name: 'Lidz Bierenday',
                         email: 'lidz@lostbag.com',
                         role: 'user',
@@ -614,11 +669,27 @@ export default function AdminPage() {
 
                 {/* Venues Management */}
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Manage Spaces ({venues.length})</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Manage Spaces ({filteredVenues.length} of {venues.length})</h2>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search spaces..."
+                        value={venueSearch}
+                        onChange={(e) => setVenueSearch(e.target.value)}
+                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                     <div className="max-h-64 overflow-y-auto">
-                      {venues.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">No venues found</div>
+                      {filteredVenues.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">
+                          {venueSearch ? `No venues found matching "${venueSearch}"` : 'No venues found'}
+                        </div>
                       ) : (
                         <table className="w-full">
                           <thead className="bg-gray-50 sticky top-0">
@@ -630,7 +701,7 @@ export default function AdminPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {venues.map((venue: any) => (
+                            {filteredVenues.map((venue: any) => (
                               <tr key={venue.id} className="hover:bg-gray-50">
                                 <td className="px-4 py-2 text-sm font-medium text-gray-900">{venue.name}</td>
                                 <td className="px-4 py-2 text-sm text-gray-500">{venue.city}, {venue.state}</td>
@@ -667,11 +738,27 @@ export default function AdminPage() {
 
                 {/* Artists Management */}
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Manage Performers ({artists.length})</h2>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-lg font-semibold text-gray-900">Manage Performers ({filteredArtists.length} of {artists.length})</h2>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search performers..."
+                        value={artistSearch}
+                        onChange={(e) => setArtistSearch(e.target.value)}
+                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                  </div>
                   <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                     <div className="max-h-64 overflow-y-auto">
-                      {artists.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">No artists found</div>
+                      {filteredArtists.length === 0 ? (
+                        <div className="p-4 text-center text-gray-500">
+                          {artistSearch ? `No performers found matching "${artistSearch}"` : 'No artists found'}
+                        </div>
                       ) : (
                         <table className="w-full">
                           <thead className="bg-gray-50 sticky top-0">
@@ -683,7 +770,7 @@ export default function AdminPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {artists.map((artist: any) => (
+                            {filteredArtists.map((artist: any) => (
                               <tr key={artist.id} className="hover:bg-gray-50">
                                 <td className="px-4 py-2 text-sm font-medium text-gray-900">{artist.name}</td>
                                 <td className="px-4 py-2 text-sm text-gray-500">{artist.city}, {artist.state}</td>
@@ -717,6 +804,162 @@ export default function AdminPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'feedback' && (
+              <div className="space-y-8">
+                {/* Feedback Summary */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-red-600">
+                      {feedback.filter(f => f.status === 'NEW').length}
+                    </div>
+                    <div className="text-sm text-red-600">New Feedback</div>
+                  </div>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-yellow-600">
+                      {feedback.filter(f => f.priority === 'CRITICAL' || f.priority === 'HIGH').length}
+                    </div>
+                    <div className="text-sm text-yellow-600">High Priority</div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {feedback.filter(f => f.type === 'BUG').length}
+                    </div>
+                    <div className="text-sm text-blue-600">Bug Reports</div>
+                  </div>
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="text-2xl font-bold text-green-600">
+                      {feedback.filter(f => f.type === 'FEATURE').length}
+                    </div>
+                    <div className="text-sm text-green-600">Feature Requests</div>
+                  </div>
+                </div>
+
+                {/* AI Analysis Prompt */}
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <span className="text-3xl">🤖</span>
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <h3 className="text-lg font-semibold text-purple-900 mb-2">AI-Powered Feedback Analysis</h3>
+                      <p className="text-purple-700 mb-4">
+                        Copy this prompt to Claude to get intelligent prioritization and analysis of your feedback:
+                      </p>
+                      <div className="bg-white border border-purple-200 rounded-lg p-4 font-mono text-sm">
+                        <div className="text-purple-600 mb-2">📋 Prompt for Claude:</div>
+                        <div className="text-gray-800">
+                          "Please analyze the following feedback data from my DIY booking platform and provide:<br/>
+                          1. Priority ranking with reasoning<br/>
+                          2. Quick wins vs long-term improvements<br/>
+                          3. Suggested implementation order<br/>
+                          4. Any patterns or themes you notice<br/><br/>
+                          Here's the feedback data: [Copy the JSON from the feedback list below]"
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Feedback List */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">All Feedback ({feedback.length})</h2>
+                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                    <div className="max-h-96 overflow-y-auto">
+                      {feedback.length === 0 ? (
+                        <div className="p-8 text-center text-gray-500">
+                          <span className="text-4xl mb-4 block">💬</span>
+                          <p>No feedback yet. The feedback widget is now live on your site!</p>
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-200">
+                          {feedback.map((item: any) => (
+                            <div key={item.id} className="p-4 hover:bg-gray-50">
+                              <div className="flex justify-between items-start mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    item.type === 'BUG' ? 'bg-red-100 text-red-700' :
+                                    item.type === 'FEATURE' ? 'bg-blue-100 text-blue-700' :
+                                    item.type === 'UX' ? 'bg-purple-100 text-purple-700' :
+                                    item.type === 'CONTENT' ? 'bg-green-100 text-green-700' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {item.type}
+                                  </span>
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    item.priority === 'CRITICAL' ? 'bg-red-200 text-red-800' :
+                                    item.priority === 'HIGH' ? 'bg-orange-200 text-orange-800' :
+                                    item.priority === 'MEDIUM' ? 'bg-yellow-200 text-yellow-800' :
+                                    'bg-gray-200 text-gray-800'
+                                  }`}>
+                                    {item.priority}
+                                  </span>
+                                  <span className={`px-2 py-1 text-xs rounded-full ${
+                                    item.status === 'NEW' ? 'bg-blue-100 text-blue-700' :
+                                    item.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-700' :
+                                    item.status === 'RESOLVED' ? 'bg-green-100 text-green-700' :
+                                    'bg-gray-100 text-gray-700'
+                                  }`}>
+                                    {item.status}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(item.createdAt).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <h4 className="font-medium text-gray-900 mb-1">{item.title}</h4>
+                              <p className="text-sm text-gray-600 mb-2">{item.description}</p>
+                              {item.context && (
+                                <div className="text-xs text-gray-500">
+                                  📍 {item.context.url} • {item.context.viewport} • {item.context.userType || 'Anonymous'}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Raw JSON for AI Analysis */}
+                {feedback.length > 0 && (
+                  <div>
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">📋 Raw Data for AI Analysis</h3>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(JSON.stringify(feedback, null, 2));
+                          // Show temporary success message
+                          const button = document.activeElement as HTMLButtonElement;
+                          const originalText = button.textContent;
+                          button.textContent = '✅ Copied!';
+                          button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-green-600');
+                          setTimeout(() => {
+                            button.textContent = originalText;
+                            button.className = button.className.replace('bg-green-600', 'bg-blue-600 hover:bg-blue-700');
+                          }, 2000);
+                        }}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy JSON
+                      </button>
+                    </div>
+                    <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
+                      <pre className="text-xs">
+                        {JSON.stringify(feedback, null, 2)}
+                      </pre>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">
+                      💡 Copy this JSON data and paste it into Claude with the analysis prompt above for intelligent prioritization.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

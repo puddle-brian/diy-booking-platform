@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Feedback System</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .test-button { padding: 10px 20px; background: #000; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
+        .result { margin-top: 20px; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>🎵 Feedback System Test</h1>
+    <p>Test the feedback API endpoints:</p>
+    
+    <button class="test-button" onclick="testSubmitFeedback()">Submit Test Feedback</button>
+    <button class="test-button" onclick="testGetFeedback()">Get All Feedback</button>
+    <button class="test-button" onclick="testAnalyzeFeedback()">Get AI Analysis</button>
+    
+    <div id="result"></div>
+
+    <script>
+        async function testSubmitFeedback() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Submitting test feedback...';
+            
+            try {
+                const response = await fetch('/api/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'bug',
+                        priority: 'high',
+                        title: 'Test feedback submission',
+                        description: 'This is a test feedback to verify the system is working correctly.',
+                        context: {
+                            url: window.location.href,
+                            userAgent: navigator.userAgent,
+                            viewport: `${window.innerWidth}x${window.innerHeight}`,
+                            timestamp: new Date().toISOString(),
+                            userType: 'test'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                result.className = 'result success';
+                result.innerHTML = `✅ Feedback submitted successfully! ID: ${data.id}`;
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function testGetFeedback() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Fetching feedback...';
+            
+            try {
+                const response = await fetch('/api/feedback');
+                const data = await response.json();
+                result.className = 'result success';
+                result.innerHTML = `✅ Found ${data.length} feedback items:<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        async function testAnalyzeFeedback() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Generating AI analysis...';
+            
+            try {
+                const response = await fetch('/api/feedback/analyze');
+                const data = await response.json();
+                result.className = 'result success';
+                result.innerHTML = `✅ AI Analysis Ready:<br><pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

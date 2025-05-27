@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import TabbedTourItinerary from '../../../components/TabbedTourItinerary';
 import BookingInquiryForm from '../../../components/BookingInquiryForm';
 // import TeamManagement from '../../../components/TeamManagement';
-import TourItinerary from '../../../components/TourItinerary';
 import TeamMembers from '../../../components/TeamMembers';
 import InviteMemberModal from '../../../components/InviteMemberModal';
 import ClaimEntityModal from '../../../components/ClaimEntityModal';
 import MessageButton from '../../../components/MessageButton';
+import MediaSection from '../../../components/MediaSection';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface Artist {
@@ -509,26 +510,38 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
           </div>
         )}
 
-        {/* Members */}
+        {/* Members - Moved to top for trust/credibility */}
         {!loadingMembers && (
-          <TeamMembers 
-            members={members}
-            entityType="artist"
-            entityName={artist.name}
-            maxDisplay={6}
-            canInviteMembers={user?.profileType === 'artist' && user?.profileId === artist.id}
-            onInviteClick={() => setShowInviteModal(true)}
-            onClaimClick={members.length === 0 ? () => setShowClaimModal(true) : undefined}
-          />
+          <div className="mb-6">
+            <TeamMembers 
+              members={members}
+              entityType="artist"
+              entityName={artist.name}
+              maxDisplay={6}
+              canInviteMembers={(() => {
+                if (!user) return false;
+                // Check if user is a member of this artist (either direct owner or member)
+                const isMember = members.some(member => member.id === user.id);
+                return isMember;
+              })()}
+              onInviteClick={() => setShowInviteModal(true)}
+              onClaimClick={members.length === 0 ? () => setShowClaimModal(true) : undefined}
+            />
+          </div>
         )}
 
-        {/* Tour Itinerary - CORE FUNCTIONALITY - Second Most Important */}
+        {/* Tour Itinerary - CORE BOOKING FUNCTIONALITY - High Priority */}
         <div className="mb-8">
-          <TourItinerary 
+          <TabbedTourItinerary 
             artistId={artist.id} 
             artistName={artist.name}
             title="Tour Dates" 
-            editable={user?.profileType === 'artist' && user?.profileId === artist.id} 
+            editable={(() => {
+              if (!user) return false;
+              // Check if user is a member of this artist (either direct owner or member)
+              const isMember = members.some(member => member.id === user.id);
+              return isMember;
+            })()} 
             viewerType={(() => {
               if (!user) return 'public';
               if (user.profileType === 'venue') return 'venue';
@@ -537,6 +550,16 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
             })()} 
             venueId={user?.profileType === 'venue' ? user.profileId : undefined}
             venueName={user?.profileType === 'venue' && venue ? venue.name : undefined}
+          />
+        </div>
+
+        {/* Compact Media Section - Supporting content */}
+        <div className="mb-8">
+          <MediaSection
+            entityId={artist.id}
+            entityType="artist"
+            className="w-full"
+            compact={true}
           />
         </div>
 

@@ -121,25 +121,21 @@ export default function CommunitySection<T extends {
               </div>
               
               <div className="p-3">
-                <div className="flex items-start justify-between mb-1">
-                  <h3 className="font-semibold text-gray-900 text-sm truncate pr-2">{item.name}</h3>
-                  {item.rating && item.rating > 0 && (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <svg className="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <span className="text-xs font-medium">{item.rating.toFixed(1)}</span>
-                    </div>
-                  )}
-                </div>
+                <h3 className="font-semibold text-gray-900 text-sm truncate mb-1">{item.name}</h3>
                 
-                <p className="text-xs text-gray-600 mb-2">{item.city}, {item.state}</p>
+                <p className="text-xs text-gray-500 mb-2">
+                  {item.city}, {item.state} <span className="text-gray-300">•</span> {((item as any).totalRatings || 0) === 0 ? (
+                    <span className="text-gray-400">★ N/A</span>
+                  ) : (
+                    <span className="text-gray-700">★ {((item as any).rating || 0).toFixed(1)}</span>
+                  )}
+                </p>
                 
                 {entityType === 'venues' ? (
                   <div className="text-xs text-gray-500">
                     <div className="flex items-center justify-between">
                       <span className="capitalize">{VENUE_TYPE_LABELS[(item as any).venueType as keyof typeof VENUE_TYPE_LABELS] || 'Space'}</span>
-                      <span>{(item as any).capacity} cap</span>
+                      <span>{(item as any).capacity >= 1000 ? `${((item as any).capacity / 1000).toFixed((item as any).capacity % 1000 === 0 ? 0 : 1)}k` : (item as any).capacity} cap</span>
                     </div>
                   </div>
                 ) : (

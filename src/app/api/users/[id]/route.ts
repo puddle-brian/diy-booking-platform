@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../lib/prisma';
 
 interface UserProfile {
   id: string;
@@ -19,101 +20,6 @@ interface UserProfile {
   }[];
 }
 
-// Mock user profiles
-const mockUsers: UserProfile[] = [
-  {
-    id: 'user-1',
-    name: 'John Venue Owner',
-    email: 'john@theunderground.com',
-    bio: 'Venue owner and music enthusiast. Always looking for great bands to book.',
-    role: 'venue_owner',
-    profileType: 'venue',
-    profileId: '1748094967307',
-    joinedAt: '2023-06-15T00:00:00Z',
-    memberships: [
-      {
-        entityType: 'venue',
-        entityId: '1748094967307',
-        entityName: 'Lost Bag',
-        role: 'owner',
-        joinedAt: '2023-06-15T00:00:00Z'
-      }
-    ]
-  },
-  {
-    id: 'user-2',
-    name: 'Sarah Musician',
-    email: 'sarah@midnightechoes.com',
-    bio: 'Lead vocalist and songwriter for The Midnight Echoes. Love connecting with venues and other musicians.',
-    role: 'artist',
-    profileType: 'artist',
-    profileId: '1748101913848',
-    joinedAt: '2023-08-20T00:00:00Z',
-    memberships: [
-      {
-        entityType: 'artist',
-        entityId: '1748101913848',
-        entityName: 'lightning bolt',
-        role: 'member',
-        joinedAt: '2023-08-20T00:00:00Z'
-      }
-    ]
-  },
-  {
-    id: 'user-3',
-    name: 'Mike Sound Tech',
-    email: 'mike@soundtech.com',
-    bio: 'Professional sound engineer with 10+ years experience.',
-    role: 'sound_tech',
-    joinedAt: '2023-09-10T00:00:00Z',
-    memberships: [
-      {
-        entityType: 'venue',
-        entityId: '1748094967307',
-        entityName: 'Lost Bag',
-        role: 'sound-tech',
-        joinedAt: '2023-09-10T00:00:00Z'
-      }
-    ]
-  },
-  {
-    id: 'brian-gibson',
-    name: 'Brian Gibson',
-    email: 'brian@lightningbolt.com',
-    bio: 'Bassist for Lightning Bolt. Experimental noise rock duo from Providence, RI.',
-    role: 'user',
-    profileType: 'artist',
-    profileId: '1748101913848',
-    joinedAt: '2024-01-15T00:00:00Z',
-    memberships: [
-      {
-        entityType: 'artist',
-        entityId: '1748101913848',
-        entityName: 'lightning bolt',
-        role: 'member',
-        joinedAt: '2024-01-15T00:00:00Z'
-      }
-    ]
-  },
-  {
-    id: 'lidz-bierenday',
-    name: 'Lidz Bierenday',
-    email: 'lidz@lostbag.com',
-    bio: 'Staff member at Lost Bag. Passionate about supporting local music and creating inclusive spaces for artists.',
-    role: 'user',
-    joinedAt: '2024-02-01T00:00:00Z',
-    memberships: [
-      {
-        entityType: 'venue',
-        entityId: '1748094967307',
-        entityName: 'Lost Bag',
-        role: 'staff',
-        joinedAt: '2024-02-01T00:00:00Z'
-      }
-    ]
-  }
-];
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -121,8 +27,14 @@ export async function GET(
   try {
     const { id } = await params;
     
-    // Find user by ID
-    const user = mockUsers.find(u => u.id === id);
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: { id },
+      include: {
+        submittedArtists: true,
+        submittedVenues: true
+      }
+    });
     
     if (!user) {
       return NextResponse.json(
@@ -131,7 +43,56 @@ export async function GET(
       );
     }
     
-    return NextResponse.json(user);
+    // Build memberships array based on what the user owns
+    const memberships: UserProfile['memberships'] = [];
+    
+    // Add artist memberships (where user is the owner)
+    for (const artist of user.submittedArtists) {
+      memberships.push({
+        entityType: 'artist',
+        entityId: artist.id,
+        entityName: artist.name,
+        role: 'owner',
+        joinedAt: artist.createdAt.toISOString()
+      });
+    }
+    
+    // Add venue memberships (where user is the owner)
+    for (const venue of user.submittedVenues) {
+      memberships.push({
+        entityType: 'venue',
+        entityId: venue.id,
+        entityName: venue.name,
+        role: 'owner',
+        joinedAt: venue.createdAt.toISOString()
+      });
+    }
+    
+    // Determine profile type and ID based on memberships
+    let profileType: 'artist' | 'venue' | undefined;
+    let profileId: string | undefined;
+    
+    if (user.submittedArtists.length > 0) {
+      profileType = 'artist';
+      profileId = user.submittedArtists[0].id; // Use first artist as primary profile
+    } else if (user.submittedVenues.length > 0) {
+      profileType = 'venue';
+      profileId = user.submittedVenues[0].id; // Use first venue as primary profile
+    }
+    
+    const userProfile: UserProfile = {
+      id: user.id,
+      name: user.username,
+      email: user.email,
+      bio: undefined, // Could add bio field to User model later
+      role: user.role.toLowerCase(),
+      profileType,
+      profileId,
+      joinedAt: user.createdAt.toISOString(),
+      memberships
+    };
+    
+    return NextResponse.json(userProfile);
   } catch (error) {
     console.error('Error fetching user profile:', error);
     return NextResponse.json(
