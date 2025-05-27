@@ -1043,7 +1043,7 @@ function HomeContent() {
           <div className="max-w-4xl mx-auto mb-8">
             <div className="flex flex-wrap gap-3 items-center justify-center">
               <MultiSelectDropdown
-                label="Performer Types"
+                label="Artist Types"
                 options={ARTIST_TYPE_LABELS}
                 selectedValues={selectedArtistTypes}
                 onSelectionChange={setSelectedArtistTypes}
@@ -1083,7 +1083,7 @@ function HomeContent() {
             {/* Active Filter Summary */}
             {hasActiveFilters && (
               <div className="mt-3 text-sm text-gray-600">
-                Showing {filteredArtists.length} of {artists.length} performers
+                Showing {filteredArtists.length} of {artists.length} artists
                 {debouncedArtistLocation.trim() && (
                   <span className="ml-2 text-blue-600">
                     • searching "{debouncedArtistLocation}"
@@ -1091,7 +1091,7 @@ function HomeContent() {
                 )}
                 {selectedArtistTypes.length > 0 && (
                   <span className="ml-2 text-blue-600">
-                    • {selectedArtistTypes.length} performer type{selectedArtistTypes.length !== 1 ? 's' : ''}
+                    • {selectedArtistTypes.length} artist type{selectedArtistTypes.length !== 1 ? 's' : ''}
                   </span>
                 )}
                 {selectedGenres.length > 0 && (
@@ -1145,14 +1145,14 @@ function HomeContent() {
                     <span className="text-2xl">🎵</span>
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    {debouncedArtistLocation.trim() ? `No performers found for "${debouncedArtistLocation}"` : 
-                     hasActiveFilters ? 'No matching performers found' : 'Showcase DIY Performers'}
+                    {debouncedArtistLocation.trim() ? `No artists found for "${debouncedArtistLocation}"` : 
+                     hasActiveFilters ? 'No matching artists found' : 'Showcase DIY Artists'}
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    {debouncedArtistLocation.trim() ? `Try searching for a different city or performer name, or browse all performers below.` :
+                    {debouncedArtistLocation.trim() ? `Try searching for a different city or artist name, or browse all artists below.` :
                      hasActiveFilters 
                       ? 'Try adjusting your filters to see more results.'
-                      : 'Know touring bands, comedians, poets, or other performers looking for authentic spaces? Add them to connect with venues that book real talent.'
+                      : 'Know touring bands, comedians, poets, or other artists looking for authentic spaces? Add them to connect with venues that book real talent.'
                     }
                   </p>
                   <div className="space-y-3">

@@ -13,7 +13,9 @@ const VENUE_THUMBNAILS = [
 
 // Artist types that have custom thumbnails (you can add these later)
 const ARTIST_THUMBNAILS: string[] = [
-  // Add artist types here when you create those thumbnails
+  'band', 'solo', 'duo', 'collective', 'singer-songwriter', 'rapper', 
+  'dj', 'comedian', 'poet', 'storyteller', 'dancer', 'magician', 'lecturer', 
+  'theater-group', 'noise-artist', 'other'
 ];
 
 // Function to generate Cloudinary thumbnail URL with optimizations
