@@ -1,85 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 
-// Configure Cloudinary
+// Temporary hardcoded configuration for testing
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: 'dfytetsz3',
+  api_key: '659739423488389',
+  api_secret: 'RS5dQ8HNUGcYzjlq-6AjXn9L0EY'
 });
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🔍 Testing hardcoded Cloudinary configuration');
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
-    const type = formData.get('type') as string || 'venue'; // Default to venue for backward compatibility
+    const type = formData.get('type') as string || 'venue';
     
     console.log('📤 Upload request:', { fileName: file?.name, fileSize: file?.size, type });
     
     if (!file) {
       console.error('❌ No file uploaded');
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
-    }
-
-    // Validate type
-    if (!['venue', 'artist'].includes(type)) {
-      return NextResponse.json({ error: 'Invalid type. Must be "venue" or "artist".' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'No file uploaded' },
+        { status: 400 }
+      );
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      console.warn('❌ Invalid file type:', file.type);
-      return NextResponse.json({ 
-        error: `Invalid file type: ${file.type}. Only JPG, PNG, WebP, and GIF are allowed.` 
-      }, { status: 400 });
+    if (!file.type.startsWith('image/')) {
+      console.error('❌ Invalid file type:', file.type);
+      return NextResponse.json(
+        { error: 'Only image files are allowed' },
+        { status: 400 }
+      );
     }
-    
+
     console.log('✅ File type validation passed:', file.type);
 
-    // Validate file size (10MB max for Cloudinary)
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ 
-        error: 'File too large. Maximum size is 10MB.' 
-      }, { status: 400 });
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      console.error('❌ File too large:', file.size);
+      return NextResponse.json(
+        { error: 'File size must be less than 10MB' },
+        { status: 400 }
+      );
     }
 
-    // Check if Cloudinary is configured
-    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-      console.error('❌ Cloudinary not configured');
-      return NextResponse.json({ 
-        error: 'Cloud storage not configured. Please set up Cloudinary environment variables.',
-        details: 'Missing CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, or CLOUDINARY_API_SECRET'
-      }, { status: 500 });
-    }
+    console.log('✅ File size validation passed:', file.size);
 
     // Convert file to buffer
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    
-    console.log('📦 Buffer created:', { 
-      size: buffer.length, 
-      isValidBuffer: buffer.length > 0
-    });
 
-    // Generate unique public ID
-    const timestamp = Date.now();
-    const originalName = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
-    const publicId = `diy-booking/${type}s/${timestamp}-${originalName}`;
+    console.log('🔄 Uploading to Cloudinary...');
 
-    // Upload to Cloudinary with automatic optimization
+    // Upload to Cloudinary
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
           resource_type: 'image',
-          public_id: publicId,
           folder: `diy-booking/${type}s`,
           transformation: [
             { width: 1200, height: 1200, crop: 'limit' },
-            { quality: 'auto', fetch_format: 'auto' }
-          ],
-          eager: [
-            { width: 300, height: 300, crop: 'fill', gravity: 'center' } // Generate thumbnail
+            { quality: 'auto', format: 'auto' }
           ]
         },
         (error, result) => {
@@ -87,60 +71,31 @@ export async function POST(request: NextRequest) {
             console.error('❌ Cloudinary upload error:', error);
             reject(error);
           } else {
-            console.log('✅ Cloudinary upload successful:', result?.public_id);
+            console.log('✅ Cloudinary upload success:', result?.public_id);
             resolve(result);
           }
         }
       ).end(buffer);
     });
 
-    const result = uploadResult as any;
-    
-    // Get the URLs
-    const imageUrl = result.secure_url;
-    const thumbnailUrl = result.eager?.[0]?.secure_url || imageUrl;
-    
-    console.log('🎉 Upload successful:', { imageUrl, thumbnailUrl, publicId: result.public_id });
-    
-    return NextResponse.json({ 
-      success: true, 
-      imageUrl,
-      thumbnailUrl,
-      filename: result.public_id,
-      originalName: originalName,
-      cloudinaryData: {
-        publicId: result.public_id,
-        version: result.version,
-        format: result.format,
-        width: result.width,
-        height: result.height,
-        bytes: result.bytes
-      }
+    console.log('🎉 Upload completed successfully');
+
+    return NextResponse.json({
+      success: true,
+      imageUrl: (uploadResult as any).secure_url,
+      url: (uploadResult as any).secure_url,
+      publicId: (uploadResult as any).public_id,
+      message: 'File uploaded successfully'
     });
 
   } catch (error) {
     console.error('❌ Upload error:', error);
-    
-    // Provide more specific error messages
-    let errorMessage = 'Failed to upload file';
-    let errorDetails: string | undefined;
-    
-    if (error instanceof Error) {
-      errorDetails = error.message;
-      if (error.message.includes('Invalid image file')) {
-        errorMessage = 'Invalid image file. Please try a different image.';
-      } else if (error.message.includes('File size too large')) {
-        errorMessage = 'File too large. Please try a smaller image.';
-      } else if (error.message.includes('Unauthorized')) {
-        errorMessage = 'Cloud storage authentication failed. Please contact support.';
-      } else {
-        errorMessage = `Upload failed: ${error.message}`;
-      }
-    }
-    
-    return NextResponse.json({ 
-      error: errorMessage,
-      details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
-    }, { status: 500 });
+    return NextResponse.json(
+      { 
+        error: 'Upload failed', 
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
   }
 } 
