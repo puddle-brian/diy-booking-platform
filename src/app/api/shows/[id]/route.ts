@@ -1,37 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { Show } from '../../../../../types';
-
-const DATA_DIR = path.join(process.cwd(), 'data');
-const SHOWS_FILE = path.join(DATA_DIR, 'shows.json');
-
-function readShows(): Show[] {
-  try {
-    if (fs.existsSync(SHOWS_FILE)) {
-      const data = fs.readFileSync(SHOWS_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-    return [];
-  } catch (error) {
-    console.error('Error reading shows:', error);
-    return [];
-  }
-}
-
-function writeShows(shows: Show[]): void {
-  try {
-    // Ensure data directory exists
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    
-    fs.writeFileSync(SHOWS_FILE, JSON.stringify(shows, null, 2));
-  } catch (error) {
-    console.error('Error writing shows:', error);
-    throw error;
-  }
-}
+import { prisma } from '../../../../../lib/prisma';
+import { ShowStatus, AgeRestriction } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
@@ -39,21 +8,167 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const shows = readShows();
-    const show = shows.find(s => s.id === id);
     
+    const show = await prisma.show.findUnique({
+      where: { id },
+      include: {
+        artist: {
+          select: {
+            id: true,
+            name: true,
+            genres: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            location: {
+              select: {
+                city: true,
+                stateProvince: true,
+                country: true
+              }
+            }
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            username: true
+          }
+        }
+      }
+    });
+
     if (!show) {
       return NextResponse.json(
         { error: 'Show not found' },
         { status: 404 }
       );
     }
-    
-    return NextResponse.json(show);
+
+    // Transform to match expected format
+    const transformedShow = {
+      id: show.id,
+      artistId: show.artistId,
+      venueId: show.venueId,
+      date: show.date.toISOString().split('T')[0],
+      city: show.venue.location.city,
+      state: show.venue.location.stateProvince || '',
+      country: show.venue.location.country,
+      venueName: show.venue.name,
+      artistName: show.artist.name,
+      title: show.title,
+      status: show.status.toLowerCase(),
+      ticketPrice: show.ticketPrice,
+      ageRestriction: show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
+      description: show.description,
+      createdAt: show.createdAt.toISOString(),
+      updatedAt: show.updatedAt.toISOString(),
+      createdBy: show.createdBy.username
+    };
+
+    return NextResponse.json(transformedShow);
   } catch (error) {
-    console.error('Error fetching show:', error);
+    console.error('Error in GET /api/shows/[id]:', error);
     return NextResponse.json(
       { error: 'Failed to fetch show' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const body = await request.json();
+
+    // Check if show exists
+    const existingShow = await prisma.show.findUnique({
+      where: { id }
+    });
+
+    if (!existingShow) {
+      return NextResponse.json(
+        { error: 'Show not found' },
+        { status: 404 }
+      );
+    }
+
+    // Update show
+    const updatedShow = await prisma.show.update({
+      where: { id },
+      data: {
+        title: body.title,
+        date: body.date ? new Date(body.date) : undefined,
+        description: body.description || body.notes,
+        ticketPrice: body.ticketPrice ? parseFloat(body.ticketPrice) : null,
+        ageRestriction: body.ageRestriction ? 
+          body.ageRestriction.toUpperCase().replace('-', '_') as AgeRestriction : 
+          undefined,
+        status: body.status ? body.status.toUpperCase() as ShowStatus : undefined,
+        updatedAt: new Date()
+      },
+      include: {
+        artist: {
+          select: {
+            id: true,
+            name: true,
+            genres: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            location: {
+              select: {
+                city: true,
+                stateProvince: true,
+                country: true
+              }
+            }
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            username: true
+          }
+        }
+      }
+    });
+
+    // Transform to match expected format
+    const transformedShow = {
+      id: updatedShow.id,
+      artistId: updatedShow.artistId,
+      venueId: updatedShow.venueId,
+      date: updatedShow.date.toISOString().split('T')[0],
+      city: updatedShow.venue.location.city,
+      state: updatedShow.venue.location.stateProvince || '',
+      country: updatedShow.venue.location.country,
+      venueName: updatedShow.venue.name,
+      artistName: updatedShow.artist.name,
+      title: updatedShow.title,
+      status: updatedShow.status.toLowerCase(),
+      ticketPrice: updatedShow.ticketPrice,
+      ageRestriction: updatedShow.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
+      description: updatedShow.description,
+      createdAt: updatedShow.createdAt.toISOString(),
+      updatedAt: updatedShow.updatedAt.toISOString(),
+      createdBy: updatedShow.createdBy.username
+    };
+
+    return NextResponse.json(transformedShow);
+  } catch (error) {
+    console.error('Error in PUT /api/shows/[id]:', error);
+    return NextResponse.json(
+      { error: 'Failed to update show' },
       { status: 500 }
     );
   }
@@ -65,31 +180,27 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const shows = readShows();
-    const showIndex = shows.findIndex(s => s.id === id);
-    
-    if (showIndex === -1) {
+
+    // Check if show exists
+    const existingShow = await prisma.show.findUnique({
+      where: { id }
+    });
+
+    if (!existingShow) {
       return NextResponse.json(
         { error: 'Show not found' },
         { status: 404 }
       );
     }
-    
-    const deletedShow = shows[showIndex];
-    
-    // Remove the show
-    shows.splice(showIndex, 1);
-    writeShows(shows);
-    
-    console.log(`🗑️ Show deleted: ${deletedShow.artistName} at ${deletedShow.venueName} on ${deletedShow.date}`);
-    
-    return NextResponse.json({ 
-      success: true, 
-      message: `Show "${deletedShow.artistName} at ${deletedShow.venueName}" deleted successfully`,
-      deletedShow 
+
+    // Delete show
+    await prisma.show.delete({
+      where: { id }
     });
+
+    return NextResponse.json({ message: 'Show deleted successfully' });
   } catch (error) {
-    console.error('Error deleting show:', error);
+    console.error('Error in DELETE /api/shows/[id]:', error);
     return NextResponse.json(
       { error: 'Failed to delete show' },
       { status: 500 }

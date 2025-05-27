@@ -1,153 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { Show, TourRequest } from '../../../../types';
+import { prisma } from '../../../../lib/prisma';
+import { ShowStatus, AgeRestriction } from '@prisma/client';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const SHOWS_FILE = path.join(DATA_DIR, 'shows.json');
-const TOUR_REQUESTS_FILE = path.join(DATA_DIR, 'tour-requests.json');
-
-function readShows(): Show[] {
+// Conflict resolution: Update tour requests when a show is confirmed
+async function resolveShowRequestConflicts(confirmedShow: any): Promise<void> {
   try {
-    if (fs.existsSync(SHOWS_FILE)) {
-      const data = fs.readFileSync(SHOWS_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-    return [];
-  } catch (error) {
-    console.error('Error reading shows:', error);
-    return [];
-  }
-}
-
-function writeShows(shows: Show[]): void {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    fs.writeFileSync(SHOWS_FILE, JSON.stringify(shows, null, 2));
-  } catch (error) {
-    console.error('Error writing shows:', error);
-    throw error;
-  }
-}
-
-function readTourRequests(): TourRequest[] {
-  try {
-    if (fs.existsSync(TOUR_REQUESTS_FILE)) {
-      const data = fs.readFileSync(TOUR_REQUESTS_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-    return [];
-  } catch (error) {
-    console.error('Error reading tour requests:', error);
-    return [];
-  }
-}
-
-function writeTourRequests(requests: TourRequest[]): void {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    fs.writeFileSync(TOUR_REQUESTS_FILE, JSON.stringify(requests, null, 2));
-  } catch (error) {
-    console.error('Error writing tour requests:', error);
-    throw error;
-  }
-}
-
-// Conflict resolution: Update show requests when a show is confirmed
-async function resolveShowRequestConflicts(confirmedShow: Show): Promise<void> {
-  try {
-    const tourRequests = readTourRequests();
     const showDate = new Date(confirmedShow.date);
-    let updatedRequests = [...tourRequests];
+    console.log(`🎯 Resolving conflicts for show: ${confirmedShow.artist?.name || 'Unknown'} on ${confirmedShow.date}`);
+
+    // Find active tour requests for the same artist that overlap with the confirmed show date
+    const conflictingRequests = await prisma.tourRequest.findMany({
+      where: {
+        artistId: confirmedShow.artistId,
+        status: 'ACTIVE',
+        AND: [
+          { startDate: { lte: showDate } },
+          { endDate: { gte: showDate } }
+        ]
+      }
+    });
+
     let conflictsResolved = 0;
 
-    console.log(`🎯 Resolving conflicts for show: ${confirmedShow.artistName} on ${confirmedShow.date}`);
+    for (const request of conflictingRequests) {
+      const requestStart = new Date(request.startDate!);
+      const requestEnd = new Date(request.endDate!);
 
-    for (let i = 0; i < updatedRequests.length; i++) {
-      const request = updatedRequests[i];
-      
-      // Only check requests for the same artist that are currently active
-      if (request.artistId !== confirmedShow.artistId || request.status !== 'active') {
-        continue;
-      }
+      console.log(`⚡ Found conflicting request: ${request.title} (${request.startDate} - ${request.endDate})`);
 
-      const requestStart = new Date(request.startDate);
-      const requestEnd = new Date(request.endDate);
-
-      // Check if the confirmed show date falls within this request's date range
-      if (showDate >= requestStart && showDate <= requestEnd) {
-        console.log(`⚡ Found conflicting request: ${request.title} (${request.startDate} - ${request.endDate})`);
-
-        if (requestStart.getTime() === requestEnd.getTime() && requestStart.getTime() === showDate.getTime()) {
-          // Single-day request that's now fulfilled
-          updatedRequests[i] = { 
-            ...request, 
-            status: 'fulfilled' as const,
-            updatedAt: new Date().toISOString()
-          };
-          console.log(`✅ Request fulfilled: ${request.title}`);
-          conflictsResolved++;
-
-        } else if (showDate.getTime() === requestStart.getTime()) {
-          // Show is on start date - move start date forward by 1 day
-          const newStart = new Date(showDate);
-          newStart.setDate(newStart.getDate() + 1);
-          
-          if (newStart <= requestEnd) {
-            updatedRequests[i] = {
-              ...request,
-              startDate: newStart.toISOString().split('T')[0],
-              updatedAt: new Date().toISOString()
-            };
-            console.log(`📅 Moved request start date: ${request.title} now starts ${newStart.toISOString().split('T')[0]}`);
-            conflictsResolved++;
-          } else {
-            // No valid date range left
-            updatedRequests[i] = { 
-              ...request, 
-              status: 'fulfilled' as const,
-              updatedAt: new Date().toISOString()
-            };
-            console.log(`✅ Request fulfilled (no valid dates left): ${request.title}`);
-            conflictsResolved++;
+      if (requestStart.getTime() === requestEnd.getTime() && requestStart.getTime() === showDate.getTime()) {
+        // Single-day request that's now fulfilled
+        await prisma.tourRequest.update({
+          where: { id: request.id },
+          data: { 
+            status: 'COMPLETED',
+            updatedAt: new Date()
           }
+        });
+        console.log(`✅ Request fulfilled: ${request.title}`);
+        conflictsResolved++;
 
-        } else if (showDate.getTime() === requestEnd.getTime()) {
-          // Show is on end date - move end date backward by 1 day
-          const newEnd = new Date(showDate);
-          newEnd.setDate(newEnd.getDate() - 1);
-          
-          updatedRequests[i] = {
-            ...request,
-            endDate: newEnd.toISOString().split('T')[0],
-            updatedAt: new Date().toISOString()
-          };
-          console.log(`📅 Moved request end date: ${request.title} now ends ${newEnd.toISOString().split('T')[0]}`);
+      } else if (showDate.getTime() === requestStart.getTime()) {
+        // Show is on start date - move start date forward by 1 day
+        const newStart = new Date(showDate);
+        newStart.setDate(newStart.getDate() + 1);
+        
+        if (newStart <= requestEnd) {
+          await prisma.tourRequest.update({
+            where: { id: request.id },
+            data: {
+              startDate: newStart,
+              updatedAt: new Date()
+            }
+          });
+          console.log(`📅 Moved request start date: ${request.title} now starts ${newStart.toISOString().split('T')[0]}`);
           conflictsResolved++;
-
         } else {
-          // Show date is in the middle - for simplicity, mark as fulfilled
-          // In a more complex system, we might split into two requests
-          updatedRequests[i] = { 
-            ...request, 
-            status: 'fulfilled' as const,
-            updatedAt: new Date().toISOString()
-          };
-          console.log(`✅ Request fulfilled (show in middle of date range): ${request.title}`);
+          // No valid date range left
+          await prisma.tourRequest.update({
+            where: { id: request.id },
+            data: { 
+              status: 'COMPLETED',
+              updatedAt: new Date()
+            }
+          });
+          console.log(`✅ Request fulfilled (no valid dates left): ${request.title}`);
           conflictsResolved++;
         }
+
+      } else if (showDate.getTime() === requestEnd.getTime()) {
+        // Show is on end date - move end date backward by 1 day
+        const newEnd = new Date(showDate);
+        newEnd.setDate(newEnd.getDate() - 1);
+        
+        await prisma.tourRequest.update({
+          where: { id: request.id },
+          data: {
+            endDate: newEnd,
+            updatedAt: new Date()
+          }
+        });
+        console.log(`📅 Moved request end date: ${request.title} now ends ${newEnd.toISOString().split('T')[0]}`);
+        conflictsResolved++;
+
+      } else {
+        // Show date is in the middle - mark as fulfilled
+        await prisma.tourRequest.update({
+          where: { id: request.id },
+          data: { 
+            status: 'COMPLETED',
+            updatedAt: new Date()
+          }
+        });
+        console.log(`✅ Request fulfilled (show in middle of date range): ${request.title}`);
+        conflictsResolved++;
       }
     }
 
     if (conflictsResolved > 0) {
-      writeTourRequests(updatedRequests);
       console.log(`🎉 Resolved ${conflictsResolved} show request conflict(s)`);
     } else {
-      console.log(`✨ No conflicts found for ${confirmedShow.artistName} on ${confirmedShow.date}`);
+      console.log(`✨ No conflicts found for ${confirmedShow.artist?.name || 'Unknown'} on ${confirmedShow.date}`);
     }
 
   } catch (error) {
@@ -165,35 +118,94 @@ export async function GET(request: NextRequest) {
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     
-    let shows = readShows();
+    console.log(`🎵 API: Fetching shows from database`);
+    
+    const whereClause: any = {};
     
     // Filter by artistId
     if (artistId) {
-      shows = shows.filter(show => show.artistId === artistId);
+      whereClause.artistId = artistId;
     }
     
     // Filter by venueId
     if (venueId) {
-      shows = shows.filter(show => show.venueId === venueId);
+      whereClause.venueId = venueId;
     }
     
     // Filter by status
     if (status) {
-      shows = shows.filter(show => show.status === status);
+      whereClause.status = status.toUpperCase() as ShowStatus;
     }
     
     // Filter by date range
-    if (dateFrom) {
-      shows = shows.filter(show => new Date(show.date) >= new Date(dateFrom));
-    }
-    if (dateTo) {
-      shows = shows.filter(show => new Date(show.date) <= new Date(dateTo));
+    if (dateFrom || dateTo) {
+      whereClause.date = {};
+      if (dateFrom) {
+        whereClause.date.gte = new Date(dateFrom);
+      }
+      if (dateTo) {
+        whereClause.date.lte = new Date(dateTo);
+      }
     }
     
-    // Sort by date
-    shows.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const shows = await prisma.show.findMany({
+      where: whereClause,
+      include: {
+        artist: {
+          select: {
+            id: true,
+            name: true,
+            genres: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            location: {
+              select: {
+                city: true,
+                stateProvince: true,
+                country: true
+              }
+            }
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            username: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'asc'
+      }
+    });
+
+    // Transform to match the expected format
+    const transformedShows = shows.map(show => ({
+      id: show.id,
+      artistId: show.artistId,
+      venueId: show.venueId,
+      date: show.date.toISOString().split('T')[0],
+      city: show.venue.location.city,
+      state: show.venue.location.stateProvince || '',
+      country: show.venue.location.country,
+      venueName: show.venue.name,
+      artistName: show.artist.name,
+      title: show.title,
+      status: show.status.toLowerCase(),
+      ticketPrice: show.ticketPrice,
+      ageRestriction: show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
+      description: show.description,
+      createdAt: show.createdAt.toISOString(),
+      updatedAt: show.updatedAt.toISOString(),
+      createdBy: show.createdBy.username
+    }));
     
-    return NextResponse.json(shows);
+    console.log(`🎵 API: Found ${transformedShows.length} shows in database`);
+    return NextResponse.json(transformedShows);
   } catch (error) {
     console.error('Error in GET /api/shows:', error);
     return NextResponse.json(
@@ -208,7 +220,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     
     // Validate required fields
-    const requiredFields = ['date', 'city', 'state', 'venueName', 'artistName'];
+    const requiredFields = ['date', 'venueName', 'artistName'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -218,24 +230,116 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // artistId is optional - if not provided, use a placeholder for external artists
-    if (!body.artistId) {
-      body.artistId = 'external-artist';
+    // Find or create artist
+    let artist;
+    if (body.artistId) {
+      artist = await prisma.artist.findUnique({
+        where: { id: body.artistId }
+      });
+    }
+    
+    if (!artist) {
+      // Create external artist if not found
+      const location = await prisma.location.findFirst({
+        where: {
+          city: body.city || 'Unknown',
+          stateProvince: body.state || 'Unknown'
+        }
+      });
+      
+      let locationId = location?.id;
+      if (!locationId) {
+        const newLocation = await prisma.location.create({
+          data: {
+            city: body.city || 'Unknown',
+            stateProvince: body.state || 'Unknown',
+            country: body.country || 'USA'
+          }
+        });
+        locationId = newLocation.id;
+      }
+      
+      artist = await prisma.artist.create({
+        data: {
+          name: body.artistName,
+          locationId: locationId,
+          genres: body.genres || [],
+          verified: false
+        }
+      });
     }
 
-    // venueId is optional - if not provided, use a placeholder for external venues
-    if (!body.venueId) {
-      body.venueId = 'external-venue';
+    // Find or create venue
+    let venue;
+    if (body.venueId) {
+      venue = await prisma.venue.findUnique({
+        where: { id: body.venueId }
+      });
+    }
+    
+    if (!venue) {
+      // Create external venue if not found
+      const location = await prisma.location.findFirst({
+        where: {
+          city: body.city || 'Unknown',
+          stateProvince: body.state || 'Unknown'
+        }
+      });
+      
+      let locationId = location?.id;
+      if (!locationId) {
+        const newLocation = await prisma.location.create({
+          data: {
+            city: body.city || 'Unknown',
+            stateProvince: body.state || 'Unknown',
+            country: body.country || 'USA'
+          }
+        });
+        locationId = newLocation.id;
+      }
+      
+      venue = await prisma.venue.create({
+        data: {
+          name: body.venueName,
+          locationId: locationId,
+          venueType: 'OTHER',
+          capacity: body.capacity || null,
+          verified: false
+        }
+      });
     }
 
-    const shows = readShows();
+    // Find or create user for createdBy
+    let createdById = body.createdBy;
+    if (!createdById) {
+      // Use system user or create one
+      let systemUser = await prisma.user.findFirst({
+        where: { username: 'system' }
+      });
+      
+      if (!systemUser) {
+        systemUser = await prisma.user.create({
+          data: {
+            username: 'system',
+            email: 'system@diyshows.com',
+            verified: true
+          }
+        });
+      }
+      createdById = systemUser.id;
+    }
     
     // Check for date conflicts
-    const conflictingShow = shows.find(show => 
-      (show.artistId === body.artistId || show.venueId === body.venueId) && 
-      show.date === body.date &&
-      show.status !== 'cancelled'
-    );
+    const conflictingShow = await prisma.show.findFirst({
+      where: {
+        OR: [
+          { artistId: artist.id },
+          { venueId: venue.id }
+        ],
+        date: new Date(body.date),
+        status: { not: 'CANCELLED' }
+      }
+    });
     
     if (conflictingShow) {
       return NextResponse.json(
@@ -244,51 +348,80 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Generate new ID
-    const newId = Date.now().toString();
-    
     // Create new show
-    const newShow: Show = {
-      id: newId,
-      artistId: body.artistId,
-      venueId: body.venueId,
-      date: body.date,
-      city: body.city,
-      state: body.state,
-      venueName: body.venueName,
-      artistName: body.artistName,
-      status: body.status || 'confirmed',
-      holdPosition: body.holdPosition,
-      guarantee: body.guarantee,
-      doorDeal: body.doorDeal,
-      ticketPrice: body.ticketPrice,
-      capacity: body.capacity || 0,
-      ageRestriction: body.ageRestriction || 'all-ages',
-      loadIn: body.loadIn,
-      soundcheck: body.soundcheck,
-      doorsOpen: body.doorsOpen,
-      showTime: body.showTime,
-      curfew: body.curfew,
-      expectedDraw: body.expectedDraw,
-      walkoutPotential: body.walkoutPotential || 'medium',
-      notes: body.notes || '',
-      promotion: body.promotion,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      createdBy: body.createdBy || 'system',
-    };
+    const newShow = await prisma.show.create({
+      data: {
+        title: body.title || `${artist.name} at ${venue.name}`,
+        date: new Date(body.date),
+        artistId: artist.id,
+        venueId: venue.id,
+        description: body.notes || body.description,
+        ticketPrice: body.ticketPrice ? parseFloat(body.ticketPrice) : null,
+        ageRestriction: body.ageRestriction ? 
+          body.ageRestriction.toUpperCase().replace('-', '_') as AgeRestriction : 
+          'ALL_AGES',
+        status: (body.status?.toUpperCase() || 'CONFIRMED') as ShowStatus,
+        createdById: createdById
+      },
+      include: {
+        artist: {
+          select: {
+            id: true,
+            name: true,
+            genres: true
+          }
+        },
+        venue: {
+          select: {
+            id: true,
+            name: true,
+            location: {
+              select: {
+                city: true,
+                stateProvince: true,
+                country: true
+              }
+            }
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            username: true
+          }
+        }
+      }
+    });
 
-    shows.push(newShow);
-    writeShows(shows);
-
-    // 🎯 CONFLICT RESOLUTION: Automatically resolve any conflicting show requests
-    if (newShow.status === 'confirmed') {
+    // 🎯 CONFLICT RESOLUTION: Automatically resolve any conflicting tour requests
+    if (newShow.status === 'CONFIRMED') {
       await resolveShowRequestConflicts(newShow);
     }
 
-    console.log(`🎵 New show confirmed: ${newShow.artistName} at ${newShow.venueName} on ${newShow.date}`);
+    console.log(`🎵 New show confirmed: ${newShow.artist.name} at ${newShow.venue.name} on ${newShow.date}`);
 
-    return NextResponse.json(newShow, { status: 201 });
+    // Transform to match expected format
+    const transformedShow = {
+      id: newShow.id,
+      artistId: newShow.artistId,
+      venueId: newShow.venueId,
+      date: newShow.date.toISOString().split('T')[0],
+      city: newShow.venue.location.city,
+      state: newShow.venue.location.stateProvince || '',
+      country: newShow.venue.location.country,
+      venueName: newShow.venue.name,
+      artistName: newShow.artist.name,
+      title: newShow.title,
+      status: newShow.status.toLowerCase(),
+      ticketPrice: newShow.ticketPrice,
+      ageRestriction: newShow.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
+      description: newShow.description,
+      createdAt: newShow.createdAt.toISOString(),
+      updatedAt: newShow.updatedAt.toISOString(),
+      createdBy: newShow.createdBy.username
+    };
+
+    return NextResponse.json(transformedShow, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/shows:', error);
     return NextResponse.json(
