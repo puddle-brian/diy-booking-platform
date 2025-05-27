@@ -643,7 +643,7 @@ export default function AdminPage() {
                                     View
                                   </a>
                                   <a 
-                                    href={`/admin/venues/${venue.id}`}
+                                    href={`/admin/venues/edit/${venue.id}`}
                                     className="text-green-600 hover:text-green-800"
                                   >
                                     Edit
@@ -696,7 +696,7 @@ export default function AdminPage() {
                                     View
                                   </a>
                                   <a 
-                                    href={`/admin/artists/${artist.id}`}
+                                    href={`/admin/artists/edit/${artist.id}`}
                                     className="text-green-600 hover:text-green-800"
                                   >
                                     Edit

@@ -1,16 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v2 as cloudinary } from 'cloudinary';
 
-// Temporary hardcoded configuration for testing
+// Configure Cloudinary with environment variables
 cloudinary.config({
-  cloud_name: 'dfytetsz3',
-  api_key: '659739423488389',
-  api_secret: 'RS5dQ8HNUGcYzjlq-6AjXn9L0EY'
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Testing hardcoded Cloudinary configuration');
+    // Debug: Log environment variables
+    console.log('🔍 Environment check:', {
+      CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME ? '✅ Set' : '❌ Missing',
+      CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY ? '✅ Set' : '❌ Missing',
+      CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? '✅ Set' : '❌ Missing',
+      NODE_ENV: process.env.NODE_ENV
+    });
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -23,6 +29,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'No file uploaded' },
         { status: 400 }
+      );
+    }
+
+    // Check if Cloudinary is configured
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('❌ Cloudinary not configured');
+      return NextResponse.json(
+        { 
+          error: 'Cloud storage not configured. Please set up Cloudinary environment variables. Please follow the setup guide in CLOUDINARY_SETUP.md to configure your free Cloudinary account.' 
+        },
+        { status: 500 }
       );
     }
 
@@ -50,8 +67,8 @@ export async function POST(request: NextRequest) {
     console.log('✅ File size validation passed:', file.size);
 
     // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const buffer = await file.arrayBuffer();
+    const uint8Array = new Uint8Array(buffer);
 
     console.log('🔄 Uploading to Cloudinary...');
 
@@ -59,7 +76,6 @@ export async function POST(request: NextRequest) {
     const uploadResult = await new Promise((resolve, reject) => {
       cloudinary.uploader.upload_stream(
         {
-          resource_type: 'image',
           folder: `diy-booking/${type}s`,
           transformation: [
             { width: 1200, height: 1200, crop: 'limit' },
@@ -75,7 +91,7 @@ export async function POST(request: NextRequest) {
             resolve(result);
           }
         }
-      ).end(buffer);
+      ).end(uint8Array);
     });
 
     console.log('🎉 Upload completed successfully');
@@ -91,10 +107,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Upload error:', error);
     return NextResponse.json(
-      { 
-        error: 'Upload failed', 
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: error instanceof Error ? error.message : 'Upload failed' },
       { status: 500 }
     );
   }
