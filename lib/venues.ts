@@ -39,6 +39,7 @@ const defaultVenues: Venue[] = [
     description: 'Intimate basement shows in a cozy living room setting. Perfect for acoustic and folk acts.',
     rating: 4.2,
     reviewCount: 15,
+    totalRatings: 15,
     verified: true,
     lastUpdated: new Date().toISOString(),
     availability: [
@@ -90,6 +91,7 @@ const defaultVenues: Venue[] = [
     description: 'In-store performances surrounded by vinyl. Great for intimate acoustic sets and listening parties.',
     rating: 4.5,
     reviewCount: 23,
+    totalRatings: 23,
     verified: true,
     lastUpdated: new Date().toISOString(),
     availability: [
@@ -148,6 +150,7 @@ const defaultVenues: Venue[] = [
     description: 'In-store acoustic performances and listening parties in a cozy record shop.',
     rating: 4.7,
     reviewCount: 18,
+    totalRatings: 18,
     verified: true,
     lastUpdated: new Date().toISOString(),
     availability: [
@@ -199,6 +202,7 @@ const defaultVenues: Venue[] = [
     description: 'Legendary basement venue for punk and hardcore shows. Full backline available.',
     rating: 5.0,
     reviewCount: 42,
+    totalRatings: 42,
     verified: true,
     lastUpdated: new Date().toISOString(),
     availability: [
@@ -257,6 +261,7 @@ const defaultVenues: Venue[] = [
     description: 'Community-focused venue supporting local and touring acts. Great sound system.',
     rating: 4.6,
     reviewCount: 31,
+    totalRatings: 31,
     verified: true,
     lastUpdated: new Date().toISOString(),
     availability: [
@@ -382,7 +387,7 @@ export async function getVenueById(id: string): Promise<Venue | null> {
   return venues.find(v => v.id === id) || null;
 }
 
-export async function createVenue(venueData: Omit<Venue, 'id' | 'createdAt' | 'updatedAt' | 'rating' | 'showsThisYear' | 'hasAccount' | 'unavailableDates'>): Promise<Venue> {
+export async function createVenue(venueData: Omit<Venue, 'id' | 'createdAt' | 'updatedAt' | 'rating' | 'reviewCount' | 'totalRatings' | 'showsThisYear' | 'hasAccount' | 'unavailableDates'>): Promise<Venue> {
   if (!venueData.images || venueData.images.length === 0) {
     throw new Error('At least one image is required');
   }
@@ -393,6 +398,8 @@ export async function createVenue(venueData: Omit<Venue, 'id' | 'createdAt' | 'u
     ...venueData,
     id: Date.now().toString(),
     rating: 0,
+    reviewCount: 0,
+    totalRatings: 0,
     showsThisYear: 0,
     hasAccount: true,
     unavailableDates: [],
