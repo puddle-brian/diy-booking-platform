@@ -26,14 +26,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/venues/submit`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
-      priority: 0.8,
+      priority: 0.9,
     },
     {
       url: `${baseUrl}/artists/submit`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
-      priority: 0.8,
+      priority: 0.9,
     },
-    // Add more static pages as needed
+    // Add more pages as your site grows
   ]
 } 

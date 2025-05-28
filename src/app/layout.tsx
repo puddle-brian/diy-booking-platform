@@ -64,7 +64,8 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'your-google-verification-code', // You'll get this from Google Search Console
+    // Add your Google Search Console verification code here when you get it
+    // google: 'your-verification-code',
   },
 };
 
@@ -79,13 +80,33 @@ export default function RootLayout({
     "name": "DIY Shows",
     "description": "Skip the agents and middlemen. Add your DIY space or act to the crowdsourced network. Book your own shows!",
     "url": "https://diy-shows.com",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": {
-        "@type": "EntryPoint",
-        "urlTemplate": "https://diy-shows.com/?search={search_term_string}"
+    "potentialAction": [
+      {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "https://diy-shows.com/?search={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
       },
-      "query-input": "required name=search_term_string"
+      {
+        "@type": "Action",
+        "name": "List a Space",
+        "description": "Add your DIY venue to the platform",
+        "target": "https://diy-shows.com/venues/submit"
+      },
+      {
+        "@type": "Action", 
+        "name": "List an Artist",
+        "description": "Add your artist profile to find shows",
+        "target": "https://diy-shows.com/artists/submit"
+      }
+    ],
+    "mainEntity": {
+      "@type": "WebPage",
+      "@id": "https://diy-shows.com",
+      "name": "DIY Shows - Book your own shows!",
+      "description": "Connect DIY venues with touring artists. Skip the middlemen and book shows directly."
     },
     "sameAs": [
       // Add your social media URLs here when you have them
@@ -104,6 +125,47 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "BreadcrumbList",
+              "itemListElement": [
+                {
+                  "@type": "ListItem",
+                  "position": 1,
+                  "name": "Home",
+                  "item": "https://diy-shows.com"
+                },
+                {
+                  "@type": "ListItem", 
+                  "position": 2,
+                  "name": "Browse Venues",
+                  "item": "https://diy-shows.com/?tab=venues"
+                },
+                {
+                  "@type": "ListItem",
+                  "position": 3, 
+                  "name": "Browse Artists",
+                  "item": "https://diy-shows.com/?tab=artists"
+                },
+                {
+                  "@type": "ListItem",
+                  "position": 4,
+                  "name": "List a Space",
+                  "item": "https://diy-shows.com/venues/submit"
+                },
+                {
+                  "@type": "ListItem",
+                  "position": 5,
+                  "name": "List an Artist", 
+                  "item": "https://diy-shows.com/artists/submit"
+                }
+              ]
+            })
+          }}
         />
       </head>
       <body
