@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: 'DIY Shows',
     images: [
       {
-        url: '/og-image.jpg', // You'll need to add this image
+        url: '/og-image.png',
         width: 1200,
         height: 630,
         alt: 'DIY Shows - Book your own shows!',
@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "DIY Shows - Book your own shows!",
     description: "Skip the agents and middlemen. DIY booking platform for venues and artists.",
-    images: ['/og-image.jpg'], // Same image as Open Graph
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
@@ -162,6 +162,36 @@ export default function RootLayout({
                   "position": 5,
                   "name": "List an Artist", 
                   "item": "https://diy-shows.com/artists/submit"
+                }
+              ]
+            })
+          }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "DIY Shows",
+              "description": "DIY booking platform connecting venues and artists",
+              "url": "https://diy-shows.com",
+              "logo": "https://diy-shows.com/og-image.png",
+              "sameAs": [
+                // Add your social media URLs here when you have them
+                // "https://twitter.com/diyshows",
+                // "https://instagram.com/diyshows"
+              ],
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "customer service",
+                "url": "https://diy-shows.com"
+              },
+              "potentialAction": [
+                {
+                  "@type": "SearchAction",
+                  "target": "https://diy-shows.com/?search={search_term_string}",
+                  "query-input": "required name=search_term_string"
                 }
               ]
             })
