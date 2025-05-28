@@ -297,51 +297,58 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
       <div className="container mx-auto px-4 py-8">
         {/* Venue Title */}
         <div className="mb-6">
-          <div className="flex items-center gap-4 mb-3">
-            {/* Venue Thumbnail */}
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-              <img
-                src={venue.images[0] || '/api/placeholder/other'}
-                alt={venue.name}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = '/api/placeholder/other';
-                }}
-              />
+          {/* Mobile-First Responsive Layout */}
+          <div className="space-y-4 sm:space-y-0">
+            {/* Top Row: Thumbnail + Name */}
+            <div className="flex items-start gap-3 sm:gap-4">
+              {/* Venue Thumbnail */}
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                <img
+                  src={venue.images[0] || '/api/placeholder/other'}
+                  alt={venue.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = '/api/placeholder/other';
+                  }}
+                />
+              </div>
+              
+              {/* Venue Name */}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 leading-tight">{venue.name}</h1>
+              </div>
             </div>
-            
-            {/* Venue Info */}
-            <div className="flex-1 min-w-0">
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">{venue.name}</h1>
-              <div className="flex items-center text-gray-600 space-x-4 flex-wrap">
-                {venue.streetAddress && (
-                  <>
-                    <span>{venue.streetAddress}</span>
-                    <span>•</span>
-                  </>
-                )}
-                <span>{venue.city}, {venue.state}</span>
-                {venue.postalCode && (
-                  <>
-                    <span>•</span>
-                    <span>{venue.postalCode}</span>
-                  </>
-                )}
+
+            {/* Second Row: Location & Details */}
+            <div className="pl-12 sm:pl-20 lg:pl-20">
+              {/* Primary Location Info */}
+              <div className="flex items-center text-gray-600 text-sm sm:text-base mb-1">
+                <svg className="w-4 h-4 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="font-medium">{venue.city}, {venue.state}</span>
                 {venue.neighborhood && (
-                  <>
-                    <span>•</span>
-                    <span>{venue.neighborhood}</span>
-                  </>
+                  <span className="text-gray-500 ml-2">• {venue.neighborhood}</span>
                 )}
-                <span>•</span>
-                <span className="capitalize">{venue.venueType.replace('-', ' ')}</span>
+              </div>
+
+              {/* Secondary Details - Responsive Grid */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm text-gray-500 mb-3">
+                <span className="capitalize font-medium text-gray-600">{venue.venueType.replace('-', ' ')}</span>
                 <span>•</span>
                 <span>{venue.capacity} capacity</span>
+                {venue.streetAddress && (
+                  <>
+                    <span className="hidden sm:inline">•</span>
+                    <span className="hidden sm:inline">{venue.streetAddress}</span>
+                  </>
+                )}
                 {venue.rating > 0 && (
                   <>
                     <span>•</span>
                     <div className="flex items-center">
-                      <svg className="w-4 h-4 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20">
+                      <svg className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 fill-current mr-1" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
                       <span>{venue.rating.toFixed(1)}</span>
@@ -349,22 +356,29 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
                   </>
                 )}
               </div>
-            </div>
-            
-            {/* Action Buttons */}
-            <div className="flex-shrink-0 flex items-center space-x-3">
-              {/* Message Button - Show to logged in users */}
+
+              {/* Full Address on Mobile (if not shown above) */}
+              {venue.streetAddress && (
+                <div className="sm:hidden mb-3 text-xs text-gray-500">
+                  {venue.streetAddress}
+                  {venue.postalCode && `, ${venue.postalCode}`}
+                </div>
+              )}
+
+              {/* Action Button - Below all info */}
               {user && (
-                <MessageButton
-                  recipientId={venue.id}
-                  recipientName={venue.name}
-                  recipientType="venue"
-                  variant="primary"
-                  size="md"
-                  className="whitespace-nowrap"
-                >
-                  Send Message
-                </MessageButton>
+                <div className="flex">
+                  <MessageButton
+                    recipientId={venue.id}
+                    recipientName={venue.name}
+                    recipientType="venue"
+                    variant="primary"
+                    size="sm"
+                    className="text-sm"
+                  >
+                    Send Message
+                  </MessageButton>
+                </div>
               )}
             </div>
           </div>
