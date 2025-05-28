@@ -793,7 +793,7 @@ function HomeContent() {
         {/* Mobile Layout - Hidden on desktop */}
         <div className="md:hidden">
           {/* Top: Search Bar */}
-          <div className="bg-white sticky top-0 z-10">
+          <div className="bg-white sticky top-0 z-20">
             <div className="container mx-auto px-4 pt-4 pb-2">
               <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
                 <div className="flex items-center">
