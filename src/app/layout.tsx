@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DIY Shows - Book your own shows!",
-  description: "Skip the agents and middlemen. Add your DIY space or act to the crowdsourced network. Venues find artists looking for shows in your area and bid. Artists request shows anywhere for venues to find and bid.",
-  keywords: ["DIY music", "book your own shows", "indie venues", "underground shows", "music booking", "independent artists", "live music", "DIY spaces", "crowdsourced booking", "skip middlemen"],
+  title: "DIY Shows - Book Your Own Shows",
+  description: "Skip the agents and middlemen. This platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized!",
+  keywords: "DIY music, booking platform, venues, artists, tours, shows, independent music",
   authors: [{ name: "DIY Shows" }],
   creator: "DIY Shows",
   publisher: "DIY Shows",
@@ -28,13 +28,13 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL('https://diy-shows.com'),
   alternates: {
-    canonical: '/',
+    canonical: "https://diyshows.com",
   },
   openGraph: {
-    title: "DIY Shows - Book your own shows!",
-    description: "Skip the agents and middlemen. Add your DIY space or act to the crowdsourced network. Venues find artists looking for shows and bid. Artists request shows anywhere.",
-    url: 'https://diy-shows.com',
-    siteName: 'DIY Shows',
+    title: "DIY Shows - Book Your Own Shows",
+    description: "Skip the agents and middlemen. This platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized!",
+    url: "https://diyshows.com",
+    siteName: "DIY Shows",
     images: [
       {
         url: '/og-image.png',
@@ -43,14 +43,15 @@ export const metadata: Metadata = {
         alt: 'DIY Shows - Book your own shows!',
       },
     ],
-    locale: 'en_US',
-    type: 'website',
+    locale: "en_US",
+    type: "website",
   },
   twitter: {
-    card: 'summary_large_image',
-    title: "DIY Shows - Book your own shows!",
-    description: "Skip the agents and middlemen. DIY booking platform for venues and artists.",
+    card: "summary_large_image",
+    title: "DIY Shows - Book Your Own Shows",
+    description: "Skip the agents and middlemen. This platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized!",
     images: ['/og-image.png'],
+    creator: "@diyshows",
   },
   robots: {
     index: true,
@@ -58,14 +59,25 @@ export const metadata: Metadata = {
     googleBot: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
     },
   },
   verification: {
-    // Add your Google Search Console verification code here when you get it
-    // google: 'your-verification-code',
+    google: "your-google-verification-code",
+  },
+  other: {
+    "application-name": "DIY Shows",
+    "apple-mobile-web-app-title": "DIY Shows",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "default",
+    "format-detection": "telephone=no",
+    "mobile-web-app-capable": "yes",
+    "msapplication-config": "/browserconfig.xml",
+    "msapplication-TileColor": "#000000",
+    "msapplication-tap-highlight": "no",
+    "theme-color": "#000000",
   },
 };
 

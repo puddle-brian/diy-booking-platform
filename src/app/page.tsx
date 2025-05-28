@@ -1437,7 +1437,7 @@ function HomeContent() {
             <div>
               <h3 className="text-lg font-semibold mb-4">DIY Shows</h3>
               <p className="text-gray-400">
-                Book your own shows. Skip the agents and middlemen. Add your DIY space or act to the crowdsourced network. Venues find artists looking for shows in your area and bid. Artists request shows anywhere for venues to find and bid.
+                Skip the agents and middlemen. This platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized!
               </p>
             </div>
             <div>
