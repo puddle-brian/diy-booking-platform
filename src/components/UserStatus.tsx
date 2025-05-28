@@ -36,16 +36,10 @@ export default function UserStatus() {
     return (
       <div className="flex items-center space-x-4">
         <Link 
-          href="/auth/login"
-          className="text-sm text-gray-600 hover:text-black"
+          href="/auth/login" 
+          className="text-gray-700 hover:text-black font-medium"
         >
           Sign In
-        </Link>
-        <Link 
-          href="/auth/login"
-          className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
-        >
-          Sign Up
         </Link>
         {/* Always show admin link for debug access */}
         <Link 
