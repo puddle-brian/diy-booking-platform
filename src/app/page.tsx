@@ -736,7 +736,7 @@ function HomeContent() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header with Responsive Layout */}
-      <header className="border-b border-gray-200">
+      <header>
         {/* Desktop Layout - Hidden on mobile */}
         <div className="hidden md:block">
           <div className="container mx-auto px-4 py-6 flex justify-between items-center">
@@ -793,7 +793,7 @@ function HomeContent() {
         {/* Mobile Layout - Hidden on desktop */}
         <div className="md:hidden">
           {/* Top: Search Bar */}
-          <div className="bg-white sticky top-0 z-10 shadow-sm">
+          <div className="bg-white sticky top-0 z-10">
             <div className="container mx-auto px-4 pt-4 pb-2">
               <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
                 <div className="flex items-center">
@@ -848,7 +848,7 @@ function HomeContent() {
             </div>
             
             {/* Spaces/Artists Toggle - directly underneath search */}
-            <div className="container mx-auto px-4 pb-3">
+            <div className="container mx-auto px-4">
               <div className="flex justify-center">
                 <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
                   <button
@@ -907,7 +907,7 @@ function HomeContent() {
       {/* Dynamic Content - Responsive */}
       {activeTab === 'venues' ? (
         // VENUES VIEW - Browse venues
-        <section className="container mx-auto px-4 py-4 pb-24 md:py-8 md:pb-20">
+        <section className="container mx-auto px-4 pb-24 md:py-8 md:pb-20">
           {/* Desktop Search Bar - Hidden on mobile */}
           <div className="max-w-2xl mx-auto mb-6 md:mb-8 hidden md:block">
             <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
@@ -1153,7 +1153,7 @@ function HomeContent() {
         </section>
       ) : (
         // ARTISTS VIEW - Browse artists  
-        <section className="container mx-auto px-4 py-4 pb-24 md:py-8 md:pb-20">
+        <section className="container mx-auto px-4 pb-24 md:py-8 md:pb-20">
           {/* Desktop Search Bar - Hidden on mobile */}
           <div className="max-w-2xl mx-auto mb-6 md:mb-8 hidden md:block">
             <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
