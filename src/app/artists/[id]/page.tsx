@@ -119,14 +119,18 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     const loadData = async () => {
       try {
         const resolvedParams = await params;
-        await loadArtist(resolvedParams.id);
-        await loadTourRequests(resolvedParams.id);
-        await loadMembers(resolvedParams.id);
         
-        // Load venue data if user is a venue
-        if (user?.profileType === 'venue' && user.profileId) {
-          await loadVenue(user.profileId);
-        }
+        // Load all data in parallel to reduce total loading time
+        const [artistResult, tourRequestsResult, membersResult, venueResult] = await Promise.all([
+          loadArtist(resolvedParams.id),
+          loadTourRequests(resolvedParams.id),
+          loadMembers(resolvedParams.id),
+          // Only load venue data if user is a venue
+          user?.profileType === 'venue' && user.profileId 
+            ? loadVenue(user.profileId) 
+            : Promise.resolve(null)
+        ]);
+        
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {
@@ -135,7 +139,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     };
 
     loadData();
-  }, [params, user]);
+  }, [user?.profileId]); // Simplified dependencies - params change will trigger component remount
 
   const loadVenue = async (venueId: string) => {
     try {
@@ -187,13 +191,10 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
         console.log('📊 Tour requests array?', Array.isArray(requestsData));
         console.log('📊 Tour requests length:', requestsData?.length);
         
-        if (Array.isArray(requestsData)) {
-          setTourRequests(requestsData);
-          console.log('✅ Tour requests set:', requestsData.length, 'requests');
-        } else {
-          console.warn('⚠️ Tour requests data is not an array:', requestsData);
-          setTourRequests([]);
-        }
+        // Handle both array and object with requests property
+        const requests = Array.isArray(requestsData) ? requestsData : (requestsData.requests || []);
+        setTourRequests(requests);
+        console.log('✅ Tour requests set:', requests.length, 'requests');
       } else {
         console.warn('⚠️ Tour requests API failed:', response.status);
         setTourRequests([]);
@@ -325,7 +326,10 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     if (artist) {
       fetch(`/api/tour-requests?artistId=${artist.id}&activeOnly=true`)
         .then(response => response.json())
-        .then(data => setTourRequests(Array.isArray(data) ? data : []))
+        .then(data => {
+          const requests = Array.isArray(data) ? data : (data.requests || []);
+          setTourRequests(requests);
+        })
         .catch(console.error);
     }
   };

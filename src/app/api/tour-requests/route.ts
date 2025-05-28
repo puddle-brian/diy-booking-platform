@@ -1,172 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { TourRequest } from '../../../../types';
-
-const tourRequestsFilePath = path.join(process.cwd(), 'data', 'tour-requests.json');
-
-// Default sample tour requests for fallback
-const defaultTourRequests: TourRequest[] = [
-  {
-    id: '1748258185504',
-    artistId: '1748101913848',
-    artistName: 'Lightning Bolt',
-    title: 'West Coast Tour - Spring 2025',
-    description: 'Experimental noise duo seeking venues for west coast tour. High energy performances.',
-    startDate: '2025-04-15',
-    endDate: '2025-04-30',
-    location: 'Portland, OR',
-    radius: 200,
-    flexibility: 'region-flexible',
-    genres: ['noise', 'experimental', 'punk'],
-    expectedDraw: {
-      min: 150,
-      max: 400,
-      description: 'Strong following in Pacific Northwest'
-    },
-    tourStatus: 'flexible-routing',
-    ageRestriction: 'all-ages',
-    equipment: {
-      needsPA: true,
-      needsMics: true,
-      needsDrums: false,
-      needsAmps: true,
-      acoustic: false,
-    },
-    guaranteeRange: {
-      min: 500,
-      max: 1000
-    },
-    acceptsDoorDeals: true,
-    merchandising: true,
-    travelMethod: 'van',
-    lodging: 'flexible',
-    status: 'active',
-    priority: 'high',
-    responses: 3,
-    createdAt: '2024-12-15T10:30:00Z',
-    updatedAt: '2024-12-15T10:30:00Z',
-    expiresAt: '2025-03-15T23:59:59Z',
-  },
-  {
-    id: '1748255983585',
-    artistId: '2',
-    artistName: 'Acoustic Folk Duo',
-    title: 'Intimate Venues Tour - Summer 2025',
-    description: 'Seeking cozy venues for acoustic performances. Perfect for coffee shops and small venues.',
-    startDate: '2025-06-01',
-    endDate: '2025-06-15',
-    location: 'Seattle, WA',
-    radius: 100,
-    flexibility: 'exact-cities',
-    genres: ['folk', 'acoustic', 'indie'],
-    expectedDraw: {
-      min: 30,
-      max: 80,
-      description: 'Intimate performances for smaller venues'
-    },
-    tourStatus: 'exploring-interest',
-    ageRestriction: 'all-ages',
-    equipment: {
-      needsPA: true,
-      needsMics: true,
-      needsDrums: false,
-      needsAmps: false,
-      acoustic: true,
-    },
-    guaranteeRange: {
-      min: 200,
-      max: 500
-    },
-    acceptsDoorDeals: true,
-    merchandising: true,
-    travelMethod: 'van',
-    lodging: 'flexible',
-    status: 'active',
-    priority: 'medium',
-    responses: 1,
-    createdAt: '2024-12-10T14:20:00Z',
-    updatedAt: '2024-12-10T14:20:00Z',
-    expiresAt: '2025-05-01T23:59:59Z',
-  },
-  {
-    id: '1748208385505',
-    artistId: '3',
-    artistName: 'The Indie Rockers',
-    title: 'East Coast Run - Fall 2025',
-    description: 'Four-piece indie rock band looking for venues along the east coast.',
-    startDate: '2025-09-10',
-    endDate: '2025-09-25',
-    location: 'Brooklyn, NY',
-    radius: 300,
-    flexibility: 'route-flexible',
-    genres: ['indie', 'rock', 'alternative'],
-    expectedDraw: {
-      min: 100,
-      max: 250,
-      description: 'Growing fanbase in major cities'
-    },
-    tourStatus: 'confirmed-routing',
-    ageRestriction: 'flexible',
-    equipment: {
-      needsPA: true,
-      needsMics: true,
-      needsDrums: true,
-      needsAmps: true,
-      acoustic: false,
-    },
-    guaranteeRange: {
-      min: 400,
-      max: 800
-    },
-    acceptsDoorDeals: true,
-    merchandising: true,
-    travelMethod: 'van',
-    lodging: 'hotel',
-    status: 'active',
-    priority: 'medium',
-    responses: 2,
-    createdAt: '2024-11-20T16:45:00Z',
-    updatedAt: '2024-11-20T16:45:00Z',
-    expiresAt: '2025-08-10T23:59:59Z',
-  },
-];
-
-function readTourRequests(): TourRequest[] {
-  try {
-    if (!fs.existsSync(tourRequestsFilePath)) {
-      console.log('Tour requests file not found, using default tour requests');
-      return defaultTourRequests;
-    }
-    const data = fs.readFileSync(tourRequestsFilePath, 'utf8');
-    const requests = JSON.parse(data);
-    return requests.length > 0 ? requests : defaultTourRequests;
-  } catch (error) {
-    console.warn('Error reading tour requests file, using defaults:', error);
-    return defaultTourRequests;
-  }
-}
-
-function writeTourRequests(requests: TourRequest[]): void {
-  try {
-    // In production, we can't write files, so just log the attempt
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('Cannot write tour requests file in production environment');
-      return;
-    }
-    
-    const dir = path.dirname(tourRequestsFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(tourRequestsFilePath, JSON.stringify(requests, null, 2));
-  } catch (error) {
-    console.error('Error writing tour requests file:', error);
-    if (process.env.NODE_ENV !== 'production') {
-      throw error;
-    }
-  }
-}
+import { prisma } from '../../../../lib/prisma';
+import { RequestStatus } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -179,73 +13,116 @@ export async function GET(request: NextRequest) {
     const activeOnly = searchParams.get('activeOnly') === 'true';
     const forVenues = searchParams.get('forVenues') === 'true';
     
-    let requests = readTourRequests();
+    // Build where clause for Prisma
+    const where: any = {};
     
-    console.log(`🗺️ API: Fetching tour requests. Total: ${requests.length}`);
+    console.log(`🗺️ API: Fetching tour requests from database`);
     console.log(`🗺️ API: Filters - artistId: ${artistId}, activeOnly: ${activeOnly}, forVenues: ${forVenues}`);
     
     // Filter by artistId (for artist's own requests)
     if (artistId) {
-      requests = requests.filter(request => request.artistId === artistId);
-      console.log(`🗺️ API: After artistId filter: ${requests.length} requests`);
+      where.artistId = artistId;
     }
     
     // Filter by status
     if (status) {
-      requests = requests.filter(request => request.status === status);
-      console.log(`🗺️ API: After status filter: ${requests.length} requests`);
+      where.status = status.toUpperCase() as RequestStatus;
     }
     
-    // Filter by city/region (for venues browsing) - updated for atomic location structure
-    if (city) {
-      requests = requests.filter(request => 
-        request.location && request.location.toLowerCase().includes(city.toLowerCase())
-      );
-      console.log(`🗺️ API: After city filter: ${requests.length} requests`);
-    }
-    
-    if (region) {
-      requests = requests.filter(request =>
-        request.location && request.location.toLowerCase().includes(region.toLowerCase())
-      );
-      console.log(`🗺️ API: After region filter: ${requests.length} requests`);
+    // Filter by city/region (for venues browsing)
+    if (city || region) {
+      where.targetLocations = {
+        hasSome: [city, region].filter(Boolean)
+      };
     }
     
     // Filter by genre
     if (genre) {
-      requests = requests.filter(request =>
-        request.genres.some(g => g.toLowerCase().includes(genre.toLowerCase()))
-      );
-      console.log(`🗺️ API: After genre filter: ${requests.length} requests`);
+      where.genres = {
+        hasSome: [genre.toLowerCase()]
+      };
     }
     
     // Only active requests (default for venue browsing)
     if (activeOnly) {
       const now = new Date();
-      requests = requests.filter(request => 
-        request.status === 'active' && 
-        new Date(request.expiresAt) > now &&
-        new Date(request.startDate) > now
-      );
-      console.log(`🗺️ API: After activeOnly filter: ${requests.length} requests`);
+      where.status = RequestStatus.ACTIVE;
+      where.endDate = {
+        gt: now
+      };
+      // Don't filter by startDate - tour requests are active if they haven't ended yet
     }
     
-    // Sort by priority and date
-    requests.sort((a, b) => {
-      // Priority order: high, medium, low
-      const priorityOrder = { high: 3, medium: 2, low: 1 };
-      if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-        return priorityOrder[b.priority] - priorityOrder[a.priority];
-      }
-      // Then by creation date (newest first)
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    // Fetch from database with artist information
+    const requests = await prisma.tourRequest.findMany({
+      where,
+      include: {
+        artist: {
+          include: {
+            location: true
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            email: true
+          }
+        }
+      },
+      orderBy: [
+        { createdAt: 'desc' }
+      ]
     });
     
-    console.log(`🗺️ API: Final result: ${requests.length} tour requests`);
+    console.log(`🗺️ API: Found ${requests.length} tour requests in database`);
+    
+    // Transform database results to match frontend expectations
+    const transformedRequests = requests.map(request => ({
+      id: request.id,
+      artistId: request.artistId,
+      artistName: request.artist.name,
+      title: request.title,
+      description: request.description,
+      startDate: request.startDate?.toISOString().split('T')[0] || '',
+      endDate: request.endDate?.toISOString().split('T')[0] || '',
+      location: request.targetLocations.join(', ') || 'Flexible',
+      radius: 200, // Default radius
+      flexibility: 'route-flexible', // Default flexibility
+      genres: request.genres,
+      expectedDraw: {
+        min: 100,
+        max: 300,
+        description: 'Expected audience size'
+      },
+      tourStatus: 'exploring-interest',
+      ageRestriction: 'all-ages',
+      equipment: {
+        needsPA: true,
+        needsMics: true,
+        needsDrums: false,
+        needsAmps: true,
+        acoustic: false,
+      },
+      guaranteeRange: {
+        min: 300,
+        max: 800
+      },
+      acceptsDoorDeals: true,
+      merchandising: true,
+      travelMethod: 'van',
+      lodging: 'flexible',
+      status: request.status.toLowerCase(),
+      priority: 'medium',
+      responses: 0, // TODO: Count actual bids
+      createdAt: request.createdAt.toISOString(),
+      updatedAt: request.updatedAt.toISOString(),
+             expiresAt: new Date((request.endDate?.getTime() || Date.now()) + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    }));
     
     // For venues, transform the data to match VenueBidding component expectations
     if (forVenues) {
-      const venueRequests = requests.map(request => ({
+      const venueRequests = transformedRequests.map(request => ({
         id: request.id,
         artistId: request.artistId,
         artistName: request.artistName,
@@ -275,16 +152,15 @@ export async function GET(request: NextRequest) {
     
     // Return in the format the frontend expects
     return NextResponse.json({
-      requests: requests,
-      total: requests.length
+      requests: transformedRequests,
+      total: transformedRequests.length
     });
   } catch (error) {
     console.error('Error in GET /api/tour-requests:', error);
-    // Return default tour requests as fallback
-    return NextResponse.json({
-      requests: defaultTourRequests,
-      total: defaultTourRequests.length
-    });
+    return NextResponse.json(
+      { error: 'Failed to fetch tour requests', details: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
   }
 }
 
@@ -322,66 +198,100 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const requests = readTourRequests();
+    // Get the system user for createdById
+    let systemUser = await prisma.user.findFirst({
+      where: { email: 'system@diy-booking.com' }
+    });
+
+    if (!systemUser) {
+      systemUser = await prisma.user.create({
+        data: {
+          email: 'system@diy-booking.com',
+          username: 'system',
+          role: 'ADMIN'
+        }
+      });
+    }
     
-    // Generate new ID
-    const newId = Date.now().toString();
-    
-    // Calculate expiration (30 days from creation or tour start date, whichever is sooner)
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    const expiresAt = startDate < thirtyDaysFromNow ? startDate : thirtyDaysFromNow;
-    
-    // Create new tour request
-    const newRequest: TourRequest = {
-      id: newId,
-      artistId: body.artistId,
-      artistName: body.artistName,
-      title: body.title,
-      description: body.description || '',
-      startDate: body.startDate,
-      endDate: body.endDate,
-      location: body.location || '',
-      radius: body.radius || 50,
-      flexibility: body.flexibility || 'route-flexible',
-      genres: body.genres || [],
+    // Create new tour request in database
+    const newRequest = await prisma.tourRequest.create({
+      data: {
+        artistId: body.artistId,
+        title: body.title,
+        description: body.description || '',
+        startDate: startDate,
+        endDate: endDate,
+        status: RequestStatus.ACTIVE,
+        genres: body.genres || [],
+        targetLocations: body.location ? [body.location] : [],
+        createdById: systemUser.id
+      },
+      include: {
+        artist: {
+          include: {
+            location: true
+          }
+        },
+        createdBy: {
+          select: {
+            id: true,
+            username: true,
+            email: true
+          }
+        }
+      }
+    });
+
+    console.log(`🎯 New tour request created in database: ${newRequest.artist.name} - ${newRequest.title}`);
+
+    // Transform to match frontend expectations
+    const transformedRequest = {
+      id: newRequest.id,
+      artistId: newRequest.artistId,
+      artistName: newRequest.artist.name,
+      title: newRequest.title,
+      description: newRequest.description,
+           startDate: newRequest.startDate?.toISOString().split('T')[0] || '',
+     endDate: newRequest.endDate?.toISOString().split('T')[0] || '',
+      location: newRequest.targetLocations.join(', ') || 'Flexible',
+      radius: 200,
+      flexibility: 'route-flexible',
+      genres: newRequest.genres,
       expectedDraw: {
-        min: body.expectedDraw?.min || 0,
-        max: body.expectedDraw?.max || 0,
-        description: body.expectedDraw?.description || ''
+        min: 100,
+        max: 300,
+        description: 'Expected audience size'
       },
-      tourStatus: body.tourStatus || 'exploring-interest',
-      ageRestriction: body.ageRestriction || 'flexible',
+      tourStatus: 'exploring-interest',
+      ageRestriction: 'all-ages',
       equipment: {
-        needsPA: body.equipment?.needsPA || false,
-        needsMics: body.equipment?.needsMics || false,
-        needsDrums: body.equipment?.needsDrums || false,
-        needsAmps: body.equipment?.needsAmps || false,
-        acoustic: body.equipment?.acoustic || false,
+        needsPA: true,
+        needsMics: true,
+        needsDrums: false,
+        needsAmps: true,
+        acoustic: false,
       },
-      guaranteeRange: body.guaranteeRange,
-      acceptsDoorDeals: body.acceptsDoorDeals || true,
-      merchandising: body.merchandising || true,
-      travelMethod: body.travelMethod || 'van',
-      lodging: body.lodging || 'flexible',
-      status: 'active',
-      priority: body.priority || 'medium',
+      guaranteeRange: {
+        min: 300,
+        max: 800
+      },
+      acceptsDoorDeals: true,
+      merchandising: true,
+      travelMethod: 'van',
+      lodging: 'flexible',
+      status: newRequest.status.toLowerCase(),
+      priority: 'medium',
       responses: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      expiresAt: expiresAt.toISOString(),
+      createdAt: newRequest.createdAt.toISOString(),
+      updatedAt: newRequest.updatedAt.toISOString(),
+             expiresAt: new Date((newRequest.endDate?.getTime() || Date.now()) + 30 * 24 * 60 * 60 * 1000).toISOString(),
     };
 
-    requests.push(newRequest);
-    writeTourRequests(requests);
-
-    console.log(`🎯 New tour request: ${newRequest.artistName} - ${newRequest.title}`);
-
-    return NextResponse.json(newRequest, { status: 201 });
+    return NextResponse.json(transformedRequest, { status: 201 });
   } catch (error) {
     console.error('Error in POST /api/tour-requests:', error);
     return NextResponse.json(
-      { error: 'Failed to create tour request' },
+      { error: 'Failed to create tour request', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     // Note: Venues don't have genres in our schema - genres are for artists
     // If genre filtering is needed, it would be through associated shows/artists
     
-    // Fetch venues with location data
+    // Fetch ALL venues with location data (no pagination)
     const venues = await prisma.venue.findMany({
       where,
       include: {
@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
     
     console.log(`🏢 API: Returning ${transformedVenues.length} venues`);
     
+    // Return simple array (not paginated object)
     return NextResponse.json(transformedVenues);
   } catch (error) {
     console.error('Error in GET /api/venues:', error);

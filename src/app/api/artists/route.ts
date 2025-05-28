@@ -4,11 +4,11 @@ import { Artist } from '../../../../types/index';
 
 // Artists API now uses database instead of JSON files
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    console.log('🎵 API: Fetching artists from database');
+    console.log(`🎵 API: Fetching artists from database`);
     
-    // Fetch artists with location data
+    // Fetch ALL artists with location data (no pagination)
     const artists = await prisma.artist.findMany({
       include: {
         location: true
@@ -68,6 +68,7 @@ export async function GET() {
     
     console.log(`🎵 API: Returning ${transformedArtists.length} artists`);
     
+    // Return simple array (not paginated object)
     return NextResponse.json(transformedArtists);
   } catch (error) {
     console.error('Error in GET /api/artists:', error);

@@ -593,51 +593,55 @@ export default function AdminPage() {
 
                 {/* Data Reset Tools */}
                 <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Data Reset Tools</h2>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Testing Data Tools</h2>
+                  
+                  {/* Reset to Demo State */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
-                        <span className="text-2xl">⚠️</span>
+                        <span className="text-2xl">🎭</span>
                       </div>
                       <div className="ml-3 flex-1">
-                        <h3 className="text-sm font-medium text-yellow-800">Reset All Bids</h3>
-                        <p className="mt-1 text-sm text-yellow-700">
-                          This will reset all venue bids and restore any missing tour requests back to their original demo state. 
-                          Useful when bids get stuck in cancelled/declined states during testing.
+                        <h3 className="text-sm font-medium text-green-800">Create Demo Testing Data</h3>
+                        <p className="mt-1 text-sm text-green-700">
+                          Creates sophisticated booking scenarios to test the full bidding system. Lightning Bolt gets 10 bids with all statuses (1 accepted, 6 pending, 1 rejected, 1 withdrawn) to test bid management. Menzingers gets 8 bids mostly pending (6 pending, 1 rejected) perfect for testing the hold system. Against Me gets 6 bids with 2 accepted leading to confirmed shows. Click on tour requests in artist pages to see expandable bid management interface!
                         </p>
+                        <div className="mt-2 text-xs text-green-600">
+                          <strong>How to test:</strong> Go to Lightning Bolt artist page → click on "Lightning Bolt East Coast Noise Tour" to expand → see 10 detailed bids with Accept/Hold/Decline buttons. 
+                          Test hold system with Menzingers, test acceptance workflow with Against Me. Each tour request has 6-10 bids to showcase the sophisticated booking system.
+                        </div>
                         <div className="mt-4">
                           <button
                             onClick={handleResetBids}
                             disabled={loading.resetBids}
-                            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {loading.resetBids ? 'Resetting...' : '🔄 Reset All Bids & Tour Requests'}
+                            {loading.resetBids ? 'Creating...' : '🎭 Create Demo Data'}
                           </button>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Clear All Bids</h2>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  {/* Clear All Data */}
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                     <div className="flex items-start">
                       <div className="flex-shrink-0">
-                        <span className="text-2xl">⚠️</span>
+                        <span className="text-2xl">🧹</span>
                       </div>
                       <div className="ml-3 flex-1">
-                        <h3 className="text-sm font-medium text-yellow-800">Clear All Bids</h3>
-                        <p className="mt-1 text-sm text-yellow-700">
-                          This will permanently delete ALL bids from the system. This action cannot be undone. Are you sure?
+                        <h3 className="text-sm font-medium text-red-800">Clear All Testing Data</h3>
+                        <p className="mt-1 text-sm text-red-700">
+                          Permanently deletes ALL tour requests and bids from the system. Use this to start with a clean slate.
+                          <strong> This action cannot be undone!</strong>
                         </p>
                         <div className="mt-4">
                           <button
                             onClick={handleClearAllBids}
                             disabled={loading.clearBids}
-                            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {loading.clearBids ? 'Clearing...' : '🧹 Clear All Bids'}
+                            {loading.clearBids ? 'Clearing...' : '🧹 Clear All Data'}
                           </button>
                         </div>
                       </div>

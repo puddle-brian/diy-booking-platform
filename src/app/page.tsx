@@ -208,9 +208,10 @@ function HomeContent() {
     try {
       setLoading(true);
       
+      // REVERT: Load ALL data to ensure nothing is missing (like Lightning Bolt)
       const [venuesResponse, artistsResponse] = await Promise.all([
-        fetch('/api/venues'),
-        fetch('/api/artists')
+        fetch('/api/venues'), // Load ALL venues
+        fetch('/api/artists') // Load ALL artists
       ]);
 
       if (!venuesResponse.ok || !artistsResponse.ok) {
@@ -222,8 +223,9 @@ function HomeContent() {
         artistsResponse.json()
       ]);
 
-      setVenues(Array.isArray(venuesData) ? venuesData : []);
-      setArtists(Array.isArray(artistsData) ? artistsData : []);
+      // Handle both old format (array) and new paginated format
+      setVenues(Array.isArray(venuesData) ? venuesData : (venuesData.venues || []));
+      setArtists(Array.isArray(artistsData) ? artistsData : (artistsData.artists || []));
       
       // Load tour requests for location-based sorting
       try {
@@ -279,7 +281,7 @@ function HomeContent() {
       }
 
       try {
-        // Location search - search in name, city, state, description
+        // Location search - search in name, city, state, description (CASE INSENSITIVE)
         if (debouncedVenueLocation && debouncedVenueLocation.trim()) {
           const searchTerm = debouncedVenueLocation.toLowerCase().trim();
           const searchableText = [

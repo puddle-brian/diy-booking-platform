@@ -302,11 +302,14 @@ export default function TabbedTourItinerary({
           throw new Error('Failed to fetch tour requests');
         }
         const requestsData = await requestsResponse.json();
-        setTourRequests(Array.isArray(requestsData) ? requestsData : []);
+        
+        // Handle both array and object with requests property
+        const requests = Array.isArray(requestsData) ? requestsData : (requestsData.requests || []);
+        setTourRequests(requests);
 
         // Fetch bids for each tour request
         const allBids: VenueBid[] = [];
-        for (const request of requestsData) {
+        for (const request of requests) {
           try {
             const bidsResponse = await fetch(`/api/tour-requests/${request.id}/bids`);
             if (bidsResponse.ok) {
@@ -809,8 +812,11 @@ export default function TabbedTourItinerary({
             {artistId && tourRequests.length > 0 && (
               <span> • {tourRequests.length} active show request{tourRequests.length !== 1 ? 's' : ''}</span>
             )}
-            {artistId && venueBids.filter(b => !['expired', 'cancelled', 'declined'].includes(b.status)).length > 0 && (
-              <span> • {venueBids.filter(b => !['expired', 'cancelled', 'declined'].includes(b.status)).length} active bid{venueBids.filter(b => !['expired', 'cancelled', 'declined'].includes(b.status)).length !== 1 ? 's' : ''}</span>
+            {artistId && venueBids.filter(b => !['expired'].includes(b.status)).length > 0 && (
+              <span> • {venueBids.filter(b => !['expired'].includes(b.status)).length} total bid{venueBids.filter(b => !['expired'].includes(b.status)).length !== 1 ? 's' : ''}</span>
+            )}
+            {artistId && venueBids.filter(b => b.status === 'hold').length > 0 && (
+              <span> • {venueBids.filter(b => b.status === 'hold').length} hold{venueBids.filter(b => b.status === 'hold').length !== 1 ? 's' : ''}</span>
             )}
           </p>
         </div>
@@ -1148,7 +1154,7 @@ export default function TabbedTourItinerary({
                 );
               } else if (entry.type === 'tour-request') {
                 const request = entry.data as TourRequest;
-                const requestBids = (request as any).bids || [];
+                const requestBids = venueBids.filter(bid => bid.tourRequestId === request.id);
                 
                 return (
                   <React.Fragment key={`request-${request.id}`}>
@@ -1285,7 +1291,7 @@ export default function TabbedTourItinerary({
 
                         {/* Venue Bids */}
                         {requestBids.length > 0 && requestBids
-                          .filter((bid: VenueBid) => !['cancelled', 'declined', 'expired'].includes(bid.status))
+                          .filter((bid: VenueBid) => !['expired'].includes(bid.status))
                           .map((bid: VenueBid) => (
                           <tr key={`bid-${bid.id}`} className="bg-yellow-50 border-l-4 border-yellow-400">
                             <td className="px-6 py-4 pl-12">

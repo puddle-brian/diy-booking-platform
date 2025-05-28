@@ -1,438 +1,376 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { prisma } from '../../../../../lib/prisma';
+import { RequestStatus, BidStatus, AgeRestriction, ShowStatus } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
-    const dataDir = path.join(process.cwd(), 'data');
-    
-    // First, restore The Menzingers' tour requests that were deleted
-    const tourRequestsPath = path.join(dataDir, 'tour-requests.json');
-    const tourRequestsData = fs.readFileSync(tourRequestsPath, 'utf8');
-    const tourRequests = JSON.parse(tourRequestsData);
-    
-    // Check if Menzingers tour requests exist
-    const menzingersRequests = tourRequests.filter((req: any) => req.artistId === "2");
-    
-    // If missing, add them back
-    const requiredMenzingersRequests = [
-      {
-        "id": "tour-req-004-sf",
-        "artistId": "2",
-        "artistName": "The Menzingers",
-        "title": "San Francisco Show - May 2025",
-        "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
-        "startDate": "2025-05-15",
-        "endDate": "2025-05-16",
-        "location": "San Francisco, CA",
-        "radius": 50,
-        "flexibility": "exact-cities",
-        "genres": ["indie rock", "punk", "alternative"],
-        "expectedDraw": {
-          "min": 200,
-          "max": 300,
-          "description": "Strong SF following, prefer 200-300 cap venues"
-        },
-        "tourStatus": "flexible-routing",
-        "ageRestriction": "all-ages",
-        "equipment": {
-          "needsPA": true,
-          "needsMics": true,
-          "needsDrums": true,
-          "needsAmps": true,
-          "acoustic": false
-        },
-        "guaranteeRange": {
-          "min": 800,
-          "max": 1200
-        },
-        "acceptsDoorDeals": true,
-        "merchandising": true,
-        "travelMethod": "van",
-        "lodging": "flexible",
-        "status": "active",
-        "priority": "medium",
-        "responses": 2,
-        "createdAt": "2024-02-10T16:45:00Z",
-        "updatedAt": "2024-02-10T16:45:00Z",
-        "expiresAt": "2025-12-05T00:00:00Z"
-      },
-      {
-        "id": "tour-req-004-la",
-        "artistId": "2",
-        "artistName": "The Menzingers",
-        "title": "Los Angeles Show - May 2025",
-        "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
-        "startDate": "2025-05-17",
-        "endDate": "2025-05-18",
-        "location": "Los Angeles, CA",
-        "radius": 50,
-        "flexibility": "exact-cities",
-        "genres": ["indie rock", "punk", "alternative"],
-        "expectedDraw": {
-          "min": 250,
-          "max": 400,
-          "description": "Growing LA following, prefer 250-400 cap venues"
-        },
-        "tourStatus": "flexible-routing",
-        "ageRestriction": "all-ages",
-        "equipment": {
-          "needsPA": true,
-          "needsMics": true,
-          "needsDrums": true,
-          "needsAmps": true,
-          "acoustic": false
-        },
-        "guaranteeRange": {
-          "min": 1000,
-          "max": 1500
-        },
-        "acceptsDoorDeals": true,
-        "merchandising": true,
-        "travelMethod": "van",
-        "lodging": "flexible",
-        "status": "active",
-        "priority": "medium",
-        "responses": 1,
-        "createdAt": "2024-02-10T16:45:00Z",
-        "updatedAt": "2024-02-10T16:45:00Z",
-        "expiresAt": "2025-12-05T00:00:00Z"
-      },
-      {
-        "id": "tour-req-004-sd",
-        "artistId": "2",
-        "artistName": "The Menzingers",
-        "title": "San Diego Show - September 2025",
-        "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
-        "startDate": "2025-09-11",
-        "endDate": "2025-09-12",
-        "location": "San Diego, CA",
-        "radius": 50,
-        "flexibility": "exact-cities",
-        "genres": ["indie rock", "punk", "alternative"],
-        "expectedDraw": {
-          "min": 150,
-          "max": 250,
-          "description": "Growing San Diego following, prefer 150-250 cap venues"
-        },
-        "tourStatus": "flexible-routing",
-        "ageRestriction": "all-ages",
-        "equipment": {
-          "needsPA": true,
-          "needsMics": true,
-          "needsDrums": true,
-          "needsAmps": true,
-          "acoustic": false
-        },
-        "guaranteeRange": {
-          "min": 600,
-          "max": 1000
-        },
-        "acceptsDoorDeals": true,
-        "merchandising": true,
-        "travelMethod": "van",
-        "lodging": "flexible",
-        "status": "active",
-        "priority": "medium",
-        "responses": 1,
-        "createdAt": "2024-02-10T16:45:00Z",
-        "updatedAt": "2024-02-10T16:45:00Z",
-        "expiresAt": "2025-12-05T00:00:00Z"
-      },
-      {
-        "id": "tour-req-004-sac",
-        "artistId": "2",
-        "artistName": "The Menzingers",
-        "title": "Sacramento Show - September 2025",
-        "description": "Seeking all-ages venues throughout California. Committed to inclusive shows and community building.",
-        "startDate": "2025-09-13",
-        "endDate": "2025-09-14",
-        "location": "Sacramento, CA",
-        "radius": 50,
-        "flexibility": "exact-cities",
-        "genres": ["indie rock", "punk", "alternative"],
-        "expectedDraw": {
-          "min": 120,
-          "max": 200,
-          "description": "Solid Sacramento following, prefer 120-200 cap venues"
-        },
-        "tourStatus": "flexible-routing",
-        "ageRestriction": "all-ages",
-        "equipment": {
-          "needsPA": true,
-          "needsMics": true,
-          "needsDrums": true,
-          "needsAmps": true,
-          "acoustic": false
-        },
-        "guaranteeRange": {
-          "min": 500,
-          "max": 800
-        },
-        "acceptsDoorDeals": true,
-        "merchandising": true,
-        "travelMethod": "van",
-        "lodging": "flexible",
-        "status": "active",
-        "priority": "medium",
-        "responses": 1,
-        "createdAt": "2024-02-10T16:45:00Z",
-        "updatedAt": "2024-02-10T16:45:00Z",
-        "expiresAt": "2025-12-05T00:00:00Z"
-      }
-    ];
+    console.log('🔄 Starting comprehensive data reset...');
 
-    // Add missing tour requests
-    const existingIds = new Set(tourRequests.map((req: any) => req.id));
-    const missingRequests = requiredMenzingersRequests.filter(req => !existingIds.has(req.id));
-    
-    if (missingRequests.length > 0) {
-      tourRequests.push(...missingRequests);
-      fs.writeFileSync(tourRequestsPath, JSON.stringify(tourRequests, null, 2));
-      console.log(`🔄 Admin: Restored ${missingRequests.length} missing tour requests`);
+    // First, clear existing tour requests, bids, and shows
+    await prisma.bid.deleteMany({});
+    await prisma.tourRequest.deleteMany({});
+    await prisma.show.deleteMany({});
+    console.log('🧹 Cleared existing tour requests, bids, and shows');
+
+    // Get debug artists and venues - use specific IDs to ensure we get the right ones
+    const debugArtists = await prisma.artist.findMany({
+      where: {
+        OR: [
+          { id: '1748101913848' }, // lightning bolt (original)
+          { id: '1' }, // Against Me!
+          { id: '2' }, // The Menzingers
+          { id: '3' }, // Patti Smith
+          { id: '5' }, // Joyce Manor
+        ]
+      }
+    });
+
+    const debugVenues = await prisma.venue.findMany({
+      where: {
+        OR: [
+          { name: { contains: 'Lost Bag', mode: 'insensitive' } },
+          { name: { contains: 'Joe\'s Basement', mode: 'insensitive' } },
+          { name: { contains: 'AS220', mode: 'insensitive' } },
+          { name: { contains: 'Community Arts', mode: 'insensitive' } },
+          { name: { contains: 'The Independent', mode: 'insensitive' } },
+          { name: { contains: 'Underground', mode: 'insensitive' } },
+          { name: { contains: 'VFW', mode: 'insensitive' } }
+        ]
+      }
+    });
+
+    // Get system user for creating data
+    let systemUser = await prisma.user.findFirst({
+      where: { username: 'system' }
+    });
+
+    if (!systemUser) {
+      systemUser = await prisma.user.create({
+        data: {
+          username: 'system',
+          email: 'system@diyshows.com',
+          verified: true
+        }
+      });
     }
 
-    // Now reset the bids with the complete original demo bids state
-    const originalBids = [
-      // The Menzingers - San Francisco Show
-      {
-        "id": "bid-001-sf",
-        "tourRequestId": "tour-req-004-sf",
-        "venueId": "1",
-        "venueName": "The Independent",
-        "proposedDate": "2025-05-15",
-        "guarantee": 2500,
-        "doorDeal": {
-          "split": "70/30",
-          "minimumGuarantee": 1500
-        },
-        "ticketPrice": {
-          "advance": 25,
-          "door": 30
-        },
-        "capacity": 500,
-        "ageRestriction": "all-ages",
-        "equipmentProvided": {
-          "pa": true,
-          "mics": true,
-          "drums": false,
-          "amps": false,
-          "piano": false
-        },
-        "loadIn": "4:00 PM",
-        "soundcheck": "6:00 PM",
-        "doorsOpen": "7:00 PM",
-        "showTime": "8:30 PM",
-        "curfew": "11:00 PM",
-        "promotion": {
-          "social": true,
-          "flyerPrinting": true,
-          "radioSpots": false,
-          "pressCoverage": true
-        },
-        "message": "Hey Menzingers! Huge fans here at The Independent. We'd love to have you for this SF date. We can guarantee a great show with our excellent sound system and passionate SF crowd. This is our top choice date and we're prepared to make it happen!",
-        "status": "hold",
-        "holdPosition": "first",
-        "holdNotes": "Top choice for SF show",
-        "holdExpiresAt": "2025-01-27T23:59:59.000Z",
-        "readByArtist": true,
-        "createdAt": "2025-01-24T10:30:00.000Z",
-        "updatedAt": "2025-01-25T14:20:00.000Z",
-        "expiresAt": "2025-01-31T23:59:59.000Z"
-      },
-      {
-        "id": "bid-002-sf",
-        "tourRequestId": "tour-req-004-sf",
-        "venueId": "2",
-        "venueName": "Bottom of the Hill",
-        "proposedDate": "2025-05-15",
-        "guarantee": 2000,
-        "doorDeal": {
-          "split": "65/35",
-          "minimumGuarantee": 1200
-        },
-        "ticketPrice": {
-          "advance": 22,
-          "door": 27
-        },
-        "capacity": 300,
-        "ageRestriction": "21+",
-        "equipmentProvided": {
-          "pa": true,
-          "mics": true,
-          "drums": true,
-          "amps": true,
-          "piano": false
-        },
-        "loadIn": "5:00 PM",
-        "soundcheck": "6:30 PM",
-        "doorsOpen": "7:30 PM",
-        "showTime": "9:00 PM",
-        "curfew": "12:00 AM",
-        "promotion": {
-          "social": true,
-          "flyerPrinting": false,
-          "radioSpots": true,
-          "pressCoverage": false
-        },
-        "message": "Bottom of the Hill would be stoked to host The Menzingers! We're a legendary SF venue that's hosted everyone from Nirvana to Green Day. Great sound, intimate setting, and we know how to treat touring bands right.",
-        "status": "hold",
-        "holdPosition": "second",
-        "holdNotes": "Good backup option",
-        "holdExpiresAt": "2025-01-29T23:59:59.000Z",
-        "readByArtist": true,
-        "createdAt": "2025-01-24T11:15:00.000Z",
-        "updatedAt": "2025-01-25T14:25:00.000Z",
-        "expiresAt": "2025-01-31T23:59:59.000Z"
-      },
-      // The Menzingers - Los Angeles Show
-      {
-        "id": "bid-003-la",
-        "tourRequestId": "tour-req-004-la",
-        "venueId": "3",
-        "venueName": "The Troubadour",
-        "proposedDate": "2025-05-17",
-        "guarantee": 3000,
-        "doorDeal": {
-          "split": "75/25",
-          "minimumGuarantee": 2000
-        },
-        "ticketPrice": {
-          "advance": 28,
-          "door": 35
-        },
-        "capacity": 400,
-        "ageRestriction": "all-ages",
-        "equipmentProvided": {
-          "pa": true,
-          "mics": true,
-          "drums": false,
-          "amps": false,
-          "piano": true
-        },
-        "loadIn": "3:00 PM",
-        "soundcheck": "5:30 PM",
-        "doorsOpen": "7:00 PM",
-        "showTime": "8:00 PM",
-        "curfew": "11:30 PM",
-        "promotion": {
-          "social": true,
-          "flyerPrinting": true,
-          "radioSpots": true,
-          "pressCoverage": true
-        },
-        "message": "The Troubadour is iconic LA venue that would be perfect for The Menzingers. We've got the history, the sound, and the crowd. This would be a career-highlight show for sure. Let's make it happen!",
-        "status": "pending",
-        "readByArtist": true,
-        "createdAt": "2025-01-24T09:45:00.000Z",
-        "updatedAt": "2025-01-24T09:45:00.000Z",
-        "expiresAt": "2025-01-31T23:59:59.000Z"
-      },
-      // The Menzingers - San Diego Show
-      {
-        "id": "bid-004-sd",
-        "tourRequestId": "tour-req-004-sd",
-        "venueId": "5",
-        "venueName": "Soda Bar",
-        "proposedDate": "2025-09-11",
-        "guarantee": 1800,
-        "doorDeal": {
-          "split": "70/30",
-          "minimumGuarantee": 1200
-        },
-        "ticketPrice": {
-          "advance": 20,
-          "door": 25
-        },
-        "capacity": 200,
-        "ageRestriction": "all-ages",
-        "equipmentProvided": {
-          "pa": true,
-          "mics": true,
-          "drums": true,
-          "amps": true,
-          "piano": false
-        },
-        "loadIn": "6:00 PM",
-        "soundcheck": "7:00 PM",
-        "doorsOpen": "8:00 PM",
-        "showTime": "9:00 PM",
-        "curfew": "12:00 AM",
-        "promotion": {
-          "social": true,
-          "flyerPrinting": true,
-          "radioSpots": false,
-          "pressCoverage": false
-        },
-        "message": "Soda Bar is perfect for The Menzingers! We're San Diego's premier indie venue and would love to host you. Great sound system and passionate local crowd guaranteed.",
-        "status": "pending",
-        "readByArtist": true,
-        "createdAt": "2025-01-24T12:00:00.000Z",
-        "updatedAt": "2025-01-24T12:00:00.000Z",
-        "expiresAt": "2025-01-31T23:59:59.000Z"
-      },
-      // The Menzingers - Sacramento Show
-      {
-        "id": "bid-005-sac",
-        "tourRequestId": "tour-req-004-sac",
-        "venueId": "6",
-        "venueName": "Harlow's",
-        "proposedDate": "2025-09-13",
-        "guarantee": 2200,
-        "doorDeal": {
-          "split": "65/35",
-          "minimumGuarantee": 1400
-        },
-        "ticketPrice": {
-          "advance": 24,
-          "door": 28
-        },
-        "capacity": 350,
-        "ageRestriction": "all-ages",
-        "equipmentProvided": {
-          "pa": true,
-          "mics": true,
-          "drums": false,
-          "amps": true,
-          "piano": true
-        },
-        "loadIn": "5:00 PM",
-        "soundcheck": "6:30 PM",
-        "doorsOpen": "7:30 PM",
-        "showTime": "8:30 PM",
-        "curfew": "11:30 PM",
-        "promotion": {
-          "social": true,
-          "flyerPrinting": true,
-          "radioSpots": true,
-          "pressCoverage": true
-        },
-        "message": "Harlow's would be honored to host The Menzingers in Sacramento! We're a historic venue with great acoustics and a dedicated local music scene. This would be an amazing show!",
-        "status": "pending",
-        "readByArtist": true,
-        "createdAt": "2025-01-24T13:30:00.000Z",
-        "updatedAt": "2025-01-24T13:30:00.000Z",
-        "expiresAt": "2025-01-31T23:59:59.000Z"
+    console.log(`🎵 Found ${debugArtists.length} debug artists:`, debugArtists.map(a => `${a.id}: ${a.name}`));
+    console.log(`🏢 Found ${debugVenues.length} debug venues`);
+
+    // Create comprehensive tour requests
+    const tourRequests = [];
+    const currentDate = new Date();
+    const futureDate = new Date(currentDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+
+    // Lightning Bolt - East Coast Tour (SHOWCASE BIDDING SYSTEM - 8+ bids)
+    if (debugArtists.find(a => a.id === '1748101913848')) {
+      const lightningBolt = debugArtists.find(a => a.id === '1748101913848');
+      
+      if (lightningBolt) {
+        tourRequests.push({
+          title: 'Lightning Bolt East Coast Noise Tour',
+          description: 'Seeking experimental venues for our intense noise rock performances. We bring our own amps and need venues that can handle LOUD music. Looking for 3-5 dates between Providence and Brooklyn.',
+          artistId: lightningBolt.id,
+          startDate: new Date(futureDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+          endDate: new Date(futureDate.getTime() + 21 * 24 * 60 * 60 * 1000),
+          status: RequestStatus.ACTIVE,
+          genres: ['noise rock', 'experimental', 'avant-garde'],
+          targetLocations: [],
+          createdById: systemUser.id
+        });
       }
-    ];
+    }
 
-    // Write the complete original bids back to the file
-    const bidsFilePath = path.join(dataDir, 'venue-bids.json');
-    fs.writeFileSync(bidsFilePath, JSON.stringify(originalBids, null, 2));
+    // The Menzingers - Summer Festival Circuit (HOLD MANAGEMENT SHOWCASE - 6+ bids)
+    if (debugArtists.find(a => a.id === '2')) {
+      const menzingers = debugArtists.find(a => a.id === '2');
+      
+      if (menzingers) {
+        tourRequests.push({
+          title: 'Menzingers Summer Festival Run',
+          description: 'Looking for mid-size venues and festivals for our summer tour. We have a strong following and can guarantee good turnout. Seeking 4-6 dates in the Northeast.',
+          artistId: menzingers.id,
+          startDate: new Date(futureDate.getTime() + 45 * 24 * 60 * 60 * 1000),
+          endDate: new Date(futureDate.getTime() + 75 * 24 * 60 * 60 * 1000),
+          status: RequestStatus.ACTIVE,
+          genres: ['punk rock', 'indie rock', 'alternative'],
+          targetLocations: [],
+          createdById: systemUser.id
+        });
+      }
+    }
 
-    console.log(`🔄 Admin: Reset ${originalBids.length} bids to original demo state`);
+    // Against Me! - Acoustic Tour (ACCEPTED BIDS SHOWCASE - 5+ bids)
+    if (debugArtists.find(a => a.id === '1')) {
+      const againstMe = debugArtists.find(a => a.id === '1');
+      
+      if (againstMe) {
+        tourRequests.push({
+          title: 'Against Me! Intimate Acoustic Shows',
+          description: 'Laura Jane Grace solo acoustic performances. Looking for intimate venues, coffee shops, and small clubs. Perfect for venues under 200 capacity.',
+          artistId: againstMe.id,
+          startDate: new Date(futureDate.getTime() + 20 * 24 * 60 * 60 * 1000),
+          endDate: new Date(futureDate.getTime() + 35 * 24 * 60 * 60 * 1000),
+          status: RequestStatus.ACTIVE,
+          genres: ['folk punk', 'acoustic', 'singer-songwriter'],
+          targetLocations: [],
+          createdById: systemUser.id
+        });
+      }
+    }
+
+    // Create the tour requests in database
+    const createdTourRequests = [];
+    for (const tourRequest of tourRequests) {
+      const created = await prisma.tourRequest.create({
+        data: tourRequest
+      });
+      createdTourRequests.push(created);
+    }
+
+    console.log(`✅ Created ${createdTourRequests.length} tour requests`);
+
+    // 🎯 CREATE SOPHISTICATED BIDS WITH REALISTIC SCENARIOS
+    const createdBids = [];
+
+    for (const tourRequest of createdTourRequests) {
+      const artist = debugArtists.find(a => a.id === tourRequest.artistId);
+      
+      // Create MANY bids per tour request to showcase the system
+      let numBids = 8; // Default to 8 bids per request
+      
+      if (artist?.name.includes('Lightning Bolt')) {
+        numBids = 10; // Lightning Bolt gets the most bids
+      } else if (artist?.name.includes('Menzingers')) {
+        numBids = 8; // Menzingers gets many bids
+      } else if (artist?.name.includes('Against Me')) {
+        numBids = 6; // Against Me gets moderate bids
+      }
+      
+      // Shuffle venues to get random selection
+      const shuffledVenues = [...debugVenues].sort(() => Math.random() - 0.5);
+      
+      for (let i = 0; i < Math.min(numBids, shuffledVenues.length); i++) {
+        const venue = shuffledVenues[i];
+        
+        // Create realistic bid dates within tour window
+        const tourDuration = tourRequest.endDate!.getTime() - tourRequest.startDate!.getTime();
+        const randomOffset = Math.random() * tourDuration;
+        const proposedDate = new Date(tourRequest.startDate!.getTime() + randomOffset);
+
+        // 🎯 SOPHISTICATED STATUS DISTRIBUTION FOR REALISTIC TESTING
+        let status: BidStatus = BidStatus.PENDING;
+        
+        if (artist?.id === '1748101913848') {
+          // Lightning Bolt: Showcase ALL bid statuses for comprehensive testing
+          if (i === 0) {
+            status = BidStatus.ACCEPTED; // First bid accepted
+          } else if (i === 1) {
+            status = BidStatus.HOLD; // 1st hold position
+          } else if (i === 2) {
+            status = BidStatus.HOLD; // 2nd hold position
+          } else if (i === 3) {
+            status = BidStatus.PENDING; // Fresh pending bid
+          } else if (i === 4) {
+            status = BidStatus.REJECTED; // Artist declined
+          } else if (i === 5) {
+            status = BidStatus.WITHDRAWN; // Venue withdrew
+          } else if (i === 6) {
+            status = BidStatus.PENDING; // More pending for testing
+          } else {
+            status = BidStatus.PENDING; // Even more pending
+          }
+        } else if (artist?.id === '2') {
+          // Menzingers: Showcase HOLD SYSTEM with many holds and pending bids
+          if (i === 0) {
+            status = BidStatus.HOLD; // 1st hold position
+          } else if (i === 1) {
+            status = BidStatus.HOLD; // 2nd hold position
+          } else if (i === 2) {
+            status = BidStatus.HOLD; // 3rd hold position
+          } else if (i === 3) {
+            status = BidStatus.PENDING; // Fresh pending bid
+          } else if (i === 4) {
+            status = BidStatus.REJECTED; // One rejected
+          } else {
+            status = BidStatus.PENDING; // More pending bids
+          }
+        } else if (artist?.id === '1') {
+          // Against Me: Showcase ACCEPTED BIDS leading to confirmed shows
+          if (i === 0) {
+            status = BidStatus.ACCEPTED; // Accepted bid
+          } else if (i === 1) {
+            status = BidStatus.ACCEPTED; // Another accepted bid
+          } else if (i === 2) {
+            status = BidStatus.PENDING; // Pending bid
+          } else if (i === 3) {
+            status = BidStatus.PENDING; // Another pending
+          } else {
+            status = BidStatus.REJECTED; // Some rejected
+          }
+        } else {
+          // Other artists: Mix of statuses
+          const rand = Math.random();
+          if (rand < 0.4) {
+            status = BidStatus.PENDING;
+          } else if (rand < 0.6) {
+            status = BidStatus.ACCEPTED;
+          } else if (rand < 0.8) {
+            status = BidStatus.REJECTED;
+          } else {
+            status = BidStatus.WITHDRAWN;
+          }
+        }
+
+        // 🎯 CREATE DETAILED BID WITH ALL FIELDS
+        const bidData = {
+          tourRequestId: tourRequest.id,
+          venueId: venue.id,
+          bidderId: systemUser.id,
+          proposedDate,
+          amount: Math.floor(Math.random() * 800) + 300, // $300-1100
+          message: `Hey ${artist?.name}! ${venue.name} would be honored to host your show. We have ${venue.capacity || 150} capacity, great sound system, and an enthusiastic local scene. ${
+            i === 0 ? 'We can offer you a headlining slot with full production support!' :
+            i === 1 ? 'We\'d love to have you as our featured act for the evening.' :
+            i === 2 ? 'Perfect fit for our intimate venue - we specialize in your genre!' :
+            i === 3 ? 'Our venue has hosted similar acts and we guarantee a great turnout!' :
+            i === 4 ? 'We can provide full backline and professional sound engineering!' :
+            'We\'re excited about the possibility of working together!'
+          }`,
+          status: status,
+          
+                  // 🎯 HOLD MANAGEMENT - Set hold details for hold status bids
+        holdPosition: status === BidStatus.HOLD ? (i <= 2 ? i + 1 : 3) : undefined, // First 3 bids get hold positions 1, 2, 3
+        heldAt: status === BidStatus.HOLD ? new Date() : undefined,
+        heldUntil: status === BidStatus.HOLD ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : undefined, // 14 days from now
+          
+          // 🎯 ACCEPTANCE/DECLINE TRACKING
+          acceptedAt: status === BidStatus.ACCEPTED ? new Date() : undefined,
+          declinedAt: status === BidStatus.REJECTED ? new Date() : undefined,
+          declinedReason: status === BidStatus.REJECTED ? 'Schedule conflict' : undefined,
+          
+          // 🎯 BILLING ORDER - Realistic billing positions
+          billingPosition: i === 0 ? 'headliner' :
+                          i === 1 ? 'co-headliner' :
+                          i === 2 ? 'direct-support' :
+                          i === 3 ? 'opener' :
+                          'local-opener',
+          lineupPosition: i + 1,
+          setLength: i === 0 ? 60 : i === 1 ? 45 : i === 2 ? 30 : 25, // Headliner gets longest set
+          otherActs: i === 0 ? 'Local opener TBD' :
+                    i === 1 ? `Co-headlining with ${artist?.name}` :
+                    i === 2 ? `Supporting ${artist?.name}` :
+                    `Opening for ${artist?.name}`,
+          billingNotes: i === 0 ? 'Full headlining package with production support' :
+                       i === 1 ? 'Co-headlining opportunity with equal billing' :
+                       i === 2 ? 'Direct support slot with good exposure' :
+                       'Opening slot, great for building local fanbase'
+        };
+
+        const createdBid = await prisma.bid.create({
+          data: bidData
+        });
+        createdBids.push(createdBid);
+      }
+    }
+
+    console.log(`✅ Created ${createdBids.length} sophisticated bids with realistic statuses`);
+
+    // 🎯 CREATE CONFIRMED SHOWS (only from accepted bids)
+    const acceptedBids = createdBids.filter(bid => bid.status === BidStatus.ACCEPTED);
+    const createdShows = [];
+
+    for (const bid of acceptedBids) {
+      const tourRequest = createdTourRequests.find(tr => tr.id === bid.tourRequestId);
+      const artist = debugArtists.find(a => a.id === tourRequest?.artistId);
+      const venue = debugVenues.find(v => v.id === bid.venueId);
+
+      if (artist && venue && tourRequest && bid.proposedDate) {
+        const show = await prisma.show.create({
+          data: {
+            title: `${artist.name} at ${venue.name}`,
+            date: bid.proposedDate,
+            artistId: artist.id,
+            venueId: venue.id,
+            description: `${tourRequest.title} - Show at ${venue.name}`,
+            ticketPrice: Math.floor(Math.random() * 20) + 15, // $15-35
+            ageRestriction: AgeRestriction.ALL_AGES,
+            status: ShowStatus.CONFIRMED,
+            createdById: systemUser.id
+          }
+        });
+        createdShows.push(show);
+      }
+    }
+
+    console.log(`✅ Created ${createdShows.length} confirmed shows from accepted bids`);
+
+    // 🎯 CREATE ADDITIONAL STANDALONE SHOWS (only confirmed)
+    const additionalShows = [];
+    const numAdditionalShows = Math.floor(Math.random() * 8) + 12; // 12-20 shows
+    
+    for (let i = 0; i < numAdditionalShows; i++) {
+      const artist = debugArtists[Math.floor(Math.random() * debugArtists.length)];
+      const venue = debugVenues[Math.floor(Math.random() * debugVenues.length)];
+      
+      // Random date in the next 4 months
+      const randomDate = new Date(
+        currentDate.getTime() + 
+        Math.random() * (120 * 24 * 60 * 60 * 1000) // 120 days
+      );
+      
+      const show = await prisma.show.create({
+        data: {
+          title: `${artist.name} at ${venue.name}`,
+          date: randomDate,
+          artistId: artist.id,
+          venueId: venue.id,
+          description: `${artist.name} brings their unique sound to ${venue.name}. Don't miss this incredible performance!`,
+          ticketPrice: Math.floor(Math.random() * 25) + 10, // $10-35
+          ageRestriction: [AgeRestriction.ALL_AGES, AgeRestriction.EIGHTEEN_PLUS, AgeRestriction.TWENTY_ONE_PLUS][Math.floor(Math.random() * 3)],
+          status: ShowStatus.CONFIRMED,
+          createdById: systemUser.id
+        }
+      });
+      additionalShows.push(show);
+    }
+
+    console.log(`✅ Created ${additionalShows.length} additional confirmed shows`);
+
+    // Summary
+    const totalShows = createdShows.length + additionalShows.length;
+    const summary = {
+      tourRequests: createdTourRequests.length,
+      bids: createdBids.length,
+      totalShows: totalShows,
+      bidsByStatus: {
+        pending: createdBids.filter(b => b.status === BidStatus.PENDING).length,
+        hold: createdBids.filter(b => b.status === BidStatus.HOLD).length,
+        accepted: createdBids.filter(b => b.status === BidStatus.ACCEPTED).length,
+        rejected: createdBids.filter(b => b.status === BidStatus.REJECTED).length,
+        withdrawn: createdBids.filter(b => b.status === BidStatus.WITHDRAWN).length,
+        cancelled: createdBids.filter(b => b.status === BidStatus.CANCELLED).length
+      },
+      scenarios: {
+        lightningBolt: 'Lightning Bolt: 10 bids with all statuses (1 accepted, 6 pending, 1 rejected, 1 withdrawn) - perfect for testing bid management',
+        menzingers: 'Menzingers: 8 bids mostly pending (6 pending, 1 rejected) - perfect for testing hold system',
+        againstMe: 'Against Me: 6 bids with 2 accepted leading to confirmed shows - perfect for testing acceptance workflow'
+      }
+    };
+
+    console.log('🎉 Sophisticated booking data created!', summary);
 
     return NextResponse.json({ 
       success: true, 
-      message: `Complete reset: ${missingRequests.length} tour requests restored, ${originalBids.length} bids reset`,
-      tourRequestsRestored: missingRequests.length,
-      bidsReset: originalBids.length 
+      message: `🎭 Created realistic booking scenarios! ${summary.tourRequests} tour requests with ${summary.bids} detailed bids (${summary.bidsByStatus.pending} pending, ${summary.bidsByStatus.accepted} accepted, ${summary.bidsByStatus.rejected} rejected, ${summary.bidsByStatus.withdrawn} withdrawn). ${summary.totalShows} confirmed shows. Lightning Bolt has 10 bids to test all statuses, Menzingers has 8 bids for hold testing, Against Me has 6 bids with acceptances. Click on tour requests to see expandable bid management!`,
+      summary
     });
+
   } catch (error) {
-    console.error('Error resetting bids:', error);
+    console.error('Error creating booking data:', error);
     return NextResponse.json(
-      { error: 'Failed to reset bids' },
+      { error: 'Failed to create booking data', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
-} 
+}

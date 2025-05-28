@@ -36,6 +36,8 @@ model User {
   bids                Bid[]
   shows               Show[]
 
+  @@index([email])
+  @@index([role])
   @@map("users")
 }
 
@@ -62,6 +64,10 @@ model Location {
   sceneInfrastructure SceneInfrastructure[]
   sceneReports     SceneReport[]
 
+  @@index([country, stateProvince, city])
+  @@index([city])
+  @@index([stateProvince])
+  @@index([latitude, longitude])
   @@map("locations")
 }
 
@@ -94,6 +100,13 @@ model Venue {
   shows           Show[]
   bids            Bid[]
 
+  @@index([locationId])
+  @@index([venueType])
+  @@index([capacity])
+  @@index([ageRestriction])
+  @@index([verified])
+  @@index([name])
+  @@index([createdAt])
   @@map("venues")
 }
 
@@ -145,6 +158,13 @@ model Artist {
   tourRequests    TourRequest[]
   shows           Show[]
 
+  @@index([locationId])
+  @@index([artistType])
+  @@index([genres])
+  @@index([tourStatus])
+  @@index([verified])
+  @@index([name])
+  @@index([createdAt])
   @@map("artists")
 }
 
@@ -181,6 +201,9 @@ model SceneInfrastructure {
   location        Location    @relation(fields: [locationId], references: [id])
   submittedBy     User?       @relation(fields: [submittedById], references: [id])
 
+  @@index([locationId])
+  @@index([type])
+  @@index([verified])
   @@map("scene_infrastructure")
 }
 
@@ -215,6 +238,12 @@ model TourRequest {
   createdBy       User        @relation(fields: [createdById], references: [id])
   bids            Bid[]
 
+  @@index([artistId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@index([genres])
+  @@index([targetLocations])
+  @@index([createdAt])
   @@map("tour_requests")
 }
 
@@ -242,6 +271,12 @@ model SceneReport {
   venue           Venue?      @relation(fields: [venueId], references: [id])
   author          User        @relation(fields: [authorId], references: [id])
 
+  @@index([locationId])
+  @@index([venueId])
+  @@index([authorId])
+  @@index([reportType])
+  @@index([rating])
+  @@index([createdAt])
   @@map("scene_reports")
 }
 
@@ -272,6 +307,11 @@ model Show {
   artist          Artist      @relation(fields: [artistId], references: [id])
   createdBy       User        @relation(fields: [createdById], references: [id])
 
+  @@index([venueId])
+  @@index([artistId])
+  @@index([date])
+  @@index([status])
+  @@index([createdAt])
   @@map("shows")
 }
 
@@ -291,6 +331,28 @@ model Bid {
   message         String?
   amount          Float?
   status          BidStatus   @default(PENDING)
+  
+  // 🎯 HOLD MANAGEMENT - Sophisticated bidding system
+  holdPosition    Int?        // 1 = first hold, 2 = second hold, 3 = third hold
+  heldAt          DateTime?   // When artist placed this bid on hold
+  heldUntil       DateTime?   // Hold expiration (typically 7-14 days)
+  
+  // 🎯 ACCEPTANCE/DECLINE TRACKING
+  acceptedAt      DateTime?   // When artist accepted this bid
+  declinedAt      DateTime?   // When artist declined this bid
+  declinedReason  String?     // Why artist declined
+  
+  // 🎯 CANCELLATION (automatic when another bid accepted)
+  cancelledAt     DateTime?
+  cancelledReason String?     // e.g., "Another venue was selected for this date"
+  
+  // 🎯 BILLING ORDER - What type of show the venue is offering
+  billingPosition String?     // 'headliner', 'co-headliner', 'direct-support', 'opener', 'local-opener'
+  lineupPosition  Int?        // 1 = headliner, 2 = direct support, etc.
+  setLength       Int?        // minutes
+  otherActs       String?     // names of other acts on the bill
+  billingNotes    String?     // "co-headlining with X", "festival slot", etc.
+  
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
@@ -299,14 +361,23 @@ model Bid {
   venue           Venue       @relation(fields: [venueId], references: [id])
   bidder          User        @relation(fields: [bidderId], references: [id])
 
+  @@index([tourRequestId])
+  @@index([venueId])
+  @@index([bidderId])
+  @@index([status])
+  @@index([proposedDate])
+  @@index([holdPosition])
+  @@index([createdAt])
   @@map("bids")
 }
 
 enum BidStatus {
   PENDING
+  HOLD
   ACCEPTED
   REJECTED
   WITHDRAWN
+  CANCELLED
 }
 
 // Messaging System
@@ -320,6 +391,8 @@ model Conversation {
   participants    ConversationParticipant[]
   messages        Message[]
 
+  @@index([createdAt])
+  @@index([updatedAt])
   @@map("conversations")
 }
 
@@ -334,6 +407,8 @@ model ConversationParticipant {
   user            User        @relation(fields: [userId], references: [id])
 
   @@unique([conversationId, userId])
+  @@index([conversationId])
+  @@index([userId])
   @@map("conversation_participants")
 }
 
@@ -350,6 +425,10 @@ model Message {
   sender          User        @relation("SentMessages", fields: [senderId], references: [id])
   receiver        User?       @relation("ReceivedMessages", fields: [receiverId], references: [id])
 
+  @@index([conversationId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([createdAt])
   @@map("messages")
 }
 
@@ -366,6 +445,10 @@ model Feedback {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  @@index([type])
+  @@index([priority])
+  @@index([status])
+  @@index([createdAt])
   @@map("feedback")
 }
 
@@ -405,6 +488,10 @@ model MediaEmbed {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
+  @@index([entityType, entityId])
+  @@index([entityId])
+  @@index([order])
+  @@index([isFeatured])
   @@map("media_embeds")
 }
 

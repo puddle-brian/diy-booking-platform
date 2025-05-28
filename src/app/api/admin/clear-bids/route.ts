@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const bidsFilePath = path.join(process.cwd(), 'data', 'bids.json');
+import { prisma } from '../../../../../lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    // Clear all bids by writing an empty array
-    const dir = path.dirname(bidsFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    // Clear all bids and tour requests from database
+    await prisma.bid.deleteMany({});
+    await prisma.tourRequest.deleteMany({});
     
-    fs.writeFileSync(bidsFilePath, JSON.stringify([], null, 2));
-    
-    console.log('🧹 Admin: Cleared all bids');
+    console.log('🧹 Admin: Cleared all bids and tour requests from database');
     
     return NextResponse.json({ 
       success: true, 
-      message: 'All bids cleared successfully' 
+      message: 'All bids and tour requests cleared successfully from database' 
     });
   } catch (error) {
     console.error('Error clearing bids:', error);
     return NextResponse.json(
-      { error: 'Failed to clear bids' },
+      { error: 'Failed to clear bids', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

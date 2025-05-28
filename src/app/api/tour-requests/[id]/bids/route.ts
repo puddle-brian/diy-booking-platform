@@ -1,62 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-import { VenueBid, TourRequest } from '../../../../../../types';
-
-const BIDS_FILE = path.join(process.cwd(), 'data', 'bids.json');
-const tourRequestsFilePath = path.join(process.cwd(), 'data', 'tour-requests.json');
-
-function readBids() {
-  try {
-    if (!fs.existsSync(BIDS_FILE)) {
-      return [];
-    }
-    const data = fs.readFileSync(BIDS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading bids:', error);
-    return [];
-  }
-}
-
-function writeBids(bids: any[]) {
-  try {
-    const dir = path.dirname(BIDS_FILE);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(BIDS_FILE, JSON.stringify(bids, null, 2));
-  } catch (error) {
-    console.error('Error writing bids:', error);
-    throw error;
-  }
-}
-
-function readTourRequests(): TourRequest[] {
-  try {
-    if (!fs.existsSync(tourRequestsFilePath)) {
-      return [];
-    }
-    const data = fs.readFileSync(tourRequestsFilePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading tour requests file:', error);
-    return [];
-  }
-}
-
-function writeTourRequests(requests: TourRequest[]): void {
-  try {
-    const dir = path.dirname(tourRequestsFilePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    fs.writeFileSync(tourRequestsFilePath, JSON.stringify(requests, null, 2));
-  } catch (error) {
-    console.error('Error writing tour requests file:', error);
-    throw error;
-  }
-}
+import { prisma } from '../../../../../../lib/prisma';
+import { BidStatus } from '@prisma/client';
 
 export async function GET(
   request: NextRequest,
@@ -64,12 +8,86 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const bids = readBids();
     
-    // Filter bids by tour request ID
-    const tourRequestBids = bids.filter((bid: any) => bid.tourRequestId === id);
+    // Fetch bids from database with venue information
+    const bids = await prisma.bid.findMany({
+      where: {
+        tourRequestId: id
+      },
+      include: {
+        venue: {
+          include: {
+            location: true
+          }
+        },
+        bidder: {
+          select: {
+            id: true,
+            username: true,
+            email: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    });
+
+    // Transform to match the expected VenueBid interface
+    const transformedBids = bids.map(bid => ({
+      id: bid.id,
+      tourRequestId: bid.tourRequestId,
+      venueId: bid.venueId,
+      venueName: bid.venue.name,
+      proposedDate: bid.proposedDate?.toISOString() || '',
+      guarantee: bid.amount || undefined,
+      doorDeal: undefined, // Not in current schema
+      ticketPrice: {}, // Not in current schema
+      capacity: bid.venue.capacity || 150,
+      ageRestriction: bid.venue.ageRestriction || 'ALL_AGES',
+      equipmentProvided: bid.venue.equipment || {},
+      loadIn: '6:00 PM', // Default values since not in schema
+      soundcheck: '7:00 PM',
+      doorsOpen: '8:00 PM',
+      showTime: '9:00 PM',
+      curfew: '11:30 PM',
+      promotion: {},
+      message: bid.message || '',
+      status: bid.status === 'PENDING' ? 'pending' :
+              bid.status === 'HOLD' ? 'hold' :
+              bid.status === 'ACCEPTED' ? 'accepted' :
+              bid.status === 'REJECTED' ? 'declined' :
+              bid.status === 'WITHDRAWN' ? 'cancelled' :
+              bid.status === 'CANCELLED' ? 'cancelled' :
+              'pending', // fallback
+      readByArtist: true, // Default to true
+      createdAt: bid.createdAt.toISOString(),
+      updatedAt: bid.updatedAt.toISOString(),
+      expiresAt: new Date(bid.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      
+      // 🎯 HOLD MANAGEMENT FIELDS
+      holdPosition: bid.holdPosition || undefined,
+      heldAt: bid.heldAt?.toISOString() || undefined,
+      heldUntil: bid.heldUntil?.toISOString() || undefined,
+      
+      // 🎯 ACCEPTANCE/DECLINE TRACKING
+      acceptedAt: bid.acceptedAt?.toISOString() || undefined,
+      declinedAt: bid.declinedAt?.toISOString() || undefined,
+      declinedReason: bid.declinedReason || undefined,
+      
+      // 🎯 CANCELLATION TRACKING
+      cancelledAt: bid.cancelledAt?.toISOString() || undefined,
+      cancelledReason: bid.cancelledReason || undefined,
+      
+      // 🎯 BILLING ORDER FIELDS
+      billingPosition: bid.billingPosition || 'headliner', // Default since not in schema yet
+      lineupPosition: bid.lineupPosition || undefined,
+      setLength: bid.setLength || 45, // Default 45 minutes
+      otherActs: bid.otherActs || 'Local opener TBD',
+      billingNotes: bid.billingNotes || ''
+    }));
     
-    return NextResponse.json(tourRequestBids);
+    return NextResponse.json(transformedBids);
   } catch (error) {
     console.error('Error fetching tour request bids:', error);
     return NextResponse.json({ error: 'Failed to fetch bids' }, { status: 500 });
@@ -86,8 +104,8 @@ export async function POST(
     
     console.log('🎯 Received bid data:', JSON.stringify(body, null, 2));
     
-    // Validate required fields - updated to match form structure
-    const requiredFields = ['venueId', 'venueName', 'proposedDate', 'capacity', 'message'];
+    // Validate required fields
+    const requiredFields = ['venueId', 'venueName', 'proposedDate', 'message'];
     for (const field of requiredFields) {
       if (body[field] === undefined || body[field] === null || body[field] === '') {
         return NextResponse.json(
@@ -97,12 +115,13 @@ export async function POST(
       }
     }
 
-    const bids = readBids();
-    
     // Check if venue has already bid on this tour request
-    const existingBid = bids.find((bid: any) => 
-      bid.tourRequestId === tourRequestId && bid.venueId === body.venueId
-    );
+    const existingBid = await prisma.bid.findFirst({
+      where: {
+        tourRequestId: tourRequestId,
+        venueId: body.venueId
+      }
+    });
     
     if (existingBid) {
       return NextResponse.json(
@@ -110,54 +129,81 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // Get system user for bidderId (required field)
+    let systemUser = await prisma.user.findFirst({
+      where: { username: 'system' }
+    });
+
+    if (!systemUser) {
+      systemUser = await prisma.user.create({
+        data: {
+          username: 'system',
+          email: 'system@diyshows.com',
+          verified: true
+        }
+      });
+    }
     
-    // Generate new bid ID
-    const newBidId = `bid-${Date.now()}`;
-    
-    // Create new bid with proper structure
-    const newBid = {
-      id: newBidId,
-      tourRequestId,
-      venueId: body.venueId,
-      venueName: body.venueName,
-      proposedDate: body.proposedDate,
-      alternativeDates: body.alternativeDates || [],
-      guarantee: body.guarantee || undefined,
+    // Create new bid in database
+    const newBid = await prisma.bid.create({
+      data: {
+        tourRequestId,
+        venueId: body.venueId,
+        bidderId: systemUser.id, // Required field
+        proposedDate: new Date(body.proposedDate),
+        amount: body.guarantee ? parseFloat(body.guarantee) : null,
+        message: body.message,
+        status: BidStatus.PENDING
+      },
+      include: {
+        venue: {
+          include: {
+            location: true
+          }
+        }
+      }
+    });
+
+    // Transform response to match expected format
+    const transformedBid = {
+      id: newBid.id,
+      tourRequestId: newBid.tourRequestId,
+      venueId: newBid.venueId,
+      venueName: newBid.venue.name,
+      proposedDate: newBid.proposedDate?.toISOString() || '',
+      guarantee: newBid.amount || undefined,
       doorDeal: body.doorDeal || undefined,
       ticketPrice: body.ticketPrice || {},
       merchandiseSplit: body.merchandiseSplit || '90/10',
-      capacity: parseInt(body.capacity),
-      ageRestriction: body.ageRestriction || 'all-ages',
+      capacity: body.capacity ? parseInt(body.capacity) : newBid.venue.capacity || 150,
+      ageRestriction: body.ageRestriction || newBid.venue.ageRestriction || 'ALL_AGES',
       equipmentProvided: body.equipmentProvided || {},
-      loadIn: body.loadIn || '',
-      soundcheck: body.soundcheck || '',
-      doorsOpen: body.doorsOpen || '',
-      showTime: body.showTime || '',
-      curfew: body.curfew || '',
+      loadIn: body.loadIn || '6:00 PM',
+      soundcheck: body.soundcheck || '7:00 PM',
+      doorsOpen: body.doorsOpen || '8:00 PM',
+      showTime: body.showTime || '9:00 PM',
+      curfew: body.curfew || '11:30 PM',
       promotion: body.promotion || {},
       lodging: body.lodging || undefined,
-      // Billing order information
-      billingPosition: body.billingPosition || 'headliner', // Default to headliner
+      billingPosition: body.billingPosition || 'headliner',
       lineupPosition: body.lineupPosition || undefined,
-      setLength: body.setLength || undefined,
-      otherActs: body.otherActs || '',
+      setLength: body.setLength || 45,
+      otherActs: body.otherActs || 'Local opener TBD',
       billingNotes: body.billingNotes || '',
-      message: body.message,
+      message: newBid.message,
       additionalTerms: body.additionalTerms || '',
       status: 'pending',
       readByArtist: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+      createdAt: newBid.createdAt.toISOString(),
+      updatedAt: newBid.updatedAt.toISOString(),
+      expiresAt: new Date(newBid.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
     };
 
-    bids.push(newBid);
-    writeBids(bids);
-
     console.log(`🎯 New bid submitted: ${body.venueName} → Tour Request ${tourRequestId}`);
-    console.log(`🎯 Bid details: $${body.guarantee} guarantee, ${body.doorDeal?.split || 'no door deal'}`);
+    console.log(`🎯 Bid details: $${body.guarantee} guarantee`);
 
-    return NextResponse.json(newBid, { status: 201 });
+    return NextResponse.json(transformedBid, { status: 201 });
   } catch (error) {
     console.error('Error creating bid:', error);
     return NextResponse.json(
