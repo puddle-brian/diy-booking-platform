@@ -92,6 +92,33 @@ export default function CompactTourItinerary({
   const [monthsData, setMonthsData] = useState<MonthData[]>([]);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
+  // Add Date functionality state
+  const [showAddDateForm, setShowAddDateForm] = useState(false);
+  const [addDateFormLoading, setAddDateFormLoading] = useState(false);
+  const [dataKey, setDataKey] = useState(0); // Force re-render key
+  const [addDateForm, setAddDateForm] = useState({
+    type: 'request' as 'request' | 'confirmed',
+    date: '',
+    startDate: '',
+    endDate: '',
+    location: '',
+    artistId: '',
+    artistName: '',
+    venueId: '',
+    venueName: '',
+    title: '',
+    description: '',
+    guarantee: '',
+    capacity: '',
+    ageRestriction: 'all-ages',
+    loadIn: '',
+    soundcheck: '',
+    doorsOpen: '',
+    showTime: '',
+    curfew: '',
+    notes: ''
+  });
+
   // Generate next 12 months starting from current month
   const generateMonthTabs = () => {
     const months = [];
@@ -116,53 +143,75 @@ export default function CompactTourItinerary({
   const fetchData = async () => {
     try {
       setLoading(true);
+      console.log('🔄 CompactTourItinerary: Starting data fetch', { artistId, venueId });
       
       // Fetch shows
       let showsData: Show[] = [];
       if (artistId) {
+        console.log('🔄 CompactTourItinerary: Fetching shows for artist', artistId);
         const showsResponse = await fetch(`/api/shows?artistId=${artistId}`);
         if (showsResponse.ok) {
           showsData = await showsResponse.json();
+          console.log('📅 CompactTourItinerary: Fetched shows', { count: showsData.length, shows: showsData });
+        } else {
+          console.error('🚨 CompactTourItinerary: Failed to fetch shows', showsResponse.status);
         }
       } else if (venueId) {
+        console.log('🔄 CompactTourItinerary: Fetching shows for venue', venueId);
         const showsResponse = await fetch(`/api/shows?venueId=${venueId}`);
         if (showsResponse.ok) {
           showsData = await showsResponse.json();
+          console.log('📅 CompactTourItinerary: Fetched shows', { count: showsData.length, shows: showsData });
+        } else {
+          console.error('🚨 CompactTourItinerary: Failed to fetch shows', showsResponse.status);
         }
       }
 
       // Fetch tour requests (for artists)
       let tourRequestsData: TourRequest[] = [];
       if (artistId) {
+        console.log('🔄 CompactTourItinerary: Fetching tour requests for artist', artistId);
         const requestsResponse = await fetch(`/api/tour-requests?artistId=${artistId}`);
         if (requestsResponse.ok) {
           const requestsDataRaw = await requestsResponse.json();
+          console.log('🗺️ CompactTourItinerary: Raw tour requests response', requestsDataRaw);
+          
+          // Handle the API response format: { requests: [...], total: ... }
+          const requestsArray = requestsDataRaw.requests || requestsDataRaw || [];
+          console.log('🗺️ CompactTourItinerary: Extracted requests array', { count: requestsArray.length, requests: requestsArray });
           
           // Fetch bids for each request
           const requestsWithBids = await Promise.all(
-            (Array.isArray(requestsDataRaw) ? requestsDataRaw : []).map(async (request: TourRequest) => {
+            (Array.isArray(requestsArray) ? requestsArray : []).map(async (request: TourRequest) => {
               try {
+                console.log('🔄 CompactTourItinerary: Fetching bids for request', request.id);
                 const bidsResponse = await fetch(`/api/tour-requests/${request.id}/bids`);
                 if (bidsResponse.ok) {
                   const bidsData = await bidsResponse.json();
+                  console.log('🗺️ CompactTourItinerary: Fetched bids for request', request.id, { count: bidsData.length });
                   return { ...request, bids: Array.isArray(bidsData) ? bidsData : [] };
                 } else {
+                  console.error('🚨 CompactTourItinerary: Failed to fetch bids for request', request.id, bidsResponse.status);
                   return { ...request, bids: [] };
                 }
               } catch (error) {
-                console.error(`Error fetching bids for ${request.id}:`, error);
+                console.error(`🚨 CompactTourItinerary: Error fetching bids for ${request.id}:`, error);
                 return { ...request, bids: [] };
               }
             })
           );
           
           tourRequestsData = requestsWithBids;
+          console.log('🗺️ CompactTourItinerary: Final tour requests with bids', { count: tourRequestsData.length, requests: tourRequestsData });
+        } else {
+          console.error('🚨 CompactTourItinerary: Failed to fetch tour requests', requestsResponse.status);
         }
       }
 
       // Fetch venue bids (for venues)
       let venueBidsData: VenueBid[] = [];
       if (venueId) {
+        console.log('🔄 CompactTourItinerary: Venue bids not implemented yet for venue', venueId);
         // This would need to be implemented in the API
         // const bidsResponse = await fetch(`/api/venues/${venueId}/bids`);
         // if (bidsResponse.ok) {
@@ -170,17 +219,26 @@ export default function CompactTourItinerary({
         // }
       }
 
+      console.log('📊 CompactTourItinerary: Setting state with new data', {
+        shows: showsData.length,
+        tourRequests: tourRequestsData.length,
+        venueBids: venueBidsData.length
+      });
+
       setShows(showsData);
       setTourRequests(tourRequestsData);
       setVenueBids(venueBidsData);
 
       // Organize data by months
+      console.log('🔄 CompactTourItinerary: Organizing data by months...');
       organizeDataByMonths(showsData, tourRequestsData, venueBidsData);
+      console.log('✅ CompactTourItinerary: Data organization completed');
       
     } catch (error) {
-      console.error('Error fetching tour data:', error);
+      console.error('🚨 CompactTourItinerary: Error fetching tour data:', error);
     } finally {
       setLoading(false);
+      console.log('🔄 CompactTourItinerary: Data fetch completed, loading set to false');
     }
   };
 
@@ -243,22 +301,6 @@ export default function CompactTourItinerary({
     setActiveTab(firstMonthWithContent?.key || monthTabs[0].key);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [artistId, venueId]);
-
-  const toggleExpanded = (itemId: string) => {
-    setExpandedItems(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId);
-      } else {
-        newSet.add(itemId);
-      }
-      return newSet;
-    });
-  };
-
   const getBidStatusBadge = (bid: VenueBid) => {
     const statusColors = {
       pending: 'bg-yellow-100 text-yellow-800',
@@ -273,6 +315,193 @@ export default function CompactTourItinerary({
         {bid.status}
       </span>
     );
+  };
+
+  const handleAddDateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    console.log('🎯 CompactTourItinerary: Form submission started', {
+      type: addDateForm.type,
+      artistId,
+      artistName,
+      venueId,
+      venueName,
+      formData: addDateForm
+    });
+    
+    if (addDateFormLoading) {
+      console.log('🚨 CompactTourItinerary: Form submission already in progress');
+      return;
+    }
+    
+    try {
+      setAddDateFormLoading(true);
+      console.log('🎯 CompactTourItinerary: Loading state set to true');
+
+      if (addDateForm.type === 'request') {
+        // Create a tour request
+        if (!artistId || !artistName) {
+          console.error('🚨 CompactTourItinerary: Missing artist information', { artistId, artistName });
+          alert('Missing artist information. Please try again.');
+          return;
+        }
+
+        console.log('🎯 CompactTourItinerary: Creating tour request...');
+        const requestBody = {
+          title: addDateForm.title || `${addDateForm.location} - ${new Date(addDateForm.startDate).toLocaleDateString()}`,
+          description: addDateForm.description || `Looking for a show in ${addDateForm.location}`,
+          startDate: addDateForm.startDate,
+          endDate: addDateForm.endDate,
+          location: addDateForm.location,
+          radius: 50,
+          flexibility: 'exact-cities',
+          genres: [],
+          expectedDraw: { min: 0, max: 0, description: '' },
+          tourStatus: 'exploring-interest',
+          ageRestriction: addDateForm.ageRestriction,
+          equipment: { needsPA: false, needsMics: false, needsDrums: false, needsAmps: false, acoustic: false },
+          guaranteeRange: { min: 0, max: 0 },
+          acceptsDoorDeals: true,
+          merchandising: true,
+          travelMethod: 'van',
+          lodging: 'flexible',
+          priority: 'medium',
+          artistId,
+          artistName,
+        };
+        
+        console.log('🎯 CompactTourItinerary: Request body prepared', requestBody);
+
+        const response = await fetch('/api/tour-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log('🎯 CompactTourItinerary: API response received', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('🚨 CompactTourItinerary: Tour request creation failed', errorData);
+          throw new Error(errorData.error || 'Failed to create tour request');
+        }
+
+        const createdRequest = await response.json();
+        console.log('✅ CompactTourItinerary: Tour request created successfully', createdRequest);
+        
+      } else {
+        // Create a confirmed show
+        console.log('🎯 CompactTourItinerary: Creating confirmed show...');
+        const requestBody = {
+          title: addDateForm.title,
+          date: addDateForm.date,
+          artistId: addDateForm.artistId || artistId,
+          artistName: addDateForm.artistName || artistName,
+          venueId: addDateForm.venueId || venueId,
+          venueName: addDateForm.venueName || venueName,
+          guarantee: addDateForm.guarantee ? parseFloat(addDateForm.guarantee) : undefined,
+          capacity: addDateForm.capacity ? parseInt(addDateForm.capacity) : undefined,
+          ageRestriction: addDateForm.ageRestriction,
+          loadIn: addDateForm.loadIn,
+          soundcheck: addDateForm.soundcheck,
+          doorsOpen: addDateForm.doorsOpen,
+          showTime: addDateForm.showTime,
+          curfew: addDateForm.curfew,
+          notes: addDateForm.notes,
+          status: 'confirmed'
+        };
+        
+        console.log('🎯 CompactTourItinerary: Show request body prepared', requestBody);
+
+        const response = await fetch('/api/shows', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log('🎯 CompactTourItinerary: Shows API response received', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('🚨 CompactTourItinerary: Show creation failed', errorData);
+          throw new Error(errorData.error || 'Failed to create show');
+        }
+
+        const createdShow = await response.json();
+        console.log('✅ CompactTourItinerary: Show created successfully', createdShow);
+      }
+
+      console.log('🎯 CompactTourItinerary: Closing form and resetting state...');
+      
+      // Reset form and close modal
+      setShowAddDateForm(false);
+      setAddDateForm({
+        type: 'request',
+        date: '',
+        startDate: '',
+        endDate: '',
+        location: '',
+        artistId: '',
+        artistName: '',
+        venueId: '',
+        venueName: '',
+        title: '',
+        description: '',
+        guarantee: '',
+        capacity: '',
+        ageRestriction: 'all-ages',
+        loadIn: '',
+        soundcheck: '',
+        doorsOpen: '',
+        showTime: '',
+        curfew: '',
+        notes: ''
+      });
+
+      // Force refresh data with a small delay to ensure the API has processed the new data
+      console.log('🔄 CompactTourItinerary: Starting data refresh...');
+      setTimeout(async () => {
+        console.log('🔄 CompactTourItinerary: Executing fetchData...');
+        await fetchData();
+        setDataKey(prev => prev + 1); // Force re-render
+        console.log('✅ CompactTourItinerary: Data refresh completed, dataKey incremented');
+      }, 500); // 500ms delay to ensure the database has been updated
+
+    } catch (error) {
+      console.error('🚨 CompactTourItinerary: Error adding date:', error);
+      alert(`Failed to add date: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      console.log('🎯 CompactTourItinerary: Setting loading state to false');
+      setAddDateFormLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [artistId, venueId]);
+
+  const toggleExpanded = (itemId: string) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemId)) {
+        newSet.delete(itemId);
+      } else {
+        newSet.add(itemId);
+      }
+      return newSet;
+    });
   };
 
   const activeMonthData = monthsData.find(month => 
@@ -294,7 +523,7 @@ export default function CompactTourItinerary({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div key={dataKey} className="bg-white rounded-lg shadow overflow-hidden">
       {/* Header */}
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex justify-between items-center">
@@ -643,6 +872,18 @@ export default function CompactTourItinerary({
           <div className="mt-6 pt-6 border-t border-gray-200">
             <button 
               type="button"
+              onClick={() => {
+                // Initialize form with default values
+                setAddDateForm(prev => ({
+                  ...prev,
+                  type: 'request',
+                  artistId: artistId || '',
+                  artistName: artistName || '',
+                  venueId: venueId || '',
+                  venueName: venueName || ''
+                }));
+                setShowAddDateForm(true);
+              }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors duration-150 flex items-center justify-center space-x-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -653,6 +894,189 @@ export default function CompactTourItinerary({
           </div>
         )}
       </div>
+
+      {/* Add Date Form Modal */}
+      {showAddDateForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold">
+                {addDateForm.type === 'request' ? 'Create Tour Request' : 'Add Confirmed Show'}
+              </h3>
+            </div>
+            
+            <form onSubmit={handleAddDateSubmit} className="px-6 py-4 space-y-6">
+              {/* Type Selection - Only for Artists */}
+              {artistId && viewerType === 'artist' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Type *
+                  </label>
+                  <select
+                    required
+                    value={addDateForm.type}
+                    onChange={(e) => setAddDateForm(prev => ({ ...prev, type: e.target.value as 'request' | 'confirmed' }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="request">Request (looking for venues)</option>
+                    <option value="confirmed">Confirmed (already booked)</option>
+                  </select>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {addDateForm.type === 'request' 
+                      ? 'Create a tour request to find venues for this date'
+                      : 'Add a confirmed show that was booked outside the platform'
+                    }
+                  </p>
+                </div>
+              )}
+
+              {/* Date Fields */}
+              {addDateForm.type === 'request' ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Start Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={addDateForm.startDate}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, startDate: e.target.value }))}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        End Date *
+                      </label>
+                      <input
+                        type="date"
+                        required
+                        value={addDateForm.endDate}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, endDate: e.target.value }))}
+                        min={addDateForm.startDate || new Date().toISOString().split('T')[0]}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Show Date *
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={addDateForm.date}
+                    onChange={(e) => setAddDateForm(prev => ({ ...prev, date: e.target.value }))}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              )}
+
+              {/* Location */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Location *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={addDateForm.location}
+                  onChange={(e) => setAddDateForm(prev => ({ ...prev, location: e.target.value }))}
+                  placeholder="e.g., Seattle, WA"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Title and Description for Requests */}
+              {addDateForm.type === 'request' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={addDateForm.title}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g., Seattle Show - June 2025"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={addDateForm.description}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Tell venues about what you're looking for..."
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Age Restriction */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Age Restriction
+                </label>
+                <select
+                  value={addDateForm.ageRestriction}
+                  onChange={(e) => setAddDateForm(prev => ({ ...prev, ageRestriction: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all-ages">All Ages</option>
+                  <option value="18+">18+</option>
+                  <option value="21+">21+</option>
+                </select>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <button
+                  type="submit"
+                  disabled={addDateFormLoading}
+                  className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2 ${
+                    addDateFormLoading 
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {addDateFormLoading && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  <span>
+                    {addDateFormLoading 
+                      ? 'Creating...' 
+                      : (addDateForm.type === 'request' ? 'Create Request' : 'Add Show')
+                    }
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={addDateFormLoading}
+                  onClick={() => setShowAddDateForm(false)}
+                  className={`px-6 py-3 border border-gray-300 rounded-lg transition-colors ${
+                    addDateFormLoading 
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

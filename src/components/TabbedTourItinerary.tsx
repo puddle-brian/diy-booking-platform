@@ -693,10 +693,178 @@ export default function TabbedTourItinerary({
 
   const handleAddDateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Implementation would be identical to original
-    console.log('Add date submit:', addDateForm);
-    setShowAddDateForm(false);
-    await fetchData();
+    
+    console.log('🎯 TabbedTourItinerary: Form submission started', {
+      type: addDateForm.type,
+      artistId,
+      artistName,
+      venueId,
+      venueName,
+      formData: addDateForm
+    });
+    
+    if (addDateLoading) {
+      console.log('🚨 TabbedTourItinerary: Form submission already in progress');
+      return;
+    }
+    
+    try {
+      setAddDateLoading(true);
+      console.log('🎯 TabbedTourItinerary: Loading state set to true');
+
+      if (addDateForm.type === 'request') {
+        // Create a tour request
+        if (!artistId || !artistName) {
+          console.error('🚨 TabbedTourItinerary: Missing artist information', { artistId, artistName });
+          alert('Missing artist information. Please try again.');
+          return;
+        }
+
+        console.log('🎯 TabbedTourItinerary: Creating tour request...');
+        const requestBody = {
+          title: addDateForm.title || `${addDateForm.location} - ${new Date(addDateForm.startDate).toLocaleDateString()}`,
+          description: addDateForm.description || `Looking for a show in ${addDateForm.location}`,
+          startDate: addDateForm.startDate,
+          endDate: addDateForm.endDate,
+          location: addDateForm.location,
+          radius: 50,
+          flexibility: 'exact-cities',
+          genres: [],
+          expectedDraw: { min: 0, max: 0, description: '' },
+          tourStatus: 'exploring-interest',
+          ageRestriction: addDateForm.ageRestriction,
+          equipment: { needsPA: false, needsMics: false, needsDrums: false, needsAmps: false, acoustic: false },
+          guaranteeRange: { min: 0, max: 0 },
+          acceptsDoorDeals: true,
+          merchandising: true,
+          travelMethod: 'van',
+          lodging: 'flexible',
+          priority: 'medium',
+          artistId,
+          artistName,
+        };
+        
+        console.log('🎯 TabbedTourItinerary: Request body prepared', requestBody);
+
+        const response = await fetch('/api/tour-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log('🎯 TabbedTourItinerary: API response received', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('🚨 TabbedTourItinerary: Tour request creation failed', errorData);
+          throw new Error(errorData.error || 'Failed to create tour request');
+        }
+
+        const createdRequest = await response.json();
+        console.log('✅ TabbedTourItinerary: Tour request created successfully', createdRequest);
+        
+      } else {
+        // Create a confirmed show
+        console.log('🎯 TabbedTourItinerary: Creating confirmed show...');
+        const requestBody = {
+          title: addDateForm.title,
+          date: addDateForm.date,
+          artistId: addDateForm.artistId || artistId,
+          artistName: addDateForm.artistName || artistName,
+          venueId: addDateForm.venueId || venueId,
+          venueName: addDateForm.venueName || venueName,
+          guarantee: addDateForm.guarantee ? parseFloat(addDateForm.guarantee) : undefined,
+          capacity: addDateForm.capacity ? parseInt(addDateForm.capacity) : undefined,
+          ageRestriction: addDateForm.ageRestriction,
+          loadIn: addDateForm.loadIn,
+          soundcheck: addDateForm.soundcheck,
+          doorsOpen: addDateForm.doorsOpen,
+          showTime: addDateForm.showTime,
+          curfew: addDateForm.curfew,
+          notes: addDateForm.notes,
+          status: 'confirmed'
+        };
+        
+        console.log('🎯 TabbedTourItinerary: Show request body prepared', requestBody);
+
+        const response = await fetch('/api/shows', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestBody),
+        });
+
+        console.log('🎯 TabbedTourItinerary: Shows API response received', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('🚨 TabbedTourItinerary: Show creation failed', errorData);
+          throw new Error(errorData.error || 'Failed to create show');
+        }
+
+        const createdShow = await response.json();
+        console.log('✅ TabbedTourItinerary: Show created successfully', createdShow);
+      }
+
+      console.log('🎯 TabbedTourItinerary: Closing form and resetting state...');
+      
+      // Reset form and close modal
+      setShowAddDateForm(false);
+      setAddDateForm({
+        type: 'request',
+        date: '',
+        startDate: '',
+        endDate: '',
+        location: '',
+        artistId: '',
+        artistName: '',
+        venueId: '',
+        venueName: '',
+        title: '',
+        description: '',
+        guarantee: '',
+        capacity: '',
+        ageRestriction: 'all-ages',
+        loadIn: '',
+        soundcheck: '',
+        doorsOpen: '',
+        showTime: '',
+        curfew: '',
+        notes: '',
+        // Billing order fields
+        billingPosition: '',
+        lineupPosition: '',
+        setLength: '',
+        otherActs: '',
+        billingNotes: ''
+      });
+
+      // Force refresh data with a small delay to ensure the API has processed the new data
+      console.log('🔄 TabbedTourItinerary: Starting data refresh...');
+      setTimeout(async () => {
+        console.log('🔄 TabbedTourItinerary: Executing fetchData...');
+        await fetchData();
+        console.log('✅ TabbedTourItinerary: Data refresh completed');
+      }, 500); // 500ms delay to ensure the database has been updated
+
+    } catch (error) {
+      console.error('🚨 TabbedTourItinerary: Error adding date:', error);
+      alert(`Failed to add date: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      console.log('🎯 TabbedTourItinerary: Setting loading state to false');
+      setAddDateLoading(false);
+    }
   };
 
   // Auto-fill functions

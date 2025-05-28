@@ -198,16 +198,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get the system user for createdById
+    // Get or create the system user for createdById
     let systemUser = await prisma.user.findFirst({
-      where: { email: 'system@diy-booking.com' }
+      where: { 
+        OR: [
+          { email: 'system@diy-booking.com' },
+          { username: 'system' }
+        ]
+      }
     });
 
     if (!systemUser) {
       systemUser = await prisma.user.create({
         data: {
           email: 'system@diy-booking.com',
-          username: 'system',
+          username: 'system-user', // Use different username to avoid conflict
           role: 'ADMIN'
         }
       });
