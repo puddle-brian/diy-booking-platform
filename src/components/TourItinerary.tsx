@@ -905,7 +905,7 @@ export default function TourItinerary({
       <div className="px-6 py-4 border-b border-gray-200">
         <div>
           <h3 className="text-lg font-semibold">
-            {title || (artistId ? 'Tour Dates' : 'Booking Calendar')}
+            {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
           </h3>
           <p className="text-sm text-gray-600 mt-1">
             {shows.length} confirmed show{shows.length !== 1 ? 's' : ''}

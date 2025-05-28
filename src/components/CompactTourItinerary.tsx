@@ -529,7 +529,7 @@ export default function CompactTourItinerary({
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold">
-              {title || (artistId ? 'Tour Dates' : 'Booking Calendar')}
+              {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
             </h3>
             <p className="text-sm text-gray-600 mt-1">
               {totalCount} total item{totalCount !== 1 ? 's' : ''} • 

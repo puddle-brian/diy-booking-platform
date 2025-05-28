@@ -973,7 +973,7 @@ export default function TabbedTourItinerary({
       <div className="px-6 py-4 border-b border-gray-200">
         <div>
           <h3 className="text-lg font-semibold">
-            {title || (artistId ? 'Tour Dates' : 'Booking Calendar')}
+            {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
           </h3>
           <p className="text-sm text-gray-600 mt-1">
             {shows.length} confirmed show{shows.length !== 1 ? 's' : ''}
@@ -1364,45 +1364,59 @@ export default function TabbedTourItinerary({
                           </div>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
-                        {viewerType === 'artist' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteShowRequest(request.id, request.title);
-                            }}
-                            disabled={deleteLoading === request.id}
-                            className="inline-flex items-center px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-                            title="Delete tour request"
-                          >
-                            {deleteLoading === request.id ? (
-                              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            )}
-                          </button>
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-blue-900">
+                          {request.priority} priority
+                        </div>
+                        {request.description && (
+                          <div className="text-sm text-blue-600 truncate max-w-xs">
+                            {request.description}
+                          </div>
                         )}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-2">
+                          {/* Delete button for artists - properly aligned in Actions column */}
+                          {viewerType === 'artist' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteShowRequest(request.id, request.title);
+                              }}
+                              disabled={deleteLoading === request.id}
+                              className="inline-flex items-center justify-center w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              title="Delete tour request"
+                            >
+                              {deleteLoading === request.id ? (
+                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                                </svg>
+                              )}
+                            </button>
+                          )}
 
-                        {viewerType === 'venue' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePlaceBid(request);
-                            }}
-                            className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                          >
-                            Place Bid
-                          </button>
-                        )}
+                          {/* Place Bid button for venues */}
+                          {viewerType === 'venue' && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePlaceBid(request);
+                              }}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                            >
+                              Place Bid
+                            </button>
+                          )}
 
-                        {/* Expand/Collapse Indicator */}
-                        <div className="flex items-center text-gray-400 ml-2">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                              d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-                          </svg>
+                          {/* Expand/Collapse Indicator */}
+                          <div className="flex items-center text-gray-400">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                            </svg>
+                          </div>
                         </div>
                       </td>
                     </tr>
