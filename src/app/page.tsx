@@ -848,23 +848,25 @@ function HomeContent() {
             </div>
             
             {/* Bottom Row: Action Buttons */}
-            <div className="flex items-center justify-center space-x-3">
+            <div className="flex items-center justify-center space-x-2">
               <Link 
                 href="/admin/venues"
-                className="bg-black text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs"
+                className="bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs min-w-[90px] text-center"
               >
-                + List a Space
+                + Space
               </Link>
               
               <Link 
                 href="/admin/artists"
-                className="bg-black text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs"
+                className="bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs min-w-[90px] text-center"
               >
-                + List an Artist
+                + Artist
               </Link>
               
               {/* User Status Component */}
-              <UserStatus />
+              <div className="min-w-[90px] flex justify-center">
+                <UserStatus />
+              </div>
             </div>
           </div>
         </div>

@@ -225,21 +225,21 @@ export default function ShowsPage() {
             <div className="flex items-center justify-center space-x-2">
               <Link 
                 href="/admin/shows"
-                className="bg-black text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs"
+                className="bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs min-w-[80px] text-center"
               >
-                + Add Show
+                + Show
               </Link>
               
               <Link 
                 href="/admin/venues"
-                className="bg-gray-100 text-gray-700 px-2 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200"
+                className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200 min-w-[80px] text-center"
               >
                 + Space
               </Link>
               
               <Link 
                 href="/admin/artists"
-                className="bg-gray-100 text-gray-700 px-2 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200"
+                className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200 min-w-[80px] text-center"
               >
                 + Artist
               </Link>
