@@ -806,7 +806,37 @@ function HomeContent() {
                       className="w-full text-sm placeholder-gray-500 border-none outline-none"
                     />
                   </div>
-                  <div className="p-1">
+                  <div className="flex items-center space-x-2 pr-1">
+                    {/* Filter Toggle Button */}
+                    <button
+                      onClick={() => setFiltersExpanded(!filtersExpanded)}
+                      className="flex items-center space-x-2 px-3 py-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                      </svg>
+                      <span className="text-sm font-medium">Filters</span>
+                      {hasActiveFilters && (
+                        <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                          {[
+                            activeTab === 'venues' ? selectedVenueTypes.length : selectedArtistTypes.length,
+                            selectedGenres.length,
+                            activeTab === 'venues' ? selectedAgeRestrictions.length + selectedCapacities.length : selectedDraws.length + selectedTourStatus.length,
+                            (activeTab === 'venues' ? debouncedVenueLocation.trim() : debouncedArtistLocation.trim()) ? 1 : 0
+                          ].reduce((a, b) => a + b, 0)}
+                        </span>
+                      )}
+                      <svg 
+                        className={`w-4 h-4 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    
+                    {/* Search Button */}
                     <button className="w-8 h-8 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -891,7 +921,37 @@ function HomeContent() {
                     className="w-full text-sm placeholder-gray-500 border-none outline-none"
                   />
                 </div>
-                <div className="p-1">
+                <div className="flex items-center space-x-2 pr-1">
+                  {/* Filter Toggle Button */}
+                  <button
+                    onClick={() => setFiltersExpanded(!filtersExpanded)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    <span className="text-sm font-medium">Filters</span>
+                    {hasActiveFilters && (
+                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                        {[
+                          selectedVenueTypes.length,
+                          selectedGenres.length,
+                          selectedAgeRestrictions.length + selectedCapacities.length,
+                          debouncedVenueLocation.trim() ? 1 : 0
+                        ].reduce((a, b) => a + b, 0)}
+                      </span>
+                    )}
+                    <svg 
+                      className={`w-4 h-4 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Search Button */}
                   <button className="w-8 h-8 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -904,49 +964,20 @@ function HomeContent() {
 
           {/* Filter Dropdowns */}
           <div className="max-w-4xl mx-auto mb-8">
-            {/* Mobile Filter Toggle Button */}
-            <div className="md:hidden mb-4 flex items-center justify-between">
-              <button
-                onClick={() => setFiltersExpanded(!filtersExpanded)}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                <span className="text-sm font-medium">Filters</span>
-                {hasActiveFilters && (
-                  <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                    {[
-                      selectedVenueTypes.length,
-                      selectedGenres.length,
-                      selectedAgeRestrictions.length,
-                      selectedCapacities.length,
-                      debouncedVenueLocation.trim() ? 1 : 0
-                    ].reduce((a, b) => a + b, 0)}
-                  </span>
-                )}
-                <svg 
-                  className={`w-4 h-4 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
+            {/* Filter Dropdowns - Collapsible on all screen sizes */}
+            <div className={`${filtersExpanded ? 'block' : 'hidden'}`}>
+              {/* Clear All Button - Always visible when filters are expanded */}
               {hasActiveFilters && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-sm text-gray-600 hover:text-black underline"
-                >
-                  Clear all
-                </button>
+                <div className="mb-4 flex justify-end">
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-sm text-gray-600 hover:text-black underline"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
               )}
-            </div>
-
-            {/* Filter Dropdowns - Always visible on desktop, collapsible on mobile */}
-            <div className={`${filtersExpanded ? 'block' : 'hidden'} md:block`}>
+              
               <div className="flex flex-wrap gap-3 items-center justify-center">
                 <MultiSelectDropdown
                   label="Space Types"
@@ -975,16 +1006,6 @@ function HomeContent() {
                   selectedValues={selectedCapacities}
                   onSelectionChange={setSelectedCapacities}
                 />
-
-                {/* Desktop Clear Filters Button */}
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-sm text-gray-600 hover:text-black underline hidden md:block"
-                  >
-                    Clear all filters
-                  </button>
-                )}
               </div>
             </div>
             
@@ -1146,7 +1167,37 @@ function HomeContent() {
                     className="w-full text-sm placeholder-gray-500 border-none outline-none"
                   />
                 </div>
-                <div className="p-1">
+                <div className="flex items-center space-x-2 pr-1">
+                  {/* Filter Toggle Button */}
+                  <button
+                    onClick={() => setFiltersExpanded(!filtersExpanded)}
+                    className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    <span className="text-sm font-medium">Filters</span>
+                    {hasActiveFilters && (
+                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                        {[
+                          selectedArtistTypes.length,
+                          selectedGenres.length,
+                          selectedDraws.length + selectedTourStatus.length,
+                          debouncedArtistLocation.trim() ? 1 : 0
+                        ].reduce((a, b) => a + b, 0)}
+                      </span>
+                    )}
+                    <svg 
+                      className={`w-4 h-4 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Search Button */}
                   <button className="w-8 h-8 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1159,49 +1210,20 @@ function HomeContent() {
 
           {/* Filter Dropdowns for Artists */}
           <div className="max-w-4xl mx-auto mb-8">
-            {/* Mobile Filter Toggle Button */}
-            <div className="md:hidden mb-4 flex items-center justify-between">
-              <button
-                onClick={() => setFiltersExpanded(!filtersExpanded)}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                <span className="text-sm font-medium">Filters</span>
-                {hasActiveFilters && (
-                  <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                    {[
-                      selectedArtistTypes.length,
-                      selectedGenres.length,
-                      selectedDraws.length,
-                      selectedTourStatus.length,
-                      debouncedArtistLocation.trim() ? 1 : 0
-                    ].reduce((a, b) => a + b, 0)}
-                  </span>
-                )}
-                <svg 
-                  className={`w-4 h-4 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} 
-                  fill="none" 
-                  stroke="currentColor" 
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
-              
+            {/* Filter Dropdowns - Collapsible on all screen sizes */}
+            <div className={`${filtersExpanded ? 'block' : 'hidden'}`}>
+              {/* Clear All Button - Always visible when filters are expanded */}
               {hasActiveFilters && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-sm text-gray-600 hover:text-black underline"
-                >
-                  Clear all
-                </button>
+                <div className="mb-4 flex justify-end">
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-sm text-gray-600 hover:text-black underline"
+                  >
+                    Clear all filters
+                  </button>
+                </div>
               )}
-            </div>
-
-            {/* Filter Dropdowns - Always visible on desktop, collapsible on mobile */}
-            <div className={`${filtersExpanded ? 'block' : 'hidden'} md:block`}>
+              
               <div className="flex flex-wrap gap-3 items-center justify-center">
                 <MultiSelectDropdown
                   label="Artist Types"
@@ -1230,16 +1252,6 @@ function HomeContent() {
                   selectedValues={selectedTourStatus}
                   onSelectionChange={setSelectedTourStatus}
                 />
-
-                {/* Desktop Clear Filters Button */}
-                {hasActiveFilters && (
-                  <button
-                    onClick={clearAllFilters}
-                    className="text-sm text-gray-600 hover:text-black underline hidden md:block"
-                  >
-                    Clear all filters
-                  </button>
-                )}
               </div>
             </div>
             
