@@ -891,7 +891,7 @@ function HomeContent() {
       {/* Dynamic Content - Responsive */}
       {activeTab === 'venues' ? (
         // VENUES VIEW - Browse venues
-        <section className="container mx-auto px-4 pb-24 md:py-8 md:pb-20 pt-4 md:pt-0">
+        <section className="container mx-auto px-4 pb-24 md:py-8 md:pb-20 md:pt-0">
           {/* Desktop Search Bar - Hidden on mobile */}
           <div className="max-w-2xl mx-auto mb-6 md:mb-8 hidden md:block">
             <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
@@ -931,7 +931,7 @@ function HomeContent() {
           </div>
 
           {/* Filter Dropdowns */}
-          <div className="max-w-4xl mx-auto mb-8">
+          <div className="max-w-4xl mx-auto md:mb-8">
             {/* Filter Dropdowns - Collapsible on all screen sizes */}
             <div className={`${filtersExpanded ? 'block' : 'hidden'}`}>
               {/* Clear All Button - Always visible when filters are expanded */}
@@ -1121,7 +1121,7 @@ function HomeContent() {
         </section>
       ) : (
         // ARTISTS VIEW - Browse artists  
-        <section className="container mx-auto px-4 pb-24 md:py-8 md:pb-20 pt-4 md:pt-0">
+        <section className="container mx-auto px-4 pb-24 md:py-8 md:pb-20 md:pt-0">
           {/* Desktop Search Bar - Hidden on mobile */}
           <div className="max-w-2xl mx-auto mb-6 md:mb-8 hidden md:block">
             <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
@@ -1161,7 +1161,7 @@ function HomeContent() {
           </div>
 
           {/* Filter Dropdowns for Artists */}
-          <div className="max-w-4xl mx-auto mb-8">
+          <div className="max-w-4xl mx-auto md:mb-8">
             {/* Filter Dropdowns - Collapsible on all screen sizes */}
             <div className={`${filtersExpanded ? 'block' : 'hidden'}`}>
               {/* Clear All Button - Always visible when filters are expanded */}
