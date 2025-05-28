@@ -26,6 +26,10 @@ export async function GET(
       city: venue.location.city,
       state: venue.location.stateProvince,
       country: venue.location.country,
+      streetAddress: venue.streetAddress,
+      addressLine2: venue.addressLine2,
+      postalCode: venue.postalCode,
+      neighborhood: venue.neighborhood,
       venueType: venue.venueType.toLowerCase().replace('_', '-'),
       genres: [], // Venues don't have genres in schema, but frontend expects this field
       capacity: venue.capacity,
@@ -80,6 +84,10 @@ export async function PUT(
       where: { id },
       data: {
         name: updatedData.name,
+        streetAddress: updatedData.streetAddress,
+        addressLine2: updatedData.addressLine2,
+        postalCode: updatedData.postalCode,
+        neighborhood: updatedData.neighborhood,
         venueType: updatedData.venueType?.toUpperCase().replace('-', '_'),
         capacity: updatedData.capacity,
         ageRestriction: updatedData.ageRestriction?.toUpperCase().replace('-', '_').replace('+', '_PLUS'),
@@ -105,6 +113,10 @@ export async function PUT(
       city: updatedVenue.location.city,
       state: updatedVenue.location.stateProvince,
       country: updatedVenue.location.country,
+      streetAddress: updatedVenue.streetAddress,
+      addressLine2: updatedVenue.addressLine2,
+      postalCode: updatedVenue.postalCode,
+      neighborhood: updatedVenue.neighborhood,
       venueType: updatedVenue.venueType.toLowerCase().replace('_', '-'),
       genres: [], // Venues don't have genres in schema, but frontend expects this field
       capacity: updatedVenue.capacity,

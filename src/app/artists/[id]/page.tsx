@@ -478,29 +478,6 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
                   Send Message
                 </MessageButton>
               )}
-              
-              {/* Claim Artist Button - Only show to unauthenticated users or users without access */}
-              {!artist.hasAccount && !user && (
-                <div className="text-center">
-                  <div className="text-xs text-gray-600 mb-1">Is this you?</div>
-                  <button 
-                    onClick={() => {
-                      setIsClaimingMode(true);
-                      setShowInquiryForm(true);
-                      setClaimingForm({
-                        artistName: artist.name,
-                        contactEmail: artist.contact.email,
-                        contactPhone: artist.contact.phone || '',
-                        contactName: '',
-                        message: `I am a member of ${artist.name} and would like to claim this artist profile to manage bookings and profile information.`,
-                      });
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm text-sm"
-                  >
-                    Claim this project
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -521,6 +498,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               members={members}
               entityType="artist"
               entityName={artist.name}
+              entityId={artist.id}
               maxDisplay={6}
               canInviteMembers={(() => {
                 if (!user) return false;

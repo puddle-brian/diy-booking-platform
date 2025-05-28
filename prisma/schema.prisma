@@ -35,6 +35,7 @@ model User {
   conversations       ConversationParticipant[]
   bids                Bid[]
   shows               Show[]
+  memberships         Membership[]
 
   @@index([email])
   @@index([role])
@@ -76,6 +77,10 @@ model Venue {
   id              String      @id @default(cuid())
   name            String
   locationId      String
+  streetAddress   String?     // Street address (e.g., "2528 Nicollet Ave")
+  addressLine2    String?     // Apartment, suite, etc. (optional)
+  postalCode      String?     // ZIP/postal code
+  neighborhood    String?     // Neighborhood or district (e.g., "Eat Street", "Five Points")
   venueType       VenueType
   capacity        Int?
   ageRestriction  AgeRestriction?
@@ -225,10 +230,10 @@ model TourRequest {
   createdById     String
   title           String
   description     String?
-  startDate       DateTime?
-  endDate         DateTime?
-  targetLocations String[]    // Array of location IDs
-  genres          String[]    // ["punk", "rock", "indie"]
+  startDate       DateTime
+  endDate         DateTime
+  targetLocations String[]    // ["New York", "Philadelphia", "Boston"]
+  genres          String[]    // ["punk", "hardcore", "indie"]
   status          RequestStatus @default(ACTIVE)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
@@ -239,10 +244,11 @@ model TourRequest {
   bids            Bid[]
 
   @@index([artistId])
+  @@index([createdById])
   @@index([status])
   @@index([startDate, endDate])
-  @@index([genres])
   @@index([targetLocations])
+  @@index([genres])
   @@index([createdAt])
   @@map("tour_requests")
 }
@@ -498,4 +504,34 @@ model MediaEmbed {
 enum EntityType {
   VENUE
   ARTIST
+}
+
+// Membership system for multiple members per entity
+model Membership {
+  id          String      @id @default(cuid())
+  userId      String
+  entityType  EntityType  // ARTIST or VENUE
+  entityId    String      // ID of the artist or venue
+  role        String      // 'owner', 'member', 'admin', etc.
+  permissions Json?       // Array of permissions
+  status      MembershipStatus @default(ACTIVE)
+  joinedAt    DateTime    @default(now())
+  invitedBy   String?     // User ID who invited this member
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Relations
+  user        User        @relation(fields: [userId], references: [id])
+
+  @@unique([userId, entityType, entityId])
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([status])
+  @@map("memberships")
+}
+
+enum MembershipStatus {
+  ACTIVE
+  PENDING
+  INACTIVE
 }

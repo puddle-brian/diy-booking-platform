@@ -9,6 +9,10 @@ interface VenueFormData {
   city: string;
   state: string;
   country: string;
+  streetAddress: string;
+  addressLine2: string;
+  postalCode: string;
+  neighborhood: string;
   venueType: VenueType;
   genres: string[];
   capacity: number;
@@ -42,6 +46,10 @@ export default function AdminVenues() {
     city: '',
     state: '',
     country: 'USA',
+    streetAddress: '',
+    addressLine2: '',
+    postalCode: '',
+    neighborhood: '',
     venueType: 'house-show',
     genres: [],
     capacity: 0,
@@ -204,6 +212,10 @@ export default function AdminVenues() {
         city: '',
         state: '',
         country: 'USA',
+        streetAddress: '',
+        addressLine2: '',
+        postalCode: '',
+        neighborhood: '',
         venueType: 'house-show',
         genres: [],
         capacity: 0,
@@ -331,6 +343,51 @@ export default function AdminVenues() {
                   value={formData.country}
                   onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+            </div>
+
+            {/* Address Fields */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+              <input
+                type="text"
+                value={formData.streetAddress}
+                onChange={(e) => setFormData(prev => ({ ...prev, streetAddress: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                placeholder="123 Main Street"
+              />
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Address Line 2</label>
+                <input
+                  type="text"
+                  value={formData.addressLine2}
+                  onChange={(e) => setFormData(prev => ({ ...prev, addressLine2: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Apt 2B, Suite 100, etc."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">ZIP/Postal Code</label>
+                <input
+                  type="text"
+                  value={formData.postalCode}
+                  onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="12345"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Neighborhood</label>
+                <input
+                  type="text"
+                  value={formData.neighborhood}
+                  onChange={(e) => setFormData(prev => ({ ...prev, neighborhood: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="e.g., East Village, Five Points"
                 />
               </div>
             </div>

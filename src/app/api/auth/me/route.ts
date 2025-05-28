@@ -1,37 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
-import fs from 'fs';
-import path from 'path';
+import { prisma } from '../../../../../lib/prisma';
 
-interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  role: 'admin' | 'venue' | 'artist';
-  profileId?: string;
-  profileType?: 'venue' | 'artist';
-  isVerified: boolean;
-  createdAt: string;
-  lastLogin?: string;
-}
-
-const USERS_FILE = path.join(process.cwd(), 'data', 'users.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
-
-// Load existing users
-const loadUsers = (): User[] => {
-  try {
-    if (!fs.existsSync(USERS_FILE)) {
-      return [];
-    }
-    const data = fs.readFileSync(USERS_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error loading users:', error);
-    return [];
-  }
-};
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,9 +27,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Load users and find current user
-    const users = loadUsers();
-    const user = users.find(u => u.id === decoded.userId);
+    // Find user in database
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      include: {
+        submittedArtists: true,
+        submittedVenues: true
+      }
+    });
 
     if (!user) {
       return NextResponse.json(
@@ -67,17 +43,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Determine profile type and ID based on owned entities
+    let profileType: 'artist' | 'venue' | undefined;
+    let profileId: string | undefined;
+
+    if (user.submittedArtists.length > 0) {
+      profileType = 'artist';
+      profileId = user.submittedArtists[0].id;
+    } else if (user.submittedVenues.length > 0) {
+      profileType = 'venue';
+      profileId = user.submittedVenues[0].id;
+    }
+
     // Return user data (excluding password)
     const userResponse = {
       id: user.id,
       email: user.email,
-      name: user.name,
-      role: user.role,
-      profileId: user.profileId,
-      profileType: user.profileType,
-      isVerified: user.isVerified,
-      lastLogin: user.lastLogin,
-      createdAt: user.createdAt
+      name: user.username,
+      role: user.role.toLowerCase(),
+      profileId,
+      profileType,
+      isVerified: user.verified,
+      createdAt: user.createdAt.toISOString()
     };
 
     return NextResponse.json({

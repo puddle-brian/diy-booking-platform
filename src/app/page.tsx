@@ -866,14 +866,14 @@ function HomeContent() {
             {/* Primary Actions Row */}
             <div className="flex items-center justify-center space-x-3 px-4 py-3 border-b border-gray-100">
               <Link 
-                href="/admin/venues"
+                href="/venues/submit"
                 className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
               >
                 + List a Space
               </Link>
               
               <Link 
-                href="/admin/artists"
+                href="/artists/submit"
                 className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
               >
                 + List an Artist
@@ -1063,10 +1063,10 @@ function HomeContent() {
                       </button>
                     ) : (
                       <a 
-                        href="/admin/venues" 
-                        className="block bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 font-medium"
+                        href="/venues/submit"
+                        className="bg-white text-black px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors font-medium text-lg"
                       >
-                        + List a Space
+                        List Your Space
                       </a>
                     )}
                   </div>
@@ -1293,10 +1293,10 @@ function HomeContent() {
                       </button>
                     ) : (
                       <a 
-                        href="/admin/artists" 
-                        className="block bg-black text-white px-8 py-3 rounded-lg hover:bg-gray-800 font-medium"
+                        href="/venues/submit"
+                        className="bg-white text-black px-8 py-4 rounded-lg hover:bg-gray-100 transition-colors font-medium text-lg"
                       >
-                        + List an Artist
+                        List Your Space
                       </a>
                     )}
                   </div>
@@ -1451,7 +1451,7 @@ function HomeContent() {
             <div>
               <h4 className="text-md font-semibold mb-3">For Venues</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/admin/venues" className="hover:text-white">List Your Space</Link></li>
+                <li><Link href="/venues/submit" className="hover:text-white">List Your Space</Link></li>
                 <li><Link href="/?tab=artists" className="hover:text-white">Browse Artists</Link></li>
                 <li><AuthLink href="/dashboard" className="hover:text-white">Manage Bookings</AuthLink></li>
               </ul>
@@ -1487,15 +1487,15 @@ function HomeContent() {
       <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
         <div className="flex items-center justify-center space-x-4 px-4 py-4">
           <Link 
-            href="/admin/venues"
-            className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+            href="/venues/submit"
+            className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
           >
             + List a Space
           </Link>
           
           <Link 
-            href="/admin/artists"
-            className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+            href="/artists/submit"
+            className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
           >
             + List an Artist
           </Link>

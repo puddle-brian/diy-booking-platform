@@ -27,6 +27,8 @@ export async function GET(
   try {
     const { id } = await params;
     
+    console.log(`👤 API: Fetching profile for user ID: ${id}`);
+    
     // Find user in database
     const user = await prisma.user.findUnique({
       where: { id },
@@ -37,13 +39,16 @@ export async function GET(
     });
     
     if (!user) {
+      console.log(`👤 API: User ${id} not found in database`);
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
     
-    // Build memberships array based on what the user owns
+    console.log(`👤 API: Found database user: ${user.username}`);
+    
+    // Build memberships array from database relationships
     const memberships: UserProfile['memberships'] = [];
     
     // Add artist memberships (where user is the owner)
@@ -72,19 +77,23 @@ export async function GET(
     let profileType: 'artist' | 'venue' | undefined;
     let profileId: string | undefined;
     
-    if (user.submittedArtists.length > 0) {
+    const artistMembership = memberships.find(m => m.entityType === 'artist');
+    const venueMembership = memberships.find(m => m.entityType === 'venue');
+    
+    if (artistMembership) {
       profileType = 'artist';
-      profileId = user.submittedArtists[0].id; // Use first artist as primary profile
-    } else if (user.submittedVenues.length > 0) {
+      profileId = artistMembership.entityId;
+    } else if (venueMembership) {
       profileType = 'venue';
-      profileId = user.submittedVenues[0].id; // Use first venue as primary profile
+      profileId = venueMembership.entityId;
     }
     
+    // Build user profile response
     const userProfile: UserProfile = {
       id: user.id,
       name: user.username,
       email: user.email,
-      bio: undefined, // Could add bio field to User model later
+      bio: undefined,
       role: user.role.toLowerCase(),
       profileType,
       profileId,
@@ -92,6 +101,7 @@ export async function GET(
       memberships
     };
     
+    console.log(`👤 API: Returning profile for ${userProfile.name} with ${memberships.length} memberships`);
     return NextResponse.json(userProfile);
   } catch (error) {
     console.error('Error fetching user profile:', error);

@@ -15,6 +15,7 @@ interface TeamMembersProps {
   members: TeamMember[];
   entityType: 'artist' | 'venue';
   entityName: string;
+  entityId: string;
   maxDisplay?: number;
   showRoles?: boolean;
   size?: 'sm' | 'md' | 'lg';
@@ -27,6 +28,7 @@ export default function TeamMembers({
   members, 
   entityType, 
   entityName, 
+  entityId,
   maxDisplay = 8,
   showRoles = true,
   size = 'md',
@@ -40,6 +42,21 @@ export default function TeamMembers({
     md: 'w-12 h-12',
     lg: 'w-16 h-16'
   };
+
+  // Debug logging
+  console.log('TeamMembers Debug:', {
+    entityType,
+    entityName,
+    entityId,
+    membersCount: members?.length || 0,
+    members: members?.map(m => ({ id: m.id, name: m.name, role: m.role })),
+    userId: user?.id,
+    userName: user?.name,
+    userProfileType: user?.profileType,
+    userProfileId: user?.profileId,
+    canInviteMembers,
+    hasOnInviteClick: !!onInviteClick
+  });
 
   // If no members and can claim, show claim button
   if (!members || members.length === 0) {
@@ -138,6 +155,41 @@ export default function TeamMembers({
     return `/profile/${member.id}`;
   };
 
+  // Check if current user can invite members
+  const userCanInvite = (() => {
+    if (!user || !onInviteClick) {
+      console.log('TeamMembers: Cannot invite - no user or no invite handler');
+      return false;
+    }
+    
+    // Check if user is a member in the members array
+    const isMember = members.some(member => member.id === user.id);
+    
+    // Check if user owns this entity (for artists/venues they submitted)
+    const isOwner = user.profileType === entityType && user.profileId === entityId;
+    
+    console.log('TeamMembers: Invite permission check:', {
+      userId: user.id,
+      userName: user.name,
+      userProfileType: user.profileType,
+      userProfileId: user.profileId,
+      entityType,
+      entityId,
+      isMember,
+      isOwner,
+      canInviteMembers,
+      finalDecision: isMember || isOwner
+    });
+    
+    // Allow if user is a member OR if they own this entity
+    return isMember || isOwner;
+  })();
+
+  console.log('TeamMembers: Final invite button decision:', {
+    userCanInvite,
+    willShowInviteButton: userCanInvite
+  });
+
   return (
     <div className="mb-6">
       <h3 className="text-lg font-semibold mb-3">
@@ -205,13 +257,14 @@ export default function TeamMembers({
           </div>
         )}
         
-        {canInviteMembers && onInviteClick && (
+        {userCanInvite && (
           <div className="text-center">
             <button
               onClick={onInviteClick}
-              className={`${sizeClasses[size]} rounded-full bg-blue-100 border-2 border-dashed border-blue-300 flex items-center justify-center mx-auto mb-1 hover:bg-blue-200 hover:border-blue-400 transition-colors group`}
+              className={`${sizeClasses[size]} rounded-full bg-blue-50 border-2 border-dashed border-blue-300 flex items-center justify-center mx-auto mb-1 hover:bg-blue-100 hover:border-blue-400 transition-all duration-200 group shadow-sm hover:shadow-md`}
+              title={`Invite ${entityType === 'artist' ? 'band member' : 'venue staff'}`}
             >
-              <svg className="w-4 h-4 text-blue-600 group-hover:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-blue-600 group-hover:text-blue-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </button>
@@ -221,7 +274,7 @@ export default function TeamMembers({
               </div>
               {showRoles && (
                 <div className="text-gray-500 truncate">
-                  Member
+                  {entityType === 'artist' ? 'Member' : 'Staff'}
                 </div>
               )}
             </div>

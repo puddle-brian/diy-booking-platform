@@ -10,9 +10,7 @@ import InviteMemberModal from '../../../components/InviteMemberModal';
 import ClaimEntityModal from '../../../components/ClaimEntityModal';
 import MediaSection from '../../../components/MediaSection';
 import TabbedTourItinerary from '../../../components/TabbedTourItinerary';
-import TeamManagement from '../../../components/TeamManagement';
 import { useAuth } from '../../../contexts/AuthContext';
-import { usePermissions } from '../../../hooks/usePermissions';
 
 interface Venue {
   id: string;
@@ -51,12 +49,15 @@ interface Venue {
   unavailableDates: string[];
   createdAt: Date;
   updatedAt: Date;
+  streetAddress?: string;
+  postalCode?: string;
+  neighborhood?: string;
+  addressLine2?: string;
 }
 
 export default function VenueDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { user } = useAuth();
-  const permissions = usePermissions();
   const [venue, setVenue] = useState<Venue | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -313,7 +314,25 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
             <div className="flex-1 min-w-0">
               <h1 className="text-3xl font-bold text-gray-900 mb-1">{venue.name}</h1>
               <div className="flex items-center text-gray-600 space-x-4 flex-wrap">
+                {venue.streetAddress && (
+                  <>
+                    <span>{venue.streetAddress}</span>
+                    <span>•</span>
+                  </>
+                )}
                 <span>{venue.city}, {venue.state}</span>
+                {venue.postalCode && (
+                  <>
+                    <span>•</span>
+                    <span>{venue.postalCode}</span>
+                  </>
+                )}
+                {venue.neighborhood && (
+                  <>
+                    <span>•</span>
+                    <span>{venue.neighborhood}</span>
+                  </>
+                )}
                 <span>•</span>
                 <span className="capitalize">{venue.venueType.replace('-', ' ')}</span>
                 <span>•</span>
@@ -347,29 +366,6 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
                   Send Message
                 </MessageButton>
               )}
-              
-              {/* Claim Venue Button - Only show to unauthenticated users or users without access */}
-              {!venue.hasAccount && !user && (
-                <div className="text-center">
-                  <div className="text-xs text-gray-600 mb-1">Is this you?</div>
-                  <button 
-                    onClick={() => {
-                      setIsClaimingMode(true);
-                      setShowBookingForm(true);
-                      setClaimingForm({
-                        venueName: venue.name,
-                        contactEmail: venue.contact.email,
-                        contactPhone: venue.contact.phone || '',
-                        contactName: '',
-                        message: `I am the owner/manager of ${venue.name} and would like to claim this venue profile to manage bookings and venue information.`,
-                      });
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm text-sm"
-                  >
-                    Claim this venue
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -390,6 +386,7 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
               members={members}
               entityType="venue"
               entityName={venue.name}
+              entityId={venue.id}
               maxDisplay={8}
               canInviteMembers={(() => {
                 if (!user) return false;
@@ -564,52 +561,6 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
 
 
         </div>
-
-        {/* Team Management Section - Role-Based Access Control */}
-        {venue && permissions.hasAnyPermission('venue', venue.id) && (
-          <div className="mt-8 border-t border-gray-200 pt-8">
-            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="font-semibold text-blue-800 mb-2">🏢 Venue Management</h3>
-              <p className="text-sm text-blue-700">
-                {user ? (
-                  `Welcome ${user.name}! You have access to manage this venue.`
-                ) : (
-                  'You have access to manage this venue.'
-                )}
-              </p>
-              {user && (
-                <div className="mt-2 text-xs text-blue-600">
-                  Role: {user.role} | Profile: {user.profileType} | ID: {user.profileId}
-                </div>
-              )}
-            </div>
-            
-            <TeamManagement
-              entityType="venue"
-              entityId={venue.id}
-              entityName={venue.name}
-              currentUserId={user?.id || 'anonymous'}
-              canManageMembers={permissions.canManageVenueStaff(venue.id)}
-            />
-          </div>
-        )}
-
-        {/* Debug Info for Development */}
-        {user && permissions.isAdmin && (
-          <div className="mt-8 border-t border-gray-200 pt-8">
-            <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <h3 className="font-semibold text-gray-800 mb-2">🔧 Admin Debug Info</h3>
-              <div className="text-sm text-gray-600 space-y-1">
-                <div>User: {user.name} ({user.email})</div>
-                <div>Role: {user.role}</div>
-                <div>Profile Type: {user.profileType || 'None'}</div>
-                <div>Profile ID: {user.profileId || 'None'}</div>
-                <div>Can manage venue staff: {permissions.canManageVenueStaff(venue.id) ? 'Yes' : 'No'}</div>
-                <div>Has venue permissions: {permissions.hasAnyPermission('venue', venue.id) ? 'Yes' : 'No'}</div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Invite Member Modal */}
         <InviteMemberModal

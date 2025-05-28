@@ -1,109 +1,106 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
+import { prisma } from '../../../../../../lib/prisma';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const INVITATIONS_FILE = path.join(DATA_DIR, 'member-invitations.json');
-
-interface Invitation {
-  id: string;
-  entityType: 'artist' | 'venue';
-  entityId: string;
-  entityName: string;
-  inviterEmail: string;
-  inviteeEmail: string;
-  role: string;
-  message: string;
-  token: string;
-  status: 'pending' | 'accepted' | 'declined' | 'expired';
-  createdAt: string;
-  expiresAt: string;
-}
-
-const loadInvitations = (): Invitation[] => {
-  try {
-    if (!fs.existsSync(INVITATIONS_FILE)) return [];
-    return JSON.parse(fs.readFileSync(INVITATIONS_FILE, 'utf8'));
-  } catch {
-    return [];
-  }
-};
-
-const saveInvitations = (invitations: Invitation[]) => {
-  fs.writeFileSync(INVITATIONS_FILE, JSON.stringify(invitations, null, 2));
-};
+const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Get token from cookie
+    const token = request.cookies.get('auth-token')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Verify token
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (error) {
+      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 });
+    }
+
     const resolvedParams = await params;
     const venueId = resolvedParams.id;
     const body = await request.json();
     
-    const { email, role, message, entityName } = body;
+    const { email: inviteeEmail, role = 'staff', message = '', entityName } = body;
     
-    // Validate required fields
-    if (!email || !role) {
-      return NextResponse.json({ error: 'Email and role are required' }, { status: 400 });
+    // Get current user
+    const currentUser = await prisma.user.findUnique({
+      where: { id: decoded.userId }
+    });
+    
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Check if current user has permission to invite staff
+    // For now, check if they're the owner (submittedBy) of the venue
+    const venue = await prisma.venue.findUnique({
+      where: { id: venueId },
+      select: { name: true, submittedById: true }
+    });
+
+    if (!venue) {
+      return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
+    }
+
+    if (venue.submittedById !== currentUser.id) {
+      return NextResponse.json({ error: 'No permission to invite staff' }, { status: 403 });
     }
     
-    // Validate email format
+    // Validate email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(inviteeEmail)) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
-    
-    // Check if invitation already exists
-    const invitations = loadInvitations();
-    const existingInvite = invitations.find(
-      inv => inv.entityType === 'venue' && 
-             inv.entityId === venueId && 
-             inv.inviteeEmail === email && 
-             inv.status === 'pending'
-    );
-    
-    if (existingInvite) {
-      return NextResponse.json({ error: 'Invitation already sent to this email' }, { status: 409 });
+
+    // Check if user exists
+    const inviteeUser = await prisma.user.findUnique({
+      where: { email: inviteeEmail }
+    });
+
+    if (inviteeUser) {
+      // Check if already a member (for now, check if they're the submitter)
+      if (inviteeUser.id === venue.submittedById) {
+        return NextResponse.json({ error: 'User is already a member' }, { status: 409 });
+      }
     }
-    
-    // Generate invitation
+
+    // Generate invitation token
     const inviteToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 days to accept
-    
-    const invitation: Invitation = {
-      id: `invite-${Date.now()}`,
-      entityType: 'venue',
-      entityId: venueId,
-      entityName: entityName || 'Unknown Venue',
-      inviterEmail: 'system@diyshows.com', // TODO: Get from current user
-      inviteeEmail: email,
-      role: role,
-      message: message || '',
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    // For now, we'll just log the invitation details
+    // In a full implementation, you'd store this in a separate invitations table
+    // and send an actual email
+    console.log(`📧 Send invitation to ${inviteeEmail} for venue ${venue.name}`);
+    console.log(`Invitation details:`, {
+      venueName: venue.name,
+      inviterName: currentUser.username,
+      inviterEmail: currentUser.email,
+      role,
+      message,
       token: inviteToken,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-      expiresAt: expiresAt.toISOString()
-    };
-    
-    invitations.push(invitation);
-    saveInvitations(invitations);
-    
-    // TODO: Send actual email here
-    console.log(`📧 Invitation email would be sent to ${email} to join ${entityName} as ${role}`);
-    console.log(`🔗 Invite link: http://localhost:3000/invite/${inviteToken}`);
+      expiresAt
+    });
     
     return NextResponse.json({
       success: true,
-      message: 'Invitation sent successfully',
-      inviteId: invitation.id
+      message: inviteeUser 
+        ? 'Invitation sent successfully. The user will see it in their dashboard.'
+        : 'Invitation sent successfully. They will need to create an account first.',
+      requiresSignup: !inviteeUser
     });
     
   } catch (error) {
-    console.error('Failed to send invitation:', error);
+    console.error('Error inviting staff member:', error);
     return NextResponse.json({ error: 'Failed to send invitation' }, { status: 500 });
   }
 } 

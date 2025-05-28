@@ -68,6 +68,10 @@ export interface Venue {
   city: string;
   state: string;
   country: string;
+  streetAddress?: string;    // Street address (e.g., "2528 Nicollet Ave")
+  addressLine2?: string;     // Apartment, suite, etc. (optional)
+  postalCode?: string;       // ZIP/postal code
+  neighborhood?: string;     // Neighborhood or district (e.g., "Eat Street", "Five Points")
   venueType: VenueType;
   genres: string[];
   capacity: number;
