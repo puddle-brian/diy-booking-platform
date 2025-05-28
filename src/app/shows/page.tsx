@@ -159,9 +159,55 @@ export default function ShowsPage() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="border-b border-gray-200">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        {/* Desktop Layout - Hidden on mobile */}
+        <div className="hidden md:block">
+          <div className="container mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <Link href="/" className="flex items-center space-x-3 hover:opacity-80">
+                  <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">B</span>
+                  </div>
+                  <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
+                </Link>
+              </div>
+              
+              {/* Centered Title */}
+              <div className="absolute left-1/2 transform -translate-x-1/2">
+                <h2 className="text-2xl font-bold text-gray-900">DIY Shows</h2>
+              </div>
+              
+              <div className="flex items-center space-x-4">
+                <Link 
+                  href="/admin/shows"
+                  className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+                >
+                  + Add a Show
+                </Link>
+                
+                <Link 
+                  href="/admin/venues"
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+                >
+                  + List a Space
+                </Link>
+                
+                <Link 
+                  href="/admin/artists"
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+                >
+                  + List an Artist
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Layout - Hidden on desktop */}
+        <div className="md:hidden">
+          <div className="container mx-auto px-4 py-4 space-y-4">
+            {/* Top Row: Logo and Title */}
+            <div className="flex items-center justify-center space-x-3">
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80">
                 <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
                   <span className="text-white font-bold text-sm">B</span>
@@ -170,31 +216,32 @@ export default function ShowsPage() {
               </Link>
             </div>
             
-            {/* Centered Title */}
-            <div className="absolute left-1/2 transform -translate-x-1/2">
+            {/* Middle Row: Page Title */}
+            <div className="flex justify-center">
               <h2 className="text-2xl font-bold text-gray-900">DIY Shows</h2>
             </div>
             
-            <div className="flex items-center space-x-4">
+            {/* Bottom Row: Action Buttons */}
+            <div className="flex items-center justify-center space-x-2">
               <Link 
                 href="/admin/shows"
-                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+                className="bg-black text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs"
               >
-                + Add a Show
+                + Add Show
               </Link>
               
               <Link 
                 href="/admin/venues"
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+                className="bg-gray-100 text-gray-700 px-2 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200"
               >
-                + List a Space
+                + Space
               </Link>
               
               <Link 
                 href="/admin/artists"
-                className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+                className="bg-gray-100 text-gray-700 px-2 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200"
               >
-                + List an Artist
+                + Artist
               </Link>
             </div>
           </div>

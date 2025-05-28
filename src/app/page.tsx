@@ -729,72 +729,143 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Header with Centered Toggle */}
+      {/* Header with Responsive Layout */}
       <header className="border-b border-gray-200">
-        <div className="container mx-auto px-4 py-6 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <img 
-              src="/logo.png" 
-              alt="diyshows logo" 
-              className="w-8 h-8 rounded-sm"
-              onError={(e) => {
-                // Fallback to the original "B" logo if image fails to load
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-            <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
-              <span className="text-white font-bold text-sm">B</span>
+        {/* Desktop Layout - Hidden on mobile */}
+        <div className="hidden md:block">
+          <div className="container mx-auto px-4 py-6 flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <img 
+                src="/logo.png" 
+                alt="diyshows logo" 
+                className="w-8 h-8 rounded-sm"
+                onError={(e) => {
+                  // Fallback to the original "B" logo if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
+                <span className="text-white font-bold text-sm">B</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
             </div>
-            {/* <h1 className="text-2xl font-bold tracking-tight">Book Yr Life</h1> */}
-            <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
-          </div>
-          
-          {/* Centered Toggle */}
-          <div className="absolute left-1/2 transform -translate-x-1/2" style={{ marginLeft: '-24px' }}>
-            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => handleTabChange('venues')}
-                className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'venues'
-                    ? 'bg-white text-black shadow-sm'
-                    : 'text-gray-600 hover:text-black'
-                }`}
+            
+            {/* Centered Toggle */}
+            <div className="absolute left-1/2 transform -translate-x-1/2" style={{ marginLeft: '-24px' }}>
+              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => handleTabChange('venues')}
+                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'venues'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  Spaces
+                </button>
+                <button
+                  onClick={() => handleTabChange('artists')}
+                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'artists'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  Artists
+                </button>
+              </div>
+            </div>
+            
+            {/* Right side - User Status */}
+            <div className="flex items-center space-x-4">
+              {/* Always visible CTAs */}
+              <Link 
+                href="/admin/venues"
+                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
               >
-                Spaces
-              </button>
-              <button
-                onClick={() => handleTabChange('artists')}
-                className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'artists'
-                    ? 'bg-white text-black shadow-sm'
-                    : 'text-gray-600 hover:text-black'
-                }`}
+                + List a Space
+              </Link>
+              
+              <Link 
+                href="/admin/artists"
+                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
               >
-                Artists
-              </button>
+                + List an Artist
+              </Link>
+              
+              {/* User Status Component */}
+              <UserStatus />
             </div>
           </div>
-          
-          {/* Right side - User Status */}
-          <div className="flex items-center space-x-4">
-            {/* Always visible CTAs */}
-            <Link 
-              href="/admin/venues"
-              className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
-            >
-              + List a Space
-            </Link>
+        </div>
+
+        {/* Mobile Layout - Hidden on desktop */}
+        <div className="md:hidden">
+          <div className="container mx-auto px-4 py-4 space-y-4">
+            {/* Top Row: Logo and Title */}
+            <div className="flex items-center justify-center space-x-3">
+              <img 
+                src="/logo.png" 
+                alt="diyshows logo" 
+                className="w-8 h-8 rounded-sm"
+                onError={(e) => {
+                  // Fallback to the original "B" logo if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
+                <span className="text-white font-bold text-sm">B</span>
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
+            </div>
             
-            <Link 
-              href="/admin/artists"
-              className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
-            >
-              + List an Artist
-            </Link>
+            {/* Middle Row: Spaces/Artists Toggle */}
+            <div className="flex justify-center">
+              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => handleTabChange('venues')}
+                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'venues'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  Spaces
+                </button>
+                <button
+                  onClick={() => handleTabChange('artists')}
+                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                    activeTab === 'artists'
+                      ? 'bg-white text-black shadow-sm'
+                      : 'text-gray-600 hover:text-black'
+                  }`}
+                >
+                  Artists
+                </button>
+              </div>
+            </div>
             
-            {/* User Status Component */}
-            <UserStatus />
+            {/* Bottom Row: Action Buttons */}
+            <div className="flex items-center justify-center space-x-3">
+              <Link 
+                href="/admin/venues"
+                className="bg-black text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs"
+              >
+                + List a Space
+              </Link>
+              
+              <Link 
+                href="/admin/artists"
+                className="bg-black text-white px-3 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs"
+              >
+                + List an Artist
+              </Link>
+              
+              {/* User Status Component */}
+              <UserStatus />
+            </div>
           </div>
         </div>
       </header>
