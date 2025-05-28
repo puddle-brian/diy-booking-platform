@@ -8,6 +8,7 @@ import LocationSorting from '../components/LocationSorting';
 import CommunitySection from '../components/CommunitySection';
 import UserStatus from '../components/UserStatus';
 import SmartGallery from '../components/SmartGallery';
+import { MobileFeedbackButton } from '../components/FeedbackWidget';
 import { useAuth } from '../contexts/AuthContext';
 
 // Custom hook for debounced search
@@ -145,6 +146,9 @@ function HomeContent() {
   const [selectedCapacities, setSelectedCapacities] = useState<string[]>([]);
   const [selectedDraws, setSelectedDraws] = useState<string[]>([]);
   const [selectedTourStatus, setSelectedTourStatus] = useState<string[]>([]);
+  
+  // Mobile filters state
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   
   // Search states - with immediate and debounced versions
   const [venueSearchLocation, setVenueSearchLocation] = useState('');
@@ -612,6 +616,8 @@ function HomeContent() {
   // Update URL when tab changes
   const handleTabChange = (tab: 'venues' | 'artists') => {
     setActiveTab(tab);
+    // Collapse mobile filters when switching tabs
+    setFiltersExpanded(false);
     const params = new URLSearchParams(searchParams?.toString() || '');
     params.set('tab', tab);
     router.push(`/?${params.toString()}`, { scroll: false });
@@ -777,24 +783,8 @@ function HomeContent() {
               </div>
             </div>
             
-            {/* Right side - User Status */}
-            <div className="flex items-center space-x-4">
-              {/* Always visible CTAs */}
-              <Link 
-                href="/admin/venues"
-                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
-              >
-                + List a Space
-              </Link>
-              
-              <Link 
-                href="/admin/artists"
-                className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
-              >
-                + List an Artist
-              </Link>
-              
-              {/* User Status Component */}
+            {/* Right side - Just User Status */}
+            <div className="flex items-center">
               <UserStatus />
             </div>
           </div>
@@ -802,82 +792,94 @@ function HomeContent() {
 
         {/* Mobile Layout - Hidden on desktop */}
         <div className="md:hidden">
-          <div className="container mx-auto px-4 py-4 space-y-4">
-            {/* Top Row: Logo, Title, and User Status */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <img 
-                  src="/logo.png" 
-                  alt="diyshows logo" 
-                  className="w-8 h-8 rounded-sm"
-                  onError={(e) => {
-                    // Fallback to the original "B" logo if image fails to load
-                    e.currentTarget.style.display = 'none';
-                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                  }}
-                />
-                <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
-                  <span className="text-white font-bold text-sm">B</span>
+          {/* Top: Search Bar */}
+          <div className="bg-white sticky top-0 z-10 shadow-sm">
+            <div className="container mx-auto px-4 pt-4 pb-2">
+              <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
+                <div className="flex items-center">
+                  <div className="flex-1 px-4 py-2">
+                    <input
+                      type="text"
+                      placeholder={activeTab === 'venues' ? "Search spaces by name or location..." : "Search artists by name or location..."}
+                      value={activeTab === 'venues' ? venueSearchLocation : artistSearchLocation}
+                      onChange={(e) => activeTab === 'venues' ? setVenueSearchLocation(e.target.value) : setArtistSearchLocation(e.target.value)}
+                      className="w-full text-sm placeholder-gray-500 border-none outline-none"
+                    />
+                  </div>
+                  <div className="p-1">
+                    <button className="w-8 h-8 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <h1 className="text-xl font-bold tracking-tight">diyshows <span className="text-xs font-normal text-gray-500">beta</span></h1>
-              </div>
-              
-              {/* User Status in top-right corner */}
-              <UserStatus />
-            </div>
-            
-            {/* Middle Row: Spaces/Artists Toggle */}
-            <div className="flex justify-center">
-              <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => handleTabChange('venues')}
-                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'venues'
-                      ? 'bg-white text-black shadow-sm'
-                      : 'text-gray-600 hover:text-black'
-                  }`}
-                >
-                  Spaces
-                </button>
-                <button
-                  onClick={() => handleTabChange('artists')}
-                  className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
-                    activeTab === 'artists'
-                      ? 'bg-white text-black shadow-sm'
-                      : 'text-gray-600 hover:text-black'
-                  }`}
-                >
-                  Artists
-                </button>
               </div>
             </div>
             
-            {/* Bottom Row: Primary Action Buttons Only */}
-            <div className="flex items-center justify-center space-x-3">
+            {/* Spaces/Artists Toggle - directly underneath search */}
+            <div className="container mx-auto px-4 pb-3">
+              <div className="flex justify-center">
+                <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => handleTabChange('venues')}
+                    className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'venues'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-gray-600 hover:text-black'
+                    }`}
+                  >
+                    Spaces
+                  </button>
+                  <button
+                    onClick={() => handleTabChange('artists')}
+                    className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                      activeTab === 'artists'
+                        ? 'bg-white text-black shadow-sm'
+                        : 'text-gray-600 hover:text-black'
+                    }`}
+                  >
+                    Artists
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Fixed Bottom Navigation */}
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+            {/* Primary Actions Row */}
+            <div className="flex items-center justify-center space-x-3 px-4 py-3 border-b border-gray-100">
               <Link 
                 href="/admin/venues"
-                className="bg-black text-white px-6 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
+                className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
               >
                 + List a Space
               </Link>
               
               <Link 
                 href="/admin/artists"
-                className="bg-black text-white px-6 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
+                className="bg-black text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
               >
                 + List an Artist
               </Link>
+            </div>
+            
+            {/* User Status Row */}
+            <div className="flex items-center justify-center px-4 py-2">
+              <UserStatus />
+              <MobileFeedbackButton />
             </div>
           </div>
         </div>
       </header>
 
-      {/* Dynamic Content */}
+      {/* Dynamic Content - Responsive */}
       {activeTab === 'venues' ? (
         // VENUES VIEW - Browse venues
-        <section className="container mx-auto px-4 py-8">
-          {/* Simplified Search Bar */}
-          <div className="max-w-2xl mx-auto mb-8">
+        <section className="container mx-auto px-4 py-4 pb-24 md:py-8 md:pb-20">
+          {/* Desktop Search Bar - Hidden on mobile */}
+          <div className="max-w-2xl mx-auto mb-6 md:mb-8 hidden md:block">
             <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
               <div className="flex items-center">
                 <div className="flex-1 px-4 py-2">
@@ -902,43 +904,88 @@ function HomeContent() {
 
           {/* Filter Dropdowns */}
           <div className="max-w-4xl mx-auto mb-8">
-            <div className="flex flex-wrap gap-3 items-center justify-center">
-              <MultiSelectDropdown
-                label="Space Types"
-                options={VENUE_TYPE_LABELS}
-                selectedValues={selectedVenueTypes}
-                onSelectionChange={setSelectedVenueTypes}
-              />
+            {/* Mobile Filter Toggle Button */}
+            <div className="md:hidden mb-4 flex items-center justify-between">
+              <button
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <span className="text-sm font-medium">Filters</span>
+                {hasActiveFilters && (
+                  <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                    {[
+                      selectedVenueTypes.length,
+                      selectedGenres.length,
+                      selectedAgeRestrictions.length,
+                      selectedCapacities.length,
+                      debouncedVenueLocation.trim() ? 1 : 0
+                    ].reduce((a, b) => a + b, 0)}
+                  </span>
+                )}
+                <svg 
+                  className={`w-4 h-4 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
               
-              <MultiSelectDropdown
-                label="Genres"
-                options={genreOptions}
-                selectedValues={selectedGenres}
-                onSelectionChange={setSelectedGenres}
-              />
-              
-              <MultiSelectDropdown
-                label="Ages"
-                options={ageRestrictionOptions}
-                selectedValues={selectedAgeRestrictions}
-                onSelectionChange={setSelectedAgeRestrictions}
-              />
-
-              <MultiSelectDropdown
-                label="Capacity"
-                options={capacityOptions}
-                selectedValues={selectedCapacities}
-                onSelectionChange={setSelectedCapacities}
-              />
-
               {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
                   className="text-sm text-gray-600 hover:text-black underline"
                 >
-                  Clear all filters
+                  Clear all
                 </button>
               )}
+            </div>
+
+            {/* Filter Dropdowns - Always visible on desktop, collapsible on mobile */}
+            <div className={`${filtersExpanded ? 'block' : 'hidden'} md:block`}>
+              <div className="flex flex-wrap gap-3 items-center justify-center">
+                <MultiSelectDropdown
+                  label="Space Types"
+                  options={VENUE_TYPE_LABELS}
+                  selectedValues={selectedVenueTypes}
+                  onSelectionChange={setSelectedVenueTypes}
+                />
+                
+                <MultiSelectDropdown
+                  label="Genres"
+                  options={genreOptions}
+                  selectedValues={selectedGenres}
+                  onSelectionChange={setSelectedGenres}
+                />
+                
+                <MultiSelectDropdown
+                  label="Ages"
+                  options={ageRestrictionOptions}
+                  selectedValues={selectedAgeRestrictions}
+                  onSelectionChange={setSelectedAgeRestrictions}
+                />
+
+                <MultiSelectDropdown
+                  label="Capacity"
+                  options={capacityOptions}
+                  selectedValues={selectedCapacities}
+                  onSelectionChange={setSelectedCapacities}
+                />
+
+                {/* Desktop Clear Filters Button */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-sm text-gray-600 hover:text-black underline hidden md:block"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
             </div>
             
             {/* Active Filter Summary */}
@@ -1084,10 +1131,10 @@ function HomeContent() {
           )}
         </section>
       ) : (
-        // ARTISTS VIEW - Browse artists
-        <section className="container mx-auto px-4 py-8">
-          {/* Simplified Search Bar for Artists */}
-          <div className="max-w-2xl mx-auto mb-8">
+        // ARTISTS VIEW - Browse artists  
+        <section className="container mx-auto px-4 py-4 pb-24 md:py-8 md:pb-20">
+          {/* Desktop Search Bar - Hidden on mobile */}
+          <div className="max-w-2xl mx-auto mb-6 md:mb-8 hidden md:block">
             <div className="bg-white rounded-full shadow-lg border border-gray-200 p-1">
               <div className="flex items-center">
                 <div className="flex-1 px-4 py-2">
@@ -1112,43 +1159,88 @@ function HomeContent() {
 
           {/* Filter Dropdowns for Artists */}
           <div className="max-w-4xl mx-auto mb-8">
-            <div className="flex flex-wrap gap-3 items-center justify-center">
-              <MultiSelectDropdown
-                label="Artist Types"
-                options={ARTIST_TYPE_LABELS}
-                selectedValues={selectedArtistTypes}
-                onSelectionChange={setSelectedArtistTypes}
-              />
+            {/* Mobile Filter Toggle Button */}
+            <div className="md:hidden mb-4 flex items-center justify-between">
+              <button
+                onClick={() => setFiltersExpanded(!filtersExpanded)}
+                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                <span className="text-sm font-medium">Filters</span>
+                {hasActiveFilters && (
+                  <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                    {[
+                      selectedArtistTypes.length,
+                      selectedGenres.length,
+                      selectedDraws.length,
+                      selectedTourStatus.length,
+                      debouncedArtistLocation.trim() ? 1 : 0
+                    ].reduce((a, b) => a + b, 0)}
+                  </span>
+                )}
+                <svg 
+                  className={`w-4 h-4 transition-transform ${filtersExpanded ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
               
-              <MultiSelectDropdown
-                label="Genres"
-                options={genreOptions}
-                selectedValues={selectedGenres}
-                onSelectionChange={setSelectedGenres}
-              />
-
-              <MultiSelectDropdown
-                label="Expected Draw"
-                options={drawOptions}
-                selectedValues={selectedDraws}
-                onSelectionChange={setSelectedDraws}
-              />
-
-              <MultiSelectDropdown
-                label="Tour Status"
-                options={tourStatusOptions}
-                selectedValues={selectedTourStatus}
-                onSelectionChange={setSelectedTourStatus}
-              />
-
               {hasActiveFilters && (
                 <button
                   onClick={clearAllFilters}
                   className="text-sm text-gray-600 hover:text-black underline"
                 >
-                  Clear all filters
+                  Clear all
                 </button>
               )}
+            </div>
+
+            {/* Filter Dropdowns - Always visible on desktop, collapsible on mobile */}
+            <div className={`${filtersExpanded ? 'block' : 'hidden'} md:block`}>
+              <div className="flex flex-wrap gap-3 items-center justify-center">
+                <MultiSelectDropdown
+                  label="Artist Types"
+                  options={ARTIST_TYPE_LABELS}
+                  selectedValues={selectedArtistTypes}
+                  onSelectionChange={setSelectedArtistTypes}
+                />
+                
+                <MultiSelectDropdown
+                  label="Genres"
+                  options={genreOptions}
+                  selectedValues={selectedGenres}
+                  onSelectionChange={setSelectedGenres}
+                />
+
+                <MultiSelectDropdown
+                  label="Expected Draw"
+                  options={drawOptions}
+                  selectedValues={selectedDraws}
+                  onSelectionChange={setSelectedDraws}
+                />
+
+                <MultiSelectDropdown
+                  label="Tour Status"
+                  options={tourStatusOptions}
+                  selectedValues={selectedTourStatus}
+                  onSelectionChange={setSelectedTourStatus}
+                />
+
+                {/* Desktop Clear Filters Button */}
+                {hasActiveFilters && (
+                  <button
+                    onClick={clearAllFilters}
+                    className="text-sm text-gray-600 hover:text-black underline hidden md:block"
+                  >
+                    Clear all filters
+                  </button>
+                )}
+              </div>
             </div>
             
             {/* Active Filter Summary */}
@@ -1426,6 +1518,25 @@ function HomeContent() {
           </div>
         </div>
       </footer>
+
+      {/* Fixed Bottom Navigation - Desktop */}
+      <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div className="flex items-center justify-center space-x-4 px-4 py-4">
+          <Link 
+            href="/admin/venues"
+            className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+          >
+            + List a Space
+          </Link>
+          
+          <Link 
+            href="/admin/artists"
+            className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+          >
+            + List an Artist
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

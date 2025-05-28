@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Show } from '../../../types';
+import UserStatus from '../../components/UserStatus';
+import { MobileFeedbackButton } from '../../components/FeedbackWidget';
 
 // Custom hook for debounced search
 function useDebounce<T>(value: T, delay: number): T {
@@ -168,36 +170,15 @@ export default function ShowsPage() {
                   <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
                     <span className="text-white font-bold text-sm">B</span>
                   </div>
-                  <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
+                  <h1 className="text-xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
                 </Link>
+                <span className="text-gray-300">•</span>
+                <h2 className="text-lg font-semibold text-gray-900">DIY Shows</h2>
               </div>
               
-              {/* Centered Title */}
-              <div className="absolute left-1/2 transform -translate-x-1/2">
-                <h2 className="text-2xl font-bold text-gray-900">DIY Shows</h2>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <Link 
-                  href="/admin/shows"
-                  className="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
-                >
-                  + Add a Show
-                </Link>
-                
-                <Link 
-                  href="/admin/venues"
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
-                >
-                  + List a Space
-                </Link>
-                
-                <Link 
-                  href="/admin/artists"
-                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
-                >
-                  + List an Artist
-                </Link>
+              {/* Right side - Just User Status */}
+              <div className="flex items-center">
+                <UserStatus />
               </div>
             </div>
           </div>
@@ -248,90 +229,93 @@ export default function ShowsPage() {
         </div>
       </header>
 
-      {/* Search and Filters */}
-      <section className="container mx-auto px-4 py-8">
-        {/* Search Bar */}
-        <div className="max-w-3xl mx-auto mb-8">
-          <div className="bg-white rounded-full shadow-lg border border-gray-200 p-2">
-            <div className="flex items-center">
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-1">
-                <div className="p-4">
-                  <div className="text-xs font-semibold text-gray-700 mb-1">Where</div>
-                  <input
-                    type="text"
-                    placeholder="Search shows, venues, artists..."
-                    value={searchLocation}
-                    onChange={(e) => setSearchLocation(e.target.value)}
-                    className="w-full text-sm placeholder-gray-500 border-none outline-none"
-                  />
+      {/* Main Content */}
+      <main className="container mx-auto px-4 py-8 pb-24 md:pb-20">
+        {/* Search and Filter Section */}
+        <div className="max-w-4xl mx-auto mb-8">
+          {/* Search Bar */}
+          <div className="max-w-3xl mx-auto mb-8">
+            <div className="bg-white rounded-full shadow-lg border border-gray-200 p-2">
+              <div className="flex items-center">
+                <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-1">
+                  <div className="p-4">
+                    <div className="text-xs font-semibold text-gray-700 mb-1">Where</div>
+                    <input
+                      type="text"
+                      placeholder="Search shows, venues, artists..."
+                      value={searchLocation}
+                      onChange={(e) => setSearchLocation(e.target.value)}
+                      className="w-full text-sm placeholder-gray-500 border-none outline-none"
+                    />
+                  </div>
+                  <div className="p-4 border-l border-gray-200">
+                    <div className="text-xs font-semibold text-gray-700 mb-1">When</div>
+                    <input
+                      type="date"
+                      placeholder="Show date"
+                      value={searchDate}
+                      onChange={(e) => setSearchDate(e.target.value)}
+                      className="w-full text-sm placeholder-gray-500 border-none outline-none"
+                    />
+                  </div>
                 </div>
-                <div className="p-4 border-l border-gray-200">
-                  <div className="text-xs font-semibold text-gray-700 mb-1">When</div>
-                  <input
-                    type="date"
-                    placeholder="Show date"
-                    value={searchDate}
-                    onChange={(e) => setSearchDate(e.target.value)}
-                    className="w-full text-sm placeholder-gray-500 border-none outline-none"
-                  />
+                <div className="p-2">
+                  <button className="w-12 h-12 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </button>
                 </div>
-              </div>
-              <div className="p-2">
-                <button className="w-12 h-12 bg-black text-white rounded-full hover:bg-gray-800 transition-colors flex items-center justify-center">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </button>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Status Filter */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex flex-wrap gap-3 items-center justify-center">
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
-            >
-              <option value="">All Shows</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="tentative">Tentative</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-
-            {hasActiveFilters && (
-              <button
-                onClick={clearAllFilters}
-                className="text-sm text-gray-600 hover:text-black underline"
+          {/* Status Filter */}
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="flex flex-wrap gap-3 items-center justify-center">
+              <select
+                value={selectedStatus}
+                onChange={(e) => setSelectedStatus(e.target.value)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black"
               >
-                Clear all filters
-              </button>
+                <option value="">All Shows</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="tentative">Tentative</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+
+              {hasActiveFilters && (
+                <button
+                  onClick={clearAllFilters}
+                  className="text-sm text-gray-600 hover:text-black underline"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </div>
+            
+            {/* Active Filter Summary */}
+            {hasActiveFilters && (
+              <div className="mt-3 text-sm text-gray-600 text-center">
+                Showing {filteredShows.length} of {shows.length} shows
+                {debouncedLocation.trim() && (
+                  <span className="ml-2 text-blue-600">
+                    • searching "{debouncedLocation}"
+                  </span>
+                )}
+                {debouncedDate && (
+                  <span className="ml-2 text-blue-600">
+                    • on {formatDate(debouncedDate)}
+                  </span>
+                )}
+                {selectedStatus && (
+                  <span className="ml-2 text-blue-600">
+                    • {selectedStatus} only
+                  </span>
+                )}
+              </div>
             )}
           </div>
-          
-          {/* Active Filter Summary */}
-          {hasActiveFilters && (
-            <div className="mt-3 text-sm text-gray-600 text-center">
-              Showing {filteredShows.length} of {shows.length} shows
-              {debouncedLocation.trim() && (
-                <span className="ml-2 text-blue-600">
-                  • searching "{debouncedLocation}"
-                </span>
-              )}
-              {debouncedDate && (
-                <span className="ml-2 text-blue-600">
-                  • on {formatDate(debouncedDate)}
-                </span>
-              )}
-              {selectedStatus && (
-                <span className="ml-2 text-blue-600">
-                  • {selectedStatus} only
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Shows List */}
@@ -498,7 +482,7 @@ export default function ShowsPage() {
             </button>
           </div>
         )}
-      </section>
+      </main>
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12 mt-16">
@@ -552,6 +536,65 @@ export default function ShowsPage() {
           </div>
         </div>
       </footer>
+
+      {/* Fixed Bottom Navigation - Mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        {/* Primary Actions Row */}
+        <div className="flex items-center justify-center space-x-2 px-4 py-3 border-b border-gray-100">
+          <Link 
+            href="/admin/shows"
+            className="bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs min-w-[80px] text-center"
+          >
+            + Show
+          </Link>
+          
+          <Link 
+            href="/admin/venues"
+            className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200 min-w-[80px] text-center"
+          >
+            + Space
+          </Link>
+          
+          <Link 
+            href="/admin/artists"
+            className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200 min-w-[80px] text-center"
+          >
+            + Artist
+          </Link>
+        </div>
+        
+        {/* User Status Row */}
+        <div className="flex items-center justify-center px-4 py-2">
+          <UserStatus />
+          <MobileFeedbackButton />
+        </div>
+      </div>
+
+      {/* Fixed Bottom Navigation - Desktop */}
+      <div className="hidden md:block fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div className="flex items-center justify-center space-x-4 px-4 py-4">
+          <Link 
+            href="/admin/shows"
+            className="bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm"
+          >
+            + Add a Show
+          </Link>
+          
+          <Link 
+            href="/admin/venues"
+            className="bg-gray-100 text-gray-700 px-8 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+          >
+            + List a Space
+          </Link>
+          
+          <Link 
+            href="/admin/artists"
+            className="bg-gray-100 text-gray-700 px-8 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200"
+          >
+            + List an Artist
+          </Link>
+        </div>
+      </div>
     </div>
   );
 } 
