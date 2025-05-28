@@ -6,9 +6,13 @@ import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
+    firstName: '',
+    lastName: '',
+    location: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,25 +25,30 @@ export default function LoginPage() {
     setSuccess('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const payload = isLogin 
+        ? { email: formData.email, password: formData.password }
+        : formData;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Login failed');
+        throw new Error(result.error || `${isLogin ? 'Login' : 'Registration'} failed`);
       }
 
-      setSuccess('Login successful! Redirecting...');
+      setSuccess(`${isLogin ? 'Login' : 'Registration'} successful! Redirecting...`);
       
       // Redirect based on user role
       setTimeout(() => {
-        if (result.user.role === 'admin') {
+        if (result.user?.role === 'admin') {
           router.push('/admin');
         } else {
           router.push('/');
@@ -74,14 +83,20 @@ export default function LoginPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <div className="w-12 h-12 bg-black rounded-sm flex items-center justify-center">
-            <span className="text-white font-bold text-xl">B</span>
-          </div>
+          <img 
+            src="/og-image.png" 
+            alt="DIY Shows" 
+            className="h-12 w-auto"
+          />
         </div>
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back</h2>
-        <p className="text-gray-600 mb-8">
-          {/* Sign in to Book Yr Life */}
-          Sign in to diyshows beta
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900 mb-2">
+          {isLogin ? 'Welcome back' : 'Join the community'}
+        </h2>
+        <p className="text-center text-gray-600 mb-8">
+          {isLogin 
+            ? 'Sign in to diyshows beta' 
+            : 'Create your account to get started'
+          }
         </p>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
@@ -93,6 +108,32 @@ export default function LoginPage() {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* Toggle between Login and Register */}
+          <div className="flex mb-6">
+            <button
+              type="button"
+              onClick={() => setIsLogin(true)}
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-l-md border ${
+                isLogin
+                  ? 'bg-black text-white border-black'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsLogin(false)}
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-r-md border-t border-r border-b ${
+                !isLogin
+                  ? 'bg-black text-white border-black'
+                  : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
           {/* Status Messages */}
           {error && (
             <div className="mb-4 p-3 rounded-md bg-red-50 border border-red-200">
@@ -107,6 +148,46 @@ export default function LoginPage() {
           )}
 
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Name Fields - Only for Registration */}
+            {!isLogin && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                    First name
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="firstName"
+                      name="firstName"
+                      type="text"
+                      required
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-black focus:outline-none focus:ring-black sm:text-sm"
+                      placeholder="First name"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                    Last name
+                  </label>
+                  <div className="mt-1">
+                    <input
+                      id="lastName"
+                      name="lastName"
+                      type="text"
+                      required
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-black focus:outline-none focus:ring-black sm:text-sm"
+                      placeholder="Last name"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email address
@@ -135,15 +216,55 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  autoComplete="current-password"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-black focus:outline-none focus:ring-black sm:text-sm"
-                  placeholder="Your password"
+                  placeholder={isLogin ? "Your password" : "Create a password"}
                 />
               </div>
             </div>
+
+            {/* Location Field - Only for Registration */}
+            {!isLogin && (
+              <div>
+                <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                  Location
+                </label>
+                <div className="mt-1">
+                  <input
+                    id="location"
+                    name="location"
+                    type="text"
+                    required
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    className="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-black focus:outline-none focus:ring-black sm:text-sm"
+                    placeholder="City, State/Province"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Terms Agreement - Only for Registration */}
+            {!isLogin && (
+              <div className="flex items-center">
+                <input
+                  id="agree-terms"
+                  name="agree-terms"
+                  type="checkbox"
+                  required
+                  className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                />
+                <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-700">
+                  I agree to the{' '}
+                  <a href="#" className="text-black hover:underline">Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="#" className="text-black hover:underline">Privacy Policy</a>
+                </label>
+              </div>
+            )}
 
             <div>
               <button
@@ -151,43 +272,51 @@ export default function LoginPage() {
                 disabled={loading}
                 className="flex w-full justify-center rounded-md border border-transparent bg-black py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Signing in...' : 'Sign in'}
+                {loading 
+                  ? (isLogin ? 'Signing in...' : 'Creating account...') 
+                  : (isLogin ? 'Sign in' : 'Create account')
+                }
               </button>
             </div>
           </form>
 
-          {/* Development Helper */}
-          <div className="mt-6 border-t border-gray-200 pt-6">
-            <p className="text-xs text-gray-500 mb-3">
-              Development setup: If this is your first time, initialize the system with a default admin account.
-            </p>
-            <button
-              onClick={initializeSystem}
-              className="w-full text-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
-            >
-              Initialize System (Create Admin)
-            </button>
-          </div>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-2 text-gray-500">Need to claim your profile?</span>
-              </div>
-            </div>
-
-            <div className="mt-6 text-center">
-              <Link 
-                href="/"
-                className="text-sm text-gray-600 hover:text-black"
+          {/* Development Helper - Only show for login */}
+          {isLogin && (
+            <div className="mt-6 border-t border-gray-200 pt-6">
+              <p className="text-xs text-gray-500 mb-3">
+                Development setup: If this is your first time, initialize the system with a default admin account.
+              </p>
+              <button
+                onClick={initializeSystem}
+                className="w-full text-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
               >
-                Browse artists and venues to find claim buttons on their profiles
-              </Link>
+                Initialize System (Create Admin)
+              </button>
             </div>
-          </div>
+          )}
+
+          {/* Profile claiming section - Only show for login */}
+          {isLogin && (
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="bg-white px-2 text-gray-500">Need to claim your profile?</span>
+                </div>
+              </div>
+
+              <div className="mt-6 text-center">
+                <Link 
+                  href="/"
+                  className="text-sm text-gray-600 hover:text-black"
+                >
+                  Browse artists and venues to find claim buttons on their profiles
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

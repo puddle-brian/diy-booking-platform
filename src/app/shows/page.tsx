@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Show } from '../../../types';
 import UserStatus from '../../components/UserStatus';
 import { MobileFeedbackButton } from '../../components/FeedbackWidget';
+import AuthLink from '../../components/AuthLink';
 
 // Custom hook for debounced search
 function useDebounce<T>(value: T, delay: number): T {
@@ -485,21 +486,21 @@ export default function ShowsPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 mt-16">
+      <footer className="bg-gray-900 text-white py-12">
         <div className="max-w-6xl mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-lg font-semibold mb-4">DIY Booking</h3>
+              <h3 className="text-lg font-semibold mb-4">DIY Shows</h3>
               <p className="text-gray-400">
-                Connecting artists with authentic spaces. diyshows beta.
+                Book your own shows. Skip the agents and middlemen. Add your DIY space or act to the crowdsourced network. Venues find artists looking for shows in your area and bid. Artists request shows anywhere for venues to find and bid.
               </p>
             </div>
             <div>
               <h4 className="text-md font-semibold mb-3">For Artists</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/?tab=venues" className="hover:text-white">Find Venues</Link></li>
-                <li><Link href="/shows" className="hover:text-white">Browse Shows</Link></li>
-                <li><Link href="/admin/artists" className="hover:text-white">List Yourself</Link></li>
+                <li><Link href="/admin/artists" className="hover:text-white">List an Artist</Link></li>
+                <li><AuthLink href="/dashboard" className="hover:text-white">Dashboard & Requests</AuthLink></li>
+                <li><AuthLink href="/dashboard" className="hover:text-white">Manage Bookings</AuthLink></li>
               </ul>
             </div>
             <div>
@@ -507,21 +508,21 @@ export default function ShowsPage() {
               <ul className="space-y-2 text-gray-400">
                 <li><Link href="/admin/venues" className="hover:text-white">List Your Space</Link></li>
                 <li><Link href="/?tab=artists" className="hover:text-white">Browse Artists</Link></li>
-                <li><Link href="/shows" className="hover:text-white">View Shows</Link></li>
+                <li><AuthLink href="/dashboard" className="hover:text-white">Manage Bookings</AuthLink></li>
               </ul>
             </div>
             <div>
               <h4 className="text-md font-semibold mb-3">Community</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><Link href="/" className="hover:text-white">About BYOFL</Link></li>
-                <li><Link href="/" className="hover:text-white">Support</Link></li>
-                <li><Link href="/" className="hover:text-white">Guidelines</Link></li>
+                <li><Link href="/about" className="hover:text-white">About DIY Shows</Link></li>
+                <li><Link href="/support" className="hover:text-white">Support</Link></li>
+                <li><Link href="/guidelines" className="hover:text-white">Guidelines</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 flex justify-between items-center">
             <p className="text-gray-400">
-              © 2025 DIY Booking Platform. Inspired by the BYOFL zine.
+              © 2025 DIY Shows. Built by and for the DIY music community.
             </p>
             <div className="flex items-center space-x-4">
               <span className="text-gray-500 text-xs">DEV:</span>

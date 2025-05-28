@@ -93,13 +93,13 @@ export default function RootLayout({
         "@type": "Action",
         "name": "List a Space",
         "description": "Add your DIY venue to the platform",
-        "target": "https://diy-shows.com/venues/submit"
+        "target": "https://diy-shows.com/admin/venues"
       },
       {
         "@type": "Action", 
         "name": "List an Artist",
         "description": "Add your artist profile to find shows",
-        "target": "https://diy-shows.com/artists/submit"
+        "target": "https://diy-shows.com/admin/artists"
       }
     ],
     "mainEntity": {
@@ -155,13 +155,13 @@ export default function RootLayout({
                   "@type": "ListItem",
                   "position": 4,
                   "name": "List a Space",
-                  "item": "https://diy-shows.com/venues/submit"
+                  "item": "https://diy-shows.com/admin/venues"
                 },
                 {
                   "@type": "ListItem",
                   "position": 5,
                   "name": "List an Artist", 
-                  "item": "https://diy-shows.com/artists/submit"
+                  "item": "https://diy-shows.com/admin/artists"
                 }
               ]
             })
@@ -174,7 +174,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "DIY Shows",
-              "description": "DIY booking platform connecting venues and artists",
+              "description": "DIY Shows - crowdsourced booking platform connecting venues and artists",
               "url": "https://diy-shows.com",
               "logo": "https://diy-shows.com/og-image.png",
               "sameAs": [

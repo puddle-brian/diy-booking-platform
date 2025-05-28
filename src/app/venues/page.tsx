@@ -13,7 +13,7 @@ export default function VenueDirectory() {
           </div>
           <nav className="hidden md:flex space-x-8">
             <a href="/venues" className="text-black font-medium">Browse Directory</a>
-            <a href="/venues/submit" className="text-gray-700 hover:text-black">Submit Space</a>
+            <a href="/admin/venues" className="text-gray-700 hover:text-black">Submit Space</a>
             <a href="#" className="text-gray-700 hover:text-black">Scene Reports</a>
             <a href="/auth/login" className="text-gray-700 hover:text-black">Sign In</a>
           </nav>
@@ -120,7 +120,9 @@ export default function VenueDirectory() {
 
           {/* CTA */}
           <div className="bg-black text-white rounded-xl p-8 mt-12 text-center">
-                        <h3 className="text-2xl font-bold mb-4">Don't see your city?</h3>            <p className="text-lg mb-6 opacity-90">Help us build the directory by adding spaces in your area</p>            <a href="/venues/submit" className="bg-white text-black px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium">              Submit a Space            </a>
+                        <h3 className="text-2xl font-bold mb-4">Don't see your city?</h3>            <p className="text-lg mb-6 opacity-90">Help us build the directory by adding spaces in your area</p>            <a href="/admin/venues" className="bg-white text-black px-8 py-3 rounded-lg hover:bg-gray-100 transition-colors font-medium">
+              Submit a Space
+            </a>
           </div>
         </div>
       </div>
