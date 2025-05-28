@@ -206,13 +206,20 @@ export default function ShowsPage() {
         {/* Mobile Layout - Hidden on desktop */}
         <div className="md:hidden">
           <div className="container mx-auto px-4 py-4 space-y-4">
-            {/* Top Row: Logo and Title */}
-            <div className="flex items-center justify-center space-x-3">
+            {/* Top Row: Logo, Title, and Navigation */}
+            <div className="flex items-center justify-between">
               <Link href="/" className="flex items-center space-x-3 hover:opacity-80">
                 <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center">
                   <span className="text-white font-bold text-sm">B</span>
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
+                <h1 className="text-xl font-bold tracking-tight">diyshows <span className="text-xs font-normal text-gray-500">beta</span></h1>
+              </Link>
+              
+              {/* Back arrow or menu icon could go here */}
+              <Link href="/" className="text-gray-600 hover:text-black">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
               </Link>
             </div>
             
@@ -221,27 +228,20 @@ export default function ShowsPage() {
               <h2 className="text-2xl font-bold text-gray-900">DIY Shows</h2>
             </div>
             
-            {/* Bottom Row: Action Buttons */}
-            <div className="flex items-center justify-center space-x-2">
+            {/* Bottom Row: Primary Action Buttons Only */}
+            <div className="flex items-center justify-center space-x-3">
               <Link 
                 href="/admin/shows"
-                className="bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs min-w-[80px] text-center"
+                className="bg-black text-white px-6 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[120px]"
               >
-                + Show
+                + Add Show
               </Link>
               
               <Link 
                 href="/admin/venues"
-                className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200 min-w-[80px] text-center"
+                className="bg-gray-100 text-gray-700 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-sm border border-gray-200 flex-1 text-center max-w-[120px]"
               >
                 + Space
-              </Link>
-              
-              <Link 
-                href="/admin/artists"
-                className="bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors text-xs border border-gray-200 min-w-[80px] text-center"
-              >
-                + Artist
               </Link>
             </div>
           </div>

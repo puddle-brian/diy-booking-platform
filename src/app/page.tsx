@@ -803,22 +803,27 @@ function HomeContent() {
         {/* Mobile Layout - Hidden on desktop */}
         <div className="md:hidden">
           <div className="container mx-auto px-4 py-4 space-y-4">
-            {/* Top Row: Logo and Title */}
-            <div className="flex items-center justify-center space-x-3">
-              <img 
-                src="/logo.png" 
-                alt="diyshows logo" 
-                className="w-8 h-8 rounded-sm"
-                onError={(e) => {
-                  // Fallback to the original "B" logo if image fails to load
-                  e.currentTarget.style.display = 'none';
-                  e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                }}
-              />
-              <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
-                <span className="text-white font-bold text-sm">B</span>
+            {/* Top Row: Logo, Title, and User Status */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <img 
+                  src="/logo.png" 
+                  alt="diyshows logo" 
+                  className="w-8 h-8 rounded-sm"
+                  onError={(e) => {
+                    // Fallback to the original "B" logo if image fails to load
+                    e.currentTarget.style.display = 'none';
+                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                  }}
+                />
+                <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
+                  <span className="text-white font-bold text-sm">B</span>
+                </div>
+                <h1 className="text-xl font-bold tracking-tight">diyshows <span className="text-xs font-normal text-gray-500">beta</span></h1>
               </div>
-              <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
+              
+              {/* User Status in top-right corner */}
+              <UserStatus />
             </div>
             
             {/* Middle Row: Spaces/Artists Toggle */}
@@ -847,26 +852,21 @@ function HomeContent() {
               </div>
             </div>
             
-            {/* Bottom Row: Action Buttons */}
-            <div className="flex items-center justify-center space-x-2">
+            {/* Bottom Row: Primary Action Buttons Only */}
+            <div className="flex items-center justify-center space-x-3">
               <Link 
                 href="/admin/venues"
-                className="bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs min-w-[90px] text-center"
+                className="bg-black text-white px-6 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
               >
-                + Space
+                + List a Space
               </Link>
               
               <Link 
                 href="/admin/artists"
-                className="bg-black text-white px-4 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-xs min-w-[90px] text-center"
+                className="bg-black text-white px-6 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition-colors text-sm flex-1 text-center max-w-[140px]"
               >
-                + Artist
+                + List an Artist
               </Link>
-              
-              {/* User Status Component */}
-              <div className="min-w-[90px] flex justify-center">
-                <UserStatus />
-              </div>
             </div>
           </div>
         </div>
