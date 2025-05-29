@@ -43,16 +43,96 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Determine profile type and ID based on owned entities
-    let profileType: 'artist' | 'venue' | undefined;
-    let profileId: string | undefined;
+    // Build memberships array from database relationships
+    const memberships: Array<{
+      entityType: 'artist' | 'venue';
+      entityId: string;
+      entityName: string;
+      role: string;
+      joinedAt: string;
+    }> = [];
 
-    if (user.submittedArtists.length > 0) {
-      profileType = 'artist';
-      profileId = user.submittedArtists[0].id;
-    } else if (user.submittedVenues.length > 0) {
-      profileType = 'venue';
-      profileId = user.submittedVenues[0].id;
+    // Add artist memberships (where user is the owner)
+    for (const artist of user.submittedArtists) {
+      memberships.push({
+        entityType: 'artist',
+        entityId: artist.id,
+        entityName: artist.name,
+        role: 'owner',
+        joinedAt: artist.createdAt.toISOString()
+      });
+    }
+
+    // Add venue memberships (where user is the owner)
+    for (const venue of user.submittedVenues) {
+      memberships.push({
+        entityType: 'venue',
+        entityId: venue.id,
+        entityName: venue.name,
+        role: 'owner',
+        joinedAt: venue.createdAt.toISOString()
+      });
+    }
+
+    // ALSO check the Membership table for additional memberships
+    try {
+      const membershipRecords = await (prisma as any).membership.findMany({
+        where: {
+          userId: decoded.userId,
+          status: 'ACTIVE'
+        }
+      });
+
+      // For each membership, get the entity details
+      for (const membership of membershipRecords) {
+        try {
+          if (membership.entityType === 'ARTIST') {
+            const artist = await prisma.artist.findUnique({
+              where: { id: membership.entityId }
+            });
+            if (artist) {
+              // Check if we already have this membership from ownership
+              const existingMembership = memberships.find(m => 
+                m.entityType === 'artist' && m.entityId === membership.entityId
+              );
+              
+              if (!existingMembership) {
+                memberships.push({
+                  entityType: 'artist',
+                  entityId: membership.entityId,
+                  entityName: artist.name,
+                  role: membership.role.toLowerCase(),
+                  joinedAt: membership.joinedAt.toISOString()
+                });
+              }
+            }
+          } else if (membership.entityType === 'VENUE') {
+            const venue = await prisma.venue.findUnique({
+              where: { id: membership.entityId }
+            });
+            if (venue) {
+              // Check if we already have this membership from ownership
+              const existingMembership = memberships.find(m => 
+                m.entityType === 'venue' && m.entityId === membership.entityId
+              );
+              
+              if (!existingMembership) {
+                memberships.push({
+                  entityType: 'venue',
+                  entityId: membership.entityId,
+                  entityName: venue.name,
+                  role: membership.role.toLowerCase(),
+                  joinedAt: membership.joinedAt.toISOString()
+                });
+              }
+            }
+          }
+        } catch (entityError) {
+          console.error(`Error fetching entity ${membership.entityType} ${membership.entityId}:`, entityError);
+        }
+      }
+    } catch (membershipError: any) {
+      console.log(`Membership table not available or error:`, membershipError.message);
     }
 
     // Return user data (excluding password)
@@ -61,10 +141,9 @@ export async function GET(request: NextRequest) {
       email: user.email,
       name: user.username,
       role: user.role.toLowerCase(),
-      profileId,
-      profileType,
       isVerified: user.verified,
-      createdAt: user.createdAt.toISOString()
+      createdAt: user.createdAt.toISOString(),
+      memberships
     };
 
     return NextResponse.json({

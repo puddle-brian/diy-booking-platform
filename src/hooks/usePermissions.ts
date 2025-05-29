@@ -25,6 +25,10 @@ export interface UserPermissions {
   isArtistMember: (artistId: string) => boolean;
   isVenueMember: (venueId: string) => boolean;
   hasAnyPermission: (entityType: 'artist' | 'venue', entityId: string) => boolean;
+  
+  // New helper functions
+  getUserRole: (entityType: 'artist' | 'venue', entityId: string) => string | null;
+  hasOwnerRole: (entityType: 'artist' | 'venue', entityId: string) => boolean;
 }
 
 export function usePermissions(): UserPermissions {
@@ -37,14 +41,39 @@ export function usePermissions(): UserPermissions {
   const isArtistMember = (artistId: string): boolean => {
     if (!user) return false;
     if (isAdmin) return true;
-    return user.profileType === 'artist' && user.profileId === artistId;
+    
+    // Check if user has any membership with this artist
+    return user.memberships?.some(membership => 
+      membership.entityType === 'artist' && membership.entityId === artistId
+    ) || false;
   };
 
   // Helper function to check if user is associated with a venue
   const isVenueMember = (venueId: string): boolean => {
     if (!user) return false;
     if (isAdmin) return true;
-    return user.profileType === 'venue' && user.profileId === venueId;
+    
+    // Check if user has any membership with this venue
+    return user.memberships?.some(membership => 
+      membership.entityType === 'venue' && membership.entityId === venueId
+    ) || false;
+  };
+
+  // Helper function to get user's role for a specific entity
+  const getUserRole = (entityType: 'artist' | 'venue', entityId: string): string | null => {
+    if (!user?.memberships) return null;
+    
+    const membership = user.memberships.find(m => 
+      m.entityType === entityType && m.entityId === entityId
+    );
+    
+    return membership?.role || null;
+  };
+
+  // Helper function to check if user has owner/admin role for an entity
+  const hasOwnerRole = (entityType: 'artist' | 'venue', entityId: string): boolean => {
+    const role = getUserRole(entityType, entityId);
+    return role === 'owner' || role === 'admin';
   };
 
   // Artist permission checks
@@ -81,8 +110,8 @@ export function usePermissions(): UserPermissions {
   const canDeleteArtist = (artistId: string): boolean => {
     if (!user) return false;
     if (isAdmin) return true;
-    // Only owners should be able to delete - for now, treat all members as potential owners
-    return isArtistMember(artistId);
+    // Only owners should be able to delete
+    return hasOwnerRole('artist', artistId);
   };
 
   // Venue permission checks
@@ -119,8 +148,8 @@ export function usePermissions(): UserPermissions {
   const canDeleteVenue = (venueId: string): boolean => {
     if (!user) return false;
     if (isAdmin) return true;
-    // Only owners should be able to delete - for now, treat all members as potential owners
-    return isVenueMember(venueId);
+    // Only owners should be able to delete
+    return hasOwnerRole('venue', venueId);
   };
 
   // General permission checks
@@ -157,5 +186,9 @@ export function usePermissions(): UserPermissions {
     isArtistMember,
     isVenueMember,
     hasAnyPermission,
+    
+    // New helper functions
+    getUserRole,
+    hasOwnerRole,
   };
 } 

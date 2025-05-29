@@ -5,11 +5,9 @@ import Link from 'next/link';
 import MessageNotificationBadge from './MessageNotificationBadge';
 
 export default function UserStatus() {
-  const { user, logout, loading, clearDebugUser } = useAuth();
+  const { user, logout, loading } = useAuth();
 
   const handleLogout = async () => {
-    // Clear debug user first, then regular logout
-    clearDebugUser();
     await logout();
     // Redirect to home
     window.location.href = '/';

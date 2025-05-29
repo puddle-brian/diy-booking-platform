@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function AdminPage() {
-  const { user, setDebugUser, clearDebugUser } = useAuth();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'debug' | 'content' | 'feedback' | 'analytics'>('debug');
   const [loading, setLoading] = useState<{[key: string]: boolean}>({});
   const [venues, setVenues] = useState<any[]>([]);
@@ -76,40 +76,23 @@ export default function AdminPage() {
     }
   };
 
-  const handleQuickLogin = async (userType: 'artist' | 'venue' | 'logout' | 'member' | 'venue-staff', userData?: any) => {
-    setLoading(prev => ({ ...prev, [userType]: true }));
+  const handleQuickLogin = async (email: string, displayName: string, entityType: string, entityName: string) => {
+    setLoading(prev => ({ ...prev, [email]: true }));
     
     try {
-      if (userType === 'logout') {
-        // Clear debug user and reload
-        clearDebugUser();
-        if (mounted) {
-          window.location.href = '/';
-        }
-        return;
-      }
-
-      // Set debug user in auth context with proper data structure
-      console.log('Admin: Setting debug user for type:', userType, 'with data:', userData);
-      setDebugUser(userData);
+      console.log('Admin: Redirecting to login with pre-filled credentials for:', displayName);
       
-      // Add a small delay to ensure the user is set before redirecting
-      setTimeout(() => {
+      // Redirect to login page with pre-filled email and password
+      const loginUrl = `/auth/login?email=${encodeURIComponent(email)}&password=debug123&name=${encodeURIComponent(displayName)}`;
+      
         if (mounted) {
-          console.log('Admin: Redirecting to user profile');
-          // Redirect to user's profile instead of dashboard
-          if (userData?.id) {
-            window.location.href = `/profile/${userData.id}`;
-          } else {
-            window.location.href = '/dashboard'; // Fallback to dashboard redirect
-          }
-        }
-      }, 100);
+        window.location.href = loginUrl;
+      }
     } catch (error) {
-      console.error('Quick login failed:', error);
-      alert('Quick login failed');
+      console.error('Quick login redirect failed:', error);
+      alert('Quick login redirect failed');
     } finally {
-      setLoading(prev => ({ ...prev, [userType]: false }));
+      setLoading(prev => ({ ...prev, [email]: false }));
     }
   };
 
@@ -235,7 +218,7 @@ export default function AdminPage() {
                     <div className="text-sm">
                       <div className="font-medium text-gray-900">{user.name}</div>
                       <div className="text-gray-600">
-                        {user.role} {user.profileType && `• ${user.profileType}`}
+                        {user.role} {user.memberships && user.memberships.length > 0 && `• ${user.memberships.length} membership${user.memberships.length > 1 ? 's' : ''}`}
                       </div>
                     </div>
                   ) : (
@@ -299,6 +282,11 @@ export default function AdminPage() {
                 {/* Quick User Switcher */}
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick User Switcher</h2>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Click any user below to go to the login page with their credentials pre-filled. 
+                    All debug users use password: <code className="bg-gray-100 px-2 py-1 rounded">debug123</code>
+                  </p>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     
                     {/* ARTISTS */}
@@ -306,136 +294,76 @@ export default function AdminPage() {
                       <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">🎵 Artists</h3>
                     </div>
 
-                    {/* Brian Gibson (Lightning Bolt Member) */}
+                    {/* Tom May (The Menzingers) */}
                     <button
-                      onClick={() => handleQuickLogin('member', {
-                        id: 'brian-gibson',
-                        name: 'Brian Gibson',
-                        email: 'brian@lightningbolt.com',
-                        role: 'user',
-                        profileType: 'artist',
-                        profileId: '1748101913848',
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading.member}
-                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('tom@debug.diyshows.com', 'Tom May (Debug)', 'artist', 'The Menzingers')}
+                      disabled={loading['tom@debug.diyshows.com']}
+                      className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-purple-800">🎸 Brian Gibson</div>
-                        <div className="text-sm text-purple-600">Lightning Bolt • Bass</div>
-                        <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
-                      </div>
-                    </button>
-
-                    {/* Brian Chippendale (Lightning Bolt Member) */}
-                    <button
-                      onClick={() => handleQuickLogin('member', {
-                        id: 'brian-chippendale',
-                        name: 'Brian Chippendale',
-                        email: 'brian.chippendale@lightningbolt.com',
-                        role: 'user',
-                        profileType: 'artist',
-                        profileId: '1748101913848', // Lightning Bolt
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading.member}
-                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50"
-                    >
-                      <div className="text-left">
-                        <div className="font-semibold text-purple-800">🥁 Brian Chippendale</div>
-                        <div className="text-sm text-purple-600">Lightning Bolt • Drums</div>
-                        <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
-                      </div>
+                      <div className="font-semibold text-blue-800">🎤 Tom May (Debug)</div>
+                      <div className="text-sm text-blue-600">The Menzingers • Vocalist/Guitar</div>
+                      <div className="text-xs text-blue-500 mt-1">Scranton, PA • Punk Rock</div>
+                      <div className="text-xs text-gray-500 mt-2">tom@debug.diyshows.com</div>
                     </button>
 
                     {/* Laura Jane Grace (Against Me!) */}
                     <button
-                      onClick={() => handleQuickLogin('member', {
-                        id: 'laura',
-                        name: 'Laura Jane Grace',
-                        email: 'laura@againstme.com',
-                        role: 'user',
-                        profileType: 'artist',
-                        profileId: '1',
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading.member}
-                      className="p-4 border-2 border-red-200 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('laura@debug.diyshows.com', 'Laura Jane Grace (Debug)', 'artist', 'Against Me!')}
+                      disabled={loading['laura@debug.diyshows.com']}
+                      className="p-4 border-2 border-red-200 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-red-800">🎸 Laura Jane Grace</div>
+                      <div className="font-semibold text-red-800">🎸 Laura Jane Grace (Debug)</div>
                         <div className="text-sm text-red-600">Against Me! • Vocalist/Guitar</div>
                         <div className="text-xs text-red-500 mt-1">Gainesville, FL • Folk Punk</div>
-                      </div>
-                    </button>
-
-                    {/* Tom May (The Menzingers) */}
-                    <button
-                      onClick={() => handleQuickLogin('member', {
-                        id: 'tom',
-                        name: 'Tom May',
-                        email: 'tom@themenzingers.com',
-                        role: 'user',
-                        profileType: 'artist',
-                        profileId: '2',
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading.member}
-                      className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50"
-                    >
-                      <div className="text-left">
-                        <div className="font-semibold text-blue-800">🎤 Tom May</div>
-                        <div className="text-sm text-blue-600">The Menzingers • Vocalist/Guitar</div>
-                        <div className="text-xs text-blue-500 mt-1">Scranton, PA • Punk Rock</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">laura@debug.diyshows.com</div>
                     </button>
 
                     {/* Patti Smith */}
                     <button
-                      onClick={() => handleQuickLogin('member', {
-                        id: 'patti',
-                        name: 'Patti Smith',
-                        email: 'patti@pattismith.net',
-                        role: 'user',
-                        profileType: 'artist',
-                        profileId: '3',
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading.member}
-                      className="p-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('patti@debug.diyshows.com', 'Patti Smith (Debug)', 'artist', 'Patti Smith')}
+                      disabled={loading['patti@debug.diyshows.com']}
+                      className="p-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-indigo-800">📖 Patti Smith</div>
+                      <div className="font-semibold text-indigo-800">📖 Patti Smith (Debug)</div>
                         <div className="text-sm text-indigo-600">Solo Artist • Poet/Musician</div>
                         <div className="text-xs text-indigo-500 mt-1">New York, NY • Punk Poetry</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">patti@debug.diyshows.com</div>
                     </button>
 
                     {/* Barry Johnson (Joyce Manor) */}
                     <button
-                      onClick={() => handleQuickLogin('member', {
-                        id: 'barry',
-                        name: 'Barry Johnson',
-                        email: 'barry@joycemanor.org',
-                        role: 'user',
-                        profileType: 'artist',
-                        profileId: '5',
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading.member}
-                      className="p-4 border-2 border-orange-200 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('barry@debug.diyshows.com', 'Barry Johnson (Debug)', 'artist', 'Joyce Manor')}
+                      disabled={loading['barry@debug.diyshows.com']}
+                      className="p-4 border-2 border-orange-200 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-orange-800">🎸 Barry Johnson</div>
+                      <div className="font-semibold text-orange-800">🎸 Barry Johnson (Debug)</div>
                         <div className="text-sm text-orange-600">Joyce Manor • Vocalist/Guitar</div>
                         <div className="text-xs text-orange-500 mt-1">Torrance, CA • Punk/Emo</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">barry@debug.diyshows.com</div>
+                    </button>
+
+                    {/* Brian Gibson (Lightning Bolt) */}
+                    <button
+                      onClick={() => handleQuickLogin('brian.gibson@debug.diyshows.com', 'Brian Gibson (Debug)', 'artist', 'Lightning Bolt')}
+                      disabled={loading['brian.gibson@debug.diyshows.com']}
+                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50 text-left"
+                    >
+                      <div className="font-semibold text-purple-800">🎸 Brian Gibson (Debug)</div>
+                      <div className="text-sm text-purple-600">Lightning Bolt • Bass • Owner</div>
+                      <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
+                      <div className="text-xs text-gray-500 mt-2">brian.gibson@debug.diyshows.com</div>
+                    </button>
+
+                    {/* Brian Chippendale (Lightning Bolt) */}
+                    <button
+                      onClick={() => handleQuickLogin('brian.chippendale@debug.diyshows.com', 'Brian Chippendale (Debug)', 'artist', 'Lightning Bolt')}
+                      disabled={loading['brian.chippendale@debug.diyshows.com']}
+                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50 text-left"
+                    >
+                      <div className="font-semibold text-purple-800">🥁 Brian Chippendale (Debug)</div>
+                      <div className="text-sm text-purple-600">Lightning Bolt • Drums • Member</div>
+                      <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
+                      <div className="text-xs text-gray-500 mt-2">brian.chippendale@debug.diyshows.com</div>
                     </button>
 
                     {/* VENUES */}
@@ -443,214 +371,97 @@ export default function AdminPage() {
                       <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">🏢 Venues</h3>
                     </div>
 
-                    {/* Lidz Bierenday (Lost Bag Staff) */}
+                    {/* Lidz Bierenday (Lost Bag) */}
                     <button
-                      onClick={() => handleQuickLogin('venue-staff', {
-                        id: 'lidz-bierenday',
-                        name: 'Lidz Bierenday',
-                        email: 'lidz@lostbag.com',
-                        role: 'user',
-                        profileType: 'venue',
-                        profileId: '1748094967307',
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading['venue-staff']}
-                      className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('lidz@debug.diyshows.com', 'Lidz Bierenday (Debug)', 'venue', 'Lost Bag')}
+                      disabled={loading['lidz@debug.diyshows.com']}
+                      className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-green-800">🏠 Lidz Bierenday</div>
+                      <div className="font-semibold text-green-800">🏠 Lidz Bierenday (Debug)</div>
                         <div className="text-sm text-green-600">Lost Bag • House Show</div>
                         <div className="text-xs text-green-500 mt-1">Providence, RI • 300 cap</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">lidz@debug.diyshows.com</div>
                     </button>
 
-                    {/* Joe (Joe's Basement) */}
+                    {/* Joe Martinez (Joe's Basement) */}
                     <button
-                      onClick={() => handleQuickLogin('venue-staff', {
-                        id: 'joe-basement',
-                        name: 'Joe Martinez',
-                        email: 'joe@joesbasement.com',
-                        role: 'user',
-                        profileType: 'venue',
-                        profileId: '1', // Joe's Basement
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading['venue-staff']}
-                      className="p-4 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('joe@debug.diyshows.com', 'Joe Martinez (Debug)', 'venue', "Joe's Basement")}
+                      disabled={loading['joe@debug.diyshows.com']}
+                      className="p-4 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-yellow-800">🏠 Joe Martinez</div>
+                      <div className="font-semibold text-yellow-800">🏠 Joe Martinez (Debug)</div>
                         <div className="text-sm text-yellow-600">Joe's Basement • House Show</div>
                         <div className="text-xs text-yellow-500 mt-1">Portland, OR • 35 cap</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">joe@debug.diyshows.com</div>
                     </button>
 
-                    {/* Sarah (Community Arts Center) */}
+                    {/* Sarah Chen (Community Arts Center) */}
                     <button
-                      onClick={() => handleQuickLogin('venue-staff', {
-                        id: 'sarah-arts',
-                        name: 'Sarah Chen',
-                        email: 'sarah@communityarts.org',
-                        role: 'user',
-                        profileType: 'venue',
-                        profileId: '2', // Community Arts Center
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading['venue-staff']}
-                      className="p-4 border-2 border-teal-200 rounded-lg hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('sarah@debug.diyshows.com', 'Sarah Chen (Debug)', 'venue', 'Community Arts Center')}
+                      disabled={loading['sarah@debug.diyshows.com']}
+                      className="p-4 border-2 border-teal-200 rounded-lg hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-teal-800">🎭 Sarah Chen</div>
+                      <div className="font-semibold text-teal-800">🎭 Sarah Chen (Debug)</div>
                         <div className="text-sm text-teal-600">Community Arts Center • Booker</div>
                         <div className="text-xs text-teal-500 mt-1">Austin, TX • 120 cap</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">sarah@debug.diyshows.com</div>
                     </button>
 
-                    {/* Mike (The Underground) */}
+                    {/* Mike Rodriguez (The Underground) */}
                     <button
-                      onClick={() => handleQuickLogin('venue-staff', {
-                        id: 'mike-underground',
-                        name: 'Mike Rodriguez',
-                        email: 'mike@theunderground.nyc',
-                        role: 'user',
-                        profileType: 'venue',
-                        profileId: '4', // The Underground
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading['venue-staff']}
-                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('mike@debug.diyshows.com', 'Mike Rodriguez (Debug)', 'venue', 'The Underground')}
+                      disabled={loading['mike@debug.diyshows.com']}
+                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-gray-800">🏠 Mike Rodriguez</div>
+                      <div className="font-semibold text-gray-800">🏠 Mike Rodriguez (Debug)</div>
                         <div className="text-sm text-gray-600">The Underground • House Show</div>
                         <div className="text-xs text-gray-500 mt-1">Brooklyn, NY • 50 cap</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">mike@debug.diyshows.com</div>
                     </button>
 
-                    {/* Alex (VFW Post 1138) */}
+                    {/* Alex Thompson (VFW Post 1138) */}
                     <button
-                      onClick={() => handleQuickLogin('venue-staff', {
-                        id: 'alex-vfw',
-                        name: 'Alex Thompson',
-                        email: 'alex@vfw1138.org',
-                        role: 'user',
-                        profileType: 'venue',
-                        profileId: '5', // VFW Post 1138
-                        isVerified: true,
-                        createdAt: '2024-01-01T00:00:00.000Z'
-                      })}
-                      disabled={loading['venue-staff']}
-                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50"
+                      onClick={() => handleQuickLogin('alex@debug.diyshows.com', 'Alex Thompson (Debug)', 'venue', 'VFW Post 1138')}
+                      disabled={loading['alex@debug.diyshows.com']}
+                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50 text-left"
                     >
-                      <div className="text-left">
-                        <div className="font-semibold text-purple-800">🏛️ Alex Thompson</div>
+                      <div className="font-semibold text-purple-800">🏛️ Alex Thompson (Debug)</div>
                         <div className="text-sm text-purple-600">VFW Post 1138 • Event Coordinator</div>
                         <div className="text-xs text-purple-500 mt-1">Richmond, VA • 150 cap</div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">alex@debug.diyshows.com</div>
                     </button>
 
-                    {/* ADMIN/PUBLIC */}
+                    {/* LOGOUT */}
                     <div className="col-span-full mt-6">
                       <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">👤 Other</h3>
                     </div>
 
-                    {/* Logout */}
+                    {/* Public View */}
                     <button
-                      onClick={() => handleQuickLogin('logout')}
-                      disabled={loading.logout}
-                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                      onClick={() => {
+                        if (mounted) {
+                          window.location.href = '/';
+                        }
+                      }}
+                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors text-left"
                     >
-                      <div className="text-left">
                         <div className="font-semibold text-gray-900">👤 Public View</div>
                         <div className="text-sm text-gray-600">Not logged in</div>
-                        <div className="text-xs text-gray-500 mt-1">
-                          {loading.logout ? 'Logging out...' : 'Browse as public user'}
-                        </div>
-                      </div>
+                      <div className="text-xs text-gray-500 mt-1">Browse as public user</div>
                     </button>
                   </div>
                   
                   {/* Usage Instructions */}
-                  <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <span className="text-2xl">💡</span>
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">Testing Instructions</h3>
-                        <div className="mt-1 text-sm text-blue-700">
-                          <p className="mb-2">Use these accounts to test the bidding and hold system:</p>
-                          <ul className="list-disc list-inside space-y-1 text-xs">
-                            <li><strong>Artists:</strong> Create tour requests, view/manage bids, place holds, accept/decline offers</li>
-                            <li><strong>Venues:</strong> Browse tour requests, submit bids, view bid status, confirm accepted shows</li>
-                            <li><strong>Cross-testing:</strong> Switch between accounts to see both sides of the booking process</li>
-                            <li><strong>Hold System:</strong> Test first/second/third hold priority and automatic promotion</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Data Reset Tools */}
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Testing Data Tools</h2>
-                  
-                  {/* Reset to Demo State */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <span className="text-2xl">🎭</span>
-                      </div>
-                      <div className="ml-3 flex-1">
-                        <h3 className="text-sm font-medium text-green-800">Create Demo Testing Data</h3>
-                        <p className="mt-1 text-sm text-green-700">
-                          Creates sophisticated booking scenarios to test the full bidding system. Lightning Bolt gets 10 bids with all statuses (1 accepted, 6 pending, 1 rejected, 1 withdrawn) to test bid management. Menzingers gets 8 bids mostly pending (6 pending, 1 rejected) perfect for testing the hold system. Against Me gets 6 bids with 2 accepted leading to confirmed shows. Click on tour requests in artist pages to see expandable bid management interface!
-                        </p>
-                        <div className="mt-2 text-xs text-green-600">
-                          <strong>How to test:</strong> Go to Lightning Bolt artist page → click on "Lightning Bolt East Coast Noise Tour" to expand → see 10 detailed bids with Accept/Hold/Decline buttons. 
-                          Test hold system with Menzingers, test acceptance workflow with Against Me. Each tour request has 6-10 bids to showcase the sophisticated booking system.
-                        </div>
-                        <div className="mt-4">
-                          <button
-                            onClick={handleResetBids}
-                            disabled={loading.resetBids}
-                            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {loading.resetBids ? 'Creating...' : '🎭 Create Demo Data'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Clear All Data */}
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <div className="flex-shrink-0">
-                        <span className="text-2xl">🧹</span>
-                      </div>
-                      <div className="ml-3 flex-1">
-                        <h3 className="text-sm font-medium text-red-800">Clear All Testing Data</h3>
-                        <p className="mt-1 text-sm text-red-700">
-                          Permanently deletes ALL tour requests and bids from the system. Use this to start with a clean slate.
-                          <strong> This action cannot be undone!</strong>
-                        </p>
-                        <div className="mt-4">
-                          <button
-                            onClick={handleClearAllBids}
-                            disabled={loading.clearBids}
-                            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {loading.clearBids ? 'Clearing...' : '🧹 Clear All Data'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                  <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-medium text-blue-900 mb-2">🔧 How to use Debug Users</h4>
+                    <ul className="text-sm text-blue-800 space-y-1">
+                      <li>• Click any user above to go to login page with pre-filled credentials</li>
+                      <li>• All debug users use the same password: <code className="bg-blue-100 px-1 rounded">debug123</code></li>
+                      <li>• This tests the full authentication flow including login form validation</li>
+                      <li>• Debug users are clearly marked with "(Debug)" in their names</li>
+                      <li>• Each user is linked to real artists/venues in the database</li>
+                      <li>• <strong>Lightning Bolt has multiple members</strong> - test owner vs member permissions</li>
+                    </ul>
                   </div>
                 </div>
               </div>

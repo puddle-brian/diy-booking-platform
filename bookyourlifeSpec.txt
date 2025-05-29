@@ -160,6 +160,16 @@ DIY artists and authentic venues need each other but have no systematic way to c
 - **User Authentication** with JWT-based system
 - **Community Features** including memberships and messaging
 
+### **⚠️ CRITICAL DATABASE SAFETY WARNING**
+**IMPORTANT**: The production database has been accidentally deleted multiple times during development. Before making ANY database changes:
+- **Always get explicit permission** from the project owner
+- **Never run database scripts** without prior approval
+- **Backup data** before any modifications
+- **Test changes** in development environment first
+- **Verify operations** before executing on production data
+
+**Remember**: This platform serves a real community with live data. Data loss impacts actual users and venues.
+
 ### **Technology Stack**
 
 #### **Frontend**

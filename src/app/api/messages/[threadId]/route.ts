@@ -4,32 +4,20 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
 
-// Helper function to get user from request (supports both JWT and debug users)
+// Helper function to get user from request (JWT only)
 async function getUserFromRequest(request: NextRequest) {
-  // First try JWT token from cookie
   const token = request.cookies.get('auth-token')?.value;
-  if (token) {
-    try {
-      const decoded = jwt.verify(token, JWT_SECRET) as any;
-      return { userId: decoded.userId, source: 'jwt' };
-    } catch (error) {
-      // JWT invalid, continue to check debug user
-    }
+  if (!token) {
+    return null;
   }
 
-  // Check for debug user in request headers (sent from frontend)
-  const debugUserHeader = request.headers.get('x-debug-user');
-  if (debugUserHeader) {
-    try {
-      const debugUser = JSON.parse(debugUserHeader);
-      console.log('💬 API: Using debug user:', debugUser.name);
-      return { userId: debugUser.id, source: 'debug' };
-    } catch (error) {
-      console.error('Failed to parse debug user header:', error);
-    }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    return { userId: decoded.userId, source: 'jwt' };
+  } catch (error) {
+    console.error('💬 API: JWT verification failed:', error);
+    return null;
   }
-
-  return null;
 }
 
 export async function GET(
@@ -74,17 +62,17 @@ export async function GET(
       orderBy: { createdAt: 'asc' }
     });
 
-    // Mark all unread messages from other users as read
-    await prisma.message.updateMany({
-      where: {
-        conversationId: threadId,
-        senderId: { not: userAuth.userId }, // Messages not sent by current user
-        readAt: null // Only update unread messages
-      },
-      data: {
-        readAt: new Date()
-      }
-    });
+    // TODO: Mark messages as read when Prisma types are fixed
+    // await prisma.message.updateMany({
+    //   where: {
+    //     conversationId: threadId,
+    //     senderId: { not: userAuth.userId },
+    //     readAt: null
+    //   },
+    //   data: {
+    //     readAt: new Date()
+    //   }
+    // });
 
     // Format messages for frontend
     const formattedMessages = messages.map(msg => ({
@@ -95,7 +83,7 @@ export async function GET(
       senderType: 'user' as const, // TODO: Determine actual type
       content: msg.content,
       timestamp: msg.createdAt.toISOString(),
-      read: msg.senderId === userAuth.userId || msg.readAt !== null // Message is read if sent by current user or has readAt timestamp
+      read: msg.senderId === userAuth.userId // Message is read if sent by current user
     }));
 
     return NextResponse.json(formattedMessages);

@@ -7,11 +7,16 @@ export interface User {
   email: string;
   name: string;
   role: 'admin' | 'user';
-  profileId?: string;
-  profileType?: 'venue' | 'artist';
   isVerified: boolean;
   lastLogin?: string;
   createdAt: string;
+  memberships?: Array<{
+    entityType: 'artist' | 'venue';
+    entityId: string;
+    entityName: string;
+    role: string;
+    joinedAt: string;
+  }>;
 }
 
 export interface AuthContextType {
@@ -20,9 +25,6 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<void>;
-  // Debug functions for testing
-  setDebugUser: (userData: any) => void;
-  clearDebugUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,43 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Check for authentication on mount
   useEffect(() => {
-    // Only check auth if we don't have a debug user in localStorage
-    const checkForAuth = async () => {
-      if (typeof window !== 'undefined') {
-        const debugUser = localStorage.getItem('debugUser');
-        if (debugUser) {
-          console.log('AuthContext: Debug user found in localStorage, skipping API auth check');
-          return; // Skip API check if we have a debug user
-        }
-      }
-      
-      console.log('AuthContext: No debug user found, checking API auth');
-      await checkAuth();
-    };
-    
-    checkForAuth();
-  }, []);
-
-  // Load user from localStorage on mount (for debug persistence)
-  useEffect(() => {
-    const loadStoredUser = () => {
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('debugUser');
-        if (stored) {
-          try {
-            const userData = JSON.parse(stored);
-            console.log('AuthContext: Loading debug user from localStorage:', userData.name);
-            setUser(userData);
-          } catch (error) {
-            console.error('Failed to parse stored user:', error);
-            localStorage.removeItem('debugUser');
-          }
-        }
-      }
-      setLoading(false);
-    };
-
-    loadStoredUser();
+    checkAuth();
   }, []);
 
   const checkAuth = async () => {
@@ -112,44 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
-      // Clear both debug and regular user data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('debugUser');
-        localStorage.removeItem('currentUser');
-      }
-    }
-  };
-
-  // Debug functions for admin testing
-  const setDebugUser = (userData: any) => {
-    console.log('Setting debug user:', userData);
-    
-    // Handle the new user structure
-    const debugUser: User = {
-      id: userData.id,
-      email: userData.email,
-      name: userData.name,
-      role: userData.role || 'user',
-      profileId: userData.profileId,
-      profileType: userData.profileType,
-      isVerified: userData.isVerified || true,
-      lastLogin: new Date().toISOString(),
-      createdAt: userData.createdAt || new Date().toISOString()
-    };
-    
-    setUser(debugUser);
-    
-    // Store in localStorage for persistence
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('debugUser', JSON.stringify(debugUser));
-    }
-  };
-
-  const clearDebugUser = () => {
-    console.log('AuthContext: Clearing debug user');
-    setUser(null);
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('debugUser');
     }
   };
 
@@ -159,8 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     logout,
     checkAuth,
-    setDebugUser,
-    clearDebugUser,
   };
 
   return (

@@ -52,8 +52,7 @@ export default function TeamMembers({
     members: members?.map(m => ({ id: m.id, name: m.name, role: m.role })),
     userId: user?.id,
     userName: user?.name,
-    userProfileType: user?.profileType,
-    userProfileId: user?.profileId,
+    userMemberships: user?.memberships?.length || 0,
     canInviteMembers,
     hasOnInviteClick: !!onInviteClick
   });
@@ -149,24 +148,24 @@ export default function TeamMembers({
     // Check if user is a member in the members array
     const isMember = members.some(member => member.id === user.id);
     
-    // Check if user owns this entity (for artists/venues they submitted)
-    const isOwner = user.profileType === entityType && user.profileId === entityId;
+    // Check if user has any membership with this entity
+    const hasMembership = user.memberships?.some(membership => 
+      membership.entityType === entityType && membership.entityId === entityId
+    ) || false;
     
     console.log('TeamMembers: Invite permission check:', {
       userId: user.id,
       userName: user.name,
-      userProfileType: user.profileType,
-      userProfileId: user.profileId,
       entityType,
       entityId,
       isMember,
-      isOwner,
+      hasMembership,
       canInviteMembers,
-      finalDecision: isMember || isOwner
+      finalDecision: isMember || hasMembership
     });
     
-    // Allow if user is a member OR if they own this entity
-    return isMember || isOwner;
+    // Allow if user is a member OR if they have any membership with this entity
+    return isMember || hasMembership;
   })();
 
   console.log('TeamMembers: Final invite button decision:', {
