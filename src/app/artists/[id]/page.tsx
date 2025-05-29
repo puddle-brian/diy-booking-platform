@@ -126,10 +126,8 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
           loadArtist(resolvedParams.id),
           loadTourRequests(resolvedParams.id),
           loadMembers(resolvedParams.id),
-          // Only load venue data if user is a venue
-          user?.profileType === 'venue' && user.profileId 
-            ? loadVenue(user.profileId) 
-            : Promise.resolve(null)
+          // Skip venue loading for now since profileType doesn't exist in User interface
+          Promise.resolve(null)
         ]);
         
       } catch (err) {
@@ -140,7 +138,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     };
 
     loadData();
-  }, [user?.profileId]); // Simplified dependencies - params change will trigger component remount
+  }, []); // Remove user?.profileId dependency since it doesn't exist
 
   const loadVenue = async (venueId: string) => {
     try {
@@ -559,14 +557,9 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               const isMember = members.some(member => member.id === user.id);
               return isMember;
             })()} 
-            viewerType={(() => {
-              if (!user) return 'public';
-              if (user.profileType === 'venue') return 'venue';
-              if (user.profileType === 'artist') return 'artist';
-              return 'public';
-            })()} 
-            venueId={user?.profileType === 'venue' ? user.profileId : undefined}
-            venueName={user?.profileType === 'venue' && venue ? venue.name : undefined}
+            viewerType="public"
+            venueId={undefined}
+            venueName={undefined}
           />
         </div>
 

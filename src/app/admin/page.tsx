@@ -85,7 +85,7 @@ export default function AdminPage() {
       // Redirect to login page with pre-filled email and password
       const loginUrl = `/auth/login?email=${encodeURIComponent(email)}&password=debug123&name=${encodeURIComponent(displayName)}`;
       
-        if (mounted) {
+      if (mounted) {
         window.location.href = loginUrl;
       }
     } catch (error) {

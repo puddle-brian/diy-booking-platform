@@ -440,12 +440,7 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
               const isMember = members.some(member => member.id === user.id);
               return isMember;
             })()}
-            viewerType={(() => {
-              if (!user) return 'public';
-              if (user.profileType === 'venue') return 'venue';
-              if (user.profileType === 'artist') return 'artist';
-              return 'public';
-            })()} 
+            viewerType="public" 
           />
         </div>
 

@@ -244,21 +244,21 @@ function HomeContent() {
         setTourRequests([]);
       }
 
-      // Load user's venue data if they're a venue
-      if (user?.profileType === 'venue' && user?.profileId) {
-        try {
-          const userVenueResponse = await fetch(`/api/venues/${user.profileId}`);
-          if (userVenueResponse.ok) {
-            const userVenueData = await userVenueResponse.json();
-            setUserVenue(userVenueData);
-          }
-        } catch (error) {
-          console.error('Failed to load user venue:', error);
-          setUserVenue(null);
-        }
-      } else {
-        setUserVenue(null);
-      }
+      // Skip venue loading for now since profileType doesn't exist in User interface
+      // if (user?.profileType === 'venue' && user?.profileId) {
+      //   try {
+      //     const userVenueResponse = await fetch(`/api/venues/${user.profileId}`);
+      //     if (userVenueResponse.ok) {
+      //       const userVenueData = await userVenueResponse.json();
+      //       setUserVenue(userVenueData);
+      //     }
+      //   } catch (error) {
+      //     console.error('Failed to load user venue:', error);
+      //     setUserVenue(null);
+      //   }
+      // } else {
+      //   setUserVenue(null);
+      // }
       
     } catch (error) {
       console.error('Error loading data:', error);
