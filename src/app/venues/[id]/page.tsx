@@ -361,6 +361,12 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
                     entityName: venue.name,
                     entityType: 'venue'
                   }}
+                  isOwnEntity={(() => {
+                    if (!user) return false;
+                    // Check if user is a member of this venue (indicating ownership/membership)
+                    const isMember = members.some(member => member.id === user.id);
+                    return isMember;
+                  })()}
                 >
                   Send Message
                 </MessageButton>

@@ -480,6 +480,12 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
                     entityName: artist.name,
                     entityType: 'artist'
                   }}
+                  isOwnEntity={(() => {
+                    if (!user) return false;
+                    // Check if user is a member of this artist (indicating ownership/membership)
+                    const isMember = members.some(member => member.id === user.id);
+                    return isMember;
+                  })()}
                 >
                   Send Message
                 </MessageButton>
