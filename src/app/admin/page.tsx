@@ -304,12 +304,12 @@ export default function AdminPage() {
                     {/* Brian Gibson (Lightning Bolt Member) */}
                     <button
                       onClick={() => handleQuickLogin('member', {
-                        id: 'cmb5eu6c2001e2k0vbnltkbrm', // Actual database ID
+                        id: 'brian-gibson',
                         name: 'Brian Gibson',
                         email: 'brian@lightningbolt.com',
                         role: 'user',
                         profileType: 'artist',
-                        profileId: '1748101913848', // Lightning Bolt
+                        profileId: '1748101913848',
                         isVerified: true,
                         createdAt: '2024-01-01T00:00:00.000Z'
                       })}
@@ -348,12 +348,12 @@ export default function AdminPage() {
                     {/* Laura Jane Grace (Against Me!) */}
                     <button
                       onClick={() => handleQuickLogin('member', {
-                        id: 'laura-jane-grace',
+                        id: 'laura',
                         name: 'Laura Jane Grace',
                         email: 'laura@againstme.com',
                         role: 'user',
                         profileType: 'artist',
-                        profileId: '1', // Against Me!
+                        profileId: '1',
                         isVerified: true,
                         createdAt: '2024-01-01T00:00:00.000Z'
                       })}
@@ -370,12 +370,12 @@ export default function AdminPage() {
                     {/* Tom May (The Menzingers) */}
                     <button
                       onClick={() => handleQuickLogin('member', {
-                        id: 'tom-may',
+                        id: 'tom',
                         name: 'Tom May',
                         email: 'tom@themenzingers.com',
                         role: 'user',
                         profileType: 'artist',
-                        profileId: '2', // The Menzingers
+                        profileId: '2',
                         isVerified: true,
                         createdAt: '2024-01-01T00:00:00.000Z'
                       })}
@@ -392,12 +392,12 @@ export default function AdminPage() {
                     {/* Patti Smith */}
                     <button
                       onClick={() => handleQuickLogin('member', {
-                        id: 'patti-smith',
+                        id: 'patti',
                         name: 'Patti Smith',
                         email: 'patti@pattismith.net',
                         role: 'user',
                         profileType: 'artist',
-                        profileId: '3', // Patti Smith
+                        profileId: '3',
                         isVerified: true,
                         createdAt: '2024-01-01T00:00:00.000Z'
                       })}
@@ -414,12 +414,12 @@ export default function AdminPage() {
                     {/* Barry Johnson (Joyce Manor) */}
                     <button
                       onClick={() => handleQuickLogin('member', {
-                        id: 'barry-johnson',
+                        id: 'barry',
                         name: 'Barry Johnson',
                         email: 'barry@joycemanor.org',
                         role: 'user',
                         profileType: 'artist',
-                        profileId: '5', // Joyce Manor
+                        profileId: '5',
                         isVerified: true,
                         createdAt: '2024-01-01T00:00:00.000Z'
                       })}
@@ -441,12 +441,12 @@ export default function AdminPage() {
                     {/* Lidz Bierenday (Lost Bag Staff) */}
                     <button
                       onClick={() => handleQuickLogin('venue-staff', {
-                        id: 'cmb72e0vy0002zv0w6zy4vtzc', // Actual database ID
+                        id: 'lidz-bierenday',
                         name: 'Lidz Bierenday',
                         email: 'lidz@lostbag.com',
                         role: 'user',
                         profileType: 'venue',
-                        profileId: '1748094967307', // Lost Bag
+                        profileId: '1748094967307',
                         isVerified: true,
                         createdAt: '2024-01-01T00:00:00.000Z'
                       })}
@@ -810,195 +810,9 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
-
-            {activeTab === 'feedback' && (
-              <div className="space-y-8">
-                {/* Feedback Summary */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-red-600">
-                      {feedback.filter(f => f.status === 'NEW').length}
-                    </div>
-                    <div className="text-sm text-red-600">New Feedback</div>
-                  </div>
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-yellow-600">
-                      {feedback.filter(f => f.priority === 'CRITICAL' || f.priority === 'HIGH').length}
-                    </div>
-                    <div className="text-sm text-yellow-600">High Priority</div>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-blue-600">
-                      {feedback.filter(f => f.type === 'BUG').length}
-                    </div>
-                    <div className="text-sm text-blue-600">Bug Reports</div>
-                  </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="text-2xl font-bold text-green-600">
-                      {feedback.filter(f => f.type === 'FEATURE').length}
-                    </div>
-                    <div className="text-sm text-green-600">Feature Requests</div>
-                  </div>
-                </div>
-
-                {/* AI Analysis Prompt */}
-                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <span className="text-3xl">🤖</span>
-                    </div>
-                    <div className="ml-4 flex-1">
-                      <h3 className="text-lg font-semibold text-purple-900 mb-2">AI-Powered Feedback Analysis</h3>
-                      <p className="text-purple-700 mb-4">
-                        Copy this prompt to Claude to get intelligent prioritization and analysis of your feedback:
-                      </p>
-                      <div className="bg-white border border-purple-200 rounded-lg p-4 font-mono text-sm">
-                        <div className="text-purple-600 mb-2">📋 Prompt for Claude:</div>
-                        <div className="text-gray-800">
-                          "Please analyze the following feedback data from my DIY booking platform and provide:<br/>
-                          1. Priority ranking with reasoning<br/>
-                          2. Quick wins vs long-term improvements<br/>
-                          3. Suggested implementation order<br/>
-                          4. Any patterns or themes you notice<br/><br/>
-                          Here's the feedback data: [Copy the JSON from the feedback list below]"
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Feedback List */}
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">All Feedback ({feedback.length})</h2>
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="max-h-96 overflow-y-auto">
-                      {feedback.length === 0 ? (
-                        <div className="p-8 text-center text-gray-500">
-                          <span className="text-4xl mb-4 block">💬</span>
-                          <p>No feedback yet. The feedback widget is now live on your site!</p>
-                        </div>
-                      ) : (
-                        <div className="divide-y divide-gray-200">
-                          {feedback.map((item: any) => (
-                            <div key={item.id} className="p-4 hover:bg-gray-50">
-                              <div className="flex justify-between items-start mb-2">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    item.type === 'BUG' ? 'bg-red-100 text-red-700' :
-                                    item.type === 'FEATURE' ? 'bg-blue-100 text-blue-700' :
-                                    item.type === 'UX' ? 'bg-purple-100 text-purple-700' :
-                                    item.type === 'CONTENT' ? 'bg-green-100 text-green-700' :
-                                    'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    {item.type}
-                                  </span>
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    item.priority === 'CRITICAL' ? 'bg-red-200 text-red-800' :
-                                    item.priority === 'HIGH' ? 'bg-orange-200 text-orange-800' :
-                                    item.priority === 'MEDIUM' ? 'bg-yellow-200 text-yellow-800' :
-                                    'bg-gray-200 text-gray-800'
-                                  }`}>
-                                    {item.priority}
-                                  </span>
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    item.status === 'NEW' ? 'bg-blue-100 text-blue-700' :
-                                    item.status === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-700' :
-                                    item.status === 'RESOLVED' ? 'bg-green-100 text-green-700' :
-                                    'bg-gray-100 text-gray-700'
-                                  }`}>
-                                    {item.status}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {new Date(item.createdAt).toLocaleDateString()}
-                                </div>
-                              </div>
-                              <h4 className="font-medium text-gray-900 mb-1">{item.title}</h4>
-                              <p className="text-sm text-gray-600 mb-2">{item.description}</p>
-                              {item.context && (
-                                <div className="text-xs text-gray-500">
-                                  📍 {item.context.url} • {item.context.viewport} • {item.context.userType || 'Anonymous'}
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Raw JSON for AI Analysis */}
-                {feedback.length > 0 && (
-                  <div>
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold text-gray-900">📋 Raw Data for AI Analysis</h3>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(JSON.stringify(feedback, null, 2));
-                          // Show temporary success message
-                          const button = document.activeElement as HTMLButtonElement;
-                          const originalText = button.textContent;
-                          button.textContent = '✅ Copied!';
-                          button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-green-600');
-                          setTimeout(() => {
-                            button.textContent = originalText;
-                            button.className = button.className.replace('bg-green-600', 'bg-blue-600 hover:bg-blue-700');
-                          }, 2000);
-                        }}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center"
-                      >
-                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                        </svg>
-                        Copy JSON
-                      </button>
-                    </div>
-                    <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
-                      <pre className="text-xs">
-                        {JSON.stringify(feedback, null, 2)}
-                      </pre>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-2">
-                      💡 Copy this JSON data and paste it into Claude with the analysis prompt above for intelligent prioritization.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'analytics' && (
-              <div className="space-y-8">
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl">📊</span>
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">Analytics Coming Soon</h3>
-                  <p className="text-gray-600 mb-6">
-                    Platform analytics, booking statistics, and performance metrics will be available here.
-                  </p>
-                  <div className="text-sm text-gray-500">
-                    • Booking success rates<br/>
-                    • Popular venues and artists<br/>
-                    • Geographic distribution<br/>
-                    • Platform growth metrics
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Footer Navigation */}
-          <div className="border-t border-gray-200 px-6 py-4">
-            <a 
-              href="/"
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              ← Back to main site
-            </a>
           </div>
         </div>
       </div>
     </div>
   );
-} 
+}

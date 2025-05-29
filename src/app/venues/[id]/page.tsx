@@ -342,16 +342,41 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
 
             {/* Second Row: Message Button - Aligned with title/info */}
             <div className="pl-[60px] sm:pl-20 lg:pl-20">
-              <MessageButton 
-                recipientId={venue.id}
-                recipientName={venue.name}
-                recipientType="venue"
-                variant="primary"
-                size="sm"
-                className="text-sm"
-              >
-                Send Message
-              </MessageButton>
+              <div className="flex items-center gap-3">
+                <MessageButton 
+                  recipientId={venue.id}
+                  recipientName={venue.name}
+                  recipientType="venue"
+                  variant="primary"
+                  size="sm"
+                  className="text-sm"
+                >
+                  Send Message
+                </MessageButton>
+                
+                {/* Edit Profile Button - Only show for members with edit permissions */}
+                {(() => {
+                  if (!user) return null;
+                  
+                  // Check if user is a member with edit permissions
+                  const userMembership = members.find(member => member.id === user.id);
+                  const canEdit = userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Staff') || user.role === 'admin';
+                  
+                  if (!canEdit) return null;
+                  
+                  return (
+                    <Link
+                      href={`/venues/${venue.id}/edit`}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                      Edit Profile
+                    </Link>
+                  );
+                })()}
+              </div>
             </div>
           </div>
         </div>
