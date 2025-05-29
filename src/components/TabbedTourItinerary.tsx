@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Show, TourRequest } from '../../types';
 import VenueBidForm from './VenueBidForm';
+import ShowDetailModal from './ShowDetailModal';
+import TourRequestDetailModal from './TourRequestDetailModal';
 
 interface VenueBid {
   id: string;
@@ -123,6 +125,9 @@ export default function TabbedTourItinerary({
   const [activeMonthTab, setActiveMonthTab] = useState<string>('');
   const [addDateLoading, setAddDateLoading] = useState(false);
   const [deleteShowLoading, setDeleteShowLoading] = useState<string | null>(null);
+  const [selectedShowForDetail, setSelectedShowForDetail] = useState<Show | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [tourRequestDetailModal, setTourRequestDetailModal] = useState(false);
   
   // All the form states from original component
   const [addDateForm, setAddDateForm] = useState({
@@ -904,7 +909,7 @@ export default function TabbedTourItinerary({
   };
 
   const handleDeleteShow = async (showId: string, showName: string) => {
-    if (!confirm(`Are you sure you want to delete the show "${showName}"? This action cannot be undone.`)) {
+    if (!confirm(`Are you sure you want to delete "${showName}"?`)) {
       return;
     }
 
@@ -912,24 +917,30 @@ export default function TabbedTourItinerary({
     try {
       const response = await fetch(`/api/shows/${showId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || 'Failed to delete show');
+        throw new Error('Failed to delete show');
       }
 
       // Refresh data
       await fetchData();
     } catch (error) {
-      console.error('Failed to delete show:', error);
-      alert(`Failed to delete show: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Error deleting show:', error);
+      alert('Failed to delete show. Please try again.');
     } finally {
       setDeleteShowLoading(null);
     }
+  };
+
+  const handleShowDetailModal = (show: Show) => {
+    setSelectedShowForDetail(show);
+    setShowDetailModal(true);
+  };
+
+  const handleTourRequestDetailModal = (request: TourRequest) => {
+    setSelectedTourRequest(request);
+    setTourRequestDetailModal(true);
   };
 
   if (loading) {
@@ -994,80 +1005,46 @@ export default function TabbedTourItinerary({
       {monthGroups.length > 0 && (
         <div className="border-b border-gray-200">
           <div className="px-6">
-            <div className="flex justify-between items-center">
-              <nav className="flex space-x-8 overflow-x-auto">
-                {monthGroups.map((group) => (
-                  <button
-                    key={group.monthKey}
-                    onClick={() => setActiveMonthTab(group.monthKey)}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                      activeMonthTab === group.monthKey
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    {group.monthLabel} ({group.entries.length})
-                  </button>
-                ))}
-              </nav>
-              
-              {/* Quick Add Date Button */}
-              {editable && (
+            <nav className="flex space-x-8 overflow-x-auto">
+              {monthGroups.map((group) => (
                 <button
-                  onClick={() => {
-                    // Initialize form with default values
-                    if (artistId && viewerType === 'artist') {
-                      setAddDateForm(prev => ({
-                        ...prev,
-                        type: 'request',
-                        artistId: artistId || '',
-                        artistName: artistName || '',
-                        venueId: '',
-                        venueName: ''
-                      }));
-                    } else if (venueId && viewerType === 'venue') {
-                      setAddDateForm(prev => ({
-                        ...prev,
-                        type: 'confirmed',
-                        artistId: '',
-                        artistName: '',
-                        venueId: venueId || '',
-                        venueName: venueName || ''
-                      }));
-                    }
-                    setShowAddDateForm(true);
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-2"
+                  key={group.monthKey}
+                  onClick={() => setActiveMonthTab(group.monthKey)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                    activeMonthTab === group.monthKey
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>Add Date</span>
+                  {group.monthLabel} ({group.entries.length})
                 </button>
-              )}
-            </div>
+              ))}
+            </nav>
           </div>
         </div>
       )}
 
       {/* Table Content */}
       <div className="overflow-x-auto">
-        <table className="w-full table-fixed min-w-[1000px]">
+        <table className="w-full min-w-[1000px] table-fixed">
           <thead className="bg-gray-50">
-            <tr className="text-left text-sm font-medium text-gray-600">
-              <th className="px-6 py-3 w-[12%]">Date</th>
-              <th className="px-6 py-3 w-[15%]">Location</th>
-              <th className="px-6 py-3 w-[22%]">{venueId ? 'Artist/Request' : artistId ? 'Venue/Request' : 'Artist'}</th>
-              <th className="px-6 py-3 w-[12%]">Status</th>
-              <th className="px-6 py-3 w-[18%]">Details</th>
-              <th className="px-6 py-3 w-[21%]">Actions</th>
+            <tr className="text-left text-xs font-medium text-gray-600">
+              <th className="px-4 py-1.5 w-[10%]">Date</th>
+              <th className="px-4 py-1.5 w-[15%]">Location</th>
+              <th className="px-4 py-1.5 w-[20%]">{venueId ? 'Artist/Request' : artistId ? 'Venue/Request' : 'Artist'}</th>
+              <th className="px-4 py-1.5 w-[10%]">Status</th>
+              <th className="px-4 py-1.5 w-[8%]">Capacity</th>
+              <th className="px-4 py-1.5 w-[8%]">Age</th>
+              <th className="px-4 py-1.5 w-[10%]">Guarantee</th>
+              <th className="px-4 py-1.5 w-[8%]">Bids</th>
+              <th className="px-4 py-1.5 w-[11%]">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-100">
             {/* Empty state - show when no entries in active month */}
             {activeMonthEntries.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl">📅</span>
                   </div>
@@ -1100,11 +1077,12 @@ export default function TabbedTourItinerary({
                 return (
                   <React.Fragment key={`show-${show.id}`}>
                     <tr 
-                      className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+                      className="hover:bg-green-50 transition-colors duration-150 cursor-pointer"
                       onClick={() => toggleShowExpansion(show.id)}
                       title={`Click to ${expandedShows.has(show.id) ? 'hide' : 'view'} show details`}
                     >
-                      <td className="px-6 py-4">
+                      {/* Date */}
+                      <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-gray-900">
                           {new Date(show.date).toLocaleDateString('en-US', {
                             weekday: 'short',
@@ -1112,92 +1090,112 @@ export default function TabbedTourItinerary({
                             day: 'numeric'
                           })}
                         </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(show.date).getFullYear()}
-                        </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{show.city}, {show.state}</div>
+                      
+                      {/* Location */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-sm text-gray-900 truncate">{show.city}, {show.state}</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {artistId ? (
-                            show.venueId && show.venueId !== 'external-venue' ? (
-                              <a 
-                                href={`/venues/${show.venueId}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                                title="View venue page"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {show.venueName}
-                              </a>
-                            ) : (
-                              show.venueName
-                            )
-                          ) : (
-                            show.artistId && show.artistId !== 'external-artist' ? (
-                              <a 
-                                href={`/artists/${show.artistId}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                                title="View artist page"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {show.artistName}
-                              </a>
-                            ) : (
-                              show.artistName
-                            )
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {show.capacity} capacity • {show.ageRestriction}
-                          {artistId && show.venueId && show.venueId !== 'external-venue' && (
-                            <span className="ml-2 text-blue-500">• Platform venue</span>
-                          )}
-                          {venueId && show.artistId && show.artistId !== 'external-artist' && (
-                            <span className="ml-2 text-blue-500">• Platform artist</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          show.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                          show.status === 'accepted' ? 'bg-blue-100 text-blue-800' :
-                          show.status === 'hold' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {show.status === 'accepted' ? 'Pending Confirmation' : show.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">
-                          {show.guarantee && `$${show.guarantee} guarantee`}
-                          {show.doorDeal && ` • ${show.doorDeal.split}`}
-                        </div>
+                      
+                      {/* Venue/Artist Name */}
+                      <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-2">
-                          {show.showTime && (
-                            <div className="text-sm text-gray-500">
-                              Show: {show.showTime}
-                            </div>
-                          )}
-                          {show.billingOrder && (
-                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                              show.billingOrder.position === 'headliner' ? 'bg-yellow-100 text-yellow-800' :
-                              show.billingOrder.position === 'co-headliner' ? 'bg-yellow-100 text-yellow-800' :
-                              show.billingOrder.position === 'direct-support' ? 'bg-blue-100 text-blue-800' :
-                              show.billingOrder.position === 'opener' ? 'bg-gray-100 text-gray-800' :
-                              'bg-gray-100 text-gray-800'
-                            }`}>
-                              {show.billingOrder.position === 'headliner' ? 'Headliner' :
-                               show.billingOrder.position === 'co-headliner' ? 'Co-Headliner' :
-                               show.billingOrder.position === 'direct-support' ? 'Support' :
-                               show.billingOrder.position === 'opener' ? 'Opener' :
-                               'Local'}
-                            </span>
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {artistId ? (
+                              show.venueId && show.venueId !== 'external-venue' ? (
+                                <a 
+                                  href={`/venues/${show.venueId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View venue page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {show.venueName}
+                                </a>
+                              ) : (
+                                show.venueName
+                              )
+                            ) : (
+                              show.artistId && show.artistId !== 'external-artist' ? (
+                                <a 
+                                  href={`/artists/${show.artistId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View artist page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {show.artistName}
+                                </a>
+                              ) : (
+                                show.artistName
+                              )
+                            )}
+                          </div>
+                          
+                          {/* User Badge for Platform Users */}
+                          {((artistId && show.venueId && show.venueId !== 'external-venue') || 
+                            (venueId && show.artistId && show.artistId !== 'external-artist')) && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // TODO: Open messaging modal
+                                alert(`Message ${artistId ? show.venueName : show.artistName}`);
+                              }}
+                              className="inline-flex items-center justify-center w-5 h-5 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+                              title={`Message ${artistId ? show.venueName : show.artistName}`}
+                            >
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                              </svg>
+                            </button>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      
+                      {/* Status */}
+                      <td className="px-4 py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            Confirmed
+                          </span>
+                          {/* Quick Info Icon */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShowDetailModal(show);
+                            }}
+                            className="inline-flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-800 hover:bg-green-200 rounded transition-colors"
+                            title="View detailed show information"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </button>
+                        </div>
+                      </td>
+                      
+                      {/* Capacity */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs text-gray-600">{show.capacity}</div>
+                      </td>
+                      
+                      {/* Age */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs text-gray-600">{show.ageRestriction}</div>
+                      </td>
+                      
+                      {/* Guarantee */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs text-gray-600">
+                          {show.guarantee ? `$${show.guarantee}` : '-'}
+                        </div>
+                      </td>
+                      
+                      {/* Bids (N/A for shows) */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs text-gray-400">-</div>
+                      </td>
+                      
+                      {/* Actions */}
+                      <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-2">
                           {/* Delete button for members */}
                           {editable && (
@@ -1208,13 +1206,13 @@ export default function TabbedTourItinerary({
                                 handleDeleteShow(show.id, showName);
                               }}
                               disabled={deleteShowLoading === show.id}
-                              className="inline-flex items-center justify-center w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
                               title="Delete show"
                             >
                               {deleteShowLoading === show.id ? (
-                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
                               ) : (
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
                                 </svg>
                               )}
@@ -1223,7 +1221,7 @@ export default function TabbedTourItinerary({
                           
                           {/* Expand/Collapse Indicator */}
                           <div className="flex items-center text-gray-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                                 d={expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
                             </svg>
@@ -1234,89 +1232,118 @@ export default function TabbedTourItinerary({
 
                     {/* Expanded Show Details */}
                     {expandedShows.has(show.id) && (
-                      <tr className="bg-green-50 border-l-4 border-green-400">
-                        <td colSpan={6} className="px-6 py-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                            {/* Billing & Lineup Info */}
-                            {show.billingOrder && (
-                              <div className="space-y-2">
-                                <h4 className="font-semibold text-green-800">Billing & Lineup</h4>
-                                <div>
-                                  <span className="text-gray-600">Position:</span> 
-                                  <span className={`ml-1 px-2 py-1 text-xs font-medium rounded-full ${
-                                    show.billingOrder.position === 'headliner' ? 'bg-yellow-100 text-yellow-800' :
-                                    show.billingOrder.position === 'co-headliner' ? 'bg-yellow-100 text-yellow-800' :
-                                    show.billingOrder.position === 'direct-support' ? 'bg-blue-100 text-blue-800' :
-                                    show.billingOrder.position === 'opener' ? 'bg-gray-100 text-gray-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {show.billingOrder.position === 'headliner' ? 'Headliner' :
-                                     show.billingOrder.position === 'co-headliner' ? 'Co-Headliner' :
-                                     show.billingOrder.position === 'direct-support' ? 'Direct Support' :
-                                     show.billingOrder.position === 'opener' ? 'Opener' :
-                                     'Local Opener'}
-                                  </span>
+                      <>
+                        {/* Timeline Header Row */}
+                        <tr className="bg-yellow-50">
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]">Time</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[15%]">Event</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[20%]">Details</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[11%]">Actions</td>
+                        </tr>
+                        
+                        {/* Timeline Events */}
+                        {(() => {
+                          const events = [];
+                          
+                          if (show.loadIn) {
+                            events.push({
+                              time: show.loadIn,
+                              event: 'Load-in',
+                              details: 'Gear arrives at venue',
+                              type: 'loadIn'
+                            });
+                          }
+                          
+                          if (show.soundcheck) {
+                            events.push({
+                              time: show.soundcheck,
+                              event: 'Soundcheck',
+                              details: 'Technical setup and sound testing',
+                              type: 'soundcheck'
+                            });
+                          }
+                          
+                          if (show.doorsOpen) {
+                            events.push({
+                              time: show.doorsOpen,
+                              event: 'Doors Open',
+                              details: 'Venue opens to public',
+                              type: 'doorsOpen'
+                            });
+                          }
+                          
+                          if (show.showTime) {
+                            events.push({
+                              time: show.showTime,
+                              event: 'Show Start',
+                              details: 'Performance begins',
+                              type: 'showTime'
+                            });
+                          }
+                          
+                          if (show.curfew) {
+                            events.push({
+                              time: show.curfew,
+                              event: 'Curfew',
+                              details: 'Music must end',
+                              type: 'curfew'
+                            });
+                          }
+                          
+                          // Sort events by time
+                          events.sort((a, b) => a.time.localeCompare(b.time));
+                          
+                          return events.map((event, index) => (
+                            <tr key={index} className="hover:bg-yellow-100 bg-yellow-50">
+                              <td className="px-4 py-1.5 font-mono text-sm text-gray-900 w-[10%]">{event.time}</td>
+                              <td className="px-4 py-1.5 font-medium text-sm text-gray-900 w-[15%]">{event.event}</td>
+                              <td className="px-4 py-1.5 text-sm text-gray-600 w-[20%]">{event.details}</td>
+                              <td className="px-4 py-1.5 w-[10%]"></td>
+                              <td className="px-4 py-1.5 w-[8%]"></td>
+                              <td className="px-4 py-1.5 w-[8%]"></td>
+                              <td className="px-4 py-1.5 w-[10%]"></td>
+                              <td className="px-4 py-1.5 w-[8%]"></td>
+                              <td className="px-4 py-1.5 text-left w-[11%]">
+                                <div className="flex items-center space-x-2">
+                                  <button className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                                          title="Delete event">
+                                    <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                                    </svg>
+                                  </button>
+                                  <button className="text-gray-400 hover:text-gray-600" title="Edit event">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                  </button>
                                 </div>
-                                {show.billingOrder.lineupPosition && (
-                                  <div><span className="text-gray-600">Lineup Position:</span> #{show.billingOrder.lineupPosition}</div>
-                                )}
-                                {show.billingOrder.setLength && (
-                                  <div><span className="text-gray-600">Set Length:</span> {show.billingOrder.setLength} minutes</div>
-                                )}
-                                {show.billingOrder.otherActs && show.billingOrder.otherActs.length > 0 && (
-                                  <div>
-                                    <span className="text-gray-600">Other Acts:</span>
-                                    <div className="mt-1 text-xs">
-                                      {show.billingOrder.otherActs.map((act, index) => (
-                                        <span key={index} className="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded mr-1 mb-1">
-                                          {act}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                                {show.billingOrder.notes && (
-                                  <div><span className="text-gray-600">Billing Notes:</span> {show.billingOrder.notes}</div>
-                                )}
-                              </div>
-                            )}
-
-                            {/* Timing Details */}
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-green-800">Show Schedule</h4>
-                              {show.loadIn && <div><span className="text-gray-600">Load-in:</span> {show.loadIn}</div>}
-                              {show.soundcheck && <div><span className="text-gray-600">Soundcheck:</span> {show.soundcheck}</div>}
-                              {show.doorsOpen && <div><span className="text-gray-600">Doors:</span> {show.doorsOpen}</div>}
-                              {show.showTime && <div><span className="text-gray-600">Show:</span> {show.showTime}</div>}
-                              {show.curfew && <div><span className="text-gray-600">Curfew:</span> {show.curfew}</div>}
+                              </td>
+                            </tr>
+                          ));
+                        })()}
+                        
+                        {/* Add Event Row */}
+                        <tr className="bg-yellow-100">
+                          <td colSpan={8} className="px-4 py-1.5 text-left">
+                            <button className="w-full text-left text-sm text-yellow-600 hover:text-yellow-800 flex items-center">
+                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                              </svg>
+                              Add Event
+                            </button>
+                          </td>
+                          <td className="px-4 py-1.5 text-left w-[11%]">
+                            <div className="flex items-center">
+                              {/* Empty space to align with action buttons above */}
                             </div>
-
-                            {/* Financial Details */}
-                            <div className="space-y-2">
-                              <h4 className="font-semibold text-green-800">Payment</h4>
-                              {show.guarantee && <div><span className="text-gray-600">Guarantee:</span> ${show.guarantee}</div>}
-                              {show.doorDeal && <div><span className="text-gray-600">Door Deal:</span> {show.doorDeal.split}</div>}
-                              {show.ticketPrice && (
-                                <div>
-                                  <span className="text-gray-600">Tickets:</span>
-                                  {show.ticketPrice.advance && ` $${show.ticketPrice.advance} adv`}
-                                  {show.ticketPrice.door && ` / $${show.ticketPrice.door} door`}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Additional Info - only show if no billing info to save space */}
-                            {!show.billingOrder && (
-                              <div className="space-y-2">
-                                <h4 className="font-semibold text-green-800">Details</h4>
-                                <div><span className="text-gray-600">Capacity:</span> {show.capacity}</div>
-                                <div><span className="text-gray-600">Age:</span> {show.ageRestriction}</div>
-                                {show.notes && <div><span className="text-gray-600">Notes:</span> {show.notes}</div>}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
+                          </td>
+                        </tr>
+                      </>
                     )}
                   </React.Fragment>
                 );
@@ -1331,7 +1358,8 @@ export default function TabbedTourItinerary({
                       onClick={() => toggleRequestExpansion(request.id)}
                       title={`Click to ${expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
                     >
-                      <td className="px-6 py-4">
+                      {/* Date Range */}
+                      <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-blue-900">
                           {new Date(request.startDate).toLocaleDateString('en-US', {
                             month: 'short',
@@ -1343,40 +1371,72 @@ export default function TabbedTourItinerary({
                             day: 'numeric'
                           })}
                         </div>
-                        <div className="text-sm text-blue-600">Show Request</div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-blue-900">
-                          {request.location}
+                      
+                      {/* Location */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-sm text-blue-900 truncate">{request.location}</div>
+                      </td>
+                      
+                      {/* Title */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-sm font-medium text-blue-900 truncate">{request.title}</div>
+                      </td>
+                      
+                      {/* Status */}
+                      <td className="px-4 py-1.5">
+                        <div className="flex items-center space-x-1">
+                          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            Requested
+                          </span>
+                          {/* Quick Info Icon */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleTourRequestDetailModal(request);
+                            }}
+                            className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
+                            title="View detailed request information"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </button>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-blue-900">{request.title}</div>
-                        <div className="text-sm text-blue-600">
-                          {request.expectedDraw.min}-{request.expectedDraw.max} draw
+                      
+                      {/* Capacity (Expected Draw) */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs text-gray-600">{request.expectedDraw.min}-{request.expectedDraw.max}</div>
+                      </td>
+                      
+                      {/* Age */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs text-gray-600">{request.ageRestriction || 'Flexible'}</div>
+                      </td>
+                      
+                      {/* Guarantee Range */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs text-gray-600">
+                          {request.guaranteeRange ? `$${request.guaranteeRange.min}-${request.guaranteeRange.max}` : '-'}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-blue-900">{request.flexibility.replace('-', ' ')}</div>
-                        {request.guaranteeRange && (
-                          <div className="text-sm text-blue-600">
-                            ${request.guaranteeRange.min}-{request.guaranteeRange.max}
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-blue-900">
-                          {request.priority} priority
+                      
+                      {/* Bids Count */}
+                      <td className="px-4 py-1.5">
+                        <div className="text-xs">
+                          {requestBids.length > 0 ? (
+                            <span className="text-blue-600 font-medium">{requestBids.length}</span>
+                          ) : (
+                            <span className="text-gray-400">0</span>
+                          )}
                         </div>
-                        {request.description && (
-                          <div className="text-sm text-blue-600 truncate max-w-xs">
-                            {request.description}
-                          </div>
-                        )}
                       </td>
-                      <td className="px-6 py-4">
+                      
+                      {/* Actions */}
+                      <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-2">
-                          {/* Delete button for artists - properly aligned in Actions column */}
+                          {/* Delete button for artists */}
                           {viewerType === 'artist' && (
                             <button
                               onClick={(e) => {
@@ -1384,13 +1444,13 @@ export default function TabbedTourItinerary({
                                 handleDeleteShowRequest(request.id, request.title);
                               }}
                               disabled={deleteLoading === request.id}
-                              className="inline-flex items-center justify-center w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
                               title="Delete tour request"
                             >
                               {deleteLoading === request.id ? (
-                                <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
                               ) : (
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
                                 </svg>
                               )}
@@ -1404,15 +1464,15 @@ export default function TabbedTourItinerary({
                                 e.stopPropagation();
                                 handlePlaceBid(request);
                               }}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                             >
-                              Place Bid
+                              Bid
                             </button>
                           )}
 
                           {/* Expand/Collapse Indicator */}
                           <div className="flex items-center text-gray-400">
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
                                 d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
                             </svg>
@@ -1426,7 +1486,7 @@ export default function TabbedTourItinerary({
                       <>
                         {/* Tour Request Details */}
                         <tr className="bg-blue-50 border-l-4 border-blue-400">
-                          <td colSpan={6} className="px-6 py-4">
+                          <td colSpan={9} className="px-6 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                               {/* Request Details */}
                               <div className="space-y-2">
@@ -1637,7 +1697,7 @@ export default function TabbedTourItinerary({
             {/* Add Date Row - Only show when no shows at all and user is a member */}
             {monthGroups.length === 0 && editable && (
               <tr>
-                <td colSpan={6} className="px-6 py-3">
+                <td colSpan={9} className="px-6 py-3">
                   <button
                     onClick={() => {
                       if (artistId) {
@@ -2205,6 +2265,36 @@ export default function TabbedTourItinerary({
             </form>
           </div>
         </div>
+      )}
+
+      {/* Show Detail Modal */}
+      {showDetailModal && selectedShowForDetail && (
+        <ShowDetailModal
+          show={selectedShowForDetail}
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedShowForDetail(null);
+          }}
+          viewerType={viewerType}
+        />
+      )}
+
+      {/* Tour Request Detail Modal */}
+      {tourRequestDetailModal && selectedTourRequest && (
+        <TourRequestDetailModal
+          tourRequest={selectedTourRequest}
+          isOpen={tourRequestDetailModal}
+          onClose={() => {
+            setTourRequestDetailModal(false);
+            setSelectedTourRequest(null);
+          }}
+          onPlaceBid={() => {
+            setTourRequestDetailModal(false);
+            setShowBidForm(true);
+          }}
+          viewerType={viewerType}
+        />
       )}
     </div>
   );

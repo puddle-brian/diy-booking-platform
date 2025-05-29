@@ -209,6 +209,16 @@ model Show {
   ticketPrice    Float?
   ageRestriction AgeRestriction?
   status         ShowStatus      @default(CONFIRMED)
+  guarantee      Float?
+  doorDeal       Json?
+  capacity       Int?
+  loadIn         String?
+  soundcheck     String?
+  doorsOpen      String?
+  showTime       String?
+  curfew         String?
+  notes          String?
+  billingOrder   Json?
   createdById    String
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt

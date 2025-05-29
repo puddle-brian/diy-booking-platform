@@ -62,7 +62,13 @@ export async function GET(
       title: show.title,
       status: show.status.toLowerCase(),
       ticketPrice: show.ticketPrice,
-      ageRestriction: show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
+      ageRestriction: (() => {
+        if (!show.ageRestriction) return 'all-ages';
+        const ageStr = show.ageRestriction.toLowerCase();
+        if (ageStr.includes('eighteen') || ageStr.includes('18')) return '18+';
+        if (ageStr.includes('twenty') || ageStr.includes('21')) return '21+';
+        return 'all-ages';
+      })(),
       description: show.description,
       createdAt: show.createdAt.toISOString(),
       updatedAt: show.updatedAt.toISOString(),
@@ -157,7 +163,13 @@ export async function PUT(
       title: updatedShow.title,
       status: updatedShow.status.toLowerCase(),
       ticketPrice: updatedShow.ticketPrice,
-      ageRestriction: updatedShow.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
+      ageRestriction: (() => {
+        if (!updatedShow.ageRestriction) return 'all-ages';
+        const ageStr = updatedShow.ageRestriction.toLowerCase();
+        if (ageStr.includes('eighteen') || ageStr.includes('18')) return '18+';
+        if (ageStr.includes('twenty') || ageStr.includes('21')) return '21+';
+        return 'all-ages';
+      })(),
       description: updatedShow.description,
       createdAt: updatedShow.createdAt.toISOString(),
       updatedAt: updatedShow.updatedAt.toISOString(),

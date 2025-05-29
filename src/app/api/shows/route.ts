@@ -184,25 +184,50 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform to match the expected format
-    const transformedShows = shows.map(show => ({
-      id: show.id,
-      artistId: show.artistId,
-      venueId: show.venueId,
-      date: show.date.toISOString().split('T')[0],
-      city: show.venue.location.city,
-      state: show.venue.location.stateProvince || '',
-      country: show.venue.location.country,
-      venueName: show.venue.name,
-      artistName: show.artist.name,
-      title: show.title,
-      status: show.status.toLowerCase(),
-      ticketPrice: show.ticketPrice,
-      ageRestriction: show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
-      description: show.description,
-      createdAt: show.createdAt.toISOString(),
-      updatedAt: show.updatedAt.toISOString(),
-      createdBy: show.createdBy.username
-    }));
+    const transformedShows = shows.map(show => {
+      // Properly transform age restriction
+      let ageRestriction = 'all-ages';
+      if (show.ageRestriction) {
+        const ageStr = show.ageRestriction.toLowerCase();
+        if (ageStr.includes('eighteen') || ageStr.includes('18')) {
+          ageRestriction = '18+';
+        } else if (ageStr.includes('twenty') || ageStr.includes('21')) {
+          ageRestriction = '21+';
+        } else if (ageStr.includes('all')) {
+          ageRestriction = 'all-ages';
+        }
+      }
+
+      return {
+        id: show.id,
+        artistId: show.artistId,
+        venueId: show.venueId,
+        date: show.date.toISOString().split('T')[0],
+        city: show.venue.location.city,
+        state: show.venue.location.stateProvince || '',
+        country: show.venue.location.country,
+        venueName: show.venue.name,
+        artistName: show.artist.name,
+        title: show.title,
+        status: show.status.toLowerCase(),
+        ticketPrice: show.ticketPrice ? { door: show.ticketPrice } : null,
+        ageRestriction: ageRestriction,
+        description: show.description,
+        guarantee: show.guarantee,
+        doorDeal: show.doorDeal,
+        capacity: show.capacity,
+        loadIn: show.loadIn,
+        soundcheck: show.soundcheck,
+        doorsOpen: show.doorsOpen,
+        showTime: show.showTime,
+        curfew: show.curfew,
+        notes: show.notes,
+        billingOrder: show.billingOrder,
+        createdAt: show.createdAt.toISOString(),
+        updatedAt: show.updatedAt.toISOString(),
+        createdBy: show.createdBy.username
+      };
+    });
     
     console.log(`🎵 API: Found ${transformedShows.length} shows in database`);
     return NextResponse.json(transformedShows);
@@ -413,9 +438,25 @@ export async function POST(request: NextRequest) {
       artistName: newShow.artist.name,
       title: newShow.title,
       status: newShow.status.toLowerCase(),
-      ticketPrice: newShow.ticketPrice,
-      ageRestriction: newShow.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages',
+      ticketPrice: newShow.ticketPrice ? { door: newShow.ticketPrice } : null,
+      ageRestriction: (() => {
+        if (!newShow.ageRestriction) return 'all-ages';
+        const ageStr = newShow.ageRestriction.toLowerCase();
+        if (ageStr.includes('eighteen') || ageStr.includes('18')) return '18+';
+        if (ageStr.includes('twenty') || ageStr.includes('21')) return '21+';
+        return 'all-ages';
+      })(),
       description: newShow.description,
+      guarantee: newShow.guarantee,
+      doorDeal: newShow.doorDeal,
+      capacity: newShow.capacity,
+      loadIn: newShow.loadIn,
+      soundcheck: newShow.soundcheck,
+      doorsOpen: newShow.doorsOpen,
+      showTime: newShow.showTime,
+      curfew: newShow.curfew,
+      notes: newShow.notes,
+      billingOrder: newShow.billingOrder,
       createdAt: newShow.createdAt.toISOString(),
       updatedAt: newShow.updatedAt.toISOString(),
       createdBy: newShow.createdBy.username

@@ -310,9 +310,17 @@ export default function CompactTourItinerary({
       cancelled: 'bg-gray-100 text-gray-800'
     };
 
+    const statusLabels = {
+      pending: 'Pending',
+      hold: 'Hold',
+      accepted: 'Accepted',
+      declined: 'Declined',
+      cancelled: 'Cancelled'
+    };
+
     return (
-      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${statusColors[bid.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
-        {bid.status}
+      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusColors[bid.status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
+        {statusLabels[bid.status as keyof typeof statusLabels] || bid.status}
       </span>
     );
   };
@@ -608,62 +616,85 @@ export default function CompactTourItinerary({
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                   Confirmed Shows ({activeMonthData.shows.length})
                 </h4>
-                <div className="space-y-3">
+                
+                {/* Compact Table Header */}
+                <div className="bg-gray-50 border border-gray-200 rounded-t-lg px-4 py-2 text-xs font-medium text-gray-600 grid grid-cols-12 gap-2">
+                  <div className="col-span-2">Date</div>
+                  <div className="col-span-3">Venue/Artist</div>
+                  <div className="col-span-2">Location</div>
+                  <div className="col-span-1">Status</div>
+                  <div className="col-span-1">Capacity</div>
+                  <div className="col-span-1">Age</div>
+                  <div className="col-span-1">Guarantee</div>
+                  <div className="col-span-1"></div>
+                </div>
+                
+                <div className="border-l border-r border-b border-gray-200 rounded-b-lg overflow-hidden">
                   {activeMonthData.shows.map(show => (
-                    <div key={show.id} className="border border-green-200 rounded-lg overflow-hidden">
+                    <div key={show.id} className="border-b border-gray-100 last:border-b-0">
                       <div 
-                        className="bg-green-50 p-4 cursor-pointer hover:bg-green-100 transition-colors"
+                        className="bg-white hover:bg-green-50 cursor-pointer transition-colors px-4 py-2 grid grid-cols-12 gap-2 items-center text-sm"
                         onClick={() => toggleExpanded(`show-${show.id}`)}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <div className="text-sm font-medium text-green-900">
-                                {new Date(show.date).toLocaleDateString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </div>
-                              <div className="text-sm text-green-700">
-                                {show.city}, {show.state}
-                              </div>
-                            </div>
-                            <div className="text-sm font-medium text-gray-900 mb-1">
-                              {artistId ? show.venueName : show.artistName}
-                            </div>
-                            <div className="text-xs text-gray-600 flex items-center space-x-3">
-                              <span>{show.capacity} capacity</span>
-                              <span>{show.ageRestriction}</span>
-                              {show.showTime && <span>Show: {show.showTime}</span>}
-                            </div>
-                          </div>
-                          <div className="text-right flex items-center space-x-3">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                              Confirmed
-                            </span>
-                            {show.guarantee && (
-                              <div className="text-xs text-green-700">
-                                ${show.guarantee}
-                              </div>
-                            )}
-                            <svg 
-                              className={`w-4 h-4 text-gray-400 transition-transform ${
-                                expandedItems.has(`show-${show.id}`) ? 'rotate-180' : ''
-                              }`} 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
+                        {/* Date */}
+                        <div className="col-span-2 font-medium text-gray-900">
+                          {new Date(show.date).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                        
+                        {/* Venue/Artist Name */}
+                        <div className="col-span-3 font-medium text-gray-900 truncate">
+                          {artistId ? show.venueName : show.artistName}
+                        </div>
+                        
+                        {/* Location */}
+                        <div className="col-span-2 text-gray-600 truncate">
+                          {show.city}, {show.state}
+                        </div>
+                        
+                        {/* Status */}
+                        <div className="col-span-1">
+                          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            Confirmed
+                          </span>
+                        </div>
+                        
+                        {/* Capacity */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {show.capacity}
+                        </div>
+                        
+                        {/* Age */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {show.ageRestriction}
+                        </div>
+                        
+                        {/* Guarantee */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {show.guarantee ? `$${show.guarantee}` : '-'}
+                        </div>
+                        
+                        {/* Expand Arrow */}
+                        <div className="col-span-1 flex justify-end">
+                          <svg 
+                            className={`w-4 h-4 text-gray-400 transition-transform ${
+                              expandedItems.has(`show-${show.id}`) ? 'rotate-180' : ''
+                            }`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
                       </div>
                       
                       {/* Expanded Details */}
                       {expandedItems.has(`show-${show.id}`) && (
-                        <div className="bg-white border-t border-green-200 p-4">
+                        <div className="bg-gray-50 border-t border-gray-200 p-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             {show.loadIn && (
                               <div>
@@ -687,6 +718,12 @@ export default function CompactTourItinerary({
                               <div>
                                 <span className="font-medium text-gray-700">Curfew:</span>
                                 <div className="text-gray-600">{show.curfew}</div>
+                              </div>
+                            )}
+                            {show.showTime && (
+                              <div>
+                                <span className="font-medium text-gray-700">Show Time:</span>
+                                <div className="text-gray-600">{show.showTime}</div>
                               </div>
                             )}
                           </div>
@@ -713,74 +750,99 @@ export default function CompactTourItinerary({
                   <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
                   Show Requests ({activeMonthData.tourRequests.length})
                 </h4>
-                <div className="space-y-3">
+                
+                {/* Compact Table Header */}
+                <div className="bg-gray-50 border border-gray-200 rounded-t-lg px-4 py-2 text-xs font-medium text-gray-600 grid grid-cols-12 gap-2">
+                  <div className="col-span-2">Date Range</div>
+                  <div className="col-span-3">Title</div>
+                  <div className="col-span-2">Location</div>
+                  <div className="col-span-1">Status</div>
+                  <div className="col-span-1">Draw</div>
+                  <div className="col-span-1">Bids</div>
+                  <div className="col-span-1">Range</div>
+                  <div className="col-span-1"></div>
+                </div>
+                
+                <div className="border-l border-r border-b border-gray-200 rounded-b-lg overflow-hidden">
                   {activeMonthData.tourRequests.map(request => (
-                    <div key={request.id} className="border border-blue-200 rounded-lg overflow-hidden">
+                    <div key={request.id} className="border-b border-gray-100 last:border-b-0">
                       <div 
-                        className="bg-blue-50 p-4 cursor-pointer hover:bg-blue-100 transition-colors"
+                        className="bg-white hover:bg-blue-50 cursor-pointer transition-colors px-4 py-2 grid grid-cols-12 gap-2 items-center text-sm"
                         onClick={() => toggleExpanded(`request-${request.id}`)}
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-2">
-                              <div className="text-sm font-medium text-blue-900">
-                                {new Date(request.startDate).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                                {' - '}
-                                {new Date(request.endDate).toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </div>
-                              <div className="text-sm text-blue-700">
-                                {request.location}
-                              </div>
-                            </div>
-                            <div className="text-sm font-medium text-gray-900 mb-1">
-                              {request.title}
-                            </div>
-                            <div className="text-xs text-gray-600 flex items-center space-x-3">
-                              <span>{request.expectedDraw.min}-{request.expectedDraw.max} draw</span>
-                              <span>{request.flexibility.replace('-', ' ')}</span>
-                              {request.bids && request.bids.length > 0 && (
-                                <span className="text-blue-600 font-medium">{request.bids.length} bid{request.bids.length !== 1 ? 's' : ''}</span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right flex items-center space-x-3">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                              Looking for venues
-                            </span>
-                            {request.guaranteeRange && (
-                              <div className="text-xs text-blue-700">
-                                ${request.guaranteeRange.min}-{request.guaranteeRange.max}
-                              </div>
-                            )}
-                            <svg 
-                              className={`w-4 h-4 text-gray-400 transition-transform ${
-                                expandedItems.has(`request-${request.id}`) ? 'rotate-180' : ''
-                              }`} 
-                              fill="none" 
-                              stroke="currentColor" 
-                              viewBox="0 0 24 24"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                            </svg>
-                          </div>
+                        {/* Date Range */}
+                        <div className="col-span-2 font-medium text-gray-900">
+                          {new Date(request.startDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                          {' - '}
+                          {new Date(request.endDate).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </div>
+                        
+                        {/* Title */}
+                        <div className="col-span-3 font-medium text-gray-900 truncate">
+                          {request.title}
+                        </div>
+                        
+                        {/* Location */}
+                        <div className="col-span-2 text-gray-600 truncate">
+                          {request.location}
+                        </div>
+                        
+                        {/* Status */}
+                        <div className="col-span-1">
+                          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            Requested
+                          </span>
+                        </div>
+                        
+                        {/* Draw */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {request.expectedDraw.min}-{request.expectedDraw.max}
+                        </div>
+                        
+                        {/* Bids */}
+                        <div className="col-span-1 text-xs">
+                          {request.bids && request.bids.length > 0 ? (
+                            <span className="text-blue-600 font-medium">{request.bids.length}</span>
+                          ) : (
+                            <span className="text-gray-400">0</span>
+                          )}
+                        </div>
+                        
+                        {/* Guarantee Range */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {request.guaranteeRange ? `$${request.guaranteeRange.min}-${request.guaranteeRange.max}` : '-'}
+                        </div>
+                        
+                        {/* Expand Arrow */}
+                        <div className="col-span-1 flex justify-end">
+                          <svg 
+                            className={`w-4 h-4 text-gray-400 transition-transform ${
+                              expandedItems.has(`request-${request.id}`) ? 'rotate-180' : ''
+                            }`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
                       </div>
                       
                       {/* Expanded Details - Show Bids */}
                       {expandedItems.has(`request-${request.id}`) && (
-                        <div className="bg-white border-t border-blue-200">
+                        <div className="bg-gray-50 border-t border-gray-200">
                           {request.bids && request.bids.length > 0 ? (
                             <div className="p-4">
                               <h5 className="font-medium text-gray-900 mb-3">Venue Bids ({request.bids.length})</h5>
                               <div className="space-y-3">
                                 {request.bids.map(bid => (
-                                  <div key={bid.id} className="bg-gray-50 rounded-lg p-3">
+                                  <div key={bid.id} className="bg-white rounded-lg p-3 border border-gray-200">
                                     <div className="flex justify-between items-start mb-2">
                                       <div>
                                         <div className="font-medium text-gray-900">{bid.venueName}</div>
@@ -800,7 +862,7 @@ export default function CompactTourItinerary({
                                       </div>
                                     </div>
                                     {bid.message && (
-                                      <div className="text-sm text-gray-700 bg-white rounded p-2 mt-2">
+                                      <div className="text-sm text-gray-700 bg-gray-50 rounded p-2 mt-2">
                                         {bid.message}
                                       </div>
                                     )}
@@ -834,31 +896,123 @@ export default function CompactTourItinerary({
                   <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
                   Your Bids ({activeMonthData.venueBids.length})
                 </h4>
-                <div className="space-y-3">
+                
+                {/* Compact Table Header */}
+                <div className="bg-gray-50 border border-gray-200 rounded-t-lg px-4 py-2 text-xs font-medium text-gray-600 grid grid-cols-12 gap-2">
+                  <div className="col-span-2">Date</div>
+                  <div className="col-span-3">Artist</div>
+                  <div className="col-span-2">Location</div>
+                  <div className="col-span-1">Status</div>
+                  <div className="col-span-1">Capacity</div>
+                  <div className="col-span-1">Age</div>
+                  <div className="col-span-1">Guarantee</div>
+                  <div className="col-span-1"></div>
+                </div>
+                
+                <div className="border-l border-r border-b border-gray-200 rounded-b-lg overflow-hidden">
                   {activeMonthData.venueBids.map(bid => (
-                    <div key={bid.id} className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <div className="text-sm font-medium text-yellow-900">
-                              {new Date(bid.proposedDate).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </div>
-                          </div>
-                          <div className="text-sm font-medium text-gray-900 mb-1">
-                            {bid.artistName || 'Unknown Artist'}
-                          </div>
-                          <div className="text-xs text-gray-600">
-                            {bid.guarantee ? `$${bid.guarantee} guarantee` : 'Door deal only'}
-                          </div>
+                    <div key={bid.id} className="border-b border-gray-100 last:border-b-0">
+                      <div 
+                        className="bg-white hover:bg-yellow-50 cursor-pointer transition-colors px-4 py-2 grid grid-cols-12 gap-2 items-center text-sm"
+                        onClick={() => toggleExpanded(`bid-${bid.id}`)}
+                      >
+                        {/* Date */}
+                        <div className="col-span-2 font-medium text-gray-900">
+                          {new Date(bid.proposedDate).toLocaleDateString('en-US', {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
                         </div>
-                        <div className="text-right">
+                        
+                        {/* Artist Name */}
+                        <div className="col-span-3 font-medium text-gray-900 truncate">
+                          {bid.artistName || 'Unknown Artist'}
+                        </div>
+                        
+                        {/* Location */}
+                        <div className="col-span-2 text-gray-600 truncate">
+                          {bid.location || '-'}
+                        </div>
+                        
+                        {/* Status */}
+                        <div className="col-span-1">
                           {getBidStatusBadge(bid)}
                         </div>
+                        
+                        {/* Capacity */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {bid.capacity}
+                        </div>
+                        
+                        {/* Age */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {bid.ageRestriction}
+                        </div>
+                        
+                        {/* Guarantee */}
+                        <div className="col-span-1 text-gray-600 text-xs">
+                          {bid.guarantee ? `$${bid.guarantee}` : 'Door'}
+                        </div>
+                        
+                        {/* Expand Arrow */}
+                        <div className="col-span-1 flex justify-end">
+                          <svg 
+                            className={`w-4 h-4 text-gray-400 transition-transform ${
+                              expandedItems.has(`bid-${bid.id}`) ? 'rotate-180' : ''
+                            }`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </div>
                       </div>
+                      
+                      {/* Expanded Details */}
+                      {expandedItems.has(`bid-${bid.id}`) && (
+                        <div className="bg-gray-50 border-t border-gray-200 p-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            {bid.loadIn && (
+                              <div>
+                                <span className="font-medium text-gray-700">Load In:</span>
+                                <div className="text-gray-600">{bid.loadIn}</div>
+                              </div>
+                            )}
+                            {bid.soundcheck && (
+                              <div>
+                                <span className="font-medium text-gray-700">Soundcheck:</span>
+                                <div className="text-gray-600">{bid.soundcheck}</div>
+                              </div>
+                            )}
+                            {bid.doorsOpen && (
+                              <div>
+                                <span className="font-medium text-gray-700">Doors:</span>
+                                <div className="text-gray-600">{bid.doorsOpen}</div>
+                              </div>
+                            )}
+                            {bid.showTime && (
+                              <div>
+                                <span className="font-medium text-gray-700">Show Time:</span>
+                                <div className="text-gray-600">{bid.showTime}</div>
+                              </div>
+                            )}
+                            {bid.curfew && (
+                              <div>
+                                <span className="font-medium text-gray-700">Curfew:</span>
+                                <div className="text-gray-600">{bid.curfew}</div>
+                              </div>
+                            )}
+                          </div>
+                          {bid.message && (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <span className="font-medium text-gray-700">Message:</span>
+                              <div className="text-gray-600 text-sm mt-1">{bid.message}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
