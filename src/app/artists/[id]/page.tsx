@@ -429,24 +429,30 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
                   <p className="text-sm text-gray-600">
                     {artist.city}, {artist.state}
                     {artist.artistType && (
-                      <span className="text-gray-400 mx-2">•</span>
-                    )}
-                    {artist.artistType && (
-                      <span className="capitalize">{artist.artistType.replace('-', ' ')}</span>
-                    )}
-                    {artist.yearFormed && (
                       <>
                         <span className="text-gray-400 mx-2">•</span>
-                        <span>Est. {artist.yearFormed}</span>
+                        <span className="capitalize">{artist.artistType.replace('-', ' ')}</span>
                       </>
+                    )}
+                    <span className="text-gray-400 mx-2">•</span>
+                    {artist.rating && artist.rating > 0 ? (
+                      <span className="text-gray-700">★ {artist.rating.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-gray-400">★ N/A</span>
                     )}
                   </p>
                   
-                  {/* Genres if available */}
-                  {artist.genres && artist.genres.length > 0 && (
+                  {/* Additional info on second line */}
+                  {(artist.yearFormed || (artist.genres && artist.genres.length > 0)) && (
                     <p className="text-xs text-gray-500">
-                      {artist.genres.slice(0, 3).join(', ')}
-                      {artist.genres.length > 3 && ` +${artist.genres.length - 3} more`}
+                      {artist.yearFormed && `Est. ${artist.yearFormed}`}
+                      {artist.yearFormed && artist.genres && artist.genres.length > 0 && ' • '}
+                      {artist.genres && artist.genres.length > 0 && (
+                        <>
+                          {artist.genres.slice(0, 3).join(', ')}
+                          {artist.genres.length > 3 && ` +${artist.genres.length - 3} more`}
+                        </>
+                      )}
                     </p>
                   )}
                 </div>

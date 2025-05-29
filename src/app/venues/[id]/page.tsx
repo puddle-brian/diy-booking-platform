@@ -324,28 +324,18 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
                   <p className="text-sm text-gray-600">
                     {venue.city}, {venue.state}
                     {venue.capacity && (
-                      <span className="text-gray-400 mx-2">•</span>
-                    )}
-                    {venue.capacity && (
-                      <span>{venue.capacity >= 1000 ? `${(venue.capacity / 1000).toFixed(venue.capacity % 1000 === 0 ? 0 : 1)}k` : venue.capacity} capacity</span>
-                    )}
-                    {venue.ageRestriction && (
                       <>
                         <span className="text-gray-400 mx-2">•</span>
-                        <span>{venue.ageRestriction}</span>
+                        <span>{venue.capacity >= 1000 ? `${(venue.capacity / 1000).toFixed(venue.capacity % 1000 === 0 ? 0 : 1)}k` : venue.capacity} cap</span>
                       </>
                     )}
+                    <span className="text-gray-400 mx-2">•</span>
+                    {venue.rating && venue.rating > 0 ? (
+                      <span className="text-gray-700">★ {venue.rating.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-gray-400">★ N/A</span>
+                    )}
                   </p>
-                  
-                  {/* Address if available */}
-                  {venue.streetAddress && (
-                    <p className="text-xs text-gray-500">
-                      {venue.streetAddress}
-                      {venue.addressLine2 && `, ${venue.addressLine2}`}
-                      {venue.neighborhood && ` (${venue.neighborhood})`}
-                      {venue.postalCode && ` ${venue.postalCode}`}
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
@@ -475,6 +465,26 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
           <div className="mb-8">
             <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
             <div className="space-y-2">
+              {/* Address - if available */}
+              {venue.streetAddress && (
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-gray-500 mr-3 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <div className="text-gray-700">
+                    <div>{venue.streetAddress}</div>
+                    {venue.addressLine2 && <div>{venue.addressLine2}</div>}
+                    <div>
+                      {venue.city}, {venue.state} {venue.postalCode}
+                    </div>
+                    {venue.neighborhood && (
+                      <div className="text-sm text-gray-500">({venue.neighborhood})</div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center">
                 <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />

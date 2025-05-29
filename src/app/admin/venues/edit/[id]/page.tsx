@@ -14,6 +14,10 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
     city: '',
     state: '',
     country: 'USA',
+    streetAddress: '',
+    addressLine2: '',
+    postalCode: '',
+    neighborhood: '',
     venueType: 'house-show' as VenueType,
     genres: [] as string[],
     capacity: 0,
@@ -68,26 +72,40 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
         
         // Pre-populate form with existing data
         setFormData({
-          name: venue.name,
-          city: venue.city,
-          state: venue.state,
-          country: venue.country,
+          name: venue.name || '',
+          city: venue.city || '',
+          state: venue.state || '',
+          country: venue.country || 'USA',
+          streetAddress: venue.streetAddress || '',
+          addressLine2: venue.addressLine2 || '',
+          postalCode: venue.postalCode || '',
+          neighborhood: venue.neighborhood || '',
           venueType: venue.venueType,
-          genres: venue.genres,
-          capacity: venue.capacity,
+          genres: venue.genres || [],
+          capacity: venue.capacity || 0,
           ageRestriction: venue.ageRestriction,
-          equipment: venue.equipment,
-          features: venue.features,
-          pricing: venue.pricing,
-          contact: {
-            email: venue.contact.email,
-            phone: venue.contact.phone || '',
-            social: venue.contact.social || '',
-            website: venue.contact.website || '',
+          equipment: venue.equipment || {
+            pa: false,
+            mics: false,
+            drums: false,
+            amps: false,
+            piano: false,
           },
-          images: venue.images,
-          description: venue.description,
-          hasAccount: venue.hasAccount,
+          features: venue.features || [],
+          pricing: venue.pricing || {
+            guarantee: 0,
+            door: false,
+            merchandise: false,
+          },
+          contact: {
+            email: venue.contact?.email || '',
+            phone: venue.contact?.phone || '',
+            social: venue.contact?.social || '',
+            website: venue.contact?.website || '',
+          },
+          images: venue.images || [],
+          description: venue.description || '',
+          hasAccount: venue.hasAccount !== undefined ? venue.hasAccount : true,
           unavailableDates: venue.unavailableDates || [],
         });
       } catch (error) {
@@ -342,6 +360,102 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
                   value={formData.country}
                   onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+            </div>
+
+            {/* Address Details */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
+                <input
+                  type="text"
+                  value={formData.streetAddress}
+                  onChange={(e) => setFormData(prev => ({ ...prev, streetAddress: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="123 Main Street (optional but helpful for touring bands)"
+                />
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Apt/Suite/Unit</label>
+                  <input
+                    type="text"
+                    value={formData.addressLine2}
+                    onChange={(e) => setFormData(prev => ({ ...prev, addressLine2: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    placeholder="Apt 2B, Suite 100, etc."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">ZIP/Postal Code</label>
+                  <input
+                    type="text"
+                    value={formData.postalCode}
+                    onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    placeholder="12345"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Neighborhood/District</label>
+                <input
+                  type="text"
+                  value={formData.neighborhood}
+                  onChange={(e) => setFormData(prev => ({ ...prev, neighborhood: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="e.g., East Village, Five Points, Williamsburg"
+                />
+              </div>
+            </div>
+
+            {/* Contact Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Contact Information</h3>
+              
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    value={formData.contact.phone}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      contact: { ...prev.contact, phone: e.target.value }
+                    }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    placeholder="Phone number (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
+                  <input
+                    type="text"
+                    value={formData.contact.website}
+                    onChange={(e) => setFormData(prev => ({ 
+                      ...prev, 
+                      contact: { ...prev.contact, website: e.target.value }
+                    }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    placeholder="lostbag.com or https://lostbag.com (optional)"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Social Media</label>
+                <input
+                  type="text"
+                  value={formData.contact.social}
+                  onChange={(e) => setFormData(prev => ({ 
+                    ...prev, 
+                    contact: { ...prev.contact, social: e.target.value }
+                  }))}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  placeholder="Instagram, Facebook, etc. (optional)"
                 />
               </div>
             </div>
