@@ -557,7 +557,12 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               const isMember = members.some(member => member.id === user.id);
               return isMember;
             })()} 
-            viewerType="public"
+            viewerType={(() => {
+              if (!user) return "public";
+              // Check if user is a member of this artist (either direct owner or member)
+              const isMember = members.some(member => member.id === user.id);
+              return isMember ? "artist" : "public";
+            })()}
             venueId={undefined}
             venueName={undefined}
           />

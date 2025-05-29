@@ -631,32 +631,32 @@ export default function TabbedTourItinerary({
     switch (bid.status) {
       case 'pending':
         return {
-          className: 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800',
-          text: 'Pending Review'
+          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800',
+          text: 'Pending'
         };
       case 'hold':
         return {
-          className: 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800',
+          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800',
           text: bid.holdPosition === 1 ? 'First Hold' : bid.holdPosition === 2 ? 'Second Hold' : bid.holdPosition === 3 ? 'Third Hold' : 'On Hold'
         };
       case 'accepted':
         return {
-          className: 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800',
+          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800',
           text: 'Accepted'
         };
       case 'declined':
         return {
-          className: 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800',
+          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800',
           text: 'Declined'
         };
       case 'cancelled':
         return {
-          className: 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800',
+          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800',
           text: 'Cancelled'
         };
       default:
         return {
-          className: 'inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800',
+          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800',
           text: bid.status
         };
     }
@@ -1035,7 +1035,7 @@ export default function TabbedTourItinerary({
               <th className="px-4 py-1.5 w-[10%]">Status</th>
               <th className="px-4 py-1.5 w-[8%]">Capacity</th>
               <th className="px-4 py-1.5 w-[8%]">Age</th>
-              <th className="px-4 py-1.5 w-[10%]">Guarantee</th>
+              <th className="px-4 py-1.5 w-[10%]">Offers</th>
               <th className="px-4 py-1.5 w-[8%]">Bids</th>
               <th className="px-4 py-1.5 w-[11%]">Actions</th>
             </tr>
@@ -1182,7 +1182,7 @@ export default function TabbedTourItinerary({
                         <div className="text-xs text-gray-600">{show.ageRestriction}</div>
                       </td>
                       
-                      {/* Guarantee */}
+                      {/* Offers */}
                       <td className="px-4 py-1.5">
                         <div className="text-xs text-gray-600">
                           {show.guarantee ? `$${show.guarantee}` : '-'}
@@ -1484,208 +1484,256 @@ export default function TabbedTourItinerary({
                     {/* Expanded Bids Section */}
                     {expandedRequests.has(request.id) && (
                       <>
-                        {/* Tour Request Details */}
-                        <tr className="bg-blue-50 border-l-4 border-blue-400">
-                          <td colSpan={9} className="px-6 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                              {/* Request Details */}
-                              <div className="space-y-2">
-                                <h4 className="font-semibold text-blue-800">Request Details</h4>
-                                <div><span className="text-gray-600">Title:</span> {request.title}</div>
-                                <div><span className="text-gray-600">Description:</span> {request.description}</div>
-                                <div><span className="text-gray-600">Flexibility:</span> {request.flexibility.replace('-', ' ')}</div>
-                                <div><span className="text-gray-600">Priority:</span> {request.priority}</div>
-                              </div>
+                        {/* Venue Bids - Compact Table Format */}
+                        {requestBids.length > 0 && (
+                          <tr>
+                            <td colSpan={9} className="px-0 py-0">
+                              <div className="bg-yellow-50 border-l-4 border-yellow-400">
+                                {/* Compact Bids Table */}
+                                <div className="overflow-x-auto">
+                                  <table className="w-full min-w-[1000px] table-fixed">
+                                    <thead className="bg-yellow-100">
+                                      <tr className="text-left text-xs font-medium text-yellow-700">
+                                        <th className="px-4 py-1.5 w-[10%]">Date</th>
+                                        <th className="px-4 py-1.5 w-[15%]">Location</th>
+                                        <th className="px-4 py-1.5 w-[20%]">Venue</th>
+                                        <th className="px-4 py-1.5 w-[10%]">Status</th>
+                                        <th className="px-4 py-1.5 w-[8%]">Capacity</th>
+                                        <th className="px-4 py-1.5 w-[8%]">Age</th>
+                                        <th className="px-4 py-1.5 w-[10%]">Offers</th>
+                                        <th className="px-4 py-1.5 w-[8%]">Bids</th>
+                                        <th className="px-4 py-1.5 w-[11%]">Actions</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-yellow-200">
+                                      {requestBids
+                                        .filter((bid: VenueBid) => !['expired'].includes(bid.status))
+                                        .map((bid: VenueBid) => (
+                                        <tr key={`bid-${bid.id}`} className="bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150">
+                                          {/* Date */}
+                                          <td className="px-4 py-1.5">
+                                            <div className="text-sm font-medium text-yellow-900">
+                                              {new Date(bid.proposedDate).toLocaleDateString('en-US', {
+                                                weekday: 'short',
+                                                month: 'short',
+                                                day: 'numeric'
+                                              })}
+                                            </div>
+                                          </td>
+                                          
+                                          {/* Location - Extract from venue or use placeholder */}
+                                          <td className="px-4 py-1.5">
+                                            <div className="text-sm text-yellow-900 truncate">
+                                              {/* TODO: Add venue location data to bid response */}
+                                              -
+                                            </div>
+                                          </td>
+                                          
+                                          {/* Venue */}
+                                          <td className="px-4 py-1.5">
+                                            <div className="flex items-center space-x-2">
+                                              <div className="text-sm font-medium text-yellow-900 truncate">{bid.venueName}</div>
+                                              {/* Message indicator if there's a message */}
+                                              {bid.message && (
+                                                <div 
+                                                  className="inline-flex items-center justify-center w-4 h-4 bg-yellow-200 text-yellow-800 rounded-full text-xs"
+                                                  title={bid.message}
+                                                >
+                                                  💬
+                                                </div>
+                                              )}
+                                            </div>
+                                          </td>
+                                          
+                                          {/* Status */}
+                                          <td className="px-4 py-1.5">
+                                            <span className={getBidStatusBadge(bid).className}>
+                                              {getBidStatusBadge(bid).text}
+                                            </span>
+                                          </td>
+                                          
+                                          {/* Capacity */}
+                                          <td className="px-4 py-1.5">
+                                            <div className="text-xs text-gray-600">{bid.capacity}</div>
+                                          </td>
+                                          
+                                          {/* Age */}
+                                          <td className="px-4 py-1.5">
+                                            <div className="text-xs text-gray-600">
+                                              {bid.ageRestriction === 'ALL_AGES' ? 'all-ages' : 
+                                               bid.ageRestriction === 'EIGHTEEN_PLUS' ? '18+' : 
+                                               bid.ageRestriction === 'TWENTY_ONE_PLUS' ? '21+' : 
+                                               bid.ageRestriction === '18_PLUS' ? '18+' : 
+                                               bid.ageRestriction === '21_PLUS' ? '21+' : 
+                                               bid.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
+                                            </div>
+                                          </td>
+                                          
+                                          {/* Offers */}
+                                          <td className="px-4 py-1.5">
+                                            <div className="text-xs text-gray-600">
+                                              {bid.guarantee ? `$${bid.guarantee}` : '-'}
+                                              {bid.doorDeal && (
+                                                <span className="text-yellow-600 ml-1">
+                                                  ({bid.doorDeal.split} split)
+                                                </span>
+                                              )}
+                                            </div>
+                                          </td>
+                                          
+                                          {/* Bids (replaces the "Billing" column for bid rows) */}
+                                          <td className="px-4 py-1.5">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleViewBidDetails(bid);
+                                              }}
+                                              className="inline-flex items-center justify-center w-5 h-5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 rounded transition-colors"
+                                              title="View detailed bid information"
+                                            >
+                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                              </svg>
+                                            </button>
+                                          </td>
+                                          
+                                          {/* Actions */}
+                                          <td className="px-4 py-1.5">
+                                            <div className="flex items-center space-x-0.5 flex-wrap">
+                                              {viewerType === 'artist' && (
+                                                <>
+                                                  {bid.status === 'pending' && (
+                                                    <>
+                                                      <button
+                                                        onClick={() => handleBidAction(bid, 'accept')}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                                        title="Accept this bid"
+                                                      >
+                                                        ✓
+                                                      </button>
+                                                      <button
+                                                        onClick={() => handleBidAction(bid, 'hold')}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 transition-colors"
+                                                        title="Place on hold"
+                                                      >
+                                                        ⏸
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          const reason = prompt('Reason for declining (optional):');
+                                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                        title="Decline this bid"
+                                                      >
+                                                        ✕
+                                                      </button>
+                                                    </>
+                                                  )}
 
-                              {/* Financial & Draw */}
-                              <div className="space-y-2">
-                                <h4 className="font-semibold text-blue-800">Expectations</h4>
-                                <div><span className="text-gray-600">Expected Draw:</span> {request.expectedDraw.min}-{request.expectedDraw.max}</div>
-                                {request.expectedDraw.description && (
-                                  <div><span className="text-gray-600">Draw Notes:</span> {request.expectedDraw.description}</div>
-                                )}
-                                {request.guaranteeRange && (
-                                  <div><span className="text-gray-600">Guarantee Range:</span> ${request.guaranteeRange.min}-{request.guaranteeRange.max}</div>
-                                )}
-                                <div><span className="text-gray-600">Door Deals:</span> {request.acceptsDoorDeals ? 'Accepted' : 'Not accepted'}</div>
-                              </div>
+                                                  {bid.status === 'hold' && (
+                                                    <>
+                                                      <button
+                                                        onClick={() => handleBidAction(bid, 'accept')}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                                        title="Accept this bid"
+                                                      >
+                                                        ✓
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          const reason = prompt('Reason for declining (optional):');
+                                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                        title="Decline this bid"
+                                                      >
+                                                        ✕
+                                                      </button>
+                                                    </>
+                                                  )}
 
-                              {/* Technical & Travel */}
-                              <div className="space-y-2">
-                                <h4 className="font-semibold text-blue-800">Requirements</h4>
-                                <div><span className="text-gray-600">Age Restriction:</span> {request.ageRestriction || 'Flexible'}</div>
-                                <div><span className="text-gray-600">Travel Method:</span> {request.travelMethod}</div>
-                                <div><span className="text-gray-600">Lodging:</span> {request.lodging}</div>
-                                <div><span className="text-gray-600">Merchandising:</span> {request.merchandising ? 'Yes' : 'No'}</div>
-                                {request.equipment && (
-                                  <div>
-                                    <span className="text-gray-600">Equipment Needs:</span>
-                                    {Object.entries(request.equipment)
-                                      .filter(([_, needed]) => needed)
-                                      .map(([key, _]) => key.replace('needs', '').replace('PA', 'PA'))
-                                      .join(', ') || 'None'}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
+                                                  {bid.status === 'accepted' && (
+                                                    <>
+                                                      <button
+                                                        onClick={() => {
+                                                          if (confirm('Undo acceptance and return this bid to pending status? The venue will be notified.')) {
+                                                            handleBidAction(bid, 'undo-accept');
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                                                        title="Undo acceptance - return to pending"
+                                                      >
+                                                        ↶
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          const reason = prompt('Reason for declining (optional):');
+                                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                        title="Decline this bid"
+                                                      >
+                                                        ✕
+                                                      </button>
+                                                    </>
+                                                  )}
+                                                </>
+                                              )}
 
-                        {/* Venue Bids */}
-                        {requestBids.length > 0 && requestBids
-                          .filter((bid: VenueBid) => !['expired'].includes(bid.status))
-                          .map((bid: VenueBid) => (
-                          <tr key={`bid-${bid.id}`} className="bg-yellow-50 border-l-4 border-yellow-400">
-                            <td className="px-6 py-4 pl-12">
-                              <div className="text-sm font-medium text-yellow-900">
-                                {new Date(bid.proposedDate).toLocaleDateString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric'
-                                })}
-                              </div>
-                              <div className="text-sm text-yellow-600">Venue Bid</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm font-medium text-yellow-900">{bid.venueName}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm font-medium text-yellow-900">
-                                {bid.guarantee ? `$${bid.guarantee} guarantee` : 'Door deal only'}
-                              </div>
-                              {bid.doorDeal && (
-                                <div className="text-sm text-yellow-600">
-                                  {bid.doorDeal.split} split
+                                              {viewerType === 'venue' && (
+                                                <>
+                                                  {bid.status === 'pending' && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-yellow-800 bg-yellow-100">
+                                                      Pending
+                                                    </span>
+                                                  )}
+
+                                                  {bid.status === 'hold' && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-blue-800 bg-blue-100">
+                                                      {bid.holdPosition === 1 ? '1st Hold' : bid.holdPosition === 2 ? '2nd Hold' : bid.holdPosition === 3 ? '3rd Hold' : 'On Hold'}
+                                                    </span>
+                                                  )}
+
+                                                  {bid.status === 'accepted' && (
+                                                    <button
+                                                      onClick={() => handleConfirmShow(bid)}
+                                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 transition-colors"
+                                                      title="Confirm this show"
+                                                    >
+                                                      Confirm
+                                                    </button>
+                                                  )}
+
+                                                  {(bid.status === 'pending' || bid.status === 'hold') && (
+                                                    <button
+                                                      onClick={() => handleCancelBid(bid)}
+                                                      className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 transition-colors ml-1"
+                                                      title="Cancel this bid"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  )}
+                                                </>
+                                              )}
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
                                 </div>
-                              )}
-                              {bid.billingPosition && (
-                                <div className="mt-1">
-                                  <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                                    bid.billingPosition === 'headliner' ? 'bg-yellow-100 text-yellow-800' :
-                                    bid.billingPosition === 'co-headliner' ? 'bg-yellow-100 text-yellow-800' :
-                                    bid.billingPosition === 'direct-support' ? 'bg-blue-100 text-blue-800' :
-                                    bid.billingPosition === 'opener' ? 'bg-gray-100 text-gray-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {bid.billingPosition === 'headliner' ? 'Headliner' :
-                                     bid.billingPosition === 'co-headliner' ? 'Co-Headliner' :
-                                     bid.billingPosition === 'direct-support' ? 'Support' :
-                                     bid.billingPosition === 'opener' ? 'Opener' :
-                                     'Local'}
-                                    {bid.setLength && ` • ${bid.setLength}min`}
-                                  </span>
-                                </div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={getBidStatusBadge(bid).className}>
-                                {getBidStatusBadge(bid).text}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-yellow-900 truncate max-w-xs">
-                                "{bid.message}"
                               </div>
-                            </td>
-                            <td className="px-6 py-4 text-right text-sm font-medium space-x-2">
-                              {viewerType === 'artist' && (
-                                <>
-                                  {bid.status === 'pending' && (
-                                    <>
-                                      <button
-                                        onClick={() => handleBidAction(bid, 'accept')}
-                                        disabled={bidActions[bid.id]}
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                                      >
-                                        Accept
-                                      </button>
-                                      <button
-                                        onClick={() => handleBidAction(bid, 'hold')}
-                                        disabled={bidActions[bid.id]}
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50"
-                                      >
-                                        Hold
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const reason = prompt('Reason for declining (optional):');
-                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
-                                        }}
-                                        disabled={bidActions[bid.id]}
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-                                      >
-                                        Decline
-                                      </button>
-                                    </>
-                                  )}
-
-                                  {bid.status === 'hold' && (
-                                    <>
-                                      <button
-                                        onClick={() => handleBidAction(bid, 'accept')}
-                                        disabled={bidActions[bid.id]}
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                                      >
-                                        Accept
-                                      </button>
-                                      <button
-                                        onClick={() => {
-                                          const reason = prompt('Reason for declining (optional):');
-                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
-                                        }}
-                                        disabled={bidActions[bid.id]}
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
-                                      >
-                                        Decline
-                                      </button>
-                                    </>
-                                  )}
-
-                                  <button
-                                    onClick={() => handleViewBidDetails(bid)}
-                                    className="inline-flex items-center px-2 py-1 border border-gray-300 text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50"
-                                  >
-                                    Details
-                                  </button>
-                                </>
-                              )}
-
-                              {viewerType === 'venue' && (
-                                <>
-                                  {bid.status === 'pending' && (
-                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-yellow-800 bg-yellow-100">
-                                      Pending Review
-                                    </span>
-                                  )}
-
-                                  {bid.status === 'hold' && (
-                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-blue-800 bg-blue-100">
-                                      {bid.holdPosition === 1 ? 'First Hold' : bid.holdPosition === 2 ? 'Second Hold' : bid.holdPosition === 3 ? 'Third Hold' : 'On Hold'}
-                                    </span>
-                                  )}
-
-                                  {bid.status === 'accepted' && (
-                                    <button
-                                      onClick={() => handleConfirmShow(bid)}
-                                      className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                                    >
-                                      Confirm Show
-                                    </button>
-                                  )}
-
-                                  {(bid.status === 'pending' || bid.status === 'hold') && (
-                                    <button
-                                      onClick={() => handleCancelBid(bid)}
-                                      className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700"
-                                    >
-                                      Cancel Bid
-                                    </button>
-                                  )}
-                                </>
-                              )}
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </>
                     )}
                   </React.Fragment>
