@@ -15,9 +15,18 @@ export default function MessageNotificationBadge({ className = '' }: MessageNoti
   useEffect(() => {
     if (user) {
       loadUnreadCount();
-      // Set up polling for real-time updates (every 30 seconds)
+      
+      // Refresh unread count every 30 seconds
       const interval = setInterval(loadUnreadCount, 30000);
-      return () => clearInterval(interval);
+      
+      // Listen for custom events to refresh immediately
+      const handleRefresh = () => loadUnreadCount();
+      window.addEventListener('refreshUnreadCount', handleRefresh);
+      
+      return () => {
+        clearInterval(interval);
+        window.removeEventListener('refreshUnreadCount', handleRefresh);
+      };
     }
   }, [user]);
 
@@ -26,7 +35,24 @@ export default function MessageNotificationBadge({ className = '' }: MessageNoti
     
     setLoading(true);
     try {
-      const response = await fetch('/api/messages/conversations');
+      // Helper function to get headers with debug user info if needed
+      const getApiHeaders = () => {
+        const headers: Record<string, string> = {};
+
+        // If user is a debug user (stored in localStorage), include it in headers
+        if (typeof window !== 'undefined') {
+          const debugUser = localStorage.getItem('debugUser');
+          if (debugUser && user) {
+            headers['x-debug-user'] = debugUser;
+          }
+        }
+
+        return headers;
+      };
+
+      const response = await fetch('/api/messages/conversations', {
+        headers: getApiHeaders()
+      });
       if (response.ok) {
         const conversations = await response.json();
         const totalUnread = conversations.reduce((sum: number, conv: any) => sum + conv.unreadCount, 0);
@@ -44,8 +70,8 @@ export default function MessageNotificationBadge({ className = '' }: MessageNoti
   }
 
   return (
-    <div className={`relative ${className}`}>
-      <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+    <div className={`${className}`}>
+      <div className="bg-blue-500 text-white text-xs rounded-full min-w-[20px] h-5 flex items-center justify-center px-1 shadow-lg border-2 border-white">
         {unreadCount > 99 ? '99+' : unreadCount}
       </div>
     </div>

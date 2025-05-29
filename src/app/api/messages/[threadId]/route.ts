@@ -74,6 +74,18 @@ export async function GET(
       orderBy: { createdAt: 'asc' }
     });
 
+    // Mark all unread messages from other users as read
+    await prisma.message.updateMany({
+      where: {
+        conversationId: threadId,
+        senderId: { not: userAuth.userId }, // Messages not sent by current user
+        readAt: null // Only update unread messages
+      },
+      data: {
+        readAt: new Date()
+      }
+    });
+
     // Format messages for frontend
     const formattedMessages = messages.map(msg => ({
       id: msg.id,
@@ -83,7 +95,7 @@ export async function GET(
       senderType: 'user' as const, // TODO: Determine actual type
       content: msg.content,
       timestamp: msg.createdAt.toISOString(),
-      read: true // TODO: Implement proper read status
+      read: msg.senderId === userAuth.userId || msg.readAt !== null // Message is read if sent by current user or has readAt timestamp
     }));
 
     return NextResponse.json(formattedMessages);

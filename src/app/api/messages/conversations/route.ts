@@ -11,6 +11,7 @@ async function getUserFromRequest(request: NextRequest) {
   if (token) {
     try {
       const decoded = jwt.verify(token, JWT_SECRET) as any;
+      console.log('💬 API: Using JWT user:', decoded.userId);
       return { userId: decoded.userId, source: 'jwt' };
     } catch (error) {
       // JWT invalid, continue to check debug user
@@ -22,7 +23,20 @@ async function getUserFromRequest(request: NextRequest) {
   if (debugUserHeader) {
     try {
       const debugUser = JSON.parse(debugUserHeader);
-      console.log('💬 API: Using debug user:', debugUser.name);
+      console.log('💬 API: Using debug user:', debugUser.name, 'with ID:', debugUser.id);
+      
+      // Verify this user actually exists in the database
+      const userExists = await prisma.user.findUnique({
+        where: { id: debugUser.id },
+        select: { id: true, username: true }
+      });
+      
+      if (!userExists) {
+        console.error('💬 API: Debug user not found in database:', debugUser.id);
+        return null;
+      }
+      
+      console.log('💬 API: Debug user verified in database:', userExists);
       return { userId: debugUser.id, source: 'debug' };
     } catch (error) {
       console.error('Failed to parse debug user header:', error);
@@ -83,9 +97,18 @@ export async function GET(request: NextRequest) {
     });
 
     // Format conversations for frontend
-    const formattedConversations = conversations.map(conv => {
+    const formattedConversations = await Promise.all(conversations.map(async conv => {
       const otherParticipant = conv.participants.find(p => p.userId !== userAuth.userId);
       const lastMessage = conv.messages[0];
+
+      // Calculate unread messages for this conversation
+      const unreadCount = await prisma.message.count({
+        where: {
+          conversationId: conv.id,
+          senderId: { not: userAuth.userId }, // Messages not sent by current user
+          readAt: null // Only count messages that haven't been read
+        }
+      });
 
       return {
         id: conv.id,
@@ -97,9 +120,10 @@ export async function GET(request: NextRequest) {
           senderName: lastMessage.sender.username,
           isFromMe: lastMessage.senderId === userAuth.userId
         } : null,
+        unreadCount: unreadCount,
         updatedAt: conv.updatedAt
       };
-    });
+    }));
 
     return NextResponse.json(formattedConversations);
 
@@ -172,6 +196,26 @@ export async function POST(request: NextRequest) {
 
     if (!conversation) {
       // Create new conversation
+      console.log('💬 API: Creating conversation participants with user IDs:', userAuth.userId, 'and', actualRecipientId);
+      
+      // Verify both users exist before creating conversation
+      const [senderExists, recipientExists] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userAuth.userId }, select: { id: true, username: true } }),
+        prisma.user.findUnique({ where: { id: actualRecipientId }, select: { id: true, username: true } })
+      ]);
+      
+      if (!senderExists) {
+        console.error('💬 API: Sender user not found:', userAuth.userId);
+        return NextResponse.json({ error: 'Sender user not found' }, { status: 404 });
+      }
+      
+      if (!recipientExists) {
+        console.error('💬 API: Recipient user not found:', actualRecipientId);
+        return NextResponse.json({ error: 'Recipient user not found' }, { status: 404 });
+      }
+      
+      console.log('💬 API: Both users verified - Sender:', senderExists, 'Recipient:', recipientExists);
+      
       conversation = await prisma.conversation.create({
         data: {
           participants: {

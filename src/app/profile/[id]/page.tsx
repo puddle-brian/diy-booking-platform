@@ -37,6 +37,7 @@ interface Conversation {
     senderName: string;
     isFromMe: boolean;
   };
+  unreadCount: number;
   updatedAt: string;
 }
 
@@ -48,6 +49,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   const [error, setError] = useState<string | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [selectedConversation, setSelectedConversation] = useState<{
     recipientId: string;
     recipientName: string;
@@ -71,26 +73,37 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
   const loadConversations = async () => {
     if (!user) {
+      console.log('🔐 Profile: No user found, skipping conversation load');
       return;
     }
+    
+    console.log('🔐 Profile: Loading conversations for user:', user.id, user.name);
     
     setLoadingConversations(true);
     try {
       const headers = getApiHeaders();
+      console.log('🔐 Profile: Sending headers:', headers);
       
       const response = await fetch('/api/messages/conversations', {
         headers
       });
       
+      console.log('🔐 Profile: Response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('🔐 Profile: Conversations loaded:', data);
         setConversations(data.slice(0, 5)); // Show only recent 5 conversations
+        
+        // Calculate total unread count
+        const totalUnread = data.reduce((sum: number, conv: any) => sum + (conv.unreadCount || 0), 0);
+        setUnreadCount(totalUnread);
       } else {
         const errorText = await response.text();
-        console.error('Failed to load conversations:', response.status, errorText);
+        console.error('🔐 Profile: Failed to load conversations:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Error loading conversations:', error);
+      console.error('🔐 Profile: Error loading conversations:', error);
     } finally {
       setLoadingConversations(false);
     }
@@ -322,7 +335,14 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         {user && user.id === profile.id && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Recent Messages</h2>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-lg font-semibold text-gray-900">Recent Messages</h2>
+                {unreadCount > 0 && (
+                  <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                    {unreadCount} unread
+                  </span>
+                )}
+              </div>
               <a 
                 href="/messages" 
                 className="text-sm text-blue-600 hover:text-blue-800 font-medium"
@@ -362,28 +382,44 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                       recipientName: conversation.recipientName,
                       recipientType: 'user'
                     })}
-                    className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                    className={`flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
+                      conversation.unreadCount > 0 ? 'bg-blue-50 border-blue-200' : ''
+                    }`}
                   >
                     {/* Avatar */}
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold mr-3 text-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold mr-3 text-sm relative">
                       {conversation.recipientName.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2)}
+                      {conversation.unreadCount > 0 && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"></div>
+                      )}
                     </div>
 
                     {/* Conversation Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-medium text-gray-900 truncate text-sm">
+                        <h4 className={`truncate text-sm ${
+                          conversation.unreadCount > 0 ? 'font-bold text-gray-900' : 'font-medium text-gray-900'
+                        }`}>
                           {conversation.recipientName}
                         </h4>
-                        {conversation.lastMessage && (
-                          <span className="text-xs text-gray-500 flex-shrink-0">
-                            {formatTime(conversation.lastMessage.timestamp)}
-                          </span>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          {conversation.unreadCount > 0 && (
+                            <span className="bg-blue-500 text-white text-xs px-1.5 py-0.5 rounded-full font-medium">
+                              {conversation.unreadCount}
+                            </span>
+                          )}
+                          {conversation.lastMessage && (
+                            <span className="text-xs text-gray-500 flex-shrink-0">
+                              {formatTime(conversation.lastMessage.timestamp)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       
                       {conversation.lastMessage ? (
-                        <p className="text-xs text-gray-600 truncate">
+                        <p className={`text-xs truncate ${
+                          conversation.unreadCount > 0 ? 'text-gray-700 font-medium' : 'text-gray-600'
+                        }`}>
                           {conversation.lastMessage.isFromMe ? 'You: ' : `${conversation.lastMessage.senderName}: `}
                           {conversation.lastMessage.content}
                         </p>
@@ -440,6 +476,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
           recipientId={selectedConversation.recipientId}
           recipientName={selectedConversation.recipientName}
           recipientType={selectedConversation.recipientType}
+          onMessagesRead={loadConversations}
           context={{
             fromPage: 'user-profile',
             entityName: selectedConversation.recipientName,

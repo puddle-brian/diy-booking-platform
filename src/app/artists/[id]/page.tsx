@@ -11,6 +11,7 @@ import InviteMemberModal from '../../../components/InviteMemberModal';
 import ClaimEntityModal from '../../../components/ClaimEntityModal';
 import MessageButton from '../../../components/MessageButton';
 import MediaSection from '../../../components/MediaSection';
+import UserStatus from '../../../components/UserStatus';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface Artist {
@@ -386,15 +387,20 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
       {/* Header */}
       <header className="border-b border-gray-200">
         <div className="container mx-auto px-4 py-4">
-          <Link 
-            href="/?tab=artists"
-            className="inline-flex items-center text-gray-600 hover:text-black"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to artists
-          </Link>
+          <div className="flex items-center justify-between">
+            <Link 
+              href="/?tab=artists"
+              className="inline-flex items-center text-gray-600 hover:text-black"
+            >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to artists
+            </Link>
+            
+            {/* User Status - Shows notifications and user menu */}
+            <UserStatus />
+          </div>
         </div>
       </header>
 

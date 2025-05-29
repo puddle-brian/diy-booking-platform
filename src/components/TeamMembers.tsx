@@ -135,23 +135,7 @@ export default function TeamMembers({
       return member.profileUrl;
     }
     
-    // Debug logging
-    console.log('TeamMembers: Checking member', {
-      memberId: member.id,
-      memberName: member.name,
-      userId: user?.id,
-      userName: user?.name,
-      isMatch: user && member.id === user.id
-    });
-    
-    // If this member is the current user, redirect to dashboard
-    if (user && member.id === user.id) {
-      console.log('TeamMembers: Redirecting to dashboard for current user');
-      return '/dashboard';
-    }
-    
-    // Otherwise, use the profile URL structure
-    console.log('TeamMembers: Using profile URL for member:', member.id);
+    // Always use profile URL for consistency
     return `/profile/${member.id}`;
   };
 

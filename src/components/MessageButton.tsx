@@ -12,6 +12,7 @@ interface MessageButtonProps {
   variant?: 'primary' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   children?: React.ReactNode;
+  onMessagesRead?: () => void;
   context?: {
     fromPage: string;
     entityName: string;
@@ -27,10 +28,14 @@ export default function MessageButton({
   variant = 'primary',
   size = 'md',
   children,
+  onMessagesRead,
   context
 }: MessageButtonProps) {
   const { user } = useAuth();
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+
+  // Debug: Log user state when component renders
+  console.log('🔐 MessageButton: User state:', user ? { id: user.id, name: user.name } : 'No user');
 
   const handleClick = async () => {
     if (!user) {
@@ -98,6 +103,7 @@ export default function MessageButton({
         recipientId={recipientId}
         recipientName={recipientName}
         recipientType={recipientType}
+        onMessagesRead={onMessagesRead}
         context={context}
       />
     </>

@@ -424,6 +424,7 @@ model Message {
   senderId        String
   receiverId      String?
   content         String
+  readAt          DateTime?   // When the message was read by the recipient
   createdAt       DateTime    @default(now())
 
   // Relations
@@ -435,6 +436,7 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
+  @@index([readAt])
   @@map("messages")
 }
 

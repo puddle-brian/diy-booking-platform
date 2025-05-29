@@ -20,6 +20,7 @@ interface InlineMessagePanelProps {
   recipientId: string;
   recipientName: string;
   recipientType: 'artist' | 'venue' | 'user';
+  onMessagesRead?: () => void;
   context?: {
     fromPage: string;
     entityName: string;
@@ -33,6 +34,7 @@ export default function InlineMessagePanel({
   recipientId,
   recipientName,
   recipientType,
+  onMessagesRead,
   context
 }: InlineMessagePanelProps) {
   const { user } = useAuth();
@@ -69,7 +71,10 @@ export default function InlineMessagePanel({
     if (typeof window !== 'undefined') {
       const debugUser = localStorage.getItem('debugUser');
       if (debugUser && user) {
+        console.log('🔐 Frontend: Debug user from localStorage:', debugUser);
+        console.log('🔐 Frontend: Current user object:', user);
         headers['x-debug-user'] = debugUser;
+        console.log('🔐 Frontend: Sending headers:', headers);
       }
     }
 
@@ -121,6 +126,12 @@ export default function InlineMessagePanel({
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
+        // Notify parent component that messages were read (to refresh unread counts)
+        if (onMessagesRead) {
+          onMessagesRead();
+        }
+        // Also trigger global refresh for notification badge
+        window.dispatchEvent(new CustomEvent('refreshUnreadCount'));
       }
     } catch (error) {
       console.error('Failed to load messages:', error);

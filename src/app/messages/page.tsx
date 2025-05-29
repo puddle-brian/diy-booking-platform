@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import InlineMessagePanel from '../../components/InlineMessagePanel';
 
@@ -19,6 +20,7 @@ interface Conversation {
 
 export default function MessagesPage() {
   const { user } = useAuth();
+  const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedConversation, setSelectedConversation] = useState<{
@@ -102,6 +104,19 @@ export default function MessagesPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto py-8 px-4">
+        {/* Back Navigation */}
+        <div className="mb-6">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span>Back</span>
+          </button>
+        </div>
+
         <div className="bg-white rounded-lg shadow-sm">
           {/* Header */}
           <div className="border-b border-gray-200 px-6 py-4">
@@ -124,12 +139,23 @@ export default function MessagesPage() {
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No conversations yet</h3>
                 <p className="text-gray-600 mb-6">Start messaging artists and venues to see your conversations here.</p>
                 <div className="space-y-2">
-                  <a href="/artists" className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors mr-3">
-                    Browse Artists
-                  </a>
-                  <a href="/venues" className="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
-                    Browse Venues
-                  </a>
+                  <div className="flex justify-center space-x-3">
+                    <button
+                      onClick={() => router.back()}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                    >
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                      Go Back
+                    </button>
+                    <a href="/artists" className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                      Browse Artists
+                    </a>
+                    <a href="/venues" className="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                      Browse Venues
+                    </a>
+                  </div>
                 </div>
               </div>
             ) : (

@@ -96,8 +96,13 @@ export default function AdminPage() {
       // Add a small delay to ensure the user is set before redirecting
       setTimeout(() => {
         if (mounted) {
-          console.log('Admin: Redirecting to dashboard');
-          window.location.href = '/dashboard';
+          console.log('Admin: Redirecting to user profile');
+          // Redirect to user's profile instead of dashboard
+          if (userData?.id) {
+            window.location.href = `/profile/${userData.id}`;
+          } else {
+            window.location.href = '/dashboard'; // Fallback to dashboard redirect
+          }
         }
       }, 100);
     } catch (error) {
