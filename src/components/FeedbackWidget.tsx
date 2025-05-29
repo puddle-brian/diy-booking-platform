@@ -126,7 +126,7 @@ export default function FeedbackWidget() {
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="hidden md:block fixed bottom-24 right-6 z-50 bg-blue-600 text-white px-6 py-4 rounded-full shadow-xl hover:bg-blue-700 hover:scale-105 transition-all duration-200 flex items-center group animate-pulse"
+          className="hidden md:block fixed bottom-24 right-6 z-30 bg-blue-600 text-white px-6 py-4 rounded-full shadow-xl hover:bg-blue-700 hover:scale-105 transition-all duration-200 flex items-center group animate-pulse"
         >
           <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />

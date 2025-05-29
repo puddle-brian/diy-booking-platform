@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import InlineMessagePanel from './InlineMessagePanel';
 
 interface MessageButtonProps {
   recipientId: string;
@@ -11,6 +12,11 @@ interface MessageButtonProps {
   variant?: 'primary' | 'secondary' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   children?: React.ReactNode;
+  context?: {
+    fromPage: string;
+    entityName: string;
+    entityType: string;
+  };
 }
 
 export default function MessageButton({
@@ -20,10 +26,11 @@ export default function MessageButton({
   className = '',
   variant = 'primary',
   size = 'md',
-  children
+  children,
+  context
 }: MessageButtonProps) {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const handleClick = async () => {
     if (!user) {
@@ -32,34 +39,10 @@ export default function MessageButton({
       return;
     }
 
-    setLoading(true);
-    try {
-      // Create or find existing conversation
-      const response = await fetch('/api/messages/conversations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          recipientId,
-          recipientName,
-          recipientType,
-        }),
-      });
-
-      if (response.ok) {
-        const { conversationId } = await response.json();
-        // Navigate to messages page with this conversation
-        window.location.href = `/messages?conversation=${conversationId}`;
-      } else {
-        throw new Error('Failed to create conversation');
-      }
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      alert('Failed to start conversation. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+    console.log('🔐 User authenticated:', { id: user.id, name: user.name, email: user.email });
+    
+    // Open the inline messaging panel
+    setIsPanelOpen(true);
   };
 
   const getVariantClasses = () => {
@@ -89,27 +72,34 @@ export default function MessageButton({
   };
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={loading}
-      className={`
-        inline-flex items-center justify-center
-        border rounded-lg font-medium
-        transition-colors duration-200
-        disabled:opacity-50 disabled:cursor-not-allowed
-        ${getVariantClasses()}
-        ${getSizeClasses()}
-        ${className}
-      `}
-    >
-      {loading ? (
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-      ) : (
+    <>
+      <button
+        onClick={handleClick}
+        className={`
+          inline-flex items-center justify-center
+          border rounded-lg font-medium
+          transition-colors duration-200
+          hover:shadow-md
+          ${getVariantClasses()}
+          ${getSizeClasses()}
+          ${className}
+        `}
+      >
         <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
         </svg>
-      )}
-      {children || 'Message'}
-    </button>
+        {children || 'Message'}
+      </button>
+
+      {/* Inline Message Panel */}
+      <InlineMessagePanel
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        recipientId={recipientId}
+        recipientName={recipientName}
+        recipientType={recipientType}
+        context={context}
+      />
+    </>
   );
 } 

@@ -469,6 +469,11 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
                   variant="primary"
                   size="sm"
                   className="text-sm"
+                  context={{
+                    fromPage: 'artist-profile',
+                    entityName: artist.name,
+                    entityType: 'artist'
+                  }}
                 >
                   Send Message
                 </MessageButton>

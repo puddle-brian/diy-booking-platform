@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import MessageButton from '../../../components/MessageButton';
+import InlineMessagePanel from '../../../components/InlineMessagePanel';
 
 interface UserProfile {
   id: string;
@@ -26,12 +27,95 @@ interface UserProfile {
   }>;
 }
 
+interface Conversation {
+  id: string;
+  recipientId: string;
+  recipientName: string;
+  lastMessage?: {
+    content: string;
+    timestamp: string;
+    senderName: string;
+    isFromMe: boolean;
+  };
+  updatedAt: string;
+}
+
 export default function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
   const { user } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loadingConversations, setLoadingConversations] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<{
+    recipientId: string;
+    recipientName: string;
+    recipientType: 'artist' | 'venue' | 'user';
+  } | null>(null);
+
+  // Helper function to get headers with debug user info if needed
+  const getApiHeaders = () => {
+    const headers: Record<string, string> = {};
+
+    // If user is a debug user (stored in localStorage), include it in headers
+    if (typeof window !== 'undefined') {
+      const debugUser = localStorage.getItem('debugUser');
+      if (debugUser && user) {
+        headers['x-debug-user'] = debugUser;
+      }
+    }
+
+    return headers;
+  };
+
+  const loadConversations = async () => {
+    if (!user) {
+      return;
+    }
+    
+    setLoadingConversations(true);
+    try {
+      const headers = getApiHeaders();
+      
+      const response = await fetch('/api/messages/conversations', {
+        headers
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setConversations(data.slice(0, 5)); // Show only recent 5 conversations
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to load conversations:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setLoadingConversations(false);
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } else if (diffInHours < 168) { // 7 days
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+  };
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -39,13 +123,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         const resolvedParams = await params;
         const profileId = resolvedParams.id;
         
-        // If this is the current user's profile, redirect to dashboard
-        if (user && user.id === profileId) {
-          router.replace('/dashboard');
-          return;
-        }
-        
-        // Load the user's profile data
+        // Load the user's profile data first
         const response = await fetch(`/api/users/${profileId}`);
         if (!response.ok) {
           if (response.status === 404) {
@@ -86,6 +164,11 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         
         setProfile(profileData);
         setLoading(false);
+        
+        // After profile is loaded, check if this is the current user and load conversations
+        if (user && user.id === profileId) {
+          await loadConversations();
+        }
       } catch (err) {
         console.error('Error loading profile:', err);
         setError('Failed to load profile');
@@ -93,6 +176,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
       }
     };
 
+    // Only load profile if we have the params
     loadProfile();
   }, [user, params, router]);
 
@@ -183,7 +267,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
         {/* Memberships */}
         {profile.memberships && profile.memberships.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Memberships</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {profile.memberships.map((membership, index) => (
@@ -234,6 +318,102 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
+        {/* Messages Section - Only show for current user */}
+        {user && user.id === profile.id && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Recent Messages</h2>
+              <a 
+                href="/messages" 
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                View All →
+              </a>
+            </div>
+
+            {loadingConversations ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-600">Loading conversations...</p>
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="text-center py-8">
+                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  💬
+                </div>
+                <h3 className="text-sm font-medium text-gray-900 mb-2">No conversations yet</h3>
+                <p className="text-xs text-gray-600 mb-4">Start messaging artists and venues to see your conversations here.</p>
+                <div className="flex justify-center space-x-2">
+                  <a href="/artists" className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition-colors">
+                    Browse Artists
+                  </a>
+                  <a href="/venues" className="bg-gray-600 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
+                    Browse Venues
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {conversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    onClick={() => setSelectedConversation({
+                      recipientId: conversation.recipientId,
+                      recipientName: conversation.recipientName,
+                      recipientType: 'user'
+                    })}
+                    className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    {/* Avatar */}
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold mr-3 text-sm">
+                      {conversation.recipientName.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2)}
+                    </div>
+
+                    {/* Conversation Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-medium text-gray-900 truncate text-sm">
+                          {conversation.recipientName}
+                        </h4>
+                        {conversation.lastMessage && (
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            {formatTime(conversation.lastMessage.timestamp)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {conversation.lastMessage ? (
+                        <p className="text-xs text-gray-600 truncate">
+                          {conversation.lastMessage.isFromMe ? 'You: ' : `${conversation.lastMessage.senderName}: `}
+                          {conversation.lastMessage.content}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-500 italic">No messages yet</p>
+                      )}
+                    </div>
+
+                    {/* Arrow */}
+                    <svg className="w-4 h-4 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                ))}
+                
+                {conversations.length >= 5 && (
+                  <div className="text-center pt-2">
+                    <a 
+                      href="/messages" 
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      View all conversations →
+                    </a>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Contact Info (if available) */}
         <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Contact</h2>
@@ -251,6 +431,22 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
           </div>
         </div>
       </div>
+
+      {/* Inline Message Panel */}
+      {selectedConversation && (
+        <InlineMessagePanel
+          isOpen={!!selectedConversation}
+          onClose={() => setSelectedConversation(null)}
+          recipientId={selectedConversation.recipientId}
+          recipientName={selectedConversation.recipientName}
+          recipientType={selectedConversation.recipientType}
+          context={{
+            fromPage: 'user-profile',
+            entityName: selectedConversation.recipientName,
+            entityType: 'user'
+          }}
+        />
+      )}
     </div>
   );
 } 

@@ -1,105 +1,99 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import MessageThread from '../../components/MessageThread';
+import InlineMessagePanel from '../../components/InlineMessagePanel';
 
 interface Conversation {
   id: string;
-  participantId: string;
-  participantName: string;
-  participantType: 'artist' | 'venue' | 'user';
+  recipientId: string;
+  recipientName: string;
   lastMessage?: {
     content: string;
     timestamp: string;
-    senderId: string;
+    senderName: string;
+    isFromMe: boolean;
   };
-  unreadCount: number;
   updatedAt: string;
 }
 
-function MessagesContent() {
-  const { user, loading: authLoading } = useAuth();
-  const searchParams = useSearchParams();
+export default function MessagesPage() {
+  const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'artists' | 'venues'>('all');
+  const [selectedConversation, setSelectedConversation] = useState<{
+    recipientId: string;
+    recipientName: string;
+    recipientType: 'artist' | 'venue' | 'user';
+  } | null>(null);
+
+  // Helper function to get headers with debug user info if needed
+  const getApiHeaders = () => {
+    const headers: Record<string, string> = {};
+
+    // If user is a debug user (stored in localStorage), include it in headers
+    if (typeof window !== 'undefined') {
+      const debugUser = localStorage.getItem('debugUser');
+      if (debugUser && user) {
+        headers['x-debug-user'] = debugUser;
+      }
+    }
+
+    return headers;
+  };
 
   useEffect(() => {
     if (user) {
       loadConversations();
-      
-      // Check if there's a conversation ID in the URL
-      const conversationId = searchParams?.get('conversation');
-      if (conversationId) {
-        setSelectedConversation(conversationId);
-      }
     }
-  }, [user, searchParams]);
+  }, [user]);
 
   const loadConversations = async () => {
     try {
-      const response = await fetch('/api/messages/conversations');
+      const response = await fetch('/api/messages/conversations', {
+        headers: getApiHeaders()
+      });
+      
       if (response.ok) {
         const data = await response.json();
         setConversations(data);
+      } else {
+        console.error('Failed to load conversations');
       }
     } catch (error) {
-      console.error('Failed to load conversations:', error);
+      console.error('Error loading conversations:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredConversations = conversations.filter(conv => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'artists') return conv.participantType === 'artist';
-    if (activeTab === 'venues') return conv.participantType === 'venue';
-    return true;
-  });
-
-  const selectedConv = conversations.find(c => c.id === selectedConversation);
-
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-    
+
     if (diffInHours < 24) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     } else if (diffInHours < 168) { // 7 days
       return date.toLocaleDateString('en-US', { weekday: 'short' });
     } else {
-      return date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
       });
     }
   };
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Please Log In</h1>
-          <p className="text-gray-600 mb-6">You need to be logged in to view messages.</p>
-          <a href="/login" className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
-            Log In
-          </a>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Messages</h1>
+          <p className="text-gray-600">Please log in to view your messages.</p>
         </div>
       </div>
     );
@@ -107,159 +101,104 @@ function MessagesContent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Messages</h1>
-              <p className="text-gray-600 mt-1">Communicate with artists and venues</p>
-            </div>
-            <a 
-              href="/"
-              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors border border-gray-200"
-            >
-              ← Back to Home
-            </a>
+      <div className="max-w-4xl mx-auto py-8 px-4">
+        <div className="bg-white rounded-lg shadow-sm">
+          {/* Header */}
+          <div className="border-b border-gray-200 px-6 py-4">
+            <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+            <p className="text-gray-600 mt-1">Your conversations with artists and venues</p>
           </div>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="flex h-[600px]">
-            {/* Conversations Sidebar */}
-            <div className="w-1/3 border-r border-gray-200 flex flex-col">
-              {/* Tabs */}
-              <div className="border-b border-gray-200 p-4">
-                <div className="flex space-x-1">
-                  <button
-                    onClick={() => setActiveTab('all')}
-                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      activeTab === 'all'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('artists')}
-                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      activeTab === 'artists'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    Artists
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('venues')}
-                    className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                      activeTab === 'venues'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    Venues
-                  </button>
+          {/* Content */}
+          <div className="p-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading conversations...</p>
+              </div>
+            ) : conversations.length === 0 ? (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  💬
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No conversations yet</h3>
+                <p className="text-gray-600 mb-6">Start messaging artists and venues to see your conversations here.</p>
+                <div className="space-y-2">
+                  <a href="/artists" className="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors mr-3">
+                    Browse Artists
+                  </a>
+                  <a href="/venues" className="inline-block bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                    Browse Venues
+                  </a>
                 </div>
               </div>
-
-              {/* Conversations List */}
-              <div className="flex-1 overflow-y-auto">
-                {loading ? (
-                  <div className="p-4 text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                    <p className="text-sm text-gray-600">Loading conversations...</p>
-                  </div>
-                ) : filteredConversations.length === 0 ? (
-                  <div className="p-4 text-center">
-                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                      💬
+            ) : (
+              <div className="space-y-4">
+                {conversations.map((conversation) => (
+                  <div
+                    key={conversation.id}
+                    onClick={() => setSelectedConversation({
+                      recipientId: conversation.recipientId,
+                      recipientName: conversation.recipientName,
+                      recipientType: 'user' // We'll improve this later
+                    })}
+                    className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  >
+                    {/* Avatar */}
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold mr-4">
+                      {conversation.recipientName.split(' ').map(word => word.charAt(0)).join('').toUpperCase().slice(0, 2)}
                     </div>
-                    <p className="text-sm text-gray-600">No conversations yet</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Start messaging artists and venues to see conversations here
-                    </p>
-                  </div>
-                ) : (
-                  filteredConversations.map((conversation) => (
-                    <button
-                      key={conversation.id}
-                      onClick={() => setSelectedConversation(conversation.id)}
-                      className={`w-full p-4 text-left hover:bg-gray-50 border-b border-gray-100 transition-colors ${
-                        selectedConversation === conversation.id ? 'bg-blue-50 border-blue-200' : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <h3 className="font-medium text-gray-900 truncate">
-                          {conversation.participantName}
+
+                    {/* Conversation Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {conversation.recipientName}
                         </h3>
-                        <div className="flex items-center space-x-2">
-                          {conversation.unreadCount > 0 && (
-                            <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                              {conversation.unreadCount}
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-500">
-                            {formatTime(conversation.updatedAt)}
+                        {conversation.lastMessage && (
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            {formatTime(conversation.lastMessage.timestamp)}
                           </span>
-                        </div>
+                        )}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm text-gray-600 truncate flex-1">
-                          {conversation.lastMessage?.content || 'No messages yet'}
+                      
+                      {conversation.lastMessage ? (
+                        <p className="text-sm text-gray-600 truncate">
+                          {conversation.lastMessage.isFromMe ? 'You: ' : `${conversation.lastMessage.senderName}: `}
+                          {conversation.lastMessage.content}
                         </p>
-                        <span className="text-xs text-gray-400 ml-2 capitalize">
-                          {conversation.participantType}
-                        </span>
-                      </div>
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Message Thread */}
-            <div className="flex-1 flex flex-col">
-              {selectedConv ? (
-                <MessageThread
-                  threadId={selectedConv.id}
-                  recipientId={selectedConv.participantId}
-                  recipientName={selectedConv.participantName}
-                  recipientType={selectedConv.participantType}
-                  subject={`Conversation with ${selectedConv.participantName}`}
-                />
-              ) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                      </svg>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic">No messages yet</p>
+                      )}
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Select a conversation</h3>
-                    <p className="text-gray-600">Choose a conversation from the sidebar to start messaging</p>
+
+                    {/* Arrow */}
+                    <svg className="w-5 h-5 text-gray-400 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
                   </div>
-                </div>
-              )}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-export default function MessagesPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    }>
-      <MessagesContent />
-    </Suspense>
+      {/* Inline Message Panel */}
+      {selectedConversation && (
+        <InlineMessagePanel
+          isOpen={!!selectedConversation}
+          onClose={() => setSelectedConversation(null)}
+          recipientId={selectedConversation.recipientId}
+          recipientName={selectedConversation.recipientName}
+          recipientType={selectedConversation.recipientType}
+          context={{
+            fromPage: 'messages-inbox',
+            entityName: selectedConversation.recipientName,
+            entityType: 'user'
+          }}
+        />
+      )}
+    </div>
   );
 } 

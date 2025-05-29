@@ -2,6 +2,7 @@
 
 import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
+import MessageNotificationBadge from './MessageNotificationBadge';
 
 export default function UserStatus() {
   const { user, logout, loading, clearDebugUser } = useAuth();
@@ -68,6 +69,19 @@ export default function UserStatus() {
       </Link>
       
       <div className="flex items-center space-x-2">
+        {/* Messages Link */}
+        <Link 
+          href="/messages"
+          className="text-sm text-gray-600 hover:text-black flex items-center space-x-1 relative"
+          title="View Messages"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          <span>Messages</span>
+          <MessageNotificationBadge className="absolute -top-1 -right-1" />
+        </Link>
+        
         {/* Always show admin link for debug purposes */}
         <Link 
           href="/admin"

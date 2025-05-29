@@ -350,6 +350,11 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
                   variant="primary"
                   size="sm"
                   className="text-sm"
+                  context={{
+                    fromPage: 'venue-profile',
+                    entityName: venue.name,
+                    entityType: 'venue'
+                  }}
                 >
                   Send Message
                 </MessageButton>
