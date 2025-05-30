@@ -65,6 +65,11 @@ export async function GET(
       updatedAt: bid.updatedAt.toISOString(),
       expiresAt: new Date(bid.createdAt.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       
+      // 🎯 VENUE LOCATION - Add venue location information
+      location: bid.venue.location ? 
+        `${bid.venue.location.city}, ${bid.venue.location.stateProvince}` : 
+        undefined,
+      
       // 🎯 HOLD MANAGEMENT FIELDS
       holdPosition: bid.holdPosition || undefined,
       heldAt: bid.heldAt?.toISOString() || undefined,
@@ -80,9 +85,9 @@ export async function GET(
       cancelledReason: bid.cancelledReason || undefined,
       
       // 🎯 BILLING ORDER FIELDS
-      billingPosition: bid.billingPosition || 'headliner', // Default since not in schema yet
+      billingPosition: bid.billingPosition || 'headliner',
       lineupPosition: bid.lineupPosition || undefined,
-      setLength: bid.setLength || 45, // Default 45 minutes
+      setLength: bid.setLength || 45,
       otherActs: bid.otherActs || 'Local opener TBD',
       billingNotes: bid.billingNotes || ''
     }));

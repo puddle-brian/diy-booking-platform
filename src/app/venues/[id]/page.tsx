@@ -440,7 +440,12 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
               const isMember = members.some(member => member.id === user.id);
               return isMember;
             })()}
-            viewerType="public" 
+            viewerType={(() => {
+              if (!user) return 'public';
+              // Check if user is a member of this venue
+              const isMember = members.some(member => member.id === user.id);
+              return isMember ? 'venue' : 'public';
+            })()} 
           />
         </div>
 

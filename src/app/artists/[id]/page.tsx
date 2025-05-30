@@ -572,7 +572,12 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               const userMembership = members.find(member => member.id === user.id);
               return userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member' || userMembership.role === 'Admin') || user.role === 'admin';
             })()}
-            viewerType="artist"
+            viewerType={(() => {
+              if (!user) return 'public';
+              // Check if user is a member of this artist
+              const isMember = members.some(member => member.id === user.id);
+              return isMember ? 'artist' : 'public';
+            })()}
           />
         </div>
 

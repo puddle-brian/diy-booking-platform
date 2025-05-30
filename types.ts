@@ -222,13 +222,11 @@ export interface VenueBid {
   heldUntil?: string; // Hold expiration (typically 7-14 days)
   
   // 🎯 ACCEPTANCE/DECLINE
-  acceptedAt?: string; // When artist accepted this bid
-  declinedAt?: string; // When artist declined this bid
-  declinedReason?: string; // Why artist declined
-  
-  // 🎯 CANCELLATION (automatic when another bid accepted)
+  acceptedAt?: string;
+  declinedAt?: string;
+  declinedReason?: string;
   cancelledAt?: string;
-  cancelledReason?: string; // e.g., "Another venue was selected for this date"
+  cancelledReason?: string;
   
   readByArtist: boolean;
   
@@ -239,6 +237,146 @@ export interface VenueBid {
   createdAt: string;
   updatedAt: string;
   expiresAt: string; // bids expire if not responded to
+}
+
+// 🎯 NEW: Venue Offers - Direct offers from venues to specific artists
+export interface VenueOffer {
+  id: string;
+  venueId: string;
+  venueName: string;
+  artistId: string; // Target artist
+  artistName: string;
+  createdById: string;
+  
+  // Offer Details
+  title: string; // e.g., "Headlining Slot - June 15th"
+  description?: string;
+  proposedDate: string;
+  alternativeDates?: string[]; // Optional backup dates
+  message?: string; // Personal pitch to the artist
+  
+  // Financial Terms (consistent with VenueBid)
+  amount?: number; // Guarantee amount
+  doorDeal?: {
+    split: string; // "70/30 after $300"
+    minimumGuarantee?: number;
+  };
+  ticketPrice?: {
+    advance?: number;
+    door?: number;
+  };
+  merchandiseSplit?: string; // "90/10" (artist/venue)
+  
+  // Show Details (consistent with VenueBid)
+  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  lineupPosition?: number; // 1 = headliner, 2 = support, etc.
+  setLength?: number; // Minutes
+  otherActs?: string; // Other acts on the bill
+  billingNotes?: string; // Additional billing context
+  
+  // Venue Details
+  capacity?: number;
+  ageRestriction?: string;
+  
+  // Equipment & Logistics (consistent with VenueBid)
+  equipmentProvided?: {
+    pa: boolean;
+    mics: boolean;
+    drums: boolean;
+    amps: boolean;
+    piano: boolean;
+  };
+  loadIn?: string;
+  soundcheck?: string;
+  doorsOpen?: string;
+  showTime?: string;
+  curfew?: string;
+  
+  // Additional Value (consistent with VenueBid)
+  promotion?: {
+    social: boolean;
+    flyerPrinting: boolean;
+    radioSpots: boolean;
+    pressCoverage: boolean;
+  };
+  lodging?: {
+    offered: boolean;
+    type: 'floor-space' | 'couch' | 'private-room';
+    details?: string;
+  };
+  additionalTerms?: string;
+  
+  // Status Management (consistent with VenueBid)
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  acceptedAt?: string;
+  declinedAt?: string;
+  declinedReason?: string;
+  cancelledAt?: string;
+  cancelledReason?: string;
+  expiresAt?: string; // Auto-expire offers
+  
+  // System
+  createdAt: string;
+  updatedAt: string;
+}
+
+// 🎯 NEW: Venue Offer Templates - Save common offer configurations
+export interface VenueOfferTemplate {
+  id: string;
+  venueId: string;
+  name: string; // e.g., "Standard Headliner Offer", "Support Slot Package"
+  isDefault: boolean;
+  
+  // Financial Template
+  amount?: number; // Default guarantee
+  doorDeal?: {
+    split: string;
+    minimumGuarantee?: number;
+  };
+  ticketPrice?: {
+    advance?: number;
+    door?: number;
+  };
+  merchandiseSplit?: string; // Default merch split
+  
+  // Show Template
+  billingPosition?: string; // Default billing position
+  setLength?: number; // Default set length
+  
+  // Venue Template
+  equipmentProvided?: {
+    pa: boolean;
+    mics: boolean;
+    drums: boolean;
+    amps: boolean;
+    piano: boolean;
+  };
+  loadIn?: string; // Standard load-in time
+  soundcheck?: string; // Standard soundcheck time
+  doorsOpen?: string; // Standard doors time
+  showTime?: string; // Standard show time
+  curfew?: string; // Standard curfew
+  
+  // Value-Add Template
+  promotion?: {
+    social: boolean;
+    flyerPrinting: boolean;
+    radioSpots: boolean;
+    pressCoverage: boolean;
+  };
+  lodging?: {
+    offered: boolean;
+    type: 'floor-space' | 'couch' | 'private-room';
+    details?: string;
+  };
+  
+  // Message Template
+  messageTemplate?: string; // Boilerplate pitch message
+  additionalTerms?: string; // Standard additional terms
+  
+  // System
+  createdAt: string;
+  updatedAt: string;
 }
 
 // Type definitions - Comprehensive DIY space types

@@ -28,9 +28,12 @@ model User {
   shows                   Show[]
   tourRequests            TourRequest[]
   submittedVenues         Venue[]
+  venueOffers             VenueOffer[]
 
   @@index([email])
   @@index([role])
+  @@index([verified])
+  @@index([createdAt])
   @@map("users")
 }
 
@@ -82,6 +85,8 @@ model Venue {
   bids           Bid[]
   sceneReports   SceneReport[]
   shows          Show[]
+  venueOffers    VenueOffer[]
+  offerTemplates VenueOfferTemplate[]
   location       Location        @relation(fields: [locationId], references: [id])
   submittedBy    User?           @relation(fields: [submittedById], references: [id])
 
@@ -119,6 +124,7 @@ model Artist {
   submittedBy    User?            @relation(fields: [submittedById], references: [id])
   shows          Show[]
   tourRequests   TourRequest[]
+  venueOffers    VenueOffer[]
 
   @@index([locationId])
   @@index([artistType])
@@ -431,6 +437,121 @@ model ArtistTemplate {
   @@map("artist_templates")
 }
 
+model VenueOffer {
+  id              String      @id @default(cuid())
+  venueId         String
+  artistId        String      // Target artist for this offer
+  createdById     String
+  title           String      // e.g., "Headlining Slot - June 15th"
+  description     String?
+  proposedDate    DateTime
+  alternativeDates DateTime[]  // Optional backup dates
+  message         String?     // Personal pitch to the artist
+  
+  // Financial Terms (consistent with Bid model)
+  amount          Float?      // Guarantee amount
+  doorDeal        Json?       // Door split terms
+  ticketPrice     Json?       // Advance/door pricing
+  merchandiseSplit String?    // e.g., "90/10"
+  
+  // Show Details (consistent with Bid model)
+  billingPosition String?     // headliner, support, opener
+  lineupPosition  Int?        // 1 = headliner, 2 = support, etc.
+  setLength       Int?        // Minutes
+  otherActs       String?     // Other acts on the bill
+  billingNotes    String?     // Additional billing context
+  
+  // Venue Details
+  capacity        Int?
+  ageRestriction  String?
+  
+  // Equipment & Logistics (consistent with VenueBidForm)
+  equipmentProvided Json?     // PA, mics, drums, etc.
+  loadIn          String?
+  soundcheck      String?
+  doorsOpen       String?
+  showTime        String?
+  curfew          String?
+  
+  // Additional Value
+  promotion       Json?       // Social, flyers, radio, etc.
+  lodging         Json?       // Floor space, couch, private room
+  additionalTerms String?
+  
+  // Status Management (consistent with Bid model)
+  status          OfferStatus @default(PENDING)
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  declinedReason  String?
+  cancelledAt     DateTime?
+  cancelledReason String?
+  expiresAt       DateTime?   // Auto-expire offers
+  
+  // System fields
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // Relations
+  venue           Venue       @relation(fields: [venueId], references: [id])
+  artist          Artist      @relation(fields: [artistId], references: [id])
+  createdBy       User        @relation(fields: [createdById], references: [id])
+
+  @@index([venueId])
+  @@index([artistId])
+  @@index([createdById])
+  @@index([status])
+  @@index([proposedDate])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("venue_offers")
+}
+
+model VenueOfferTemplate {
+  id                String       @id @default(cuid())
+  venueId           String
+  name              String       // e.g., "Standard Headliner Offer", "Support Slot Package"
+  isDefault         Boolean      @default(false)
+  
+  // Financial Template
+  amount            Float?       // Default guarantee
+  doorDeal          Json?        // Default door split
+  ticketPrice       Json?        // Default ticket pricing
+  merchandiseSplit  String?      // Default merch split
+  
+  // Show Template
+  billingPosition   String?      // Default billing position
+  setLength         Int?         // Default set length
+  
+  // Venue Template
+  equipmentProvided Json?        // Standard equipment offered
+  loadIn            String?      // Standard load-in time
+  soundcheck        String?      // Standard soundcheck time
+  doorsOpen         String?      // Standard doors time
+  showTime          String?      // Standard show time
+  curfew            String?      // Standard curfew
+  
+  // Value-Add Template
+  promotion         Json?        // Standard promotion support
+  lodging           Json?        // Standard lodging offering
+  
+  // Message Template
+  messageTemplate   String?      // Boilerplate pitch message
+  additionalTerms   String?      // Standard additional terms
+  
+  // System fields
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  
+  // Relations
+  venue             Venue        @relation(fields: [venueId], references: [id])
+
+  @@index([venueId])
+  @@index([isDefault])
+  @@index([name])
+  @@index([createdAt])
+  @@map("venue_offer_templates")
+}
+
 enum Role {
   USER
   MODERATOR
@@ -552,4 +673,11 @@ enum TemplateType {
   BUSINESS
   LOGISTICS
   COMPLETE
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
 }

@@ -166,9 +166,34 @@ DIY artists and authentic venues need each other but have no systematic way to c
 **Tour Planning - IMPLEMENTED:**
 - ✅ Multi-city tour booking workflow
 - ✅ Tour request and bidding system
+- ✅ Venue offer system (venues can make targeted offers to artists)
 - ✅ Calendar integration and availability
 - ✅ Contact management for follow-ups
 - 🔄 Route optimization between cities
+
+### ✅ Venue Offer System (NEW FEATURE - IMPLEMENTED)
+**Targeted Venue-to-Artist Outreach - LIVE:**
+- ✅ **Venue-Initiated Offers**: Venues can create targeted offers to specific artists
+- ✅ **Artist Response System**: Accept/decline buttons in artist itinerary view
+- ✅ **Offer Templates**: Venues can save common offer configurations for efficiency
+- ✅ **Comprehensive Offer Details**: Date, financial terms, venue info, capacity, age restrictions
+- ✅ **Location Integration**: Shows venue location (city, state) in artist view
+- ✅ **Clickable Links**: Artist/venue names link to respective profile pages
+- ✅ **Status Management**: Pending, accepted, declined, cancelled status tracking
+- ✅ **Message Integration**: Optional messages with offers using consistent UI icons
+- ✅ **Itinerary Integration**: Offers appear in unified timeline with shows and tour requests
+
+**Industry-Standard Workflow:**
+- **Venue Perspective**: Create offers to artists they want to book
+- **Artist Perspective**: Review offers in itinerary, accept/decline with one click
+- **Consistent UX**: Matches existing bid system styling and interaction patterns
+- **Efficient Booking**: Reduces back-and-forth communication for initial booking
+
+**Technical Implementation:**
+- **Database Models**: VenueOffer and VenueOfferTemplate with full relational data
+- **API Endpoints**: RESTful CRUD operations for offers and templates
+- **Real-time Updates**: Immediate status changes and itinerary refresh
+- **Mobile Optimized**: Touch-friendly accept/decline buttons for touring musicians
 
 ---
 
