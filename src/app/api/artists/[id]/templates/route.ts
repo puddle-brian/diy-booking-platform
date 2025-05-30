@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/prisma';
 import jwt from 'jsonwebtoken';
+import { TemplateType } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
 
@@ -15,6 +16,47 @@ async function getUserFromRequest(request: NextRequest) {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     return { userId: decoded.userId };
   } catch (error) {
+    return null;
+  }
+}
+
+// Helper function to create a default template for artists who don't have any
+async function createDefaultTemplate(artistId: string) {
+  try {
+    const defaultTemplate = {
+      artistId,
+      name: 'My Standard Setup',
+      type: TemplateType.COMPLETE,
+      isDefault: true,
+      description: 'Default template with common touring requirements. Edit this to match your needs!',
+      equipment: {
+        needsPA: true,
+        needsMics: true,
+        needsDrums: false,
+        needsAmps: true,
+        acoustic: false,
+      },
+      guaranteeRange: {
+        min: 200,
+        max: 500
+      },
+      acceptsDoorDeals: true,
+      merchandising: true,
+      travelMethod: 'van',
+      lodging: 'flexible',
+      ageRestriction: 'all-ages',
+      tourStatus: 'exploring-interest',
+      notes: 'This is your default template! Edit it in your artist dashboard to match your specific needs. You can create additional templates for different types of shows (acoustic, full band, festival, etc.)'
+    };
+
+    const template = await prisma.artistTemplate.create({
+      data: defaultTemplate
+    });
+
+    console.log(`🎨 Created default template for artist ${artistId}`);
+    return template;
+  } catch (error) {
+    console.error(`Failed to create default template for artist ${artistId}:`, error);
     return null;
   }
 }
@@ -42,13 +84,22 @@ export async function GET(
     }
     
     // Fetch templates for this artist
-    const templates = await prisma.artistTemplate.findMany({
+    let templates = await prisma.artistTemplate.findMany({
       where: { artistId },
       orderBy: [
         { isDefault: 'desc' },
         { createdAt: 'desc' }
       ]
     });
+    
+    // If artist has no templates, create a default one
+    if (templates.length === 0) {
+      console.log(`🎨 API: No templates found for artist ${artistId}, creating default template`);
+      const defaultTemplate = await createDefaultTemplate(artistId);
+      if (defaultTemplate) {
+        templates = [defaultTemplate];
+      }
+    }
     
     console.log(`🎨 API: Found ${templates.length} templates for artist ${artistId}`);
     

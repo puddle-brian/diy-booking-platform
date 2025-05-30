@@ -1,8 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { Artist } from '../../../../types/index';
+import { TemplateType } from '@prisma/client';
 
 // Artists API now uses database instead of JSON files
+
+// Helper function to create a default template for new artists
+async function createDefaultTemplate(artistId: string) {
+  try {
+    const defaultTemplate = {
+      artistId,
+      name: 'My Standard Setup',
+      type: TemplateType.COMPLETE,
+      isDefault: true,
+      description: 'Default template with common touring requirements. Edit this to match your needs!',
+      equipment: {
+        needsPA: true,
+        needsMics: true,
+        needsDrums: false,
+        needsAmps: true,
+        acoustic: false,
+      },
+      guaranteeRange: {
+        min: 200,
+        max: 500
+      },
+      acceptsDoorDeals: true,
+      merchandising: true,
+      travelMethod: 'van',
+      lodging: 'flexible',
+      ageRestriction: 'all-ages',
+      tourStatus: 'exploring-interest',
+      notes: 'This is your default template! Edit it in your artist dashboard to match your specific needs. You can create additional templates for different types of shows (acoustic, full band, festival, etc.)'
+    };
+
+    const template = await prisma.artistTemplate.create({
+      data: defaultTemplate
+    });
+
+    console.log(`🎨 Created default template for new artist ${artistId}`);
+    return template;
+  } catch (error) {
+    console.error(`Failed to create default template for artist ${artistId}:`, error);
+    // Don't throw - template creation failure shouldn't block artist creation
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -182,6 +225,9 @@ export async function POST(request: NextRequest) {
       createdAt: artist.createdAt,
       updatedAt: artist.updatedAt,
     };
+
+    // Create default template for new artist
+    await createDefaultTemplate(artist.id);
 
     return NextResponse.json(transformedArtist, { status: 201 });
   } catch (error) {

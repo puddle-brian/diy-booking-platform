@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
           id: membership.user.id,
           membershipId: membership.id,
           name: membership.user.username,
-          role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1),
+          role: membership.role.charAt(0).toUpperCase() + membership.role.slice(1).toLowerCase(),
           email: membership.user.email,
           avatar: null,
           profileUrl: `/profile/${membership.user.id}`,

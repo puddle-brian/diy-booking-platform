@@ -497,7 +497,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
                   
                   // Check if user is a member with edit permissions
                   const userMembership = members.find(member => member.id === user.id);
-                  const canEdit = userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member') || user.role === 'admin';
+                  const canEdit = userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member' || userMembership.role === 'Admin') || user.role === 'admin';
                   
                   if (!canEdit) return null;
                   
@@ -570,7 +570,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
               if (!user) return false;
               // Check if user is a member with edit permissions
               const userMembership = members.find(member => member.id === user.id);
-              return userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member') || user.role === 'admin';
+              return userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member' || userMembership.role === 'Admin') || user.role === 'admin';
             })()}
             viewerType="artist"
           />

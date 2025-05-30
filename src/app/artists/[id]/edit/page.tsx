@@ -73,7 +73,7 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
           const members = await membersResponse.json();
           const userMembership = members.find((member: any) => member.id === user.id);
           
-          if (userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member')) {
+          if (userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member' || userMembership.role === 'Admin')) {
             setHasPermission(true);
           } else if (user.role === 'admin') {
             // Admins can always edit

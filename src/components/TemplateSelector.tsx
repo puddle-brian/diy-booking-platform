@@ -14,6 +14,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   const [loading, setLoading] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
   const [hasAutoFilled, setHasAutoFilled] = useState(false);
+  const [showAutoFillMessage, setShowAutoFillMessage] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
@@ -37,6 +38,13 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           if (autoFillDefault && !hasAutoFilled) {
             onTemplateApply(defaultTemplate);
             setHasAutoFilled(true);
+            
+            // Show helpful message for first-time users
+            if (defaultTemplate.name === 'My Standard Setup') {
+              setShowAutoFillMessage(true);
+              // Hide message after 8 seconds
+              setTimeout(() => setShowAutoFillMessage(false), 8000);
+            }
           }
         }
       } else {
@@ -78,33 +86,62 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   }
 
   return (
-    <div className={`flex items-center gap-2 ${className}`}>
-      <span className="text-sm font-medium text-gray-700">Quick Fill Template:</span>
-      <select
-        value={selectedTemplateId}
-        onChange={(e) => handleTemplateSelect(e.target.value)}
-        disabled={disabled}
-        className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-      >
-        <option value="">Select template...</option>
-        {templates.map((template) => (
-          <option key={template.id} value={template.id}>
-            {template.name} 
-            {template.isDefault && ' ✓'} 
-          </option>
-        ))}
-      </select>
-      
-      {selectedTemplateId && (
-        <button
-          type="button"
-          onClick={handleApplyTemplate}
-          disabled={disabled}
-          className="text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          Apply
-        </button>
+    <div className={`space-y-2 ${className}`}>
+      {/* Auto-fill notification message */}
+      {showAutoFillMessage && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <svg className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div className="text-sm">
+              <p className="text-green-800 font-medium">Form auto-filled with your default template!</p>
+              <p className="text-green-700 mt-1">
+                We've pre-filled the form below with common touring requirements. You can edit any field before submitting, 
+                and customize your template in your artist dashboard.
+              </p>
+            </div>
+            <button
+              onClick={() => setShowAutoFillMessage(false)}
+              className="text-green-600 hover:text-green-800 ml-auto"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
       )}
+
+      {/* Template selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-700">Quick Fill Template:</span>
+        <select
+          value={selectedTemplateId}
+          onChange={(e) => handleTemplateSelect(e.target.value)}
+          disabled={disabled}
+          className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        >
+          <option value="">Select template...</option>
+          {templates.map((template) => (
+            <option key={template.id} value={template.id}>
+              {template.name} 
+              {template.isDefault && ' ✓'} 
+            </option>
+          ))}
+        </select>
+        
+        {selectedTemplateId && (
+          <button
+            type="button"
+            onClick={handleApplyTemplate}
+            disabled={disabled}
+            className="text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+          >
+            Apply
+          </button>
+        )}
+      </div>
     </div>
   );
 };
