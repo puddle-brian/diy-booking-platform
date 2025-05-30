@@ -6,6 +6,7 @@ import VenueBidForm from './VenueBidForm';
 import ShowDetailModal from './ShowDetailModal';
 import TourRequestDetailModal from './TourRequestDetailModal';
 import TemplateSelector from './TemplateSelector';
+import LocationAutocomplete from './LocationAutocomplete';
 
 interface VenueBid {
   id: string;
@@ -1943,7 +1944,7 @@ export default function TabbedTourItinerary({
                   </select>
                   <p className="text-sm text-gray-500 mt-1">
                     {addDateForm.type === 'request' 
-                      ? 'Create a tour request to find venues for this date'
+                      ? 'Create a show request to find venues for this date'
                       : 'Add a confirmed show that was booked outside the platform'
                     }
                   </p>
@@ -1986,13 +1987,13 @@ export default function TabbedTourItinerary({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location *
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <LocationAutocomplete
                       value={addDateForm.location}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="e.g., Seattle, WA"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(value) => setAddDateForm(prev => ({ ...prev, location: value }))}
+                      placeholder="e.g., Seattle, WA or Pacific Northwest"
+                      required
+                      label="Location"
+                      showLabel={false}
                     />
                   </div>
                   <div>
@@ -2005,18 +2006,6 @@ export default function TabbedTourItinerary({
                       value={addDateForm.title}
                       onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="e.g., West Coast Tour"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={addDateForm.description}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Additional details about the tour request..."
-                      rows={3}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -2231,12 +2220,37 @@ export default function TabbedTourItinerary({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location *
                     </label>
+                    <LocationAutocomplete
+                      value={addDateForm.location}
+                      onChange={(value) => setAddDateForm(prev => ({ ...prev, location: value }))}
+                      placeholder="e.g., Seattle, WA or Pacific Northwest"
+                      required
+                      label="Location"
+                      showLabel={false}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Title *
+                    </label>
                     <input
                       type="text"
                       required
-                      value={addDateForm.location}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="e.g., Seattle, WA"
+                      value={addDateForm.title}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g., West Coast Tour"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Description
+                    </label>
+                    <textarea
+                      value={addDateForm.description}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Additional details about the tour request..."
+                      rows={3}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>

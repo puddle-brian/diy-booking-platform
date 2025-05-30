@@ -3,7 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Show, TourRequest } from '../../types';
 import VenueBidForm from './VenueBidForm';
+import ShowDetailModal from './ShowDetailModal';
+import TourRequestDetailModal from './TourRequestDetailModal';
 import TemplateSelector from './TemplateSelector';
+import LocationAutocomplete from './LocationAutocomplete';
 import { ArtistTemplate } from '../../types/templates';
 
 interface VenueBid {
@@ -1795,13 +1798,13 @@ export default function TourItinerary({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location *
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <LocationAutocomplete
                       value={addDateForm.location}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="e.g., Seattle, WA"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(value) => setAddDateForm(prev => ({ ...prev, location: value }))}
+                      placeholder="e.g., Seattle, WA or Pacific Northwest"
+                      required
+                      label="Location"
+                      showLabel={false}
                     />
                   </div>
                 </div>
@@ -1825,13 +1828,13 @@ export default function TourItinerary({
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location *
                     </label>
-                    <input
-                      type="text"
-                      required
+                    <LocationAutocomplete
                       value={addDateForm.location}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="e.g., Seattle, WA"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(value) => setAddDateForm(prev => ({ ...prev, location: value }))}
+                      placeholder="e.g., Seattle, WA or Pacific Northwest"
+                      required
+                      label="Location"
+                      showLabel={false}
                     />
                   </div>
                 </div>
@@ -2173,13 +2176,13 @@ export default function TourItinerary({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Location *
                   </label>
-                  <input
-                    type="text"
-                    required
+                  <LocationAutocomplete
                     value={tourRequestForm.location}
-                    onChange={(e) => setTourRequestForm(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(value) => setTourRequestForm(prev => ({ ...prev, location: value }))}
                     placeholder="e.g., Seattle, WA or Pacific Northwest"
+                    required
+                    label="Location"
+                    showLabel={false}
                   />
                 </div>
               </div>
