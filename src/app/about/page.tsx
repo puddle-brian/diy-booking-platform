@@ -57,7 +57,7 @@ export default function AboutPage() {
                   <li>• Submit tour requests for specific dates and locations</li>
                   <li>• Receive bids from venues interested in booking you</li>
                   <li>• Browse and connect with DIY spaces directly</li>
-                  <li>• Manage your tour dates and bookings</li>
+                  <li>• Manage your show dates and bookings</li>
                 </ul>
               </div>
               

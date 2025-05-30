@@ -562,24 +562,17 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
 
         {/* Tour Itinerary - CORE BOOKING FUNCTIONALITY - High Priority */}
         <div className="mb-8">
-          <TabbedTourItinerary 
-            artistId={artist.id} 
+          <TabbedTourItinerary
+            artistId={artist.id}
             artistName={artist.name}
-            title="Tour Dates" 
+            title="Show Dates"
             editable={(() => {
               if (!user) return false;
-              // Check if user is a member of this artist (either direct owner or member)
-              const isMember = members.some(member => member.id === user.id);
-              return isMember;
-            })()} 
-            viewerType={(() => {
-              if (!user) return "public";
-              // Check if user is a member of this artist (either direct owner or member)
-              const isMember = members.some(member => member.id === user.id);
-              return isMember ? "artist" : "public";
+              // Check if user is a member with edit permissions
+              const userMembership = members.find(member => member.id === user.id);
+              return userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member') || user.role === 'admin';
             })()}
-            venueId={undefined}
-            venueName={undefined}
+            viewerType="artist"
           />
         </div>
 

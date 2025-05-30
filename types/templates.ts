@@ -92,6 +92,7 @@ export interface TemplateSelectorProps {
   onTemplateApply: (template: ArtistTemplate) => void;
   className?: string;
   disabled?: boolean;
+  autoFillDefault?: boolean; // Whether to automatically apply default template on load
 }
 
 export interface TemplateManagerProps {

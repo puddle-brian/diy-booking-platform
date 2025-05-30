@@ -7,11 +7,13 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   artistId,
   onTemplateApply,
   className = '',
-  disabled = false
+  disabled = false,
+  autoFillDefault = true
 }) => {
   const [templates, setTemplates] = useState<ArtistTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
+  const [hasAutoFilled, setHasAutoFilled] = useState(false);
 
   useEffect(() => {
     fetchTemplates();
@@ -30,6 +32,12 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
         const defaultTemplate = data.templates?.find((t: ArtistTemplate) => t.isDefault);
         if (defaultTemplate) {
           setSelectedTemplateId(defaultTemplate.id);
+          
+          // Auto-fill with default template immediately (only if autoFillDefault is enabled)
+          if (autoFillDefault && !hasAutoFilled) {
+            onTemplateApply(defaultTemplate);
+            setHasAutoFilled(true);
+          }
         }
       } else {
         console.error('Failed to fetch templates');
@@ -49,7 +57,6 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
     const selectedTemplate = templates.find(t => t.id === selectedTemplateId);
     if (selectedTemplate) {
       onTemplateApply(selectedTemplate);
-      // Visual feedback without annoying popup - keep selection to show which template was used
     }
   };
 
@@ -65,62 +72,38 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
   if (templates.length === 0) {
     return (
       <div className={`text-sm text-gray-500 ${className}`}>
-        No templates available. Create your first template to save time on future requests!
+        No templates available.
       </div>
     );
   }
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-700">Quick Fill:</span>
-        <select
-          value={selectedTemplateId}
-          onChange={(e) => handleTemplateSelect(e.target.value)}
-          disabled={disabled}
-          className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-        >
-          <option value="">Select a template...</option>
-          {templates.map((template) => (
-            <option key={template.id} value={template.id}>
-              {template.name} 
-              {template.isDefault && ' ⭐'} 
-              ({TEMPLATE_TYPE_LABELS[template.type]})
-            </option>
-          ))}
-        </select>
-        
-        {selectedTemplateId && (
-          <button
-            type="button"
-            onClick={handleApplyTemplate}
-            disabled={disabled}
-            className="text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            Auto-Fill
-          </button>
-        )}
-      </div>
+    <div className={`flex items-center gap-2 ${className}`}>
+      <span className="text-sm font-medium text-gray-700">Quick Fill Template:</span>
+      <select
+        value={selectedTemplateId}
+        onChange={(e) => handleTemplateSelect(e.target.value)}
+        disabled={disabled}
+        className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+      >
+        <option value="">Select template...</option>
+        {templates.map((template) => (
+          <option key={template.id} value={template.id}>
+            {template.name} 
+            {template.isDefault && ' ✓'} 
+          </option>
+        ))}
+      </select>
       
       {selectedTemplateId && (
-        <div className="text-xs text-gray-600 bg-blue-50 p-2 rounded-md">
-          {(() => {
-            const template = templates.find(t => t.id === selectedTemplateId);
-            if (!template) return null;
-            
-            return (
-              <div>
-                <strong>{template.name}</strong>
-                {template.description && (
-                  <div className="mt-1">{template.description}</div>
-                )}
-                <div className="mt-1 text-gray-500">
-                  Will auto-fill technical requirements, business terms, and logistics.
-                </div>
-              </div>
-            );
-          })()}
-        </div>
+        <button
+          type="button"
+          onClick={handleApplyTemplate}
+          disabled={disabled}
+          className="text-sm bg-blue-600 text-white px-3 py-1 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+        >
+          Apply
+        </button>
       )}
     </div>
   );
