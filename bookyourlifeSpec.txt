@@ -1,6 +1,30 @@
 # Book Yr Life - Digital Platform Specification
 **The Definitive DIY Booking Resource for the Modern Era**
 
+## 🚨 CRITICAL: LIVE PRODUCTION SYSTEM WARNING 🚨
+
+**⚠️ THIS IS A LIVE PRODUCTION PLATFORM WITH REAL USER DATA ⚠️**
+
+**BEFORE MAKING ANY CHANGES:**
+- **NEVER DELETE OR RESET THE DATABASE** - This platform serves real users with live data
+- **ALWAYS ASK PERMISSION** before running any database commands
+- **NO `--force-reset`** or destructive database operations without explicit approval
+- **BACKUP FIRST** - Always create backups before any database modifications
+- **TEST IN DEV** - Use development environment for testing, never production
+
+**PRODUCTION DATA INCLUDES:**
+- 202+ Real venues serving the DIY music community
+- 130+ Artists with active profiles and tour information
+- Live user accounts, authentication, and community data
+- Active tour requests, bookings, and messaging between users
+- Community reviews, scene reports, and relationship data
+
+**DATA LOSS IMPACTS REAL PEOPLE** - Venues lose bookings, artists lose connections, community trust is broken.
+
+**If you need to make database changes, STOP and ask the project owner first.**
+
+---
+
 ## 🚀 Current Status: LIVE & OPERATIONAL
 
 **✅ Platform Deployed**: The DIY Shows platform is live and fully functional  

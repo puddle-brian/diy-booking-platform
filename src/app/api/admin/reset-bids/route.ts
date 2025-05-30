@@ -296,7 +296,16 @@ export async function POST(request: NextRequest) {
             ticketPrice: Math.floor(Math.random() * 20) + 15, // $15-35
             ageRestriction: AgeRestriction.ALL_AGES,
             status: ShowStatus.CONFIRMED,
-            createdById: systemUser.id
+            createdById: systemUser.id,
+            // 🎯 ADD DETAILED SCHEDULE INFORMATION
+            loadIn: '17:00',
+            soundcheck: '18:30',
+            doorsOpen: '19:30',
+            showTime: '20:30',
+            curfew: '23:00',
+            capacity: venue.capacity || 150,
+            guarantee: bid.amount || 500,
+            notes: `Confirmed show from accepted bid. ${bid.billingPosition} slot.`
           }
         });
         createdShows.push(show);
@@ -329,7 +338,16 @@ export async function POST(request: NextRequest) {
           ticketPrice: Math.floor(Math.random() * 25) + 10, // $10-35
           ageRestriction: [AgeRestriction.ALL_AGES, AgeRestriction.EIGHTEEN_PLUS, AgeRestriction.TWENTY_ONE_PLUS][Math.floor(Math.random() * 3)],
           status: ShowStatus.CONFIRMED,
-          createdById: systemUser.id
+          createdById: systemUser.id,
+          // 🎯 ADD DETAILED SCHEDULE INFORMATION FOR ALL SHOWS
+          loadIn: ['16:00', '16:30', '17:00', '17:30'][Math.floor(Math.random() * 4)],
+          soundcheck: ['17:30', '18:00', '18:30', '19:00'][Math.floor(Math.random() * 4)],
+          doorsOpen: ['19:00', '19:30', '20:00', '20:30'][Math.floor(Math.random() * 4)],
+          showTime: ['20:00', '20:30', '21:00', '21:30'][Math.floor(Math.random() * 4)],
+          curfew: ['23:00', '23:30', '00:00', '01:00'][Math.floor(Math.random() * 4)],
+          capacity: venue.capacity || Math.floor(Math.random() * 200) + 50,
+          guarantee: Math.floor(Math.random() * 600) + 200, // $200-800
+          notes: `Standalone confirmed show. Great venue for ${artist.name}'s style.`
         }
       });
       additionalShows.push(show);

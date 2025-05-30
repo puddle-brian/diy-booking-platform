@@ -1,0 +1,45 @@
+# ===========================================
+# CLOUD BACKUP CONFIGURATION
+# ===========================================
+
+# AWS S3 Backup Settings
+AWS_BACKUP_ENABLED=false
+AWS_BACKUP_BUCKET=your-backup-bucket-name
+AWS_BACKUP_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your-aws-access-key
+AWS_SECRET_ACCESS_KEY=your-aws-secret-key
+
+# Google Drive Backup Settings  
+GOOGLE_DRIVE_BACKUP_ENABLED=false
+GOOGLE_DRIVE_FOLDER_ID=your-google-drive-folder-id
+GOOGLE_SERVICE_ACCOUNT_KEY=path/to/service-account-key.json
+
+# Dropbox Backup Settings
+DROPBOX_BACKUP_ENABLED=false
+DROPBOX_ACCESS_TOKEN=your-dropbox-access-token
+DROPBOX_BACKUP_FOLDER=/diy-booking-backups
+
+# Backup Schedule & Retention
+BACKUP_SCHEDULE_ENABLED=true
+BACKUP_SCHEDULE_CRON=0 2 * * *  # Daily at 2 AM
+BACKUP_RETENTION_DAYS=30
+LOCAL_BACKUP_RETENTION_COUNT=5
+
+# Notifications (Optional)
+BACKUP_NOTIFICATIONS_ENABLED=false
+BACKUP_NOTIFICATION_EMAIL=your-email@example.com
+BACKUP_SLACK_WEBHOOK=your-slack-webhook-url
+
+# ===========================================
+# RECOMMENDED SETUP FOR PRODUCTION
+# ===========================================
+
+# 1. Enable at least 2 cloud providers for redundancy
+# 2. Set up automated daily backups
+# 3. Enable notifications for backup failures
+# 4. Test restore process monthly
+
+# Example Production Config:
+# AWS_BACKUP_ENABLED=true
+# DROPBOX_BACKUP_ENABLED=true  
+# BACKUP_NOTIFICATIONS_ENABLED=true 

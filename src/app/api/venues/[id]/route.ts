@@ -157,6 +157,8 @@ export async function DELETE(
   try {
     const { id } = await params;
     
+    console.log(`🗑️ Attempting to delete venue: ${id}`);
+    
     // Check if venue exists
     const existingVenue = await prisma.venue.findUnique({
       where: { id }
@@ -165,16 +167,65 @@ export async function DELETE(
     if (!existingVenue) {
       return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
     }
+
+    console.log(`🗑️ Found venue: ${existingVenue.name}`);
+
+    // Delete related records in the correct order to avoid foreign key constraints
     
-    // Delete venue
+    // 1. Delete all bids for this venue
+    const deletedBids = await prisma.bid.deleteMany({
+      where: { venueId: id }
+    });
+    console.log(`🗑️ Deleted ${deletedBids.count} bids`);
+
+    // 2. Delete all shows for this venue
+    const deletedShows = await prisma.show.deleteMany({
+      where: { venueId: id }
+    });
+    console.log(`🗑️ Deleted ${deletedShows.count} shows`);
+
+    // 3. Delete all scene reports for this venue
+    const deletedSceneReports = await prisma.sceneReport.deleteMany({
+      where: { venueId: id }
+    });
+    console.log(`🗑️ Deleted ${deletedSceneReports.count} scene reports`);
+
+    // 4. Delete all memberships for this venue
+    const deletedMemberships = await prisma.membership.deleteMany({
+      where: {
+        entityType: 'VENUE',
+        entityId: id
+      }
+    });
+    console.log(`🗑️ Deleted ${deletedMemberships.count} memberships`);
+
+    // 5. Delete all favorites for this venue
+    const deletedFavorites = await prisma.$executeRaw`
+      DELETE FROM favorites 
+      WHERE "entityType" = 'VENUE' AND "entityId" = ${id}
+    `;
+    console.log(`🗑️ Deleted favorites using raw query`);
+
+    // 6. Delete all media embeds for this venue
+    const deletedMediaEmbeds = await prisma.mediaEmbed.deleteMany({
+      where: {
+        entityType: 'VENUE',
+        entityId: id
+      }
+    });
+    console.log(`🗑️ Deleted ${deletedMediaEmbeds.count} media embeds`);
+
+    // 7. Finally, delete the venue itself
     await prisma.venue.delete({
       where: { id }
     });
-    
+    console.log(`🗑️ Deleted venue: ${existingVenue.name}`);
+
+    console.log(`✅ Successfully deleted venue ${existingVenue.name} and all related records`);
     return NextResponse.json({ 
       success: true, 
       message: `Venue "${existingVenue.name}" deleted successfully`,
-      deletedVenue: existingVenue
+      deletedVenue: existingVenue.name
     });
   } catch (error) {
     console.error('Error deleting venue:', error);

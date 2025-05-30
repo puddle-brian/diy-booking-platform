@@ -13,6 +13,9 @@ export default function AdminPage() {
   const [mounted, setMounted] = useState(false);
   const [venueSearch, setVenueSearch] = useState('');
   const [artistSearch, setArtistSearch] = useState('');
+  const [isResetting, setIsResetting] = useState(false);
+  const [isBackingUp, setIsBackingUp] = useState(false);
+  const [backupMessage, setBackupMessage] = useState('');
 
   // Filter functions for search
   const filteredVenues = venues.filter(venue => 
@@ -97,7 +100,7 @@ export default function AdminPage() {
   };
 
   const handleResetBids = async () => {
-    setLoading(prev => ({ ...prev, resetBids: true }));
+    setIsResetting(true);
     
     try {
       const response = await fetch('/api/admin/reset-bids', {
@@ -120,7 +123,7 @@ export default function AdminPage() {
       console.error('Bid reset failed:', error);
       alert('Failed to reset bids');
     } finally {
-      setLoading(prev => ({ ...prev, resetBids: false }));
+      setIsResetting(false);
     }
   };
 
@@ -184,6 +187,49 @@ export default function AdminPage() {
       alert(`Failed to delete ${type}`);
     } finally {
       setLoading(prev => ({ ...prev, [`delete-${type}-${id}`]: false }));
+    }
+  };
+
+  const handleCreateBackup = async () => {
+    setIsBackingUp(true);
+    setBackupMessage('');
+    
+    try {
+      const response = await fetch('/api/admin/backup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create backup');
+      }
+
+      const backupData = await response.json();
+      setBackupMessage(backupData.message);
+      alert('Backup created successfully!');
+    } catch (error) {
+      console.error('Backup creation failed:', error);
+      alert('Failed to create backup');
+    } finally {
+      setIsBackingUp(false);
+    }
+  };
+
+  const handleShowBackups = async () => {
+    try {
+      const response = await fetch('/api/admin/backups');
+      if (!response.ok) {
+        throw new Error('Failed to fetch backups');
+      }
+
+      const backups = await response.json();
+      // Implement the logic to show backups to the user
+      console.log('Backups:', backups);
+    } catch (error) {
+      console.error('Failed to fetch backups:', error);
+      alert('Failed to fetch backups');
     }
   };
 
@@ -461,6 +507,71 @@ export default function AdminPage() {
                       <li>• Debug users are clearly marked with "(Debug)" in their names</li>
                       <li>• Each user is linked to real artists/venues in the database</li>
                       <li>• <strong>Lightning Bolt has multiple members</strong> - test owner vs member permissions</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Test Data Management */}
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Test Data Management</h2>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Manage test data for tour requests, bids, and shows. Use these tools to reset the system to a known state for testing.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Reset Bids Button */}
+                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <h4 className="font-medium text-yellow-900 mb-2">🔄 Reset Test Data</h4>
+                      <p className="text-sm text-yellow-800 mb-3">
+                        Recreates all tour requests, bids, and shows with realistic test data
+                      </p>
+                      <button
+                        onClick={handleResetBids}
+                        disabled={isResetting}
+                        className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                      >
+                        {isResetting ? 'Resetting...' : 'Reset Bids & Test Data'}
+                      </button>
+                    </div>
+
+                    {/* Database Backup Section */}
+                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-medium text-green-900 mb-2">💾 Database Backup</h4>
+                      <p className="text-sm text-green-800 mb-3">
+                        Create and restore database backups to protect against data loss
+                      </p>
+                      <div className="space-y-2">
+                        <button
+                          onClick={handleCreateBackup}
+                          disabled={isBackingUp}
+                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 mr-2"
+                        >
+                          {isBackingUp ? 'Creating Backup...' : 'Create Backup Now'}
+                        </button>
+                        <button
+                          onClick={handleShowBackups}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          View Backups
+                        </button>
+                      </div>
+                      {backupMessage && (
+                        <div className={`mt-2 text-sm ${backupMessage.includes('✅') ? 'text-green-700' : 'text-red-700'}`}>
+                          {backupMessage}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Test Data Info */}
+                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <h4 className="font-medium text-yellow-900 mb-2">📊 What Test Data Includes</h4>
+                    <ul className="text-sm text-yellow-800 space-y-1">
+                      <li>• <strong>Lightning Bolt:</strong> 10 bids with all statuses (pending, accepted, rejected, withdrawn) - perfect for testing bid management</li>
+                      <li>• <strong>The Menzingers:</strong> 8 bids mostly pending - perfect for testing hold system</li>
+                      <li>• <strong>Against Me!:</strong> 6 bids with acceptances leading to confirmed shows - perfect for testing acceptance workflow</li>
+                      <li>• <strong>Additional shows:</strong> 12-20 random confirmed shows across all artists and venues</li>
+                      <li>• <strong>Realistic data:</strong> Proper dates, venues, pricing, and booking details</li>
                     </ul>
                   </div>
                 </div>

@@ -7,7 +7,15 @@
     "build": "prisma generate --no-engine && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate --no-engine"
+    "postinstall": "prisma generate --no-engine",
+    "backup": "node scripts/backup-database.js backup",
+    "backup:cloud": "node scripts/cloud-backup.js backup",
+    "backup:list": "node scripts/cloud-backup.js list",
+    "restore": "node scripts/backup-database.js restore",
+    "backup-daily": "node scripts/backup-database.js backup && echo 'Daily backup completed'",
+    "db:reset": "npx prisma migrate reset --force",
+    "db:seed": "npx prisma db seed",
+    "db:studio": "npx prisma studio"
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",
@@ -17,6 +25,7 @@
     "cloudinary": "^2.6.1",
     "csv-parser": "^3.2.0",
     "dotenv": "^16.5.0",
+    "googleapis": "^149.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.0",
     "next": "15.1.8",

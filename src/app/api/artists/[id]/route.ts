@@ -179,6 +179,8 @@ export async function DELETE(
   try {
     const resolvedParams = await params;
     
+    console.log(`🗑️ Attempting to delete artist: ${resolvedParams.id}`);
+    
     // Check if artist exists
     const existingArtist = await prisma.artist.findUnique({
       where: { id: resolvedParams.id }
@@ -191,12 +193,59 @@ export async function DELETE(
       );
     }
 
-    // Delete artist
+    console.log(`🗑️ Found artist: ${existingArtist.name}`);
+
+    // Delete related records in the correct order to avoid foreign key constraints
+    
+    // 1. Delete all bids related to tour requests for this artist
+    const deletedBids = await prisma.bid.deleteMany({
+      where: {
+        tourRequest: {
+          artistId: resolvedParams.id
+        }
+      }
+    });
+    console.log(`🗑️ Deleted ${deletedBids.count} bids`);
+
+    // 2. Delete all tour requests for this artist
+    const deletedTourRequests = await prisma.tourRequest.deleteMany({
+      where: { artistId: resolvedParams.id }
+    });
+    console.log(`🗑️ Deleted ${deletedTourRequests.count} tour requests`);
+
+    // 3. Delete all shows for this artist
+    const deletedShows = await prisma.show.deleteMany({
+      where: { artistId: resolvedParams.id }
+    });
+    console.log(`🗑️ Deleted ${deletedShows.count} shows`);
+
+    // 4. Delete all memberships for this artist
+    const deletedMemberships = await prisma.membership.deleteMany({
+      where: {
+        entityType: 'ARTIST',
+        entityId: resolvedParams.id
+      }
+    });
+    console.log(`🗑️ Deleted ${deletedMemberships.count} memberships`);
+
+    // 5. Delete all favorites for this artist
+    const deletedFavorites = await prisma.$executeRaw`
+      DELETE FROM favorites 
+      WHERE "entityType" = 'ARTIST' AND "entityId" = ${resolvedParams.id}
+    `;
+    console.log(`🗑️ Deleted favorites using raw query`);
+
+    // 6. Finally, delete the artist itself
     await prisma.artist.delete({
       where: { id: resolvedParams.id }
     });
+    console.log(`🗑️ Deleted artist: ${existingArtist.name}`);
 
-    return NextResponse.json({ message: 'Artist deleted successfully' });
+    console.log(`✅ Successfully deleted artist ${existingArtist.name} and all related records`);
+    return NextResponse.json({ 
+      message: 'Artist deleted successfully',
+      deletedArtist: existingArtist.name
+    });
   } catch (error) {
     console.error('Error in DELETE /api/artists/[id]:', error);
     return NextResponse.json(
