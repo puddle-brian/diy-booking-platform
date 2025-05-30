@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { Venue, Artist, ARTIST_TYPE_LABELS } from '../../types/index';
 import { useAuth } from '../contexts/AuthContext';
+import FavoriteButton from './FavoriteButton';
 
 interface SmartGalleryProps {
   venues: Venue[];
@@ -44,11 +45,13 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
 
   useEffect(() => {
     const loadUserProfile = async () => {
-      if (!user?.profileId || !user?.profileType) return;
+      if (!user?.memberships || user.memberships.length === 0) return;
       
       setLoadingProfile(true);
       try {
-        const response = await fetch(`/api/${user.profileType}s/${user.profileId}`);
+        // Get the first membership to determine user's primary profile
+        const primaryMembership = user.memberships[0];
+        const response = await fetch(`/api/${primaryMembership.entityType}s/${primaryMembership.entityId}`);
         if (response.ok) {
           const profileData = await response.json();
           setUserProfile(profileData);
@@ -97,10 +100,12 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
   const categories = useMemo((): CategorySection[] => {
     if (loading || loadingProfile) return [];
 
+    // Determine user type from memberships
+    const userType = user?.memberships?.[0]?.entityType;
+
     console.log('SmartGallery: Generating categories', {
       activeTab,
-      userProfileType: user?.profileType,
-      userProfileId: user?.profileId,
+      userType,
       hasUserProfile: !!userProfile,
       venuesCount: venues.length,
       artistsCount: artists.length
@@ -108,7 +113,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
 
     const sections: CategorySection[] = [];
 
-    if (activeTab === 'venues' && user?.profileType === 'artist') {
+    if (activeTab === 'venues' && userType === 'artist') {
       // Artist looking at venues
       const userArtist = userProfile as Artist;
       
@@ -277,7 +282,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
         }
       }
 
-    } else if (activeTab === 'artists' && user?.profileType === 'venue') {
+    } else if (activeTab === 'artists' && userType === 'venue') {
       // Venue looking at artists
       const userVenue = userProfile as Venue;
       
@@ -580,10 +585,12 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
                           e.currentTarget.src = `/api/placeholder/${activeTab === 'venues' ? 'other' : (item as Artist).artistType}`;
                         }}
                       />
-                      <div className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md">
-                        <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
+                      <div className="absolute top-3 right-3">
+                        <FavoriteButton 
+                          entityType={activeTab === 'venues' ? 'VENUE' : 'ARTIST'}
+                          entityId={item.id}
+                          size="md"
+                        />
                       </div>
                     </div>
                     <div className="p-2">

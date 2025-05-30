@@ -151,7 +151,7 @@ export default function InlineMessagePanel({
           content: newMessage,
           senderId: user.id,
           senderName: user.name,
-          senderType: user.profileType || 'user',
+          senderType: user.memberships?.[0]?.entityType || 'user',
         }),
       });
 

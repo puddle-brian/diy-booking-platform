@@ -11,6 +11,7 @@ import SmartGallery from '../components/SmartGallery';
 import { MobileFeedbackButton } from '../components/FeedbackWidget';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLink from '../components/AuthLink';
+import FavoriteButton from '../components/FavoriteButton';
 
 // Custom hook for debounced search
 function useDebounce<T>(value: T, delay: number): T {
@@ -1088,10 +1089,12 @@ function HomeContent() {
                             e.currentTarget.src = '/api/placeholder/other';
                           }}
                         />
-                        <div className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md">
-                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
+                        <div className="absolute top-3 right-3">
+                          <FavoriteButton 
+                            entityType="VENUE"
+                            entityId={venue.id}
+                            size="md"
+                          />
                         </div>
                       </div>
                       <div className="p-2">
@@ -1325,10 +1328,12 @@ function HomeContent() {
                                   e.currentTarget.src = `/api/placeholder/${artist.artistType}`;
                                 }}
                               />
-                              <div className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md">
-                                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                                </svg>
+                              <div className="absolute top-3 right-3">
+                                <FavoriteButton 
+                                  entityType="ARTIST"
+                                  entityId={artist.id}
+                                  size="md"
+                                />
                               </div>
                               
                               {/* Tour Status Badge */}
@@ -1378,10 +1383,12 @@ function HomeContent() {
                             e.currentTarget.src = `/api/placeholder/${artist.artistType}`;
                           }}
                         />
-                        <div className="absolute top-3 right-3 bg-white rounded-full p-2 shadow-md">
-                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
+                        <div className="absolute top-3 right-3">
+                          <FavoriteButton 
+                            entityType="ARTIST"
+                            entityId={artist.id}
+                            size="md"
+                          />
                         </div>
                         
                         {/* Tour Status Badge */}

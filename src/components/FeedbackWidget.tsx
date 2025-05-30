@@ -58,7 +58,7 @@ export default function FeedbackWidget() {
           viewport: `${window.innerWidth}x${window.innerHeight}`,
           timestamp: new Date().toISOString(),
           userId: user?.id,
-          userType: user?.profileType,
+          userType: user?.memberships?.[0]?.entityType || 'user',
         }
       };
 
@@ -309,7 +309,7 @@ export function MobileFeedbackButton() {
           viewport: `${window.innerWidth}x${window.innerHeight}`,
           timestamp: new Date().toISOString(),
           userId: user?.id,
-          userType: user?.profileType,
+          userType: user?.memberships?.[0]?.entityType || 'user',
         }
       };
 

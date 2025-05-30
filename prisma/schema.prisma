@@ -19,6 +19,7 @@ model User {
   submittedArtists        Artist[]
   bids                    Bid[]
   conversations           ConversationParticipant[]
+  favorites               Favorite[]
   memberships             Membership[]
   receivedMessages        Message[]                 @relation("ReceivedMessages")
   sentMessages            Message[]                 @relation("SentMessages")
@@ -376,6 +377,21 @@ model Membership {
   @@index([userId])
   @@index([status])
   @@map("memberships")
+}
+
+model Favorite {
+  id         String     @id @default(cuid())
+  userId     String
+  entityType EntityType
+  entityId   String
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, entityType, entityId])
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("favorites")
 }
 
 enum Role {
