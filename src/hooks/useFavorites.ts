@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Favorite {
@@ -7,7 +7,7 @@ interface Favorite {
   entityType: 'VENUE' | 'ARTIST';
   entityId: string;
   createdAt: string;
-  entity: any; // The actual venue or artist data
+  entity?: any; // The actual venue or artist data
 }
 
 export function useFavorites() {
@@ -15,38 +15,59 @@ export function useFavorites() {
   const [favorites, setFavorites] = useState<Favorite[]>([]);
   const [loading, setLoading] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const lastLoadTime = useRef<number>(0);
+  const loadingRef = useRef<boolean>(false);
 
-  // Load user's favorites
-  const loadFavorites = useCallback(async () => {
+  // Load user's favorites with caching
+  const loadFavorites = useCallback(async (force = false) => {
     if (!user) {
       setFavorites([]);
       setFavoriteIds(new Set());
       return;
     }
 
+    // Prevent excessive API calls - cache for 30 seconds
+    const now = Date.now();
+    if (!force && now - lastLoadTime.current < 30000) {
+      return;
+    }
+
+    // Prevent concurrent requests
+    if (loadingRef.current) {
+      return;
+    }
+
+    loadingRef.current = true;
     setLoading(true);
+    
     try {
       const response = await fetch('/api/favorites');
       if (response.ok) {
-        const data = await response.json();
+        const result = await response.json();
+        // Fix: Access favorites from the response object
+        const data = result.favorites || result;
         setFavorites(data);
         
         // Create a set of favorite entity IDs for quick lookup
         const entityIds: string[] = data.map((fav: Favorite) => fav.entityId);
         const ids = new Set<string>(entityIds);
         setFavoriteIds(ids);
+        lastLoadTime.current = now;
       }
     } catch (error) {
       console.error('Error loading favorites:', error);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
     }
   }, [user]);
 
-  // Load favorites when user changes
+  // Load favorites when user changes (only once)
   useEffect(() => {
-    loadFavorites();
-  }, [loadFavorites]);
+    if (user && favorites.length === 0) {
+      loadFavorites();
+    }
+  }, [user]); // Remove loadFavorites from dependencies to prevent loops
 
   // Add a favorite
   const addFavorite = useCallback(async (entityType: 'VENUE' | 'ARTIST', entityId: string) => {
@@ -65,8 +86,8 @@ export function useFavorites() {
         // Add to local state immediately for optimistic UI
         setFavoriteIds(prev => new Set([...prev, entityId]));
         
-        // Reload favorites to get the full data
-        await loadFavorites();
+        // Force reload favorites to get the full data
+        setTimeout(() => loadFavorites(true), 100);
         return true;
       } else {
         const error = await response.json();
@@ -96,8 +117,8 @@ export function useFavorites() {
           return newSet;
         });
         
-        // Reload favorites to sync with server
-        await loadFavorites();
+        // Force reload favorites to sync with server
+        setTimeout(() => loadFavorites(true), 100);
         return true;
       } else {
         const error = await response.json();
@@ -139,6 +160,6 @@ export function useFavorites() {
     toggleFavorite,
     isFavorited,
     getFavoritesByType,
-    loadFavorites
+    loadFavorites: () => loadFavorites(true) // Allow manual refresh
   };
 } 

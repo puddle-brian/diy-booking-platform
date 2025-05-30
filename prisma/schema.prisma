@@ -396,30 +396,32 @@ model Favorite {
 }
 
 model ArtistTemplate {
-  id                  String       @id @default(cuid())
-  artistId            String
-  name                String
-  type                TemplateType
-  isDefault           Boolean      @default(false)
-  equipment           Json?
-  stageRequirements   String?
-  soundCheckTime      Int?
-  setLength           Int?
-  guaranteeRange      Json?
-  acceptsDoorDeals    Boolean?
-  merchandising       Boolean?
-  travelMethod        String?
-  lodging             String?
-  dietaryRestrictions String[]
-  expectedDraw        Json?
-  ageRestriction      String?
-  tourStatus          String?
-  priority            String?
-  description         String?
-  notes               String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  artist              Artist       @relation(fields: [artistId], references: [id])
+  id                     String       @id @default(cuid())
+  artistId               String
+  name                   String
+  type                   TemplateType
+  isDefault              Boolean      @default(false)
+  equipment              Json?
+  technicalRequirements  Json?
+  hospitalityRequirements Json?
+  stageRequirements      String?
+  soundCheckTime         Int?
+  setLength              Int?
+  guaranteeRange         Json?
+  acceptsDoorDeals       Boolean?
+  merchandising          Boolean?
+  travelMethod           String?
+  lodging                String?
+  dietaryRestrictions    String[]
+  expectedDraw           Json?
+  ageRestriction         String?
+  tourStatus             String?
+  priority               String?
+  description            String?
+  notes                  String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  artist                 Artist       @relation(fields: [artistId], references: [id])
 
   @@index([artistId])
   @@index([type])

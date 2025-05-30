@@ -35,7 +35,30 @@ export async function PUT(
       );
     }
     
-    const body = await request.json();
+    // Add debugging for request body
+    let body;
+    try {
+      const rawBody = await request.text();
+      console.log(`🎨 API: Raw request body length: ${rawBody.length}`);
+      
+      if (!rawBody || rawBody.trim() === '') {
+        console.error('🎨 API: Empty request body received');
+        return NextResponse.json(
+          { error: 'Empty request body' },
+          { status: 400 }
+        );
+      }
+      
+      body = JSON.parse(rawBody);
+      console.log(`🎨 API: Successfully parsed JSON body for template ${templateId}`);
+    } catch (parseError) {
+      console.error('🎨 API: JSON parse error:', parseError);
+      console.error('🎨 API: Request content-type:', request.headers.get('content-type'));
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      );
+    }
     
     console.log(`🎨 API: Updating template ${templateId} for artist ${artistId}`);
     
@@ -66,28 +89,33 @@ export async function PUT(
       });
     }
     
+    // Clean and validate the data before updating
+    const updateData = {
+      name: body.name,
+      type: body.type,
+      isDefault: body.isDefault,
+      description: body.description,
+      equipment: body.equipment,
+      technicalRequirements: Array.isArray(body.technicalRequirements) ? body.technicalRequirements : [],
+      hospitalityRequirements: Array.isArray(body.hospitalityRequirements) ? body.hospitalityRequirements : [],
+      stageRequirements: body.stageRequirements,
+      soundCheckTime: body.soundCheckTime,
+      setLength: body.setLength,
+      guaranteeRange: body.guaranteeRange,
+      acceptsDoorDeals: body.acceptsDoorDeals,
+      merchandising: body.merchandising,
+      travelMethod: body.travelMethod,
+      lodging: body.lodging,
+      expectedDraw: body.expectedDraw,
+      ageRestriction: body.ageRestriction,
+      tourStatus: body.tourStatus,
+      notes: body.notes
+    };
+    
     // Update the template
     const updatedTemplate = await prisma.artistTemplate.update({
       where: { id: templateId },
-      data: {
-        name: body.name,
-        type: body.type,
-        isDefault: body.isDefault,
-        description: body.description,
-        equipment: body.equipment,
-        stageRequirements: body.stageRequirements,
-        soundCheckTime: body.soundCheckTime,
-        setLength: body.setLength,
-        guaranteeRange: body.guaranteeRange,
-        acceptsDoorDeals: body.acceptsDoorDeals,
-        merchandising: body.merchandising,
-        travelMethod: body.travelMethod,
-        lodging: body.lodging,
-        expectedDraw: body.expectedDraw,
-        ageRestriction: body.ageRestriction,
-        tourStatus: body.tourStatus,
-        notes: body.notes
-      }
+      data: updateData
     });
     
     console.log(`🎨 API: Updated template ${templateId}`);

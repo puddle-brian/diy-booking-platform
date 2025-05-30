@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
 
-// Helper function to get user from request (JWT only)
+// Helper function to get user from request
 async function getUserFromRequest(request: NextRequest) {
   const token = request.cookies.get('auth-token')?.value;
   if (!token) {
@@ -13,14 +13,13 @@ async function getUserFromRequest(request: NextRequest) {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
-    return { userId: decoded.userId, source: 'jwt' };
+    return { userId: decoded.userId };
   } catch (error) {
-    console.error('Favorites API: JWT verification failed:', error);
     return null;
   }
 }
 
-// GET /api/favorites - Get user's favorites
+// GET /api/favorites - Get user's favorites (optimized)
 export async function GET(request: NextRequest) {
   try {
     const userAuth = await getUserFromRequest(request);
@@ -39,57 +38,31 @@ export async function GET(request: NextRequest) {
       whereClause.entityType = entityType;
     }
 
+    // Just return the favorites without fetching full entity data
+    // The frontend should already have this data from other API calls
     const favorites = await prisma.favorite.findMany({
       where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true
-          }
-        }
+      select: {
+        id: true,
+        entityType: true,
+        entityId: true,
+        createdAt: true
       },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    // Fetch the actual venue/artist data for each favorite
-    const favoritesWithData = await Promise.all(
-      favorites.map(async (favorite) => {
-        if (favorite.entityType === 'VENUE') {
-          const venue = await prisma.venue.findUnique({
-            where: { id: favorite.entityId },
-            include: {
-              location: true
-            }
-          });
-          return {
-            ...favorite,
-            entity: venue
-          };
-        } else {
-          const artist = await prisma.artist.findUnique({
-            where: { id: favorite.entityId },
-            include: {
-              location: true
-            }
-          });
-          return {
-            ...favorite,
-            entity: artist
-          };
-        }
-      })
-    );
-
-    // Filter out any favorites where the entity no longer exists
-    const validFavorites = favoritesWithData.filter(fav => fav.entity !== null);
-
-    return NextResponse.json(validFavorites);
+    // Add caching headers to reduce requests
+    const response = NextResponse.json({ favorites });
+    response.headers.set('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+    return response;
   } catch (error) {
     console.error('Error fetching favorites:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch favorites' },
+      { status: 500 }
+    );
   }
 }
 
@@ -105,28 +78,14 @@ export async function POST(request: NextRequest) {
     const { entityType, entityId } = body;
 
     if (!entityType || !entityId) {
-      return NextResponse.json({ error: 'entityType and entityId are required' }, { status: 400 });
-    }
-
-    if (!['VENUE', 'ARTIST'].includes(entityType)) {
-      return NextResponse.json({ error: 'entityType must be VENUE or ARTIST' }, { status: 400 });
-    }
-
-    // Verify the entity exists
-    if (entityType === 'VENUE') {
-      const venue = await prisma.venue.findUnique({ where: { id: entityId } });
-      if (!venue) {
-        return NextResponse.json({ error: 'Venue not found' }, { status: 404 });
-      }
-    } else {
-      const artist = await prisma.artist.findUnique({ where: { id: entityId } });
-      if (!artist) {
-        return NextResponse.json({ error: 'Artist not found' }, { status: 404 });
-      }
+      return NextResponse.json(
+        { error: 'entityType and entityId are required' },
+        { status: 400 }
+      );
     }
 
     // Check if already favorited
-    const existingFavorite = await prisma.favorite.findUnique({
+    const existing = await prisma.favorite.findUnique({
       where: {
         userId_entityType_entityId: {
           userId: userAuth.userId,
@@ -136,31 +95,28 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    if (existingFavorite) {
-      return NextResponse.json({ error: 'Already favorited' }, { status: 409 });
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Already favorited' },
+        { status: 400 }
+      );
     }
 
-    // Create the favorite
     const favorite = await prisma.favorite.create({
       data: {
         userId: userAuth.userId,
         entityType,
         entityId
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true
-          }
-        }
       }
     });
 
     return NextResponse.json(favorite, { status: 201 });
   } catch (error) {
-    console.error('Error adding favorite:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error creating favorite:', error);
+    return NextResponse.json(
+      { error: 'Failed to create favorite' },
+      { status: 500 }
+    );
   }
 }
 
@@ -177,31 +133,26 @@ export async function DELETE(request: NextRequest) {
     const entityId = searchParams.get('entityId');
 
     if (!entityType || !entityId) {
-      return NextResponse.json({ error: 'entityType and entityId are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'entityType and entityId are required' },
+        { status: 400 }
+      );
     }
 
-    // Find and delete the favorite
-    const favorite = await prisma.favorite.findUnique({
+    await prisma.favorite.deleteMany({
       where: {
-        userId_entityType_entityId: {
-          userId: userAuth.userId,
-          entityType: entityType as 'VENUE' | 'ARTIST',
-          entityId
-        }
+        userId: userAuth.userId,
+        entityType: entityType as 'VENUE' | 'ARTIST',
+        entityId
       }
     });
 
-    if (!favorite) {
-      return NextResponse.json({ error: 'Favorite not found' }, { status: 404 });
-    }
-
-    await prisma.favorite.delete({
-      where: { id: favorite.id }
-    });
-
-    return NextResponse.json({ message: 'Favorite removed successfully' });
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error removing favorite:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error deleting favorite:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete favorite' },
+      { status: 500 }
+    );
   }
 } 

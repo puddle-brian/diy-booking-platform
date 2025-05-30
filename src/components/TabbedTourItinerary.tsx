@@ -2,11 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Show, TourRequest } from '../../types';
+import { TechnicalRequirement, HospitalityRequirement } from '../../types/templates';
 import VenueBidForm from './VenueBidForm';
 import ShowDetailModal from './ShowDetailModal';
 import TourRequestDetailModal from './TourRequestDetailModal';
 import TemplateSelector from './TemplateSelector';
 import LocationAutocomplete from './LocationAutocomplete';
+import TechnicalRequirementsTable from './TechnicalRequirementsTable';
+import HospitalityRiderTable from './HospitalityRiderTable';
 
 interface VenueBid {
   id: string;
@@ -166,6 +169,9 @@ export default function TabbedTourItinerary({
       needsAmps: false,
       acoustic: false
     },
+    // New dynamic requirement arrays
+    technicalRequirements: [] as TechnicalRequirement[],
+    hospitalityRequirements: [] as HospitalityRequirement[],
     guaranteeRange: {
       min: 0,
       max: 0
@@ -207,6 +213,9 @@ export default function TabbedTourItinerary({
       needsAmps: false,
       acoustic: false
     },
+    // New dynamic requirement arrays
+    technicalRequirements: [] as TechnicalRequirement[],
+    hospitalityRequirements: [] as HospitalityRequirement[],
     guaranteeRange: {
       min: 0,
       max: 0
@@ -531,6 +540,10 @@ export default function TabbedTourItinerary({
         needsAmps: template.equipment.needsAmps || false,
         acoustic: template.equipment.acoustic || false
       } : prev.equipment,
+      
+      // New dynamic requirements
+      technicalRequirements: template.technicalRequirements || [],
+      hospitalityRequirements: template.hospitalityRequirements || [],
       
       // Business terms
       guaranteeRange: template.guaranteeRange ? { 
@@ -910,6 +923,9 @@ export default function TabbedTourItinerary({
           needsAmps: false,
           acoustic: false
         },
+        // New dynamic requirement arrays
+        technicalRequirements: [],
+        hospitalityRequirements: [],
         guaranteeRange: {
           min: 0,
           max: 0
@@ -2021,72 +2037,7 @@ export default function TabbedTourItinerary({
                     </div>
                   )}
 
-                  {/* Technical Requirements */}
-                  <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">Technical Requirements</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={addDateForm.equipment?.needsPA || false}
-                          onChange={(e) => setAddDateForm(prev => ({
-                            ...prev,
-                            equipment: { ...prev.equipment, needsPA: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">PA System</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={addDateForm.equipment?.needsMics || false}
-                          onChange={(e) => setAddDateForm(prev => ({
-                            ...prev,
-                            equipment: { ...prev.equipment, needsMics: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Microphones</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={addDateForm.equipment?.needsDrums || false}
-                          onChange={(e) => setAddDateForm(prev => ({
-                            ...prev,
-                            equipment: { ...prev.equipment, needsDrums: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Drum Kit</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={addDateForm.equipment?.needsAmps || false}
-                          onChange={(e) => setAddDateForm(prev => ({
-                            ...prev,
-                            equipment: { ...prev.equipment, needsAmps: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Amplifiers</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={addDateForm.equipment?.acoustic || false}
-                          onChange={(e) => setAddDateForm(prev => ({
-                            ...prev,
-                            equipment: { ...prev.equipment, acoustic: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Acoustic Setup</span>
-                      </label>
-                    </div>
-                  </div>
+             
 
                   {/* Business Terms */}
                   <div>
@@ -2553,6 +2504,22 @@ export default function TabbedTourItinerary({
                     />
                   </div>
                 </>
+              )}
+
+              {/* Dynamic Technical Requirements Table - Moved to bottom */}
+              {addDateForm.type === 'request' && (
+                <TechnicalRequirementsTable
+                  requirements={addDateForm.technicalRequirements}
+                  onChange={(requirements) => setAddDateForm(prev => ({ ...prev, technicalRequirements: requirements }))}
+                />
+              )}
+
+              {/* Dynamic Hospitality Rider Table - Moved to bottom */}
+              {addDateForm.type === 'request' && (
+                <HospitalityRiderTable
+                  requirements={addDateForm.hospitalityRequirements}
+                  onChange={(requirements) => setAddDateForm(prev => ({ ...prev, hospitalityRequirements: requirements }))}
+                />
               )}
 
               {/* Submit Buttons */}

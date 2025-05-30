@@ -1,5 +1,18 @@
 export type TemplateType = 'TECH_RIDER' | 'BUSINESS' | 'LOGISTICS' | 'COMPLETE';
 
+// New requirement types for dynamic tables
+export interface TechnicalRequirement {
+  id: string;
+  requirement: string;
+  required: boolean;
+}
+
+export interface HospitalityRequirement {
+  id: string;
+  requirement: string;
+  required: boolean;
+}
+
 export interface ArtistTemplate {
   id: string;
   artistId: string;
@@ -8,7 +21,7 @@ export interface ArtistTemplate {
   isDefault: boolean;
   description?: string;
   
-  // Tech Rider
+  // Tech Rider - Enhanced with dynamic requirements
   equipment?: {
     needsPA?: boolean;
     needsMics?: boolean;
@@ -17,6 +30,8 @@ export interface ArtistTemplate {
     acoustic?: boolean;
     [key: string]: any; // Allow additional equipment fields
   };
+  // New dynamic technical requirements
+  technicalRequirements?: TechnicalRequirement[];
   stageRequirements?: string;
   soundCheckTime?: number; // Minutes needed for soundcheck
   setLength?: number; // Set length in minutes
@@ -35,6 +50,9 @@ export interface ArtistTemplate {
   expectedDraw?: number | { min: number; max: number; description?: string };
   ageRestriction?: 'all-ages' | '18+' | '21+' | 'flexible' | string;
   tourStatus?: string;
+  
+  // Hospitality - New dynamic requirements
+  hospitalityRequirements?: HospitalityRequirement[];
   
   // Additional fields from database
   dietaryRestrictions?: string[];
@@ -66,6 +84,8 @@ export interface TemplateFormData {
     needsAmps?: boolean;
     acoustic?: boolean;
   };
+  // New dynamic technical requirements
+  technicalRequirements?: TechnicalRequirement[];
   stageRequirements?: string;
   soundCheckTime?: number;
   setLength?: number;
@@ -84,6 +104,10 @@ export interface TemplateFormData {
   expectedDraw?: number;
   ageRestriction?: string;
   tourStatus?: string;
+  
+  // Hospitality - New dynamic requirements
+  hospitalityRequirements?: HospitalityRequirement[];
+  
   notes?: string;
 }
 

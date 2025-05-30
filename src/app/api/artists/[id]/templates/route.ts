@@ -173,6 +173,8 @@ export async function POST(
         isDefault: body.isDefault || false,
         description: body.description,
         equipment: body.equipment,
+        technicalRequirements: body.technicalRequirements,
+        hospitalityRequirements: body.hospitalityRequirements,
         stageRequirements: body.stageRequirements,
         soundCheckTime: body.soundCheckTime,
         setLength: body.setLength,

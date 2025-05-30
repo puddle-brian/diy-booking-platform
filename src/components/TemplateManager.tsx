@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ArtistTemplate } from '../../types/templates';
+import { ArtistTemplate, TechnicalRequirement, HospitalityRequirement } from '../../types/templates';
+import TechnicalRequirementsTable from './TechnicalRequirementsTable';
+import HospitalityRiderTable from './HospitalityRiderTable';
 
 interface TemplateManagerProps {
   artistId: string;
@@ -27,6 +29,8 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
       needsAmps: false,
       acoustic: false,
     },
+    technicalRequirements: [] as TechnicalRequirement[],
+    hospitalityRequirements: [] as HospitalityRequirement[],
     guaranteeRange: { min: 0, max: 0 },
     acceptsDoorDeals: true,
     merchandising: true,
@@ -68,6 +72,8 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
         needsAmps: false,
         acoustic: false,
       },
+      technicalRequirements: [],
+      hospitalityRequirements: [],
       guaranteeRange: { min: 0, max: 0 },
       acceptsDoorDeals: true,
       merchandising: true,
@@ -90,27 +96,64 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
       
       const method = editingTemplate ? 'PUT' : 'POST';
       
+      // Clean the data to ensure no undefined values or circular references
+      const cleanData = {
+        name: templateForm.name || '',
+        type: templateForm.type || 'COMPLETE',
+        isDefault: Boolean(templateForm.isDefault),
+        description: templateForm.description || '',
+        equipment: {
+          needsPA: Boolean(templateForm.equipment?.needsPA),
+          needsMics: Boolean(templateForm.equipment?.needsMics),
+          needsDrums: Boolean(templateForm.equipment?.needsDrums),
+          needsAmps: Boolean(templateForm.equipment?.needsAmps),
+          acoustic: Boolean(templateForm.equipment?.acoustic),
+        },
+        technicalRequirements: Array.isArray(templateForm.technicalRequirements) 
+          ? templateForm.technicalRequirements.map(req => ({
+              id: req.id || '',
+              requirement: req.requirement || '',
+              required: Boolean(req.required)
+            }))
+          : [],
+        hospitalityRequirements: Array.isArray(templateForm.hospitalityRequirements)
+          ? templateForm.hospitalityRequirements.map(req => ({
+              id: req.id || '',
+              requirement: req.requirement || '',
+              required: Boolean(req.required)
+            }))
+          : [],
+        guaranteeRange: {
+          min: Number(templateForm.guaranteeRange?.min) || 0,
+          max: 0
+        },
+        acceptsDoorDeals: Boolean(templateForm.acceptsDoorDeals),
+        merchandising: Boolean(templateForm.merchandising),
+        travelMethod: templateForm.travelMethod || 'van',
+        lodging: templateForm.lodging || 'flexible',
+        ageRestriction: templateForm.ageRestriction || 'all-ages',
+        notes: templateForm.notes || ''
+      };
+      
+      console.log('Sending template data:', cleanData);
+      
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...templateForm,
-          guaranteeRange: {
-            min: templateForm.guaranteeRange.min,
-            max: 0
-          }
-        }),
+        body: JSON.stringify(cleanData),
       });
 
       if (response.ok) {
         await fetchTemplates();
         resetForm();
       } else {
-        alert('Error saving template');
+        const errorData = await response.json();
+        console.error('Template save error:', errorData);
+        alert(`Error saving template: ${errorData.error || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error saving template:', error);
-      alert('Error saving template');
+      alert('Error saving template: Network or serialization error');
     }
   };
 
@@ -128,6 +171,8 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
         needsAmps: template.equipment?.needsAmps ?? false,
         acoustic: template.equipment?.acoustic ?? false,
       },
+      technicalRequirements: template.technicalRequirements || [],
+      hospitalityRequirements: template.hospitalityRequirements || [],
       guaranteeRange: { 
         min: template.guaranteeRange?.min || 0, 
         max: 0 
@@ -363,37 +408,8 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                     </div>
                   </div>
 
-                  {/* Equipment */}
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Equipment Needs
-                    </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                      {[
-                        { key: 'needsPA', label: 'PA System' },
-                        { key: 'needsMics', label: 'Microphones' },
-                        { key: 'needsDrums', label: 'Drum Kit' },
-                        { key: 'needsAmps', label: 'Amplifiers' },
-                        { key: 'acoustic', label: 'Acoustic Setup' },
-                      ].map(({ key, label }) => (
-                        <label key={key} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            checked={templateForm.equipment[key as keyof typeof templateForm.equipment]}
-                            onChange={(e) => setTemplateForm(prev => ({
-                              ...prev,
-                              equipment: { ...prev.equipment, [key]: e.target.checked }
-                            }))}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className="text-sm text-gray-700">{label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Guarantee Range */}
-                  <div className="mt-4">
+                  <div className="mt-6">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Minimum Guarantee ($)
                     </label>
@@ -458,6 +474,22 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                       placeholder="Special requirements, setup notes, etc..."
                       rows={3}
                       className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  {/* Dynamic Technical Requirements Table - Moved to bottom */}
+                  <div className="mt-6">
+                    <TechnicalRequirementsTable
+                      requirements={templateForm.technicalRequirements}
+                      onChange={(requirements) => setTemplateForm(prev => ({ ...prev, technicalRequirements: requirements }))}
+                    />
+                  </div>
+
+                  {/* Dynamic Hospitality Rider Table - Moved to bottom */}
+                  <div className="mt-6">
+                    <HospitalityRiderTable
+                      requirements={templateForm.hospitalityRequirements}
+                      onChange={(requirements) => setTemplateForm(prev => ({ ...prev, hospitalityRequirements: requirements }))}
                     />
                   </div>
 
