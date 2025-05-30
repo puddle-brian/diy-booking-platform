@@ -163,9 +163,9 @@ export default function VenueBidForm({
           {tourRequest.expectedDraw.min}-{tourRequest.expectedDraw.max} expected draw
         </div>
         {tourRequest.guaranteeRange && (
-          <div className="text-sm text-blue-600 mt-1">
-            Looking for ${tourRequest.guaranteeRange.min}-{tourRequest.guaranteeRange.max} guarantee range
-          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            Looking for ${tourRequest.guaranteeRange.min} minimum guarantee
+          </p>
         )}
       </div>
 

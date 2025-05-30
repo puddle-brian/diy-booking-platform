@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Show, TourRequest } from '../../types';
 import VenueBidForm from './VenueBidForm';
+import TemplateSelector from './TemplateSelector';
+import { ArtistTemplate } from '../../types/templates';
 
 interface VenueBid {
   id: string;
@@ -827,6 +829,29 @@ export default function TourItinerary({
       lodging: 'flexible',
       priority: 'medium'
     });
+  };
+
+  const handleTemplateApply = (template: ArtistTemplate) => {
+    console.log('Applying template to tour request form:', template);
+    
+    setTourRequestForm(prev => ({
+      ...prev,
+      // Apply template values while preserving existing form data
+      equipment: {
+        needsPA: template.equipment?.needsPA ?? prev.equipment.needsPA,
+        needsMics: template.equipment?.needsMics ?? prev.equipment.needsMics,
+        needsDrums: template.equipment?.needsDrums ?? prev.equipment.needsDrums,
+        needsAmps: template.equipment?.needsAmps ?? prev.equipment.needsAmps,
+        acoustic: template.equipment?.acoustic ?? prev.equipment.acoustic,
+      },
+      guaranteeRange: template.guaranteeRange || prev.guaranteeRange,
+      acceptsDoorDeals: template.acceptsDoorDeals ?? prev.acceptsDoorDeals,
+      merchandising: template.merchandising ?? prev.merchandising,
+      travelMethod: (template.travelMethod as 'van' | 'flying' | 'train' | 'other') || prev.travelMethod,
+      lodging: (template.lodging as 'floor-space' | 'hotel' | 'flexible') || prev.lodging,
+      ageRestriction: (template.ageRestriction as 'all-ages' | '18+' | '21+' | 'flexible') || prev.ageRestriction,
+      tourStatus: (template.tourStatus as 'exploring-interest' | 'confirmed-routing' | 'flexible-routing') || prev.tourStatus,
+    }));
   };
 
   const handleAutoFillAddDate = () => {
@@ -2118,6 +2143,17 @@ export default function TourItinerary({
             </div>
             
             <form onSubmit={handleTourRequestSubmit} className="px-6 py-4 space-y-6">
+              {/* Template Selector */}
+              {artistId && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <TemplateSelector
+                    artistId={artistId}
+                    onTemplateApply={handleTemplateApply}
+                    className="mb-0"
+                  />
+                </div>
+              )}
+              
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

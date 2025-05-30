@@ -12,6 +12,8 @@ import ClaimEntityModal from '../../../components/ClaimEntityModal';
 import MessageButton from '../../../components/MessageButton';
 import MediaSection from '../../../components/MediaSection';
 import UserStatus from '../../../components/UserStatus';
+import TemplateManager from '../../../components/TemplateManager';
+import TemplateModal from '../../../components/TemplateModal';
 import { useAuth } from '../../../contexts/AuthContext';
 
 interface Artist {
@@ -114,6 +116,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
   const [loadingMembers, setLoadingMembers] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -499,15 +502,27 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
                   if (!canEdit) return null;
                   
                   return (
-                    <Link
-                      href={`/artists/${artist.id}/edit`}
-                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Edit Profile
-                    </Link>
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/artists/${artist.id}/edit`}
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit Profile
+                      </Link>
+                      
+                      <button
+                        onClick={() => setShowTemplateModal(true)}
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
+                      >
+                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Templates
+                      </button>
+                    </div>
                   );
                 })()}
               </div>
@@ -852,6 +867,14 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
           // Reload members
           loadMembers(artist.id);
         }}
+      />
+
+      {/* Template Modal */}
+      <TemplateModal
+        isOpen={showTemplateModal}
+        onClose={() => setShowTemplateModal(false)}
+        artistId={artist.id}
+        artistName={artist.name}
       />
     </div>
   );

@@ -16,6 +16,9 @@ export default function AdminPage() {
   const [isResetting, setIsResetting] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [backupMessage, setBackupMessage] = useState('');
+  const [backups, setBackups] = useState<any[]>([]);
+  const [showBackupsList, setShowBackupsList] = useState(false);
+  const [loadingBackups, setLoadingBackups] = useState(false);
 
   // Filter functions for search
   const filteredVenues = venues.filter(venue => 
@@ -209,6 +212,11 @@ export default function AdminPage() {
       const backupData = await response.json();
       setBackupMessage(backupData.message);
       alert('Backup created successfully!');
+      
+      // Refresh backup list if it's currently shown
+      if (showBackupsList) {
+        await handleShowBackups();
+      }
     } catch (error) {
       console.error('Backup creation failed:', error);
       alert('Failed to create backup');
@@ -218,18 +226,21 @@ export default function AdminPage() {
   };
 
   const handleShowBackups = async () => {
+    setLoadingBackups(true);
     try {
       const response = await fetch('/api/admin/backups');
       if (!response.ok) {
         throw new Error('Failed to fetch backups');
       }
 
-      const backups = await response.json();
-      // Implement the logic to show backups to the user
-      console.log('Backups:', backups);
+      const backupData = await response.json();
+      setBackups(backupData.backups || []);
+      setShowBackupsList(true);
     } catch (error) {
       console.error('Failed to fetch backups:', error);
       alert('Failed to fetch backups');
+    } finally {
+      setLoadingBackups(false);
     }
   };
 
@@ -550,14 +561,60 @@ export default function AdminPage() {
                         </button>
                         <button
                           onClick={handleShowBackups}
-                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                          disabled={loadingBackups}
+                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                         >
-                          View Backups
+                          {loadingBackups ? 'Loading...' : 'View Backups'}
                         </button>
                       </div>
                       {backupMessage && (
                         <div className={`mt-2 text-sm ${backupMessage.includes('✅') ? 'text-green-700' : 'text-red-700'}`}>
                           {backupMessage}
+                        </div>
+                      )}
+                      
+                      {/* Backup List Display */}
+                      {showBackupsList && (
+                        <div className="mt-4 p-3 bg-white border border-green-300 rounded-lg">
+                          <div className="flex justify-between items-center mb-3">
+                            <h5 className="font-medium text-green-900">📁 Available Backups ({backups.length})</h5>
+                            <button
+                              onClick={() => setShowBackupsList(false)}
+                              className="text-green-600 hover:text-green-800 text-sm"
+                            >
+                              ✕ Close
+                            </button>
+                          </div>
+                          
+                          {backups.length === 0 ? (
+                            <p className="text-sm text-green-700">No backups found. Create your first backup above!</p>
+                          ) : (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {backups.map((backup: any, index: number) => (
+                                <div key={backup.filename} className="flex justify-between items-center p-2 bg-green-50 rounded border">
+                                  <div className="flex-1">
+                                    <div className="text-sm font-medium text-green-900">{backup.filename}</div>
+                                    <div className="text-xs text-green-600">
+                                      {backup.sizeFormatted} • Created: {new Date(backup.created).toLocaleString()}
+                                    </div>
+                                  </div>
+                                  <div className="flex space-x-2">
+                                    <button
+                                      onClick={() => {
+                                        const link = document.createElement('a');
+                                        link.href = `/api/admin/backups/${backup.filename}`;
+                                        link.download = backup.filename;
+                                        link.click();
+                                      }}
+                                      className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                                    >
+                                      Download
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

@@ -96,7 +96,7 @@ model Venue {
 }
 
 model Artist {
-  id             String        @id @default(cuid())
+  id             String           @id @default(cuid())
   name           String
   locationId     String
   artistType     ArtistType?
@@ -110,12 +110,13 @@ model Artist {
   equipmentNeeds Json?
   description    String?
   images         String[]
-  verified       Boolean       @default(false)
+  verified       Boolean          @default(false)
   submittedById  String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  location       Location      @relation(fields: [locationId], references: [id])
-  submittedBy    User?         @relation(fields: [submittedById], references: [id])
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  templates      ArtistTemplate[]
+  location       Location         @relation(fields: [locationId], references: [id])
+  submittedBy    User?            @relation(fields: [submittedById], references: [id])
   shows          Show[]
   tourRequests   TourRequest[]
 
@@ -210,19 +211,19 @@ model Show {
   ticketPrice    Float?
   ageRestriction AgeRestriction?
   status         ShowStatus      @default(CONFIRMED)
-  guarantee      Float?
-  doorDeal       Json?
-  capacity       Int?
-  loadIn         String?
-  soundcheck     String?
-  doorsOpen      String?
-  showTime       String?
-  curfew         String?
-  notes          String?
-  billingOrder   Json?
   createdById    String
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  billingOrder   Json?
+  capacity       Int?
+  curfew         String?
+  doorDeal       Json?
+  doorsOpen      String?
+  guarantee      Float?
+  loadIn         String?
+  notes          String?
+  showTime       String?
+  soundcheck     String?
   artist         Artist          @relation(fields: [artistId], references: [id])
   createdBy      User            @relation(fields: [createdById], references: [id])
   venue          Venue           @relation(fields: [venueId], references: [id])
@@ -394,6 +395,40 @@ model Favorite {
   @@map("favorites")
 }
 
+model ArtistTemplate {
+  id                  String       @id @default(cuid())
+  artistId            String
+  name                String
+  type                TemplateType
+  isDefault           Boolean      @default(false)
+  equipment           Json?
+  stageRequirements   String?
+  soundCheckTime      Int?
+  setLength           Int?
+  guaranteeRange      Json?
+  acceptsDoorDeals    Boolean?
+  merchandising       Boolean?
+  travelMethod        String?
+  lodging             String?
+  dietaryRestrictions String[]
+  expectedDraw        Json?
+  ageRestriction      String?
+  tourStatus          String?
+  priority            String?
+  description         String?
+  notes               String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  artist              Artist       @relation(fields: [artistId], references: [id])
+
+  @@index([artistId])
+  @@index([type])
+  @@index([isDefault])
+  @@index([createdAt])
+  @@index([name])
+  @@map("artist_templates")
+}
+
 enum Role {
   USER
   MODERATOR
@@ -508,4 +543,11 @@ enum MembershipStatus {
   ACTIVE
   PENDING
   INACTIVE
+}
+
+enum TemplateType {
+  TECH_RIDER
+  BUSINESS
+  LOGISTICS
+  COMPLETE
 }

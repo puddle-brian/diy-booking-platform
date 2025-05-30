@@ -5,6 +5,7 @@ import { Show, TourRequest } from '../../types';
 import VenueBidForm from './VenueBidForm';
 import ShowDetailModal from './ShowDetailModal';
 import TourRequestDetailModal from './TourRequestDetailModal';
+import TemplateSelector from './TemplateSelector';
 
 interface VenueBid {
   id: string;
@@ -144,7 +145,7 @@ export default function TabbedTourItinerary({
     description: '',
     guarantee: '',
     capacity: '',
-    ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+',
+    ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+' | 'flexible',
     loadIn: '',
     soundcheck: '',
     doorsOpen: '',
@@ -156,7 +157,23 @@ export default function TabbedTourItinerary({
     lineupPosition: '',
     setLength: '',
     otherActs: '',
-    billingNotes: ''
+    billingNotes: '',
+    equipment: {
+      needsPA: false,
+      needsMics: false,
+      needsDrums: false,
+      needsAmps: false,
+      acoustic: false
+    },
+    guaranteeRange: {
+      min: 0,
+      max: 0
+    },
+    acceptsDoorDeals: true,
+    merchandising: true,
+    travelMethod: 'van' as 'van' | 'flying' | 'train' | 'other',
+    lodging: 'flexible' as 'floor-space' | 'hotel' | 'flexible',
+    priority: 'medium' as 'high' | 'medium' | 'low'
   });
   
   // Search functionality states
@@ -498,6 +515,38 @@ export default function TabbedTourItinerary({
     setShowBidForm(false);
     setSelectedTourRequest(null);
     fetchData();
+  };
+
+  const handleTemplateApply = (template: any) => {
+    console.log('Applying template:', template);
+    
+    setAddDateForm(prev => ({
+      ...prev,
+      // Technical requirements
+      equipment: template.equipment ? {
+        needsPA: template.equipment.needsPA || false,
+        needsMics: template.equipment.needsMics || false,
+        needsDrums: template.equipment.needsDrums || false,
+        needsAmps: template.equipment.needsAmps || false,
+        acoustic: template.equipment.acoustic || false
+      } : prev.equipment,
+      
+      // Business terms
+      guaranteeRange: template.guaranteeRange ? { 
+        min: template.guaranteeRange.min, 
+        max: 0 
+      } : prev.guaranteeRange,
+      
+      acceptsDoorDeals: template.acceptsDoorDeals !== undefined ? template.acceptsDoorDeals : prev.acceptsDoorDeals,
+      merchandising: template.merchandising !== undefined ? template.merchandising : prev.merchandising,
+      
+      // Travel & logistics
+      travelMethod: template.travelMethod || prev.travelMethod,
+      lodging: template.lodging || prev.lodging,
+      
+      // Age restriction (if specified in template)
+      ageRestriction: template.ageRestriction || prev.ageRestriction
+    }));
   };
 
   const handlePlaceBid = (tourRequest: TourRequest) => {
@@ -852,7 +901,23 @@ export default function TabbedTourItinerary({
         lineupPosition: '',
         setLength: '',
         otherActs: '',
-        billingNotes: ''
+        billingNotes: '',
+        equipment: {
+          needsPA: false,
+          needsMics: false,
+          needsDrums: false,
+          needsAmps: false,
+          acoustic: false
+        },
+        guaranteeRange: {
+          min: 0,
+          max: 0
+        },
+        acceptsDoorDeals: true,
+        merchandising: true,
+        travelMethod: 'van' as 'van' | 'flying' | 'train' | 'other',
+        lodging: 'flexible' as 'floor-space' | 'hotel' | 'flexible',
+        priority: 'medium' as 'high' | 'medium' | 'low'
       });
 
       // Force refresh data with a small delay to ensure the API has processed the new data
@@ -1849,13 +1914,6 @@ export default function TabbedTourItinerary({
                 </h3>
                 <div className="flex items-center space-x-3">
                   <button
-                    type="button"
-                    onClick={handleAutoFillAddDate}
-                    className="bg-green-600 text-white px-3 py-1 rounded text-sm font-medium hover:bg-green-700 transition-colors"
-                  >
-                    Auto-Fill
-                  </button>
-                  <button
                     onClick={() => setShowAddDateForm(false)}
                     className="text-gray-400 hover:text-gray-600"
                   >
@@ -1961,6 +2019,196 @@ export default function TabbedTourItinerary({
                       rows={3}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                  </div>
+
+                  {/* Template Selector - Auto-fill the fields below */}
+                  {artistId && viewerType === 'artist' && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <TemplateSelector
+                        artistId={artistId}
+                        onTemplateApply={handleTemplateApply}
+                        className="mb-0"
+                      />
+                    </div>
+                  )}
+
+                  {/* Technical Requirements */}
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Technical Requirements</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={addDateForm.equipment?.needsPA || false}
+                          onChange={(e) => setAddDateForm(prev => ({
+                            ...prev,
+                            equipment: { ...prev.equipment, needsPA: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">PA System</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={addDateForm.equipment?.needsMics || false}
+                          onChange={(e) => setAddDateForm(prev => ({
+                            ...prev,
+                            equipment: { ...prev.equipment, needsMics: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Microphones</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={addDateForm.equipment?.needsDrums || false}
+                          onChange={(e) => setAddDateForm(prev => ({
+                            ...prev,
+                            equipment: { ...prev.equipment, needsDrums: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Drum Kit</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={addDateForm.equipment?.needsAmps || false}
+                          onChange={(e) => setAddDateForm(prev => ({
+                            ...prev,
+                            equipment: { ...prev.equipment, needsAmps: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Amplifiers</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={addDateForm.equipment?.acoustic || false}
+                          onChange={(e) => setAddDateForm(prev => ({
+                            ...prev,
+                            equipment: { ...prev.equipment, acoustic: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Acoustic Setup</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Business Terms */}
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Business Terms</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Minimum Guarantee ($)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={addDateForm.guaranteeRange?.min || ''}
+                          onChange={(e) => setAddDateForm(prev => ({ 
+                            ...prev, 
+                            guaranteeRange: { 
+                              ...prev.guaranteeRange, 
+                              min: parseInt(e.target.value) || 0 
+                            }
+                          }))}
+                          placeholder="e.g., 500"
+                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Age Restriction
+                        </label>
+                        <select
+                          value={addDateForm.ageRestriction}
+                          onChange={(e) => setAddDateForm(prev => ({ 
+                            ...prev, 
+                            ageRestriction: e.target.value as 'all-ages' | '18+' | '21+' | 'flexible'
+                          }))}
+                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="flexible">Flexible</option>
+                          <option value="all-ages">All Ages</option>
+                          <option value="18+">18+</option>
+                          <option value="21+">21+</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={addDateForm.acceptsDoorDeals || false}
+                          onChange={(e) => setAddDateForm(prev => ({
+                            ...prev,
+                            acceptsDoorDeals: e.target.checked
+                          }))}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Accepts Door Deals</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={addDateForm.merchandising || false}
+                          onChange={(e) => setAddDateForm(prev => ({
+                            ...prev,
+                            merchandising: e.target.checked
+                          }))}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Merchandising</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Travel & Logistics */}
+                  <div>
+                    <h4 className="text-md font-semibold text-gray-900 mb-3">Travel & Logistics</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Travel Method
+                        </label>
+                        <select
+                          value={addDateForm.travelMethod}
+                          onChange={(e) => setAddDateForm(prev => ({ 
+                            ...prev, 
+                            travelMethod: e.target.value as 'van' | 'flying' | 'train' | 'other'
+                          }))}
+                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="van">Van/Vehicle</option>
+                          <option value="flying">Flying</option>
+                          <option value="train">Train</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Lodging Preference
+                        </label>
+                        <select
+                          value={addDateForm.lodging}
+                          onChange={(e) => setAddDateForm(prev => ({ 
+                            ...prev, 
+                            lodging: e.target.value as 'floor-space' | 'hotel' | 'flexible'
+                          }))}
+                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="flexible">Flexible</option>
+                          <option value="floor-space">Floor Space</option>
+                          <option value="hotel">Hotel</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : (

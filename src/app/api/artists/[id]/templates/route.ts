@@ -1,0 +1,150 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '../../../../../../lib/prisma';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
+
+// Helper function to get user from request
+async function getUserFromRequest(request: NextRequest) {
+  const token = request.cookies.get('auth-token')?.value;
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    return { userId: decoded.userId };
+  } catch (error) {
+    return null;
+  }
+}
+
+// GET /api/artists/[id]/templates - Fetch all templates for an artist
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: artistId } = await params;
+    
+    console.log(`🎨 API: Fetching templates for artist ${artistId}`);
+    
+    // Verify artist exists
+    const artist = await prisma.artist.findUnique({
+      where: { id: artistId }
+    });
+    
+    if (!artist) {
+      return NextResponse.json(
+        { error: 'Artist not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Fetch templates for this artist
+    const templates = await prisma.artistTemplate.findMany({
+      where: { artistId },
+      orderBy: [
+        { isDefault: 'desc' },
+        { createdAt: 'desc' }
+      ]
+    });
+    
+    console.log(`🎨 API: Found ${templates.length} templates for artist ${artistId}`);
+    
+    return NextResponse.json({ templates });
+  } catch (error) {
+    console.error('Error fetching artist templates:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch templates' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST /api/artists/[id]/templates - Create a new template
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: artistId } = await params;
+    const userAuth = await getUserFromRequest(request);
+    
+    if (!userAuth) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+    
+    const body = await request.json();
+    
+    console.log(`🎨 API: Creating template for artist ${artistId}`);
+    
+    // Verify artist exists and user has permission
+    const artist = await prisma.artist.findUnique({
+      where: { id: artistId }
+    });
+    
+    if (!artist) {
+      return NextResponse.json(
+        { error: 'Artist not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Validate required fields
+    if (!body.name || !body.type) {
+      return NextResponse.json(
+        { error: 'Name and type are required' },
+        { status: 400 }
+      );
+    }
+    
+    // If this is being set as default, unset other defaults
+    if (body.isDefault) {
+      await prisma.artistTemplate.updateMany({
+        where: { 
+          artistId,
+          isDefault: true 
+        },
+        data: { isDefault: false }
+      });
+    }
+    
+    // Create the template
+    const template = await prisma.artistTemplate.create({
+      data: {
+        artistId,
+        name: body.name,
+        type: body.type,
+        isDefault: body.isDefault || false,
+        description: body.description,
+        equipment: body.equipment,
+        stageRequirements: body.stageRequirements,
+        soundCheckTime: body.soundCheckTime,
+        setLength: body.setLength,
+        guaranteeRange: body.guaranteeRange,
+        acceptsDoorDeals: body.acceptsDoorDeals,
+        merchandising: body.merchandising,
+        travelMethod: body.travelMethod,
+        lodging: body.lodging,
+        expectedDraw: body.expectedDraw,
+        ageRestriction: body.ageRestriction,
+        tourStatus: body.tourStatus,
+        notes: body.notes
+      }
+    });
+    
+    console.log(`🎨 API: Created template ${template.id} for artist ${artistId}`);
+    
+    return NextResponse.json(template, { status: 201 });
+  } catch (error) {
+    console.error('Error creating artist template:', error);
+    return NextResponse.json(
+      { error: 'Failed to create template' },
+      { status: 500 }
+    );
+  }
+} 

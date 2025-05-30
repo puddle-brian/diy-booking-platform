@@ -177,11 +177,10 @@ export default function TourRequestDetailModal({
                 </h3>
                 
                 <div className="space-y-4">
-                  {tourRequest.guaranteeRange && (tourRequest.guaranteeRange.min > 0 || tourRequest.guaranteeRange.max > 0) && (
-                    <div>
-                      <span className="text-gray-600 block text-sm">Guarantee Range:</span>
-                      <span className="font-semibold text-yellow-700">
-                        ${tourRequest.guaranteeRange.min} - ${tourRequest.guaranteeRange.max}
+                  {tourRequest.guaranteeRange && tourRequest.guaranteeRange.min > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-600">
+                        ${tourRequest.guaranteeRange.min} minimum guarantee
                       </span>
                     </div>
                   )}
