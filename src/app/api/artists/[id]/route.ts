@@ -219,49 +219,133 @@ export async function DELETE(
 
     // Delete related records in the correct order to avoid foreign key constraints
     
-    // 1. Delete all bids related to tour requests for this artist
-    const deletedBids = await prisma.bid.deleteMany({
-      where: {
-        tourRequest: {
-          artistId: resolvedParams.id
+    try {
+      // 1. Delete all conversations where this artist is a participant
+      const conversationsToDelete = await prisma.conversation.findMany({
+        where: {
+          participants: {
+            some: {
+              userId: resolvedParams.id
+            }
+          }
+        },
+        select: { id: true }
+      });
+      
+      if (conversationsToDelete.length > 0) {
+        await prisma.conversation.deleteMany({
+          where: {
+            id: {
+              in: conversationsToDelete.map(c => c.id)
+            }
+          }
+        });
+      }
+      console.log(`🗑️ Deleted ${conversationsToDelete.length} conversations`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete conversations:`, error);
+    }
+
+    try {
+      // 2. Delete all messages sent by this artist
+      const deletedMessages = await prisma.message.deleteMany({
+        where: { senderId: resolvedParams.id }
+      });
+      console.log(`🗑️ Deleted ${deletedMessages.count} messages`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete messages:`, error);
+    }
+
+    try {
+      // 3. Delete all bids related to tour requests for this artist
+      const deletedBids = await prisma.bid.deleteMany({
+        where: {
+          tourRequest: {
+            artistId: resolvedParams.id
+          }
         }
-      }
-    });
-    console.log(`🗑️ Deleted ${deletedBids.count} bids`);
+      });
+      console.log(`🗑️ Deleted ${deletedBids.count} bids`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete bids:`, error);
+    }
 
-    // 2. Delete all tour requests for this artist
-    const deletedTourRequests = await prisma.tourRequest.deleteMany({
-      where: { artistId: resolvedParams.id }
-    });
-    console.log(`🗑️ Deleted ${deletedTourRequests.count} tour requests`);
+    try {
+      // 4. Delete all tour requests for this artist
+      const deletedTourRequests = await prisma.tourRequest.deleteMany({
+        where: { artistId: resolvedParams.id }
+      });
+      console.log(`🗑️ Deleted ${deletedTourRequests.count} tour requests`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete tour requests:`, error);
+    }
 
-    // 3. Delete all shows for this artist
-    const deletedShows = await prisma.show.deleteMany({
-      where: { artistId: resolvedParams.id }
-    });
-    console.log(`🗑️ Deleted ${deletedShows.count} shows`);
+    try {
+      // 5. Delete all shows for this artist
+      const deletedShows = await prisma.show.deleteMany({
+        where: { artistId: resolvedParams.id }
+      });
+      console.log(`🗑️ Deleted ${deletedShows.count} shows`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete shows:`, error);
+    }
 
-    // 4. Delete all memberships for this artist
-    const deletedMemberships = await prisma.membership.deleteMany({
-      where: {
-        entityType: 'ARTIST',
-        entityId: resolvedParams.id
-      }
-    });
-    console.log(`🗑️ Deleted ${deletedMemberships.count} memberships`);
+    try {
+      // 6. Delete all venue offers for this artist
+      const deletedOffers = await prisma.venueOffer.deleteMany({
+        where: { artistId: resolvedParams.id }
+      });
+      console.log(`🗑️ Deleted ${deletedOffers.count} venue offers`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete venue offers:`, error);
+    }
 
-    // 5. Delete all favorites for this artist
-    const deletedFavorites = await prisma.$executeRaw`
-      DELETE FROM favorites 
-      WHERE "entityType" = 'ARTIST' AND "entityId" = ${resolvedParams.id}
-    `;
-    console.log(`🗑️ Deleted favorites using raw query`);
+    try {
+      // 7. Delete all artist templates for this artist
+      const deletedTemplates = await prisma.artistTemplate.deleteMany({
+        where: { artistId: resolvedParams.id }
+      });
+      console.log(`🗑️ Deleted ${deletedTemplates.count} artist templates`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete artist templates:`, error);
+    }
 
-    // 6. Finally, delete the artist itself
-    await prisma.artist.delete({
-      where: { id: resolvedParams.id }
-    });
-    console.log(`🗑️ Deleted artist: ${existingArtist.name}`);
+    try {
+      // 8. Delete all memberships for this artist
+      const deletedMemberships = await prisma.membership.deleteMany({
+        where: {
+          entityType: 'ARTIST',
+          entityId: resolvedParams.id
+        }
+      });
+      console.log(`🗑️ Deleted ${deletedMemberships.count} memberships`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete memberships:`, error);
+    }
+
+    try {
+      // 9. Delete all favorites for this artist
+      const deletedFavorites = await prisma.favorite.deleteMany({
+        where: {
+          entityType: 'ARTIST',
+          entityId: resolvedParams.id
+        }
+      });
+      console.log(`🗑️ Deleted ${deletedFavorites.count} favorites`);
+    } catch (error) {
+      console.warn(`⚠️ Could not delete favorites:`, error);
+    }
+
+    try {
+      // 10. Finally, delete the artist itself
+      await prisma.artist.delete({
+        where: { id: resolvedParams.id }
+      });
+      console.log(`🗑️ Deleted artist: ${existingArtist.name}`);
+    } catch (error) {
+      console.error(`❌ Failed to delete artist:`, error);
+      throw new Error(`Failed to delete artist: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
 
     console.log(`✅ Successfully deleted artist ${existingArtist.name} and all related records`);
     return NextResponse.json({ 
@@ -269,9 +353,19 @@ export async function DELETE(
       deletedArtist: existingArtist.name
     });
   } catch (error) {
-    console.error('Error in DELETE /api/artists/[id]:', error);
+    console.error('❌ Error in DELETE /api/artists/[id]:', error);
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      code: (error as any)?.code,
+      meta: (error as any)?.meta
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to delete artist' },
+      { 
+        error: 'Failed to delete artist',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
