@@ -126,10 +126,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    console.log('🎵 API: Creating artist with data:', JSON.stringify(body, null, 2));
+    
     // Validate required fields - update to match what frontend actually sends
     const requiredFields = ['name', 'city', 'state', 'country', 'artistType', 'contactEmail'];
     for (const field of requiredFields) {
       if (!body[field]) {
+        console.error(`❌ Missing required field: ${field}`);
         return NextResponse.json(
           { error: `Missing required field: ${field}` },
           { status: 400 }
@@ -140,11 +143,53 @@ export async function POST(request: NextRequest) {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(body.contactEmail)) {
+      console.error(`❌ Invalid email format: ${body.contactEmail}`);
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
       );
     }
+
+    // Handle yearFormed - convert "earlier" to a reasonable default
+    let yearFormed = body.yearFormed;
+    if (yearFormed !== undefined && yearFormed !== null) {
+      if (typeof yearFormed === 'string') {
+        if (yearFormed === 'earlier') {
+          yearFormed = 2000; // Default for "earlier than X" selections
+        } else {
+          const parsed = parseInt(yearFormed);
+          yearFormed = isNaN(parsed) ? null : parsed;
+        }
+      } else if (typeof yearFormed === 'number') {
+        yearFormed = yearFormed;
+      } else {
+        yearFormed = null;
+      }
+    } else {
+      // yearFormed is undefined/null - this is valid for artist types like DJs
+      yearFormed = null;
+    }
+
+    // Handle members - ensure it's a valid number
+    let members = body.members;
+    if (members !== undefined && members !== null) {
+      if (typeof members === 'string') {
+        if (members.includes('+')) {
+          // Handle "7+" case
+          members = parseInt(members.replace('+', ''));
+        } else {
+          members = parseInt(members);
+        }
+      }
+      if (isNaN(members) || members < 1) {
+        members = null; // Set to null if invalid
+      }
+    } else {
+      // members is undefined/null - this is valid for artist types like DJs, solo artists
+      members = null;
+    }
+
+    console.log('🎵 API: Processed yearFormed:', yearFormed, 'members:', members);
 
     // Create or find location
     let location = await prisma.location.findFirst({
@@ -156,6 +201,7 @@ export async function POST(request: NextRequest) {
     });
     
     if (!location) {
+      console.log('🌍 Creating new location:', body.city, body.state, body.country);
       location = await prisma.location.create({
         data: {
           city: body.city,
@@ -165,28 +211,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Prepare artist data
+    const artistData = {
+      name: body.name,
+      locationId: location.id,
+      artistType: body.artistType?.toUpperCase() || 'BAND',
+      genres: Array.isArray(body.genres) ? body.genres : [],
+      members: members,
+      yearFormed: yearFormed,
+      tourStatus: body.tourStatus?.toUpperCase() || 'ACTIVE',
+      equipmentNeeds: body.equipmentNeeds || {},
+      contactEmail: body.contactEmail,
+      website: body.website || undefined,
+      socialHandles: body.socialHandles || undefined,
+      description: body.description || '',
+      images: Array.isArray(body.images) ? body.images : ['/api/placeholder/band'],
+      verified: true // Make new artists verified by default so they appear immediately
+    };
+
+    console.log('🎵 API: Creating artist with processed data:', JSON.stringify(artistData, null, 2));
+
     // Create artist
     const artist = await prisma.artist.create({
-      data: {
-        name: body.name,
-        locationId: location.id,
-        artistType: body.artistType?.toUpperCase() || 'BAND',
-        genres: body.genres || [],
-        members: body.members || 1,
-        yearFormed: body.yearFormed || new Date().getFullYear(),
-        tourStatus: body.tourStatus?.toUpperCase() || 'ACTIVE',
-        equipmentNeeds: body.equipmentNeeds || {},
-        contactEmail: body.contactEmail,
-        website: body.website || undefined,
-        socialHandles: body.socialHandles ? { social: body.socialHandles } : undefined,
-        description: body.description || '',
-        images: body.images || ['/api/placeholder/band'],
-        verified: true // Make new artists verified by default so they appear immediately
-      },
+      data: artistData,
       include: {
         location: true
       }
     });
+
+    console.log('✅ Artist created successfully:', artist.id);
 
     // Transform response to match frontend expectations
     const transformedArtist = {
@@ -232,9 +285,26 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transformedArtist, { status: 201 });
   } catch (error) {
-    console.error('Error in POST /api/artists:', error);
+    console.error('❌ Error in POST /api/artists:', error);
+    
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Unique constraint')) {
+        return NextResponse.json(
+          { error: 'An artist with this name and location already exists' },
+          { status: 409 }
+        );
+      }
+      if (error.message.includes('Foreign key constraint')) {
+        return NextResponse.json(
+          { error: 'Invalid location data provided' },
+          { status: 400 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create artist' },
+      { error: 'Failed to create artist. Please check your data and try again.' },
       { status: 500 }
     );
   }

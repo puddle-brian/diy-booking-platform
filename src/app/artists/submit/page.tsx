@@ -113,8 +113,14 @@ export default function SubmitArtist() {
         country: country,
         artistType: formData.artistType,
         genres: formData.genres,
-        members: formData.members ? parseInt(formData.members) : undefined,
-        yearFormed: formData.yearFormed ? parseInt(formData.yearFormed) : undefined,
+        // Only include members for artist types that show the field
+        members: (['band', 'duo', 'collective', 'theater-group'].includes(formData.artistType) && formData.members) 
+          ? parseInt(formData.members) 
+          : undefined,
+        // Only include yearFormed for artist types that show the field
+        yearFormed: (['band', 'duo', 'collective', 'theater-group'].includes(formData.artistType) && formData.yearFormed) 
+          ? (formData.yearFormed === 'earlier' ? 2000 : parseInt(formData.yearFormed)) 
+          : undefined,
         tourStatus: formData.tourStatus,
         contactEmail: formData.contactEmail,
         website: formData.website || undefined,
