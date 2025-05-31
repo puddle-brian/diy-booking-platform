@@ -157,7 +157,8 @@ export async function POST(request: NextRequest) {
         features: venueData.features || [],
         pricing: venueData.pricing,
         description: venueData.description,
-        images: venueData.images || []
+        images: venueData.images || [],
+        verified: true // Make new venues verified by default so they appear immediately
       },
       include: {
         location: true

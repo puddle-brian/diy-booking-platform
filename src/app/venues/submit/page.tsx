@@ -116,31 +116,13 @@ export default function SubmitVenue() {
         throw new Error(errorData.error || 'Failed to submit venue');
       }
 
-      setSubmitMessage('Success! Your venue has been submitted for review. We\'ll be in touch soon!');
+      const createdVenue = await response.json();
+      setSubmitMessage(`Success! ${createdVenue.name} has been added to DIY Shows and is now live on the site!`);
       
-      // Reset form
-      setFormData({
-        name: '',
-        streetAddress: '',
-        addressLine2: '',
-        postalCode: '',
-        neighborhood: '',
-        city: '',
-        state: '',
-        country: 'USA',
-        venueType: '',
-        capacity: '',
-        agePolicy: 'all-ages',
-        equipment: [],
-        description: '',
-        contactName: '',
-        contactEmail: '',
-        contactPhone: '',
-        contactWebsite: '',
-        preferredContact: 'email',
-        genres: [],
-        sceneInfo: '',
-      });
+      // Redirect to the new venue's profile after a short delay
+      setTimeout(() => {
+        router.push(`/venues/${createdVenue.id}`);
+      }, 2000);
 
     } catch (error) {
       setSubmitMessage(`Error: ${error instanceof Error ? error.message : 'Failed to submit venue'}`);
@@ -586,8 +568,8 @@ export default function SubmitVenue() {
 
           <p className="text-sm text-gray-600 text-center">
             By submitting, you agree to our{' '}
-            <a href="#" className="text-black hover:underline">community guidelines</a>.
-            All listings are reviewed before going live.
+            <a href="/guidelines" className="text-black hover:underline">community guidelines</a>.
+            Your space listing will be live immediately and visible to artists looking for venues. You can apply for verification later to get a verified badge.
           </p>
         </form>
       </div>

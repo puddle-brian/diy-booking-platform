@@ -180,7 +180,8 @@ export async function POST(request: NextRequest) {
         website: body.website || undefined,
         socialHandles: body.socialHandles ? { social: body.socialHandles } : undefined,
         description: body.description || '',
-        images: body.images || ['/api/placeholder/band']
+        images: body.images || ['/api/placeholder/band'],
+        verified: true // Make new artists verified by default so they appear immediately
       },
       include: {
         location: true

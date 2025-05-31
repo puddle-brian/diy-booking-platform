@@ -103,7 +103,13 @@ export default function SubmitArtist() {
         throw new Error(errorData.error || 'Failed to submit artist');
       }
 
-      setSubmitMessage('Success! Your artist profile has been submitted for review. We\'ll be in touch soon!');
+      const createdArtist = await response.json();
+      setSubmitMessage(`Success! ${createdArtist.name} has been added to DIY Shows and is now live on the site!`);
+      
+      // Redirect to the new artist's profile after a short delay
+      setTimeout(() => {
+        router.push(`/artists/${createdArtist.id}`);
+      }, 2000);
       
       // Reset form
       setFormData({
@@ -493,8 +499,8 @@ export default function SubmitArtist() {
 
           <p className="text-sm text-gray-600 text-center">
             By submitting, you agree to our{' '}
-            <a href="#" className="text-black hover:underline">community guidelines</a>.
-            All profiles are reviewed before going live.
+            <a href="/guidelines" className="text-black hover:underline">community guidelines</a>.
+            Your artist profile will be live immediately and visible to venues looking for acts to book.
           </p>
         </form>
       </div>
