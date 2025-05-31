@@ -126,7 +126,7 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           {templates.map((template) => (
             <option key={template.id} value={template.id}>
               {template.name} 
-              {template.isDefault && ' ✓'} 
+              {template.isDefault && ' (Default)'} 
             </option>
           ))}
         </select>
@@ -142,6 +142,25 @@ const TemplateSelector: React.FC<TemplateSelectorProps> = ({
           </button>
         )}
       </div>
+
+      {/* Template preview */}
+      {selectedTemplateId && (
+        <div className="text-xs text-gray-600 bg-gray-50 rounded-md p-2">
+          {(() => {
+            const template = templates.find(t => t.id === selectedTemplateId);
+            if (!template) return null;
+            
+            const details = [];
+            if (template.guaranteeRange?.min) details.push(`$${template.guaranteeRange.min}+ guarantee`);
+            if (template.travelMethod) details.push(`${template.travelMethod} travel`);
+            if (template.lodging) details.push(`${template.lodging} lodging`);
+            if (template.equipment?.needsPA) details.push('PA needed');
+            if (template.equipment?.needsMics) details.push('mics needed');
+            
+            return details.length > 0 ? `Includes: ${details.join(', ')}` : 'Template will fill form fields below';
+          })()}
+        </div>
+      )}
     </div>
   );
 };

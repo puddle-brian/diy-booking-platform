@@ -51,6 +51,7 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
           entity={entity} 
           context={context} 
           members={[]} // Don't pass members to avoid showing thumbnails in header
+          onTemplateManage={onTemplateManage}
         />
 
         {/* Team Management - MOVED ABOVE tour itinerary for better hierarchy */}

@@ -619,39 +619,38 @@ export default function TabbedTourItinerary({
   };
 
   const handleTemplateApply = (template: any) => {
-    console.log('Applying template:', template);
+    console.log('🎨 TabbedTourItinerary: Applying template:', template);
     
     setAddDateForm(prev => ({
       ...prev,
-      // Technical requirements
-      equipment: template.equipment ? {
-        needsPA: template.equipment.needsPA || false,
-        needsMics: template.equipment.needsMics || false,
-        needsDrums: template.equipment.needsDrums || false,
-        needsAmps: template.equipment.needsAmps || false,
-        acoustic: template.equipment.acoustic || false
-      } : prev.equipment,
-      
-      // New dynamic requirements
-      technicalRequirements: template.technicalRequirements || [],
-      hospitalityRequirements: template.hospitalityRequirements || [],
-      
-      // Business terms
-      guaranteeRange: template.guaranteeRange ? { 
-        min: template.guaranteeRange.min, 
-        max: 0 
-      } : prev.guaranteeRange,
-      
-      acceptsDoorDeals: template.acceptsDoorDeals !== undefined ? template.acceptsDoorDeals : prev.acceptsDoorDeals,
-      merchandising: template.merchandising !== undefined ? template.merchandising : prev.merchandising,
-      
-      // Travel & logistics
-      travelMethod: template.travelMethod || prev.travelMethod,
-      lodging: template.lodging || prev.lodging,
-      
-      // Age restriction (if specified in template)
-      ageRestriction: template.ageRestriction || prev.ageRestriction
+      // Equipment from template
+      equipment: {
+        needsPA: template.equipment?.needsPA ?? prev.equipment.needsPA,
+        needsMics: template.equipment?.needsMics ?? prev.equipment.needsMics,
+        needsDrums: template.equipment?.needsDrums ?? prev.equipment.needsDrums,
+        needsAmps: template.equipment?.needsAmps ?? prev.equipment.needsAmps,
+        acoustic: template.equipment?.acoustic ?? prev.equipment.acoustic
+      },
+      // Business terms from template
+      guaranteeRange: {
+        min: template.guaranteeRange?.min ?? prev.guaranteeRange?.min ?? 0,
+        max: template.guaranteeRange?.max ?? prev.guaranteeRange?.max ?? 0
+      },
+      acceptsDoorDeals: template.acceptsDoorDeals ?? prev.acceptsDoorDeals,
+      merchandising: template.merchandising ?? prev.merchandising,
+      ageRestriction: template.ageRestriction ?? prev.ageRestriction,
+      // Travel & logistics from template
+      travelMethod: template.travelMethod ?? prev.travelMethod,
+      lodging: template.lodging ?? prev.lodging,
+      // Technical and hospitality requirements
+      technicalRequirements: template.technicalRequirements ?? prev.technicalRequirements,
+      hospitalityRequirements: template.hospitalityRequirements ?? prev.hospitalityRequirements,
+      // Priority and notes
+      priority: template.priority ?? prev.priority,
+      notes: template.notes ? `${prev.notes ? prev.notes + '\n\n' : ''}Template: ${template.name}\n${template.notes}` : prev.notes
     }));
+    
+    console.log('🎨 TabbedTourItinerary: Template applied successfully');
   };
 
   const handlePlaceBid = (tourRequest: TourRequest) => {
@@ -2578,20 +2577,19 @@ export default function TabbedTourItinerary({
                     />
                   </div>
 
-                  {/* Template Selector - Auto-fill the fields below */}
+                  {/* Template Selector - Enhanced prominence */}
                   {artistId && viewerType === 'artist' && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <TemplateSelector
                         artistId={artistId}
                         onTemplateApply={handleTemplateApply}
                         className="mb-0"
+                        autoFillDefault={true}
                       />
                     </div>
                   )}
 
-             
-
-                  {/* Business Terms */}
+                  {/* Business Terms - Simplified, template-driven */}
                   <div>
                     <h4 className="text-md font-semibold text-gray-900 mb-3">Business Terms</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2661,7 +2659,7 @@ export default function TabbedTourItinerary({
                     </div>
                   </div>
 
-                  {/* Travel & Logistics */}
+                  {/* Travel & Logistics - Simplified, template-driven */}
                   <div>
                     <h4 className="text-md font-semibold text-gray-900 mb-3">Travel & Logistics</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
