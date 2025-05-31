@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "DIY Shows - Book Your Own Shows",
-  description: "Skip the agents and middlemen. This platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized!",
+  description: "Skip the agents and middlemen. This platform enables venues to find artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests.",
   keywords: "DIY music, booking platform, venues, artists, tours, shows, independent music",
   authors: [{ name: "DIY Shows" }],
   creator: "DIY Shows",
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "DIY Shows - Book Your Own Shows",
-    description: "Skip the agents and middlemen. This platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized!",
+    description: "Skip the agents and middlemen. This platform enables venues to find artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests.",
     url: "https://diyshows.com",
     siteName: "DIY Shows",
     images: [
@@ -49,7 +49,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "DIY Shows - Book Your Own Shows",
-    description: "Skip the agents and middlemen. This platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized!",
+    description: "Skip the agents and middlemen. This platform enables venues to find artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests.",
     images: ['/og-image.png'],
     creator: "@diyshows",
   },

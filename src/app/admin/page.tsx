@@ -209,9 +209,30 @@ export default function AdminPage() {
         throw new Error('Failed to create backup');
       }
 
-      const backupData = await response.json();
-      setBackupMessage(backupData.message);
-      alert('Backup created successfully!');
+      // Check if this is a direct download response (production)
+      const contentType = response.headers.get('content-type');
+      const filename = response.headers.get('x-backup-filename');
+      
+      if (contentType?.includes('application/json') && filename) {
+        // Production: Direct download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        setBackupMessage(`✅ Backup downloaded successfully: ${filename}`);
+        alert('Backup created and downloaded successfully!');
+      } else {
+        // Local development: JSON response with file path
+        const backupData = await response.json();
+        setBackupMessage(backupData.message);
+        alert('Backup created successfully!');
+      }
       
       // Refresh backup list if it's currently shown
       if (showBackupsList) {
