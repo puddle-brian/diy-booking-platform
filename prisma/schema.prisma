@@ -34,7 +34,6 @@ model User {
   @@index([role])
   @@index([verified])
   @@index([createdAt])
-  @@map("users")
 }
 
 model Location {
@@ -65,6 +64,7 @@ model Venue {
   venueType      VenueType
   capacity       Int?
   ageRestriction AgeRestriction?
+  artistTypesWelcome String[]     // Artist types this venue welcomes (empty array means all types welcome)
   contactEmail   String?
   contactPhone   String?
   website        String?

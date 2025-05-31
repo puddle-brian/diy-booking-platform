@@ -320,7 +320,7 @@ export default function SubmitVenue() {
                 value={formData.location}
                 onChange={handleLocationChange}
                 placeholder="e.g., London, UK or Portland, OR"
-                required
+                    required
                 label="Location"
                 showLabel={true}
                 className=""
@@ -509,8 +509,8 @@ export default function SubmitVenue() {
                   <div className="border-t border-gray-200 pt-6">
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Specific Artist Types (check all that apply)
-                    </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {Object.entries(ARTIST_TYPE_LABELS).map(([value, label]) => (
                         <label key={value} className="flex items-center">
                           <input
@@ -630,19 +630,19 @@ export default function SubmitVenue() {
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                               {getGenresForArtistTypes(['comedian'] as ArtistType[]).map((genre) => (
                                 <label key={`comedy-${genre.value}`} className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    name="genres"
-                                    value={genre.value}
-                                    checked={formData.genres.includes(genre.value)}
-                                    onChange={(e) => handleCheckboxChange('genres', genre.value)}
+                      <input
+                        type="checkbox"
+                        name="genres"
+                        value={genre.value}
+                        checked={formData.genres.includes(genre.value)}
+                        onChange={(e) => handleCheckboxChange('genres', genre.value)}
                                     className="h-3 w-3 text-black focus:ring-black border-gray-300 rounded"
-                                  />
+                      />
                                   <span className="ml-2 text-xs text-gray-700">{genre.label}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
                         )}
 
                         {/* Spoken Word */}
@@ -661,7 +661,7 @@ export default function SubmitVenue() {
                                     className="h-3 w-3 text-black focus:ring-black border-gray-300 rounded"
                                   />
                                   <span className="ml-2 text-xs text-gray-700">{genre.label}</span>
-                                </label>
+                </label>
                               ))}
                             </div>
                           </div>
@@ -697,7 +697,7 @@ export default function SubmitVenue() {
                       </div>
                     )}
                   </div>
-                </div>
+              </div>
               )}
             </div>
           </section>

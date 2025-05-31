@@ -77,6 +77,7 @@ export async function GET(request: NextRequest) {
       neighborhood: venue.neighborhood,
       venueType: venue.venueType.toLowerCase().replace('_', '-'),
       genres: [], // Venues don't have genres in schema, but frontend expects this field
+      artistTypesWelcome: venue.artistTypesWelcome || [], // Artist types this venue welcomes
       capacity: venue.capacity,
       ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
       equipment: venue.equipment || {},
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
         venueType: venueData.venueType.toUpperCase().replace('-', '_'),
         capacity: venueData.capacity,
         ageRestriction: venueData.ageRestriction?.toUpperCase().replace('-', '_').replace('+', '_PLUS'),
+        artistTypesWelcome: venueData.artistTypesWelcome || [],
         contactEmail: venueData.contact?.email,
         contactPhone: venueData.contact?.phone,
         website: venueData.contact?.website,
@@ -178,6 +180,7 @@ export async function POST(request: NextRequest) {
       neighborhood: venue.neighborhood,
       venueType: venue.venueType.toLowerCase().replace('_', '-'),
       genres: [], // Venues don't have genres in schema, but frontend expects this field
+      artistTypesWelcome: venue.artistTypesWelcome || [], // Artist types this venue welcomes
       capacity: venue.capacity,
       ageRestriction: venue.ageRestriction?.toLowerCase().replace('_', '-').replace('-plus', '+'),
       equipment: venue.equipment || {},

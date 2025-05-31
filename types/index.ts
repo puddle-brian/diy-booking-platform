@@ -74,6 +74,7 @@ export interface Venue {
   neighborhood?: string;     // Neighborhood or district (e.g., "Eat Street", "Five Points")
   venueType: VenueType;
   genres: string[];
+  artistTypesWelcome: string[]; // Artist types this venue welcomes (empty array means all types welcome)
   capacity: number;
   ageRestriction: AgeRestriction;
   equipment: {

@@ -143,6 +143,7 @@ function HomeContent() {
   // Filter states
   const [selectedVenueTypes, setSelectedVenueTypes] = useState<string[]>([]);
   const [selectedArtistTypes, setSelectedArtistTypes] = useState<string[]>([]);
+  const [selectedArtistTypesWelcome, setSelectedArtistTypesWelcome] = useState<string[]>([]);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [selectedAgeRestrictions, setSelectedAgeRestrictions] = useState<string[]>([]);
   const [selectedCapacities, setSelectedCapacities] = useState<string[]>([]);
@@ -310,10 +311,21 @@ function HomeContent() {
         if (selectedVenueTypes.length > 0 && !selectedVenueTypes.includes(venue.venueType)) {
           return false;
         }
-        if (selectedGenres.length > 0 && !selectedGenres.some(genre => venue.genres && venue.genres.includes(genre))) {
-          return false;
+        if (selectedArtistTypesWelcome.length > 0) {
+          // Check if venue welcomes any of the selected artist types
+          // If venue has no specific artist types (welcomes all), it should match
+          if (venue.artistTypesWelcome && venue.artistTypesWelcome.length > 0) {
+            // Venue has specific artist types - check for overlap
+            if (!selectedArtistTypesWelcome.some(type => venue.artistTypesWelcome.includes(type))) {
+              return false;
+            }
+          }
+          // If venue.artistTypesWelcome is empty or undefined, it welcomes all types (matches)
         }
         if (selectedAgeRestrictions.length > 0 && !selectedAgeRestrictions.includes(venue.ageRestriction)) {
+          return false;
+        }
+        if (selectedGenres.length > 0 && !selectedGenres.some(genre => venue.genres && venue.genres.includes(genre))) {
           return false;
         }
         if (selectedCapacities.length > 0) {
@@ -335,8 +347,9 @@ function HomeContent() {
     venues, 
     debouncedVenueLocation, 
     selectedVenueTypes, 
-    selectedGenres, 
+    selectedArtistTypesWelcome, 
     selectedAgeRestrictions, 
+    selectedGenres, 
     selectedCapacities
   ]);
 
@@ -431,51 +444,40 @@ function HomeContent() {
     selectedTourStatus
   ]);
 
-  // Memoized active filters check using debounced values
+  // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
-    return selectedVenueTypes.length > 0 || selectedArtistTypes.length > 0 || 
-           selectedGenres.length > 0 || selectedAgeRestrictions.length > 0 ||
-           selectedCapacities.length > 0 || selectedDraws.length > 0 ||
-           selectedTourStatus.length > 0 ||
-           debouncedVenueLocation.trim() || debouncedArtistLocation.trim();
+    if (activeTab === 'venues') {
+      return selectedVenueTypes.length > 0 || 
+             selectedArtistTypesWelcome.length > 0 || 
+             selectedAgeRestrictions.length > 0 || 
+             selectedCapacities.length > 0 || 
+             debouncedVenueLocation.trim().length > 0;
+    } else {
+      return selectedArtistTypes.length > 0 || 
+             selectedGenres.length > 0 || 
+             selectedDraws.length > 0 || 
+             selectedTourStatus.length > 0 || 
+             debouncedArtistLocation.trim().length > 0;
+    }
   }, [
-    selectedVenueTypes, selectedArtistTypes, selectedGenres, selectedAgeRestrictions,
-    selectedCapacities, selectedDraws, selectedTourStatus,
-    debouncedVenueLocation, debouncedArtistLocation
+    activeTab,
+    selectedVenueTypes, selectedArtistTypesWelcome, selectedAgeRestrictions, selectedCapacities, debouncedVenueLocation,
+    selectedArtistTypes, selectedGenres, selectedDraws, selectedTourStatus, debouncedArtistLocation
   ]);
 
   // Optimized clear filters function
-  const clearAllFilters = useCallback(() => {
+  const clearAllFilters = () => {
     setSelectedVenueTypes([]);
     setSelectedArtistTypes([]);
+    setSelectedArtistTypesWelcome([]);
     setSelectedGenres([]);
     setSelectedAgeRestrictions([]);
     setSelectedCapacities([]);
     setSelectedDraws([]);
     setSelectedTourStatus([]);
-    // Clear search inputs
     setVenueSearchLocation('');
     setArtistSearchLocation('');
-    
-    // Clear URL parameters
-    const params = new URLSearchParams(searchParams?.toString() || '');
-    // Keep only the tab parameter
-    const tab = params.get('tab');
-    
-    // Manually delete all search/filter parameters
-    params.delete('venueLocation');
-    params.delete('artistLocation');
-    params.delete('venueTypes');
-    params.delete('artistTypes');
-    params.delete('genres');
-    params.delete('ageRestrictions');
-    params.delete('capacities');
-    params.delete('draws');
-    params.delete('tourStatus');
-    
-    if (tab) params.set('tab', tab);
-    router.push(`/?${params.toString()}`, { scroll: false });
-  }, [router, searchParams]);
+  };
 
   // Update URL when filters change (debounced to avoid too many history entries)
   useEffect(() => {
@@ -507,6 +509,12 @@ function HomeContent() {
       params.delete('artistTypes');
     }
 
+    if (selectedArtistTypesWelcome.length > 0) {
+      params.set('artistTypesWelcome', selectedArtistTypesWelcome.join(','));
+    } else {
+      params.delete('artistTypesWelcome');
+    }
+
     if (selectedGenres.length > 0) {
       params.set('genres', selectedGenres.join(','));
     } else {
@@ -520,7 +528,7 @@ function HomeContent() {
     }
   }, [
     debouncedVenueLocation, debouncedArtistLocation,
-    selectedVenueTypes, selectedArtistTypes, selectedGenres,
+    selectedVenueTypes, selectedArtistTypes, selectedArtistTypesWelcome, selectedGenres,
     router, searchParams
   ]);
 
@@ -530,12 +538,14 @@ function HomeContent() {
     const artistLocation = searchParams?.get('artistLocation');
     const venueTypes = searchParams?.get('venueTypes');
     const artistTypes = searchParams?.get('artistTypes');
+    const artistTypesWelcome = searchParams?.get('artistTypesWelcome');
     const genres = searchParams?.get('genres');
 
     if (venueLocation) setVenueSearchLocation(venueLocation);
     if (artistLocation) setArtistSearchLocation(artistLocation);
     if (venueTypes) setSelectedVenueTypes(venueTypes.split(','));
     if (artistTypes) setSelectedArtistTypes(artistTypes.split(','));
+    if (artistTypesWelcome) setSelectedArtistTypesWelcome(artistTypesWelcome.split(','));
     if (genres) setSelectedGenres(genres.split(','));
   }, []); // Only run once on mount
 
@@ -819,10 +829,10 @@ function HomeContent() {
                       {hasActiveFilters && (
                         <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
                           {[
-                            activeTab === 'venues' ? selectedVenueTypes.length : selectedArtistTypes.length,
-                            selectedGenres.length,
-                            activeTab === 'venues' ? selectedAgeRestrictions.length + selectedCapacities.length : selectedDraws.length + selectedTourStatus.length,
-                            (activeTab === 'venues' ? debouncedVenueLocation.trim() : debouncedArtistLocation.trim()) ? 1 : 0
+                            selectedVenueTypes.length,
+                            selectedArtistTypesWelcome.length,
+                            selectedAgeRestrictions.length + selectedCapacities.length,
+                            debouncedVenueLocation.trim() ? 1 : 0
                           ].reduce((a, b) => a + b, 0)}
                         </span>
                       )}
@@ -919,7 +929,7 @@ function HomeContent() {
                       <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
                         {[
                           selectedVenueTypes.length,
-                          selectedGenres.length,
+                          selectedArtistTypesWelcome.length,
                           selectedAgeRestrictions.length + selectedCapacities.length,
                           debouncedVenueLocation.trim() ? 1 : 0
                         ].reduce((a, b) => a + b, 0)}
@@ -956,24 +966,24 @@ function HomeContent() {
                 />
                 
                 <MultiSelectDropdown
-                  label="Genres"
-                  options={genreOptions}
-                  selectedValues={selectedGenres}
-                  onSelectionChange={setSelectedGenres}
-                />
-                
-                <MultiSelectDropdown
                   label="Ages"
                   options={ageRestrictionOptions}
                   selectedValues={selectedAgeRestrictions}
                   onSelectionChange={setSelectedAgeRestrictions}
                 />
-
+                
                 <MultiSelectDropdown
                   label="Capacity"
                   options={capacityOptions}
                   selectedValues={selectedCapacities}
                   onSelectionChange={setSelectedCapacities}
+                />
+                
+                <MultiSelectDropdown
+                  label="Artist Types Welcome"
+                  options={ARTIST_TYPE_LABELS}
+                  selectedValues={selectedArtistTypesWelcome}
+                  onSelectionChange={setSelectedArtistTypesWelcome}
                 />
               </div>
             </div>
@@ -992,9 +1002,9 @@ function HomeContent() {
                     • {selectedVenueTypes.length} space type{selectedVenueTypes.length !== 1 ? 's' : ''}
                   </span>
                 )}
-                {selectedGenres.length > 0 && (
+                {selectedArtistTypesWelcome.length > 0 && (
                   <span className="ml-2 text-blue-600">
-                    • {selectedGenres.length} genre{selectedGenres.length !== 1 ? 's' : ''}
+                    • {selectedArtistTypesWelcome.length} artist type{selectedArtistTypesWelcome.length !== 1 ? 's' : ''} welcome
                   </span>
                 )}
                 {selectedAgeRestrictions.length > 0 && (
