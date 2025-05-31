@@ -3,113 +3,134 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import MediaEmbedSection from '../../../../../components/MediaEmbedSection';
-import { Venue, VenueType, VENUE_TYPE_LABELS } from '../../../../../../types/index';
+import EntityForm from '../../../../../components/forms/EntityForm';
+import { VenueFormData, ArtistFormData, EntityFormContext, AdditionalDetailsModule, AdminOnlyModule } from '../../../../../components/forms/EntityFormModules';
+import LocationAutocomplete from '../../../../../components/LocationAutocomplete';
+import { 
+  Venue, 
+  VenueType, 
+  VENUE_TYPE_LABELS, 
+  CAPACITY_OPTIONS, 
+  getGenresForArtistTypes, 
+  ARTIST_TYPE_LABELS,
+  ArtistType
+} from '../../../../../../types/index';
 
 export default function EditVenue({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [venueId, setVenueId] = useState<string>('');
-  const [formData, setFormData] = useState({
+  const [venue, setVenue] = useState<Venue | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  // Form state using the new modular structure
+  const [formData, setFormData] = useState<VenueFormData>({
     name: '',
-    city: '',
-    state: '',
-    country: 'USA',
+    location: '',
+    contactEmail: '',
+    contactPhone: '',
+    website: '',
+    description: '',
+    images: [],
+    // Venue-specific basic fields
     streetAddress: '',
     addressLine2: '',
     postalCode: '',
     neighborhood: '',
+    country: 'USA',
     venueType: 'house-show' as VenueType,
-    genres: [] as string[],
-    capacity: 0,
-    ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+',
+    capacity: '50-100',
+    agePolicy: 'all-ages',
+    contactName: '',
+    contactWebsite: '',
+    preferredContact: 'email',
+    artistTypesWelcome: [],
+    allArtistTypesWelcome: false,
+    genres: [],
+    // Additional Details (modular)
     equipment: {
       pa: false,
       mics: false,
       drums: false,
       amps: false,
       piano: false,
+      monitors: false,
+      lighting: false,
+      projector: false,
     },
-    features: [] as string[],
+    features: [],
     pricing: {
       guarantee: 0,
       door: false,
-      merchandise: false,
+      merchandise: true,
     },
-    contact: {
-      email: '',
-      phone: '',
-      social: '',
-      website: '',
-    },
-    images: [] as string[],
-    description: '',
+    // Admin-only fields
     hasAccount: true,
-    unavailableDates: [] as string[],
+    adminNotes: '',
   });
-
-  const [imageUrl, setImageUrl] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState('');
-  const [uploadMessage, setUploadMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-
-  const genreOptions = ['punk', 'hardcore', 'folk', 'indie', 'metal', 'electronic', 'experimental', 'country', 'hip-hop', 'jazz'];
-  const featureOptions = ['basement', 'outdoor', 'stage', 'bar', 'kitchen', 'parking', 'accessible', 'professional', 'intimate'];
 
   useEffect(() => {
     const loadVenue = async () => {
       try {
         const resolvedParams = await params;
-        setVenueId(resolvedParams.id);
-        
         const response = await fetch(`/api/venues/${resolvedParams.id}`);
         if (!response.ok) {
           throw new Error('Venue not found');
         }
+        const venueData = await response.json();
+        setVenue(venueData);
         
-        const venue: Venue = await response.json();
-        
-        // Pre-populate form with existing data
+        // Transform venue data to match modular form structure
+        const location = [venueData.city, venueData.state, venueData.country]
+          .filter(Boolean)
+          .join(', ');
+
         setFormData({
-          name: venue.name || '',
-          city: venue.city || '',
-          state: venue.state || '',
-          country: venue.country || 'USA',
-          streetAddress: venue.streetAddress || '',
-          addressLine2: venue.addressLine2 || '',
-          postalCode: venue.postalCode || '',
-          neighborhood: venue.neighborhood || '',
-          venueType: venue.venueType,
-          genres: venue.genres || [],
-          capacity: venue.capacity || 0,
-          ageRestriction: venue.ageRestriction,
-          equipment: venue.equipment || {
-            pa: false,
-            mics: false,
-            drums: false,
-            amps: false,
-            piano: false,
+          name: venueData.name || '',
+          location: location,
+          contactEmail: venueData.contact?.email || '',
+          contactPhone: venueData.contact?.phone || '',
+          website: venueData.contact?.website || '',
+          description: venueData.description || '',
+          images: venueData.images || [],
+          // Venue-specific basic fields
+          streetAddress: venueData.streetAddress || '',
+          addressLine2: venueData.addressLine2 || '',
+          postalCode: venueData.postalCode || '',
+          neighborhood: venueData.neighborhood || '',
+          country: venueData.country || 'USA',
+          venueType: venueData.venueType || 'house-show',
+          capacity: venueData.capacity?.toString() || '50-100',
+          agePolicy: venueData.ageRestriction || 'all-ages',
+          contactName: venueData.contactName || '',
+          contactWebsite: venueData.contact?.website || '',
+          preferredContact: venueData.preferredContact || 'email',
+          artistTypesWelcome: venueData.artistTypesWelcome || [],
+          allArtistTypesWelcome: venueData.allArtistTypesWelcome || false,
+          genres: venueData.genres || [],
+          // Additional Details (modular)
+          equipment: {
+            pa: venueData.equipment?.pa || false,
+            mics: venueData.equipment?.mics || false,
+            drums: venueData.equipment?.drums || false,
+            amps: venueData.equipment?.amps || false,
+            piano: venueData.equipment?.piano || false,
+            monitors: venueData.equipment?.monitors || false,
+            lighting: venueData.equipment?.lighting || false,
+            projector: venueData.equipment?.projector || false,
           },
-          features: venue.features || [],
-          pricing: venue.pricing || {
-            guarantee: 0,
-            door: false,
-            merchandise: false,
+          features: venueData.features || [],
+          pricing: {
+            guarantee: venueData.pricing?.guarantee || 0,
+            door: venueData.pricing?.door || false,
+            merchandise: venueData.pricing?.merchandise !== false,
           },
-          contact: {
-            email: venue.contact?.email || '',
-            phone: venue.contact?.phone || '',
-            social: venue.contact?.social || '',
-            website: venue.contact?.website || '',
-          },
-          images: venue.images || [],
-          description: venue.description || '',
-          hasAccount: venue.hasAccount !== undefined ? venue.hasAccount : true,
-          unavailableDates: venue.unavailableDates || [],
+          // Admin-only fields
+          hasAccount: venueData.hasAccount !== undefined ? venueData.hasAccount : true,
+          adminNotes: venueData.adminNotes || '',
         });
       } catch (error) {
-        setSubmitMessage(`Error loading venue: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        console.error('Failed to load venue:', error);
+        setError('Failed to load venue');
       } finally {
         setLoading(false);
       }
@@ -118,137 +139,153 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
     loadVenue();
   }, [params]);
 
-  const handleGenreChange = (genre: string) => {
+  // Handler for Additional Details Module
+  const handleAdditionalDetailsChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      genres: prev.genres.includes(genre)
-        ? prev.genres.filter(g => g !== genre)
-        : [...prev.genres, genre]
+      [field]: value
     }));
   };
 
-  const handleFeatureChange = (feature: string) => {
+  // Handler for Admin Module
+  const handleAdminChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
-      features: prev.features.includes(feature)
-        ? prev.features.filter(f => f !== feature)
-        : [...prev.features, feature]
+      [field]: value
     }));
   };
 
-  const handleFileUpload = async (file: File) => {
-    setIsUploading(true);
-    setUploadMessage('');
+  // Submit handler - integrates with modular system
+  const handleSubmit = async (completeData: VenueFormData | ArtistFormData) => {
+    // Type guard to ensure we're working with venue data
+    if ('artistType' in completeData) {
+      throw new Error('Invalid data type for venue form');
+    }
+    
+    const venueData = completeData as VenueFormData;
+    
+    // Parse location back to city/state/country (same logic as regular edit form)
+    const locationParts = venueData.location.split(',').map(part => part.trim());
+    let city = '';
+    let state = '';
+    let country = 'USA';
 
-    try {
-      const formDataObj = new FormData();
-      formDataObj.append('file', file);
-      formDataObj.append('type', 'venue');
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formDataObj,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 500 && result.error?.includes('Cloud storage not configured')) {
-          // Cloudinary not configured
-          throw new Error(`${result.error}\n\nPlease follow the setup guide in CLOUDINARY_SETUP.md to configure your free Cloudinary account.`);
+    if (locationParts.length >= 2) {
+      city = locationParts[0];
+      if (locationParts.length === 2) {
+        const secondPart = locationParts[1];
+        if (secondPart.length > 2 && !['USA', 'US'].includes(secondPart.toUpperCase())) {
+          country = secondPart;
+          state = '';
+        } else {
+          state = secondPart;
+          country = 'USA';
         }
-        throw new Error(result.error || 'Upload failed');
+      } else if (locationParts.length >= 3) {
+        state = locationParts[1];
+        country = locationParts[2];
       }
-
-      // Add the uploaded image URL to the images array
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, result.imageUrl]
-      }));
-
-      setUploadMessage('Image uploaded successfully!');
-    } catch (error) {
-      setUploadMessage(`Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setIsUploading(false);
+    } else if (locationParts.length === 1) {
+      city = locationParts[0];
     }
-  };
 
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    const imageFile = files.find(file => file.type.startsWith('image/'));
-    
-    if (imageFile) {
-      handleFileUpload(imageFile);
-    } else {
-      setUploadMessage('Please drop an image file (JPG, PNG, or WebP)');
+    // Transform form data to match API expectations (same as original)
+    const finalData = {
+      name: venueData.name,
+      city: city,
+      state: state,
+      country: country,
+      streetAddress: venueData.streetAddress,
+      addressLine2: venueData.addressLine2,
+      postalCode: venueData.postalCode,
+      neighborhood: venueData.neighborhood,
+      venueType: venueData.venueType,
+      capacity: parseInt(venueData.capacity) || 0,
+      ageRestriction: venueData.agePolicy,
+      artistTypesWelcome: venueData.artistTypesWelcome,
+      allArtistTypesWelcome: venueData.allArtistTypesWelcome,
+      genres: venueData.genres,
+      equipment: venueData.equipment,
+      features: venueData.features,
+      pricing: {
+        guarantee: venueData.pricing.guarantee || 0,
+        door: venueData.pricing.door || false,
+        merchandise: venueData.pricing.merchandise,
+      },
+      contact: {
+        email: venueData.contactEmail,
+        phone: venueData.contactPhone || undefined,
+        social: venueData.contactName || undefined, // Map contactName to social for now
+        website: venueData.website || undefined,
+      },
+      description: venueData.description,
+      images: venueData.images,
+      // Admin-only fields
+      hasAccount: venueData.hasAccount,
+      adminNotes: venueData.adminNotes,
+    };
+
+    const resolvedParams = await params;
+    const response = await fetch(`/api/venues/${resolvedParams.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(finalData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update venue');
     }
+
+    // Redirect back to admin dashboard
+    router.push('/admin');
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const handleCancel = () => {
+    router.push('/admin');
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      handleFileUpload(file);
-    }
+  // Form handlers for basic sections
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const addImage = () => {
-    if (imageUrl.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        images: [...prev.images, imageUrl.trim()]
-      }));
-      setImageUrl('');
-    }
+  const handleLocationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, location: value }));
   };
 
-  const removeImage = (index: number) => {
+  const handleCheckboxChange = (name: string, value: string) => {
+    setFormData(prev => {
+      if (name === 'artistTypesWelcome') {
+        const currentTypes = prev.artistTypesWelcome;
+        return {
+          ...prev,
+          artistTypesWelcome: currentTypes.includes(value)
+            ? currentTypes.filter(item => item !== value)
+            : [...currentTypes, value]
+        };
+      } else if (name === 'genres') {
+        const currentGenres = prev.genres;
+        return {
+          ...prev,
+          genres: currentGenres.includes(value)
+            ? currentGenres.filter(item => item !== value)
+            : [...currentGenres, value]
+        };
+      }
+      return prev;
+    });
+  };
+
+  const handleAllArtistTypesChange = (checked: boolean) => {
     setFormData(prev => ({
       ...prev,
-      images: prev.images.filter((_, i) => i !== index)
+      allArtistTypesWelcome: checked,
+      artistTypesWelcome: checked ? [] : prev.artistTypesWelcome
     }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (formData.images.length === 0) {
-      setSubmitMessage('Error: At least one image is required');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/venues/${venueId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update venue');
-      }
-
-      setSubmitMessage('Venue updated successfully!');
-      
-      // Redirect to admin dashboard after 2 seconds
-      setTimeout(() => {
-        router.push('/admin');
-      }, 2000);
-      
-    } catch (error) {
-      setSubmitMessage(`Error: ${error instanceof Error ? error.message : 'Failed to update venue'}`);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   if (loading) {
@@ -256,239 +293,177 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading venue...</p>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-start mb-4">
-            <Link 
-              href="/admin"
-              className="inline-flex items-center text-gray-600 hover:text-black"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to Admin Dashboard
-            </Link>
-            
-            <Link 
-              href="/"
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Main Site
-            </Link>
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Venue</h1>
-          <p className="text-gray-600 mt-1">Update venue information and settings</p>
+  if (!venue) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">❌</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Venue Not Found</h1>
+          <p className="text-gray-600 mb-6">
+            The venue you're looking for doesn't exist or has been removed.
+          </p>
+          <Link 
+            href="/admin"
+            className="bg-black text-white px-6 py-3 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Back to Admin
+          </Link>
         </div>
+      </div>
+    );
+  }
 
-        <div className="bg-white rounded-lg shadow p-8">
-          {submitMessage && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              submitMessage.startsWith('Error') 
-                ? 'bg-red-100 text-red-700' 
-                : 'bg-green-100 text-green-700'
-            }`}>
-              {submitMessage}
+  // Context for the modular system (admin mode)
+  const context: EntityFormContext = {
+    mode: 'admin',
+    entityType: 'venue',
+    userRole: 'admin'
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Admin Header */}
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 py-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Edit Venue (Admin)</h1>
+              <p className="text-gray-600 mt-1">Update {venue.name}'s profile</p>
             </div>
-          )}
+            <div className="flex space-x-4">
+              <Link 
+                href="/"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Main Site
+              </Link>
+              <Link 
+                href="/admin"
+                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Back to Admin
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Info */}
-            <div className="grid md:grid-cols-2 gap-4">
+      {/* Main Content */}
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+
+        <EntityForm
+          entityType="venue"
+          context={context}
+          initialData={formData}
+          onSubmit={handleSubmit}
+          onCancel={handleCancel}
+          title={`Edit ${venue.name} (Admin)`}
+          subtitle="Administrative venue profile management"
+          submitText="Save Changes"
+          disableAutoDetailedInfo={true}
+          disableAutoAdminSection={true}
+        >
+          {/* Basic Information */}
+          <section className="bg-gray-50 rounded-xl p-6">
+            <h3 className="text-xl font-semibold mb-6">Basic Information</h3>
+                
+            <div className="space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Venue Name *</label>
+                <label htmlFor="venue-name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Venue Name *
+                </label>
                 <input
+                  id="venue-name"
+                  name="name"
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  placeholder="Your venue name"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.contact.email}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    contact: { ...prev.contact, email: e.target.value }
-                  }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                />
-              </div>
-            </div>
 
-            {/* Location */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.city}
-                  onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.state}
-                  onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                <input
-                  type="text"
-                  value={formData.country}
-                  onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                />
-              </div>
-            </div>
+              {/* Location Autocomplete */}
+              <LocationAutocomplete
+                value={formData.location}
+                onChange={handleLocationChange}
+                placeholder="e.g., Portland, OR or London, UK"
+                required
+                label="Location"
+                showLabel={true}
+                className=""
+              />
 
-            {/* Address Details */}
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Street Address</label>
-                <input
-                  type="text"
-                  value={formData.streetAddress}
-                  onChange={(e) => setFormData(prev => ({ ...prev, streetAddress: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="123 Main Street (optional but helpful for touring bands)"
-                />
-              </div>
-              
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Apt/Suite/Unit</label>
-                  <input
-                    type="text"
-                    value={formData.addressLine2}
-                    onChange={(e) => setFormData(prev => ({ ...prev, addressLine2: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    placeholder="Apt 2B, Suite 100, etc."
-                  />
+                  <label htmlFor="venue-type" className="block text-sm font-medium text-gray-700 mb-2">
+                    Venue Type *
+                  </label>
+                  <select
+                    id="venue-type"
+                    name="venueType"
+                    required
+                    value={formData.venueType}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  >
+                    <option value="">Select venue type...</option>
+                    {Object.entries(VENUE_TYPE_LABELS).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">ZIP/Postal Code</label>
-                  <input
-                    type="text"
-                    value={formData.postalCode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    placeholder="12345"
-                  />
+                  <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-2">
+                    Capacity *
+                  </label>
+                  <select
+                    id="capacity"
+                    name="capacity"
+                    required
+                    value={formData.capacity}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  >
+                    <option value="">Select capacity...</option>
+                    {CAPACITY_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Neighborhood/District</label>
-                <input
-                  type="text"
-                  value={formData.neighborhood}
-                  onChange={(e) => setFormData(prev => ({ ...prev, neighborhood: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="e.g., East Village, Five Points, Williamsburg"
-                />
-              </div>
-            </div>
 
-            {/* Contact Information */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Contact Information</h3>
-              
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    value={formData.contact.phone}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      contact: { ...prev.contact, phone: e.target.value }
-                    }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    placeholder="Phone number (optional)"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>
-                  <input
-                    type="text"
-                    value={formData.contact.website}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      contact: { ...prev.contact, website: e.target.value }
-                    }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    placeholder="lostbag.com or https://lostbag.com (optional)"
-                  />
-                </div>
-              </div>
-              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Social Media</label>
-                <input
-                  type="text"
-                  value={formData.contact.social}
-                  onChange={(e) => setFormData(prev => ({ 
-                    ...prev, 
-                    contact: { ...prev.contact, social: e.target.value }
-                  }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="Instagram, Facebook, etc. (optional)"
-                />
-              </div>
-            </div>
-
-            {/* Venue Details */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Venue Type</label>
+                <label htmlFor="age-policy" className="block text-sm font-medium text-gray-700 mb-2">
+                  Age Policy *
+                </label>
                 <select
-                  value={formData.venueType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, venueType: e.target.value as VenueType }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                >
-                  {(Object.entries(VENUE_TYPE_LABELS) as [VenueType, string][]).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Capacity</label>
-                <input
-                  type="number"
-                  value={formData.capacity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, capacity: parseInt(e.target.value) || 0 }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Age Restriction</label>
-                <select
-                  value={formData.ageRestriction}
-                  onChange={(e) => setFormData(prev => ({ ...prev, ageRestriction: e.target.value as any }))}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                  id="age-policy"
+                  name="agePolicy"
+                  required
+                  value={formData.agePolicy}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   <option value="all-ages">All Ages</option>
                   <option value="18+">18+</option>
@@ -496,313 +471,172 @@ export default function EditVenue({ params }: { params: Promise<{ id: string }> 
                 </select>
               </div>
             </div>
+          </section>
 
-            {/* Genres */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Genres</label>
-              <div className="flex flex-wrap gap-2">
-                {genreOptions.map(genre => (
-                  <label key={genre} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.genres.includes(genre)}
-                      onChange={() => handleGenreChange(genre)}
-                      className="mr-2"
-                    />
-                    <span className="text-sm">{genre}</span>
+          {/* Contact & Booking */}
+          <section className="bg-gray-50 rounded-xl p-6">
+            <h3 className="text-xl font-semibold mb-6">Contact & Booking</h3>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-2">
+                    Email *
                   </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Images */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Images * (At least one required)</label>
-              
-              {/* Upload Area */}
-              <div 
-                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors mb-4 ${
-                  isUploading ? 'border-blue-400 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
-                }`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-              >
-                {isUploading ? (
-                  <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-3"></div>
-                    <p className="text-blue-600 font-medium">Uploading...</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center">
-                    <svg className="w-12 h-12 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                    </svg>
-                    <p className="text-gray-600 mb-2">
-                      <strong>Drag and drop</strong> your venue photos here, or{' '}
-                      <label className="text-blue-600 hover:text-blue-700 cursor-pointer underline">
-                        browse files
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                        />
-                      </label>
-                    </p>
-                    <p className="text-sm text-gray-500">JPG, PNG, WebP up to 5MB</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Upload Message */}
-              {uploadMessage && (
-                <div className={`mb-4 p-3 rounded-lg text-sm ${
-                  uploadMessage.includes('error') || uploadMessage.includes('Please drop') 
-                    ? 'bg-red-100 text-red-700' 
-                    : 'bg-green-100 text-green-700'
-                }`}>
-                  {uploadMessage}
-                </div>
-              )}
-
-              {/* Alternative URL Input */}
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-sm text-gray-600 mb-3">Or add image by URL:</p>
-                <div className="flex gap-2">
                   <input
-                    type="url"
-                    placeholder="https://example.com/venue-photo.jpg"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    id="contact-email"
+                    name="contactEmail"
+                    type="email"
+                    required
+                    value={formData.contactEmail}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="booking@yourvenue.com"
                   />
-                  <button
-                    type="button"
-                    onClick={addImage}
-                    className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                  >
-                    Add URL
-                  </button>
+                </div>
+                <div>
+                  <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone (optional)
+                  </label>
+                  <input
+                    id="contact-phone"
+                    name="contactPhone"
+                    type="tel"
+                    value={formData.contactPhone}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="Phone number"
+                  />
                 </div>
               </div>
 
-              {/* Image Preview List */}
-              {formData.images.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <p className="text-sm font-medium text-gray-700">Current Images:</p>
-                  {formData.images.map((img, index) => (
-                    <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border">
-                      <img 
-                        src={img} 
-                        alt="Preview" 
-                        className="w-16 h-16 object-cover rounded border"
-                        onError={(e) => {
-                          e.currentTarget.src = '/api/placeholder/other';
-                        }}
-                      />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
-                          {img.startsWith('/uploads/') ? 'Uploaded file' : 'External URL'}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">{img}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Equipment */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Available Equipment</label>
-              <div className="flex flex-wrap gap-4">
-                {Object.entries(formData.equipment).map(([key, value]) => (
-                  <label key={key} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={value}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        equipment: { ...prev.equipment, [key]: e.target.checked }
-                      }))}
-                      className="mr-2"
-                    />
-                    <span className="text-sm capitalize">{key === 'pa' ? 'PA System' : key}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Features */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Features</label>
-              <div className="flex flex-wrap gap-2">
-                {featureOptions.map(feature => (
-                  <label key={feature} className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={formData.features.includes(feature)}
-                      onChange={() => handleFeatureChange(feature)}
-                      className="mr-2"
-                    />
-                    <span className="text-sm capitalize">{feature}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Pricing */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Typical Guarantee ($)</label>
-              <input
-                type="number"
-                value={formData.pricing.guarantee}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  pricing: { ...prev.pricing, guarantee: parseInt(e.target.value) || 0 }
-                }))}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <textarea
-                rows={4}
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                placeholder="Describe the venue, atmosphere, what makes it special..."
-              />
-            </div>
-
-            {/* Platform Management */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Platform Management</label>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="hasAccount"
-                  checked={formData.hasAccount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hasAccount: e.target.checked }))}
-                  className="mr-3"
-                />
-                <label htmlFor="hasAccount" className="text-sm text-gray-700">
-                  Venue actively manages bookings through this platform
+              <div>
+                <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
+                  Website (optional)
                 </label>
+                <input
+                  id="website"
+                  name="website"
+                  type="url"
+                  value={formData.website}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                  placeholder="https://yourvenue.com"
+                />
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                If unchecked, artists will be directed to contact the venue directly
-              </p>
             </div>
+          </section>
 
-            {/* Unavailable Dates */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Unavailable Dates</label>
-              <div className="space-y-2">
-                <div className="flex gap-2">
+          {/* Artist Types Welcome */}
+          <section className="bg-gray-50 rounded-xl p-6">
+            <h3 className="text-xl font-semibold mb-6">Artist Types Welcome</h3>
+            
+            <div className="space-y-6">
+              <div>
+                <label className="flex items-center">
                   <input
-                    type="date"
-                    id="newUnavailableDate"
-                    className="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    min={new Date().toISOString().split('T')[0]}
+                    type="checkbox"
+                    checked={formData.allArtistTypesWelcome}
+                    onChange={(e) => handleAllArtistTypesChange(e.target.checked)}
+                    className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
                   />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const dateInput = document.getElementById('newUnavailableDate') as HTMLInputElement;
-                      if (dateInput.value && !formData.unavailableDates.includes(dateInput.value)) {
-                        setFormData(prev => ({
-                          ...prev,
-                          unavailableDates: [...prev.unavailableDates, dateInput.value].sort()
-                        }));
-                        dateInput.value = '';
-                      }
-                    }}
-                    className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                  >
-                    Add
-                  </button>
-                </div>
-                
-                {formData.unavailableDates && formData.unavailableDates.length > 0 && (
-                  <div className="mt-3">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Booked Dates:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.unavailableDates.map((date, index) => (
-                        <div key={index} className="flex items-center gap-2 bg-red-50 border border-red-200 rounded px-3 py-1">
-                          <span className="text-sm text-red-700">{date}</span>
-                          <button
-                            type="button"
-                            onClick={() => setFormData(prev => ({
-                              ...prev,
-                              unavailableDates: prev.unavailableDates.filter((_, i) => i !== index)
-                            }))}
-                            className="text-red-600 hover:text-red-800"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                <p className="text-xs text-gray-500">
-                  Add dates that are already booked to prevent double-booking requests
+                  <span className="ml-2 text-sm font-medium text-gray-700">
+                    Welcome all artist types
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500 mt-1 ml-6">
+                  Check this if you're open to any type of performance
                 </p>
               </div>
-            </div>
 
-            {/* Media Embeds */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Media Content</h3>
-                  <p className="text-sm text-gray-600">Add videos and music to showcase your venue</p>
+              {!formData.allArtistTypesWelcome && (
+                <div className="transition-all duration-300 ease-in-out">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Select specific artist types you welcome:
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {Object.entries(ARTIST_TYPE_LABELS).map(([value, label]) => (
+                      <label key={value} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          name="artistTypesWelcome"
+                          value={value}
+                          checked={formData.artistTypesWelcome.includes(value)}
+                          onChange={(e) => handleCheckboxChange('artistTypesWelcome', value)}
+                          className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Artists will see if your venue welcomes their type of performance
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Genres (only show if specific artist types are selected) */}
+          {!formData.allArtistTypesWelcome && formData.artistTypesWelcome.length > 0 && (
+            <section className="bg-gray-50 rounded-xl p-6">
+              <h3 className="text-xl font-semibold mb-6">Genres</h3>
+              
+              <div className="space-y-6">
+                <div className="transition-all duration-300 ease-in-out">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Genres you typically book (optional):
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {getGenresForArtistTypes(formData.artistTypesWelcome as ArtistType[]).map((genre) => (
+                      <label key={genre.value} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          name="genres"
+                          value={genre.value}
+                          checked={formData.genres.includes(genre.value)}
+                          onChange={(e) => handleCheckboxChange('genres', genre.value)}
+                          className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{genre.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    This helps artists find venues that match their style
+                  </p>
                 </div>
               </div>
-              
-              <div className="bg-gray-50 rounded-lg p-6">
-                <MediaEmbedSection
-                  entityId={venueId || ''}
-                  entityType="venue"
-                  canEdit={true}
-                  maxEmbeds={5}
-                />
-              </div>
-            </div>
+            </section>
+          )}
 
-            {/* Action Buttons */}
-            <div className="flex gap-4 pt-6">
-              <button
-                type="submit"
-                disabled={isSubmitting || formData.images.length === 0}
-                className="flex-1 bg-black text-white py-3 px-6 rounded-lg hover:bg-gray-800 disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Updating Venue...' : 'Update Venue'}
-              </button>
-              <Link
-                href="/admin"
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-center"
-              >
-                Cancel
-              </Link>
-            </div>
-          </form>
-        </div>
-      </div>
+          {/* UNIFIED VENUE ADDITIONAL DETAILS MODULE */}
+          <AdditionalDetailsModule
+            data={{
+              description: formData.description,
+              equipment: formData.equipment,
+              features: formData.features,
+              pricing: formData.pricing,
+              images: formData.images,
+              website: formData.website,
+            }}
+            onChange={handleAdditionalDetailsChange}
+            context={context}
+            entityId={venue.id}
+          />
+
+          {/* ADMIN-ONLY MODULE */}
+          <AdminOnlyModule
+            data={{
+              hasAccount: formData.hasAccount,
+              adminNotes: formData.adminNotes,
+            }}
+            onChange={handleAdminChange}
+            entityType="venue"
+            entityId={venue.id}
+          />
+        </EntityForm>
+      </main>
     </div>
   );
 } 

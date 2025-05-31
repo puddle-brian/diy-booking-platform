@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS, CAPACITY_OPTIONS, getGenresForArtistTypes } from '../../types/index';
+import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS, CAPACITY_OPTIONS, ARTIST_STATUS_OPTIONS, getGenresForArtistTypes, type ArtistStatus } from '../../types/index';
 import LocationSorting from '../components/LocationSorting';
 import CommunitySection from '../components/CommunitySection';
 import UserStatus from '../components/UserStatus';
@@ -148,7 +148,7 @@ function HomeContent() {
   const [selectedAgeRestrictions, setSelectedAgeRestrictions] = useState<string[]>([]);
   const [selectedCapacities, setSelectedCapacities] = useState<string[]>([]);
   const [selectedDraws, setSelectedDraws] = useState<string[]>([]);
-  const [selectedTourStatus, setSelectedTourStatus] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   
   // Mobile filters state
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -207,13 +207,9 @@ function HomeContent() {
   };
 
   // Tour status options for artists
-  const tourStatusOptions = {
-    'seeking-shows': '🗺️ Looking for shows',
-    'active': 'Actively touring',
-    'selective': 'Selective booking',
-    'local-only': 'Local shows only',
-    'on-hiatus': 'On hiatus'
-  };
+  const tourStatusOptions = Object.fromEntries(
+    ARTIST_STATUS_OPTIONS.map(option => [option.value, option.label])
+  );
 
   const loadData = async () => {
     try {
@@ -413,27 +409,18 @@ function HomeContent() {
           });
           if (!matchesDraw) return false;
         }
-        if (selectedTourStatus.length > 0) {
-          const matchesTourStatus = selectedTourStatus.some(status => {
+        if (selectedStatus.length > 0) {
+          const matchesStatus = selectedStatus.some(status => {
             switch (status) {
               case 'seeking-shows':
-                // For now, simulate active tour requests - in real implementation we'd check tour requests
-                // Artists with certain keywords in description or who are actively touring
-                const description = (artist.description || '').toLowerCase();
-                const tourStatus = (artist.tourStatus || '').toLowerCase();
-                return description.includes('tour') || description.includes('dates') || 
-                       description.includes('booking') || tourStatus.includes('active') ||
-                       description.includes('shows') || description.includes('looking');
-              case 'active':
-                return artist.tourStatus === 'active';
-              case 'local-only':
-                return artist.tourStatus === 'local-only';
-              case 'on-hiatus':
-                return artist.tourStatus === 'hiatus';
-              default: return false;
+                return artist.status === 'seeking-shows';
+              case 'not-seeking':
+                return artist.status === 'not-seeking';
+              default:
+                return false;
             }
           });
-          if (!matchesTourStatus) return false;
+          if (!matchesStatus) return false;
         }
         return true;
       } catch (error) {
@@ -448,7 +435,7 @@ function HomeContent() {
     selectedArtistTypes, 
     selectedGenres, 
     selectedDraws, 
-    selectedTourStatus
+    selectedStatus
   ]);
 
   // Check if any filters are active
@@ -463,13 +450,13 @@ function HomeContent() {
       return selectedArtistTypes.length > 0 || 
              selectedGenres.length > 0 || 
              selectedDraws.length > 0 || 
-             selectedTourStatus.length > 0 || 
+             selectedStatus.length > 0 || 
              debouncedArtistLocation.trim().length > 0;
     }
   }, [
     activeTab,
     selectedVenueTypes, selectedArtistTypesWelcome, selectedAgeRestrictions, selectedCapacities, debouncedVenueLocation,
-    selectedArtistTypes, selectedGenres, selectedDraws, selectedTourStatus, debouncedArtistLocation
+    selectedArtistTypes, selectedGenres, selectedDraws, selectedStatus, debouncedArtistLocation
   ]);
 
   // Optimized clear filters function
@@ -481,7 +468,7 @@ function HomeContent() {
     setSelectedAgeRestrictions([]);
     setSelectedCapacities([]);
     setSelectedDraws([]);
-    setSelectedTourStatus([]);
+    setSelectedStatus([]);
     setVenueSearchLocation('');
     setArtistSearchLocation('');
   };
@@ -624,7 +611,7 @@ function HomeContent() {
       }
 
       // If no tour dates defined, assume available if active/local
-      return artist.tourStatus === 'active' || artist.tourStatus === 'local-only';
+      return artist.status === 'seeking-shows';
     } catch (error) {
       console.warn('Error checking artist availability:', error);
       return true; // Default to available if there's an error
@@ -1169,7 +1156,7 @@ function HomeContent() {
                         {[
                           selectedArtistTypes.length,
                           selectedGenres.length,
-                          selectedDraws.length + selectedTourStatus.length,
+                          selectedDraws.length + selectedStatus.length,
                           debouncedArtistLocation.trim() ? 1 : 0
                         ].reduce((a, b) => a + b, 0)}
                       </span>
@@ -1221,8 +1208,8 @@ function HomeContent() {
                 <MultiSelectDropdown
                   label="Tour Status"
                   options={tourStatusOptions}
-                  selectedValues={selectedTourStatus}
-                  onSelectionChange={setSelectedTourStatus}
+                  selectedValues={selectedStatus}
+                  onSelectionChange={setSelectedStatus}
                 />
               </div>
             </div>
@@ -1251,9 +1238,9 @@ function HomeContent() {
                     • {selectedDraws.length} draw range{selectedDraws.length !== 1 ? 's' : ''}
                   </span>
                 )}
-                {selectedTourStatus.length > 0 && (
+                {selectedStatus.length > 0 && (
                   <span className="ml-2 text-blue-600">
-                    • {selectedTourStatus.length} tour status{selectedTourStatus.length !== 1 ? 'es' : ''}
+                    • {selectedStatus.length} tour status{selectedStatus.length !== 1 ? 'es' : ''}
                   </span>
                 )}
               </div>
@@ -1410,12 +1397,12 @@ function HomeContent() {
                         {/* Tour Status Badge */}
                         {(() => {
                           const description = (artist.description || '').toLowerCase();
-                          const tourStatus = (artist.tourStatus || '').toLowerCase();
+                          const status = (artist.status || '').toLowerCase();
                           const isSeekingShows = description.includes('tour') || description.includes('dates') || 
-                                               description.includes('booking') || tourStatus.includes('active') ||
+                                               description.includes('booking') || status.includes('seeking') ||
                                                description.includes('shows') || description.includes('looking');
                           
-                          if (isSeekingShows || artist.tourStatus === 'active') {
+                          if (isSeekingShows || artist.status === 'seeking-shows') {
                             return (
                               <div className="absolute top-3 left-3 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
                                 Seeking shows

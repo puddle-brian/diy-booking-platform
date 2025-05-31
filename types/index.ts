@@ -43,8 +43,6 @@ export type ArtistType =
 
 // Common Types
 export type AgeRestriction = 'all-ages' | '18+' | '21+';
-export type TourStatus = 'active' | 'hiatus' | 'selective' | 'local-only';
-export type TourRadius = 'local' | 'regional' | 'national' | 'international';
 
 // Availability Types
 export interface AvailabilityWindow {
@@ -123,9 +121,9 @@ export interface Artist {
   country: string;
   artistType: ArtistType;
   genres: string[];
-  members: number;
-  yearFormed: number;
-  tourStatus: TourStatus;
+  members?: number;
+  yearFormed?: number;
+  status: ArtistStatus;
   equipment: {
     needsPA: boolean;
     needsMics: boolean;
@@ -596,7 +594,7 @@ export const ARTIST_TYPE_GENRES: Record<ArtistType, keyof typeof GENRE_CATEGORIE
 };
 
 // Helper function to get genres for a specific artist type
-export function getGenresForArtistType(artistType: ArtistType): Array<{value: string, label: string}> {
+export function getGenresForArtistType(artistType: ArtistType): readonly { value: string; label: string; }[] {
   const genreCategory = ARTIST_TYPE_GENRES[artistType];
   if (!genreCategory) return [];
   return GENRE_CATEGORIES[genreCategory] || [];
@@ -622,4 +620,41 @@ export function getGenresForArtistTypes(artistTypes: ArtistType[]): Array<{value
 // Helper function to check if an artist type has genres
 export function artistTypeHasGenres(artistType: ArtistType): boolean {
   return ARTIST_TYPE_GENRES[artistType] !== null;
-} 
+}
+
+// Tour Status - Two-dimensional approach for clearer categorization
+export const BOOKING_STATUS_OPTIONS = [
+  { value: 'seeking-shows', label: 'Seeking shows' },
+  { value: 'selective', label: 'Selective booking' },
+  { value: 'hiatus', label: 'On hiatus' }
+] as const;
+
+export const TRAVEL_SCOPE_OPTIONS = [
+  { value: 'local-only', label: 'Local shows only' },
+  { value: 'regional', label: 'Regional touring' },
+  { value: 'national', label: 'National touring' },
+  { value: 'international', label: 'International touring' }
+] as const;
+
+export type BookingStatus = typeof BOOKING_STATUS_OPTIONS[number]['value'];
+export type TravelScope = typeof TRAVEL_SCOPE_OPTIONS[number]['value'];
+
+// Artist Status - Simple binary approach
+export const ARTIST_STATUS_OPTIONS = [
+  { value: 'seeking-shows', label: 'Seeking shows' },
+  { value: 'not-seeking', label: 'Not currently seeking shows' }
+] as const;
+
+export type ArtistStatus = typeof ARTIST_STATUS_OPTIONS[number]['value'];
+
+// Remove the complex tour status system - replaced with simple binary status above
+// Legacy tour status for backward compatibility during transition
+export const LEGACY_TOUR_STATUS_OPTIONS = [
+  { value: 'actively-touring', label: 'Actively Touring' },
+  { value: 'seeking-shows', label: 'Seeking Shows' },
+  { value: 'local-only', label: 'Local Only' },
+  { value: 'on-hiatus', label: 'On Hiatus' }
+] as const;
+
+// Tour Radius
+export type TourRadius = 'local' | 'regional' | 'national' | 'international'; 
