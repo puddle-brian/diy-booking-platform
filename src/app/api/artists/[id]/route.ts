@@ -8,6 +8,7 @@ export async function GET(
 ) {
   try {
     const resolvedParams = await params;
+    console.log(`🎯 Fetching artist with ID: ${resolvedParams.id}`);
     
     const artist = await prisma.artist.findUnique({
       where: { id: resolvedParams.id },
@@ -17,38 +18,54 @@ export async function GET(
     });
     
     if (!artist) {
+      console.log(`❌ Artist not found: ${resolvedParams.id}`);
       return NextResponse.json(
         { error: 'Artist not found' },
         { status: 404 }
       );
     }
 
-    // Transform data to match frontend expectations
+    console.log(`✅ Found artist: ${artist.name}`);
+    console.log(`📍 Location: ${artist.location?.city}, ${artist.location?.stateProvince}`);
+    console.log(`🎵 Artist type: ${artist.artistType}`);
+    console.log(`📱 Social handles:`, artist.socialHandles);
+
+    // Transform data to match frontend expectations with better error handling
     const transformedArtist = {
       id: artist.id,
       name: artist.name,
-      city: artist.location.city,
-      state: artist.location.stateProvince,
-      country: artist.location.country,
+      city: artist.location?.city || '',
+      state: artist.location?.stateProvince || '',
+      country: artist.location?.country || 'USA',
       artistType: artist.artistType?.toLowerCase() || 'band',
-      genres: artist.genres || [],
-      members: artist.members,
-      yearFormed: artist.yearFormed,
+      genres: Array.isArray(artist.genres) ? artist.genres : [],
+      members: artist.members || 1,
+      yearFormed: artist.yearFormed || new Date().getFullYear(),
       tourStatus: artist.tourStatus?.toLowerCase() || 'active',
       equipment: artist.equipmentNeeds || {},
       contact: {
-        email: artist.contactEmail,
+        email: artist.contactEmail || '',
         phone: '',
-        social: (artist.socialHandles as any)?.social,
-        website: artist.website,
-        booking: artist.contactEmail,
+        social: (() => {
+          try {
+            if (artist.socialHandles && typeof artist.socialHandles === 'object') {
+              return (artist.socialHandles as any)?.social || '';
+            }
+            return '';
+          } catch (e) {
+            console.warn('Error parsing social handles:', e);
+            return '';
+          }
+        })(),
+        website: artist.website || '',
+        booking: artist.contactEmail || '',
       },
-      images: artist.images || ['/api/placeholder/band'],
+      images: Array.isArray(artist.images) ? artist.images : ['/api/placeholder/band'],
       description: artist.description || '',
       expectedDraw: '',
       rating: 0,
       reviewCount: 0,
-      verified: artist.verified,
+      verified: Boolean(artist.verified),
       claimed: false,
       lastUpdated: artist.updatedAt.toISOString(),
       tourDates: [],
@@ -61,9 +78,14 @@ export async function GET(
       updatedAt: artist.updatedAt,
     };
 
+    console.log(`🚀 Returning transformed artist data for: ${transformedArtist.name}`);
     return NextResponse.json(transformedArtist);
   } catch (error) {
-    console.error('Error in GET /api/artists/[id]:', error);
+    console.error('❌ Error in GET /api/artists/[id]:', error);
+    console.error('❌ Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
     return NextResponse.json(
       { error: 'Failed to fetch artist' },
       { status: 500 }

@@ -170,6 +170,8 @@ export default function AdminPage() {
     setLoading(prev => ({ ...prev, [`delete-${type}-${id}`]: true }));
     
     try {
+      console.log(`🗑️ Attempting to delete ${type}: ${name} (ID: ${id})`);
+      
       const response = await fetch(`/api/${type}s/${id}`, {
         method: 'DELETE',
         headers: {
@@ -177,17 +179,25 @@ export default function AdminPage() {
         },
       });
 
+      console.log(`🗑️ Delete response status: ${response.status}`);
+
       if (!response.ok) {
-        throw new Error(`Failed to delete ${type}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error(`🗑️ Delete failed:`, errorData);
+        throw new Error(errorData.error || `Failed to delete ${type} (${response.status})`);
       }
 
+      const result = await response.json();
+      console.log(`✅ Delete successful:`, result);
+      
       alert(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} "${name}" has been deleted!`);
       
       // Reload content data
       await loadContentData();
     } catch (error) {
-      console.error(`Delete ${type} failed:`, error);
-      alert(`Failed to delete ${type}`);
+      console.error(`❌ Delete ${type} failed:`, error);
+      const errorMessage = error instanceof Error ? error.message : `Failed to delete ${type}`;
+      alert(`❌ Error: ${errorMessage}`);
     } finally {
       setLoading(prev => ({ ...prev, [`delete-${type}-${id}`]: false }));
     }
