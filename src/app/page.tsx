@@ -383,8 +383,15 @@ function HomeContent() {
         if (selectedArtistTypes.length > 0 && !selectedArtistTypes.includes(artist.artistType)) {
           return false;
         }
-        if (selectedGenres.length > 0 && !selectedGenres.some(genre => artist.genres && artist.genres.includes(genre))) {
-          return false;
+        if (selectedGenres.length > 0) {
+          // If artist has no genres, treat as "matches all" (don't filter out)
+          // Only filter out if artist has genres but none match the selected ones
+          if (artist.genres && artist.genres.length > 0) {
+            if (!selectedGenres.some(genre => artist.genres.includes(genre))) {
+              return false;
+            }
+          }
+          // If artist.genres is empty/undefined, they match all genre searches (don't filter out)
         }
         if (selectedDraws.length > 0) {
           const matchesDraw = selectedDraws.some(range => {
