@@ -126,8 +126,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
-    // Validate required fields
-    const requiredFields = ['name', 'city', 'state', 'country', 'artistType', 'contact'];
+    // Validate required fields - update to match what frontend actually sends
+    const requiredFields = ['name', 'city', 'state', 'country', 'artistType', 'contactEmail'];
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json(
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.contact.email)) {
+    if (!emailRegex.test(body.contactEmail)) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
@@ -175,10 +175,10 @@ export async function POST(request: NextRequest) {
         members: body.members || 1,
         yearFormed: body.yearFormed || new Date().getFullYear(),
         tourStatus: body.tourStatus?.toUpperCase() || 'ACTIVE',
-        equipmentNeeds: body.equipment || {},
-        contactEmail: body.contact.email,
-        website: body.contact.website,
-        socialHandles: body.contact.social ? { social: body.contact.social } : undefined,
+        equipmentNeeds: body.equipmentNeeds || {},
+        contactEmail: body.contactEmail,
+        website: body.website || undefined,
+        socialHandles: body.socialHandles ? { social: body.socialHandles } : undefined,
         description: body.description || '',
         images: body.images || ['/api/placeholder/band']
       },

@@ -42,7 +42,7 @@ export default function AboutPage() {
               DIY Shows is a crowdsourced booking platform that connects independent artists directly with DIY venues and spaces. We believe in cutting out the middlemen and empowering artists and venues to work together without the barriers of traditional booking agencies.
             </p>
             <p className="text-gray-700 mb-4">
-              Our platform enables venues to find touring artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests. It's booking, democratized.
+              Our platform enables venues to find artists looking for shows in their area and place bids, while artists can request shows anywhere and have venues discover and bid on their tour requests.
             </p>
           </section>
 
