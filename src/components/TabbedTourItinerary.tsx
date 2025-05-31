@@ -124,6 +124,7 @@ interface TabbedTourItineraryProps {
   venueId?: string;
   venueName?: string;
   title?: string;
+  showTitle?: boolean;
   editable?: boolean;
   viewerType?: 'artist' | 'venue' | 'public';
 }
@@ -149,6 +150,7 @@ export default function TabbedTourItinerary({
   venueId, 
   venueName,
   title,
+  showTitle = true,
   editable = false,
   viewerType = 'public'
 }: TabbedTourItineraryProps) {
@@ -1333,7 +1335,7 @@ export default function TabbedTourItinerary({
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
         <div className="animate-pulse">
           <div className="h-4 bg-gray-300 rounded w-1/4 mb-6"></div>
           <div className="space-y-4">
@@ -1352,7 +1354,7 @@ export default function TabbedTourItinerary({
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
         <div className="text-red-600 text-center">
           <p>Error loading itinerary: {error}</p>
           <button 
@@ -1367,27 +1369,29 @@ export default function TabbedTourItinerary({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow overflow-hidden">
+    <div className="bg-white border border-gray-200 shadow-md rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <div>
-          <h3 className="text-lg font-semibold">
-            {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            {shows.length} confirmed show{shows.length !== 1 ? 's' : ''}
-            {artistId && tourRequests.length > 0 && (
-              <span> • {tourRequests.length} active show request{tourRequests.length !== 1 ? 's' : ''}</span>
-            )}
-            {artistId && venueBids.filter(b => !['expired'].includes(b.status)).length > 0 && (
-              <span> • {venueBids.filter(b => !['expired'].includes(b.status)).length} total bid{venueBids.filter(b => !['expired'].includes(b.status)).length !== 1 ? 's' : ''}</span>
-            )}
-            {artistId && venueBids.filter(b => b.status === 'hold').length > 0 && (
-              <span> • {venueBids.filter(b => b.status === 'hold').length} hold{venueBids.filter(b => b.status === 'hold').length !== 1 ? 's' : ''}</span>
-            )}
-          </p>
+      {showTitle && (
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div>
+            <h3 className="text-lg font-semibold">
+              {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
+            </h3>
+            <p className="text-sm text-gray-600 mt-1">
+              {shows.length} confirmed show{shows.length !== 1 ? 's' : ''}
+              {artistId && tourRequests.length > 0 && (
+                <span> • {tourRequests.length} active show request{tourRequests.length !== 1 ? 's' : ''}</span>
+              )}
+              {artistId && venueBids.filter(b => !['expired'].includes(b.status)).length > 0 && (
+                <span> • {venueBids.filter(b => !['expired'].includes(b.status)).length} total bid{venueBids.filter(b => !['expired'].includes(b.status)).length !== 1 ? 's' : ''}</span>
+              )}
+              {artistId && venueBids.filter(b => b.status === 'hold').length > 0 && (
+                <span> • {venueBids.filter(b => b.status === 'hold').length} hold{venueBids.filter(b => b.status === 'hold').length !== 1 ? 's' : ''}</span>
+              )}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Month Tabs */}
       {monthGroups.length > 0 && (

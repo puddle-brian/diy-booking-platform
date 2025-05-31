@@ -18,6 +18,7 @@ interface TeamMembersProps {
   entityId: string;
   maxDisplay?: number;
   showRoles?: boolean;
+  showTitle?: boolean;
   size?: 'sm' | 'md' | 'lg';
   canInviteMembers?: boolean;
   onInviteClick?: () => void;
@@ -31,6 +32,7 @@ export default function TeamMembers({
   entityId,
   maxDisplay = 8,
   showRoles = true,
+  showTitle = true,
   size = 'md',
   canInviteMembers = false,
   onInviteClick,
@@ -43,28 +45,16 @@ export default function TeamMembers({
     lg: 'w-16 h-16'
   };
 
-  // Debug logging
-  console.log('TeamMembers Debug:', {
-    entityType,
-    entityName,
-    entityId,
-    membersCount: members?.length || 0,
-    members: members?.map(m => ({ id: m.id, name: m.name, role: m.role })),
-    userId: user?.id,
-    userName: user?.name,
-    userMemberships: user?.memberships?.length || 0,
-    canInviteMembers,
-    hasOnInviteClick: !!onInviteClick
-  });
-
   // If no members and can claim, show claim button
   if (!members || members.length === 0) {
     if (onClaimClick) {
       return (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-3">
-            Members
-          </h3>
+          {showTitle && (
+            <h3 className="text-lg font-semibold mb-3">
+              Members
+            </h3>
+          )}
           <div className="flex items-center space-x-4">
             <div className="text-center">
               <button
@@ -141,7 +131,6 @@ export default function TeamMembers({
   // Check if current user can invite members
   const userCanInvite = (() => {
     if (!user || !onInviteClick) {
-      console.log('TeamMembers: Cannot invite - no user or no invite handler');
       return false;
     }
     
@@ -153,31 +142,17 @@ export default function TeamMembers({
       membership.entityType === entityType && membership.entityId === entityId
     ) || false;
     
-    console.log('TeamMembers: Invite permission check:', {
-      userId: user.id,
-      userName: user.name,
-      entityType,
-      entityId,
-      isMember,
-      hasMembership,
-      canInviteMembers,
-      finalDecision: isMember || hasMembership
-    });
-    
     // Allow if user is a member OR if they have any membership with this entity
     return isMember || hasMembership;
   })();
 
-  console.log('TeamMembers: Final invite button decision:', {
-    userCanInvite,
-    willShowInviteButton: userCanInvite
-  });
-
   return (
     <div className="mb-6">
-      <h3 className="text-lg font-semibold mb-3">
-        Members
-      </h3>
+      {showTitle && (
+        <h3 className="text-lg font-semibold mb-3">
+          Members
+        </h3>
+      )}
       
       <div className="flex flex-wrap items-center gap-3">
         {displayMembers.map((member) => (

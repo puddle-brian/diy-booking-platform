@@ -3,20 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import TabbedTourItinerary from '../../../components/TabbedTourItinerary';
+import { useAuth } from '../../../contexts/AuthContext';
+import ProfileLayout from '../../../components/profile/ProfileLayout';
+import { ProfileContext, Artist } from '../../../components/profile/ProfileModules';
+import UserStatus from '../../../components/UserStatus';
 import BookingInquiryForm from '../../../components/BookingInquiryForm';
-// import TeamManagement from '../../../components/TeamManagement';
-import TeamMembers from '../../../components/TeamMembers';
 import InviteMemberModal from '../../../components/InviteMemberModal';
 import ClaimEntityModal from '../../../components/ClaimEntityModal';
-import MessageButton from '../../../components/MessageButton';
-import MediaSection from '../../../components/MediaSection';
-import UserStatus from '../../../components/UserStatus';
-import TemplateManager from '../../../components/TemplateManager';
 import TemplateModal from '../../../components/TemplateModal';
-import { useAuth } from '../../../contexts/AuthContext';
 
-interface Artist {
+// Use the same interfaces as the original
+interface ArtistData {
   id: string;
   name: string;
   city: string;
@@ -95,10 +92,17 @@ interface TourRequest {
 
 export default function ArtistDetail({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
-  const [artist, setArtist] = useState<Artist | null>(null);
+  const { user } = useAuth();
+  const [artist, setArtist] = useState<ArtistData | null>(null);
   const [tourRequests, setTourRequests] = useState<TourRequest[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMembers, setLoadingMembers] = useState(true);
   const [loadingTourRequests, setLoadingTourRequests] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [venue, setVenue] = useState<any>(null);
+  
+  // Booking inquiry state
   const [showInquiryForm, setShowInquiryForm] = useState(false);
   const [hasSentInquiry, setHasSentInquiry] = useState(false);
   const [isClaimingMode, setIsClaimingMode] = useState(false);
@@ -110,14 +114,11 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     message: '',
   });
   const [contactStatus, setContactStatus] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [venue, setVenue] = useState<any>(null);
-  const [members, setMembers] = useState<any[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(true);
+  
+  // Modal state
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const { user } = useAuth();
 
   useEffect(() => {
     const loadData = async () => {
@@ -125,7 +126,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
         const resolvedParams = await params;
         
         // Load all data in parallel to reduce total loading time
-        const [artistResult, tourRequestsResult, membersResult, venueResult] = await Promise.all([
+        await Promise.all([
           loadArtist(resolvedParams.id),
           loadTourRequests(resolvedParams.id),
           loadMembers(resolvedParams.id),
@@ -141,7 +142,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     };
 
     loadData();
-  }, []); // Remove user?.profileId dependency since it doesn't exist
+  }, []);
 
   const loadVenue = async (venueId: string) => {
     try {
@@ -175,7 +176,6 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     } catch (error) {
       console.error('🎯 Failed to load artist:', error);
       setError(error instanceof Error ? error.message : 'Failed to load artist');
-      // Don't redirect immediately, show error state instead
     }
   };
 
@@ -336,6 +336,70 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     }
   };
 
+  const handleMembersUpdate = () => {
+    if (artist) {
+      loadMembers(artist.id);
+    }
+  };
+
+  // Transform artist data to match modular system interface
+  const transformedArtist: Artist | null = artist ? {
+    id: artist.id,
+    name: artist.name,
+    city: artist.city,
+    state: artist.state,
+    country: artist.country,
+    images: artist.images || [],
+    description: artist.description || '',
+    rating: artist.rating,
+    contact: {
+      email: artist.contact?.email || '',
+      phone: artist.contact?.phone,
+      website: artist.contact?.website,
+      social: artist.contact?.social
+    },
+    artistType: artist.artistType,
+    genres: artist.genres || [],
+    tourStatus: artist.tourStatus || 'active',
+    yearFormed: artist.yearFormed,
+    members: artist.members,
+    expectedDraw: artist.expectedDraw,
+    equipment: {
+      needsPA: artist.equipment?.needsPA || false,
+      needsMics: artist.equipment?.needsMics || false,
+      needsDrums: artist.equipment?.needsDrums || false,
+      needsAmps: artist.equipment?.needsAmps || false,
+      acoustic: artist.equipment?.acoustic || false
+    }
+  } : null;
+
+  // Determine user context and permissions
+  const context: ProfileContext = {
+    viewerType: (() => {
+      if (!user) return 'public';
+      if (user.role === 'admin') return 'admin';
+      // Check if user is a member of this artist
+      const isMember = members.some(member => member.id === user.id);
+      return isMember ? 'artist' : 'public';
+    })(),
+    entityType: 'artist',
+    isOwner: (() => {
+      if (!user) return false;
+      return members.some(member => member.id === user.id);
+    })(),
+    canEdit: (() => {
+      if (!user) return false;
+      if (user.role === 'admin') return true;
+      // Check if user has edit permissions
+      const userMembership = members.find(member => member.id === user.id);
+      return userMembership && (
+        userMembership.role === 'Owner' || 
+        userMembership.role === 'Member' || 
+        userMembership.role === 'Admin'
+      );
+    })()
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
@@ -370,7 +434,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     );
   }
 
-  if (!artist) {
+  if (!artist || !transformedArtist) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
@@ -405,442 +469,137 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        {/* Artist Title */}
-        <div className="mb-6">
-          {/* Mobile-First Responsive Layout */}
-          <div className="space-y-4">
-            {/* Top Row: Thumbnail + Name + Location/Info */}
-            <div className="flex items-start gap-3 sm:gap-4">
-              {/* Artist Thumbnail */}
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                <img
-                  src={artist.images?.[0] || `/api/placeholder/${artist.artistType}`}
-                  alt={artist.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = `/api/placeholder/${artist.artistType}`;
-                  }}
-                />
-              </div>
-              
-              {/* Artist Name + Location/Info */}
-              <div className="flex-1 min-w-0">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight mb-1">
-                  {artist.name}
-                </h1>
-                
-                {/* Location & Details - directly below name */}
-                <div className="space-y-1">
-                  <p className="text-sm text-gray-600">
-                    {artist.city}, {artist.state}
-                    {artist.artistType && (
-                      <>
-                        <span className="text-gray-400 mx-2">•</span>
-                        <span className="capitalize">{artist.artistType.replace('-', ' ')}</span>
-                      </>
-                    )}
-                    <span className="text-gray-400 mx-2">•</span>
-                    {artist.rating && artist.rating > 0 ? (
-                      <span className="text-gray-700">★ {artist.rating.toFixed(1)}</span>
-                    ) : (
-                      <span className="text-gray-400">★ N/A</span>
-                    )}
-                  </p>
-                  
-                  {/* Additional info on second line */}
-                  {(artist.yearFormed || (artist.genres && artist.genres.length > 0)) && (
-                    <p className="text-xs text-gray-500">
-                      {artist.yearFormed && `Est. ${artist.yearFormed}`}
-                      {artist.yearFormed && artist.genres && artist.genres.length > 0 && ' • '}
-                      {artist.genres && artist.genres.length > 0 && (
-                        <>
-                          {artist.genres.slice(0, 3).join(', ')}
-                          {artist.genres.length > 3 && ` +${artist.genres.length - 3} more`}
-                        </>
-                      )}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Second Row: Message Button - Aligned with title/info */}
-            <div className="pl-[60px] sm:pl-20 lg:pl-20">
-              <div className="flex items-center gap-3">
-                <MessageButton 
-                  recipientId={artist.id}
-                  recipientName={artist.name}
-                  recipientType="artist"
-                  variant="primary"
-                  size="sm"
-                  className="text-sm"
-                  context={{
-                    fromPage: 'artist-profile',
-                    entityName: artist.name,
-                    entityType: 'artist'
-                  }}
-                  isOwnEntity={(() => {
-                    if (!user) return false;
-                    // Check if user is a member of this artist (indicating ownership/membership)
-                    const isMember = members.some(member => member.id === user.id);
-                    return isMember;
-                  })()}
-                >
-                  Send Message
-                </MessageButton>
-                
-                {/* Edit Profile Button - Only show for members with edit permissions */}
-                {(() => {
-                  if (!user) return null;
-                  
-                  // Check if user is a member with edit permissions
-                  const userMembership = members.find(member => member.id === user.id);
-                  const canEdit = userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member' || userMembership.role === 'Admin') || user.role === 'admin';
-                  
-                  if (!canEdit) return null;
-                  
-                  return (
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/artists/${artist.id}/edit`}
-                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        Edit Profile
-                      </Link>
-                      
-                      <button
-                        onClick={() => setShowTemplateModal(true)}
-                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                      >
-                        <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Templates
-                      </button>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Message */}
-        {contactStatus && (
-          <div className={`mb-6 p-4 rounded-lg ${
+      {/* Status Message */}
+      {contactStatus && (
+        <div className="container mx-auto px-4 pt-4">
+          <div className={`p-4 rounded-lg ${
             contactStatus.includes('sent') || contactStatus.includes('submitted') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
           }`}>
             {contactStatus}
           </div>
-        )}
-
-        {/* Members - Moved to top for trust/credibility */}
-        {!loadingMembers && (
-          <div className="mb-6">
-            <TeamMembers 
-              members={members}
-              entityType="artist"
-              entityName={artist.name}
-              entityId={artist.id}
-              maxDisplay={6}
-              canInviteMembers={(() => {
-                if (!user) return false;
-                // Check if user is a member of this artist (either direct owner or member)
-                const isMember = members.some(member => member.id === user.id);
-                return isMember;
-              })()}
-              onInviteClick={() => setShowInviteModal(true)}
-              onClaimClick={members.length === 0 ? () => setShowClaimModal(true) : undefined}
-            />
-          </div>
-        )}
-
-        {/* Tour Itinerary - CORE BOOKING FUNCTIONALITY - High Priority */}
-        <div className="mb-8">
-          <TabbedTourItinerary
-            artistId={artist.id}
-            artistName={artist.name}
-            title="Show Dates"
-            editable={(() => {
-              if (!user) return false;
-              // Check if user is a member with edit permissions
-              const userMembership = members.find(member => member.id === user.id);
-              return userMembership && (userMembership.role === 'Owner' || userMembership.role === 'Member' || userMembership.role === 'Admin') || user.role === 'admin';
-            })()}
-            viewerType={(() => {
-              if (!user) return 'public';
-              // Check if user is a member of this artist
-              const isMember = members.some(member => member.id === user.id);
-              return isMember ? 'artist' : 'public';
-            })()}
-          />
         </div>
+      )}
 
-        {/* Compact Media Section - Supporting content */}
-        <div className="mb-8">
-          <MediaSection
-            entityId={artist.id}
-            entityType="artist"
-            className="w-full"
-            compact={true}
-          />
-        </div>
+      {/* Modular Profile Layout */}
+      <ProfileLayout
+        entity={transformedArtist}
+        context={context}
+        members={members}
+        loadingMembers={loadingMembers}
+        onMembersUpdate={handleMembersUpdate}
+        onBookingInquiry={() => setShowInquiryForm(true)}
+        onTemplateManage={() => setShowTemplateModal(true)}
+        hasSentInquiry={hasSentInquiry}
+      >
+        {/* Legacy Booking Inquiry Form - Only show when form is active */}
+        {showInquiryForm && (
+          <div className="mt-8 bg-white border border-gray-200 rounded-lg p-6">
+            {isClaimingMode ? (
+              // Artist Claiming Form
+              <form onSubmit={handleContactSubmit} className="space-y-4">
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <h3 className="font-semibold text-blue-800 mb-2">Artist Claiming Request</h3>
+                  <p className="text-sm text-blue-700">
+                    We'll verify your connection to the artist and set up your account to manage this profile.
+                  </p>
+                </div>
 
-        <div>
-          {/* Description */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">About {artist.name}</h2>
-            <p className="text-gray-700 leading-relaxed">{artist.description}</p>
-          </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={claimingForm.contactName}
+                    onChange={(e) => setClaimingForm(prev => ({ ...prev, contactName: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Your full name"
+                  />
+                </div>
 
-          {/* Genres */}
-          {artist.genres && artist.genres.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-3">Genres</h3>
-              <div className="flex flex-wrap gap-2">
-                {artist.genres.map((genre) => (
-                  <span
-                    key={genre}
-                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm capitalize"
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Artist/Band Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={claimingForm.artistName}
+                    onChange={(e) => setClaimingForm(prev => ({ ...prev, artistName: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Artist name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={claimingForm.contactEmail}
+                    onChange={(e) => setClaimingForm(prev => ({ ...prev, contactEmail: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="your@email.com"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Preferably matches the artist's listed contact email</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                  <input
+                    type="tel"
+                    value={claimingForm.contactPhone}
+                    onChange={(e) => setClaimingForm(prev => ({ ...prev, contactPhone: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="(555) 123-4567"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Verification Details</label>
+                  <textarea
+                    rows={4}
+                    value={claimingForm.message}
+                    onChange={(e) => setClaimingForm(prev => ({ ...prev, message: e.target.value }))}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Tell us about your role in the band/project and any verification details..."
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="submit"
+                    className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                   >
-                    {genre}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Contact Info */}
-          <div className="mb-8">
-            <h3 className="text-lg font-semibold mb-3">Contact Information</h3>
-            <div className="space-y-2">
-              <div className="flex items-center">
-                <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-                <span className="text-gray-700">{artist.contact.email}</span>
-              </div>
-              {artist.contact.phone && (
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  <span className="text-gray-700">{artist.contact.phone}</span>
+                    Submit Claim Request
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInquiryForm(false);
+                      setIsClaimingMode(false);
+                    }}
+                    className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
                 </div>
-              )}
-              {artist.contact.website && (
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9m0 9c-5 0-9-4-9-9s4-9 9-9" />
-                  </svg>
-                  <a href={artist.contact.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
-                    {artist.contact.website}
-                  </a>
-                </div>
-              )}
-              {artist.contact.social && (
-                <div className="flex items-center">
-                  <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a1 1 0 011-1h2a1 1 0 011 1v18a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1h2z" />
-                  </svg>
-                  <span className="text-gray-700">
-                    {typeof artist.contact.social === 'string' 
-                      ? artist.contact.social 
-                      : (artist.contact.social as any)?.social || 'Social media'
-                    }
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {/* Contact Buttons */}
-            <div className="mt-4 space-y-3">
-              {/* Booking Inquiry Button */}
-              {(() => {
-                const contactContent = getContactContent();
-                
-                if (contactContent.type === 'no-account') {
-                  return !showInquiryForm ? (
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => {
-                          if (!hasSentInquiry) {
-                            setShowInquiryForm(true);
-                          }
-                        }}
-                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                          hasSentInquiry 
-                            ? 'bg-green-100 text-green-700 border border-green-300 cursor-default'
-                            : 'bg-black text-white hover:bg-gray-800'
-                        }`}
-                        disabled={hasSentInquiry}
-                      >
-                        {hasSentInquiry ? 'Inquiry Sent ✓' : 'Send Booking Inquiry'}
-                      </button>
-                      
-                      {hasSentInquiry && (
-                        <button
-                          onClick={() => setShowInquiryForm(true)}
-                          className="block text-sm text-gray-600 hover:text-gray-800 py-1 w-full text-center"
-                        >
-                          Send Another Inquiry
-                        </button>
-                      )}
-                    </div>
-                  ) : null;
-                }
-
-                if (contactContent.type === 'can-contact') {
-                  return !showInquiryForm ? (
-                    <div className="space-y-2">
-                      <button
-                        onClick={() => {
-                          if (!hasSentInquiry) {
-                            setShowInquiryForm(true);
-                          }
-                        }}
-                        className={`w-full py-2 px-4 rounded-lg font-medium transition-colors ${
-                          hasSentInquiry 
-                            ? 'bg-green-100 text-green-700 border border-green-300 cursor-default'
-                            : 'bg-black text-white hover:bg-gray-800'
-                        }`}
-                        disabled={hasSentInquiry}
-                      >
-                        {hasSentInquiry ? 'Inquiry Sent ✓' : 'Send Booking Inquiry'}
-                      </button>
-                      
-                      {hasSentInquiry && (
-                        <button
-                          onClick={() => setShowInquiryForm(true)}
-                          className="block text-sm text-gray-600 hover:text-gray-800 py-1 w-full text-center"
-                        >
-                          Send Another Inquiry
-                        </button>
-                      )}
-                    </div>
-                  ) : null;
-                }
-
-                return null;
-              })()}
-            </div>
+              </form>
+            ) : (
+              // Booking Inquiry Form
+              <BookingInquiryForm
+                recipientType="artist"
+                recipientId={artist.id}
+                recipientName={artist.name}
+                onSuccess={() => {
+                  setShowInquiryForm(false);
+                  markInquiryAsSent(artist.id);
+                  setContactStatus('Booking inquiry sent! We\'ll forward this to the artist via email.');
+                  setTimeout(() => setContactStatus(''), 8000);
+                }}
+                onCancel={() => setShowInquiryForm(false)}
+              />
+            )}
           </div>
-          
-          {/* Show booking inquiry form if needed */}
-          {showInquiryForm && (
-            <div className="mb-8 bg-white border border-gray-200 rounded-lg p-6">
-              {isClaimingMode ? (
-                // Artist Claiming Form
-                <form onSubmit={handleContactSubmit} className="space-y-4">
-                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-                    <h3 className="font-semibold text-blue-800 mb-2">Artist Claiming Request</h3>
-                    <p className="text-sm text-blue-700">
-                      We'll verify your connection to the artist and set up your account to manage this profile.
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={claimingForm.contactName}
-                      onChange={(e) => setClaimingForm(prev => ({ ...prev, contactName: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Your full name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Artist/Band Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={claimingForm.artistName}
-                      onChange={(e) => setClaimingForm(prev => ({ ...prev, artistName: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Artist name"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
-                    <input
-                      type="email"
-                      required
-                      value={claimingForm.contactEmail}
-                      onChange={(e) => setClaimingForm(prev => ({ ...prev, contactEmail: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="your@email.com"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">Preferably matches the artist's listed contact email</p>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                    <input
-                      type="tel"
-                      value={claimingForm.contactPhone}
-                      onChange={(e) => setClaimingForm(prev => ({ ...prev, contactPhone: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="(555) 123-4567"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Verification Details</label>
-                    <textarea
-                      rows={4}
-                      value={claimingForm.message}
-                      onChange={(e) => setClaimingForm(prev => ({ ...prev, message: e.target.value }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Tell us about your role in the band/project and any verification details..."
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="submit"
-                      className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Submit Claim Request
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowInquiryForm(false);
-                        setIsClaimingMode(false);
-                      }}
-                      className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                // Booking Inquiry Form
-                <BookingInquiryForm
-                  recipientType="artist"
-                  recipientId={artist.id}
-                  recipientName={artist.name}
-                  onSuccess={() => {
-                    setShowInquiryForm(false);
-                    markInquiryAsSent(artist.id);
-                    setContactStatus('Booking inquiry sent! We\'ll forward this to the artist via email.');
-                    setTimeout(() => setContactStatus(''), 8000);
-                  }}
-                  onCancel={() => setShowInquiryForm(false)}
-                />
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+        )}
+      </ProfileLayout>
 
       {/* Invite Member Modal */}
       <InviteMemberModal
