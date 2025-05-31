@@ -648,7 +648,12 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
                   <svg className="w-5 h-5 text-gray-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 4V2a1 1 0 011-1h8a1 1 0 011 1v2m0 0V1a1 1 0 011-1h2a1 1 0 011 1v18a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1h2z" />
                   </svg>
-                  <span className="text-gray-700">{artist.contact.social}</span>
+                  <span className="text-gray-700">
+                    {typeof artist.contact.social === 'string' 
+                      ? artist.contact.social 
+                      : (artist.contact.social as any)?.social || 'Social media'
+                    }
+                  </span>
                 </div>
               )}
             </div>
