@@ -7,6 +7,7 @@ import VenueBidForm from './VenueBidForm';
 import ShowDetailModal from './ShowDetailModal';
 import TourRequestDetailModal from './TourRequestDetailModal';
 import TemplateSelector from './TemplateSelector';
+import TemplateFormRenderer from './TemplateFormRenderer';
 import LocationAutocomplete from './LocationAutocomplete';
 import TechnicalRequirementsTable from './TechnicalRequirementsTable';
 import HospitalityRiderTable from './HospitalityRiderTable';
@@ -1016,7 +1017,25 @@ export default function TabbedTourItinerary({
           title: showTitle,
           notes: addDateForm.notes.trim() || undefined,
           status: 'confirmed',
-          createdBy: artistId ? 'artist' : 'venue'
+          createdBy: artistId ? 'artist' : 'venue',
+          // Include all the template-filled data
+          guarantee: addDateForm.guarantee ? parseInt(addDateForm.guarantee) : undefined,
+          ageRestriction: addDateForm.ageRestriction,
+          loadIn: addDateForm.loadIn || undefined,
+          soundcheck: addDateForm.soundcheck || undefined,
+          doorsOpen: addDateForm.doorsOpen || undefined,
+          showTime: addDateForm.showTime || undefined,
+          curfew: addDateForm.curfew || undefined,
+          // Business terms from template
+          acceptsDoorDeals: addDateForm.acceptsDoorDeals,
+          merchandising: addDateForm.merchandising,
+          // Travel & logistics from template
+          travelMethod: addDateForm.travelMethod,
+          lodging: addDateForm.lodging,
+          // Technical and hospitality requirements from template
+          technicalRequirements: addDateForm.technicalRequirements,
+          hospitalityRequirements: addDateForm.hospitalityRequirements,
+          equipment: addDateForm.equipment
         };
 
         // Add artist information
@@ -1032,9 +1051,9 @@ export default function TabbedTourItinerary({
             artistName: artistName,
             venueId: addDateForm.venueId || 'external-venue',
             venueName: addDateForm.venueName.trim(),
-            // Use location from form or try to extract from venue
-            city: addDateForm.location.split(',')[0]?.trim() || 'Unknown',
-            state: addDateForm.location.split(',')[1]?.trim() || 'Unknown'
+            // Use location from venue selection or extract from venue name
+            city: addDateForm.location.split(',')[0]?.trim() || addDateForm.venueName.split(',')[0]?.trim() || 'Unknown',
+            state: addDateForm.location.split(',')[1]?.trim() || addDateForm.venueName.split(',')[1]?.trim() || 'Unknown'
           });
         } else if (venueId) {
           // Venue creating show - artist info required
@@ -1048,7 +1067,7 @@ export default function TabbedTourItinerary({
             artistName: addDateForm.artistName.trim(),
             venueId: venueId,
             venueName: venueName,
-            // Use location from form
+            // Use venue's location
             city: addDateForm.location.split(',')[0]?.trim() || 'Unknown',
             state: addDateForm.location.split(',')[1]?.trim() || 'Unknown'
           });
@@ -2589,117 +2608,13 @@ export default function TabbedTourItinerary({
                     </div>
                   )}
 
-                  {/* Business Terms - Simplified, template-driven */}
-                  <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">Business Terms</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Minimum Guarantee ($)
-                        </label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={addDateForm.guaranteeRange?.min || ''}
-                          onChange={(e) => setAddDateForm(prev => ({ 
-                            ...prev, 
-                            guaranteeRange: { 
-                              ...prev.guaranteeRange, 
-                              min: parseInt(e.target.value) || 0 
-                            }
-                          }))}
-                          placeholder="e.g., 500"
-                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Age Restriction
-                        </label>
-                        <select
-                          value={addDateForm.ageRestriction}
-                          onChange={(e) => setAddDateForm(prev => ({ 
-                            ...prev, 
-                            ageRestriction: e.target.value as 'all-ages' | '18+' | '21+' | 'flexible'
-                          }))}
-                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="flexible">Flexible</option>
-                          <option value="all-ages">All Ages</option>
-                          <option value="18+">18+</option>
-                          <option value="21+">21+</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={addDateForm.acceptsDoorDeals || false}
-                          onChange={(e) => setAddDateForm(prev => ({
-                            ...prev,
-                            acceptsDoorDeals: e.target.checked
-                          }))}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Accepts Door Deals</span>
-                      </label>
-                      <label className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={addDateForm.merchandising || false}
-                          onChange={(e) => setAddDateForm(prev => ({
-                            ...prev,
-                            merchandising: e.target.checked
-                          }))}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">Merchandising</span>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* Travel & Logistics - Simplified, template-driven */}
-                  <div>
-                    <h4 className="text-md font-semibold text-gray-900 mb-3">Travel & Logistics</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Travel Method
-                        </label>
-                        <select
-                          value={addDateForm.travelMethod}
-                          onChange={(e) => setAddDateForm(prev => ({ 
-                            ...prev, 
-                            travelMethod: e.target.value as 'van' | 'flying' | 'train' | 'other'
-                          }))}
-                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="van">Van/Vehicle</option>
-                          <option value="flying">Flying</option>
-                          <option value="train">Train</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Lodging Preference
-                        </label>
-                        <select
-                          value={addDateForm.lodging}
-                          onChange={(e) => setAddDateForm(prev => ({ 
-                            ...prev, 
-                            lodging: e.target.value as 'floor-space' | 'hotel' | 'flexible'
-                          }))}
-                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="flexible">Flexible</option>
-                          <option value="floor-space">Floor Space</option>
-                          <option value="hotel">Hotel</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Modular Template-Driven Form Sections */}
+                  <TemplateFormRenderer
+                    formData={addDateForm}
+                    onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
+                    mode="request"
+                    showTemplateSelector={false}
+                  />
                 </div>
               ) : addDateForm.type === 'offer' ? (
                 // Offer form - Artist selection and basic details
@@ -2817,66 +2732,28 @@ export default function TabbedTourItinerary({
                   </div>
                 </div>
               ) : (
-                // Confirmed show form - Clean and simple like offer form
+                // Confirmed show form - Should match request form pattern but with venue selection
                 <div className="space-y-4">
-                  {/* Artist/Venue Selection - TOP CENTER FIELD */}
-                  {venueId && actualViewerType === 'venue' && (
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Artist *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={addDateForm.artistName}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setAddDateForm(prev => ({ ...prev, artistName: value, artistId: '' }));
-                          handleArtistSearch(value);
-                        }}
-                        onFocus={() => {
-                          if (addDateForm.artistName && artistSearchResults.length > 0) {
-                            setShowArtistDropdown(true);
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowArtistDropdown(false), 200);
-                        }}
-                        placeholder="Search for artist by name, genre, or location"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      
-                      {/* Artist Search Dropdown */}
-                      {showArtistDropdown && artistSearchResults.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {artistSearchResults.map((artist) => (
-                            <button
-                              key={artist.id}
-                              type="button"
-                              onClick={() => selectArtist(artist)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="font-medium text-gray-900">{artist.name}</div>
-                              <div className="text-sm text-gray-500">
-                                {artist.city}, {artist.state} • {artist.genres?.join(', ') || 'Various genres'}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {addDateForm.artistId && (
-                        <p className="text-sm text-green-600 mt-1">
-                          ✓ Selected: {addDateForm.artistName}
-                        </p>
-                      )}
-                    </div>
-                  )}
+                  {/* Single Date for confirmed shows */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Show Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={addDateForm.date}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, date: e.target.value }))}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
 
+                  {/* Venue Selection - For Artists */}
                   {artistId && actualViewerType === 'artist' && (
                     <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Select Venue *
+                        Venue *
                       </label>
                       <input
                         type="text"
@@ -2926,39 +2803,79 @@ export default function TabbedTourItinerary({
                     </div>
                   )}
 
-                  {/* Date and Age Restriction - Second Row */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+                  {/* Artist Selection - For Venues */}
+                  {venueId && actualViewerType === 'venue' && (
+                    <div className="relative">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Show Date *
+                        Artist *
                       </label>
                       <input
-                        type="date"
+                        type="text"
                         required
-                        value={addDateForm.date}
-                        onChange={(e) => setAddDateForm(prev => ({ ...prev, date: e.target.value }))}
-                        min={new Date().toISOString().split('T')[0]}
+                        value={addDateForm.artistName}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setAddDateForm(prev => ({ ...prev, artistName: value, artistId: '' }));
+                          handleArtistSearch(value);
+                        }}
+                        onFocus={() => {
+                          if (addDateForm.artistName && artistSearchResults.length > 0) {
+                            setShowArtistDropdown(true);
+                          }
+                        }}
+                        onBlur={() => {
+                          setTimeout(() => setShowArtistDropdown(false), 200);
+                        }}
+                        placeholder="Search for artist by name, genre, or location"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
+                      
+                      {/* Artist Search Dropdown */}
+                      {showArtistDropdown && artistSearchResults.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                          {artistSearchResults.map((artist) => (
+                            <button
+                              key={artist.id}
+                              type="button"
+                              onClick={() => selectArtist(artist)}
+                              className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="font-medium text-gray-900">{artist.name}</div>
+                              <div className="text-sm text-gray-500">
+                                {artist.city}, {artist.state} • {artist.genres?.join(', ') || 'Various genres'}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {addDateForm.artistId && (
+                        <p className="text-sm text-green-600 mt-1">
+                          ✓ Selected: {addDateForm.artistName}
+                        </p>
+                      )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Age Restriction
-                      </label>
-                      <select
-                        value={addDateForm.ageRestriction}
-                        onChange={(e) => setAddDateForm(prev => ({ ...prev, ageRestriction: e.target.value as 'all-ages' | '18+' | '21+' }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="all-ages">All Ages</option>
-                        <option value="18+">18+</option>
-                        <option value="21+">21+</option>
-                      </select>
-                    </div>
+                  )}
+
+                  {/* Show Title */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Show Title (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={addDateForm.title}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Leave blank to auto-generate"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p className="text-sm text-gray-500 mt-1">
+                      If left blank, we'll create a title like "{artistId ? artistName : 'Artist'} at {addDateForm.venueName || 'Venue'}"
+                    </p>
                   </div>
 
-                  {/* Template Integration for Artists */}
-                  {(artistId && actualViewerType === 'artist') && (
+                  {/* Template Selector - Enhanced prominence for confirmed shows too */}
+                  {artistId && actualViewerType === 'artist' && (
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2969,7 +2886,7 @@ export default function TabbedTourItinerary({
                       <TemplateSelector
                         artistId={artistId}
                         onTemplateApply={handleTemplateApply}
-                        autoFillDefault={false}
+                        autoFillDefault={true}
                         className="mb-0"
                       />
                       <p className="text-xs text-blue-700 mt-2">
@@ -2978,54 +2895,15 @@ export default function TabbedTourItinerary({
                     </div>
                   )}
 
-                  {/* Quick Notes (Optional) */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Quick Notes (Optional)
-                    </label>
-                    <textarea
-                      value={addDateForm.notes}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="Any quick notes about this show..."
-                      rows={2}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Success Message */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-start gap-3">
-                      <svg className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <div className="text-sm">
-                        <p className="text-green-800 font-medium">Quick Add - Just the Essentials!</p>
-                        <p className="text-green-700 mt-1">
-                          This will add the show to your calendar immediately. You can add more details (financial terms, 
-                          set times, billing info) by clicking "Add Details" on the timeline after creation.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  {/* Modular Template-Driven Form Sections */}
+                  <TemplateFormRenderer
+                    formData={addDateForm}
+                    onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
+                    mode="confirmed"
+                    showTemplateSelector={false}
+                  />
                 </div>
               )}
-
-              {/* Technical Requirements Table - Only for requests */}
-              {addDateForm.type === 'request' && (
-                <TechnicalRequirementsTable
-                  requirements={addDateForm.technicalRequirements}
-                  onChange={(requirements) => setAddDateForm(prev => ({ ...prev, technicalRequirements: requirements }))}
-                />
-              )}
-
-              {/* Hospitality Rider Table - Only for requests */}
-              {addDateForm.type === 'request' && (
-                <HospitalityRiderTable
-                  requirements={addDateForm.hospitalityRequirements}
-                  onChange={(requirements) => setAddDateForm(prev => ({ ...prev, hospitalityRequirements: requirements }))}
-                />
-              )}
-
               {/* Submit Buttons */}
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
                 <button

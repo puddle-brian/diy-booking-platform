@@ -463,21 +463,7 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                     </div>
                   </div>
 
-                  {/* Notes */}
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Notes
-                    </label>
-                    <textarea
-                      value={templateForm.notes}
-                      onChange={(e) => setTemplateForm(prev => ({ ...prev, notes: e.target.value }))}
-                      placeholder="Special requirements, setup notes, etc..."
-                      rows={3}
-                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Dynamic Technical Requirements Table - Moved to bottom */}
+                  {/* Dynamic Technical Requirements Table */}
                   <div className="mt-6">
                     <TechnicalRequirementsTable
                       requirements={templateForm.technicalRequirements}
@@ -485,12 +471,40 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                     />
                   </div>
 
-                  {/* Dynamic Hospitality Rider Table - Moved to bottom */}
+                  {/* Dynamic Hospitality Rider Table */}
                   <div className="mt-6">
                     <HospitalityRiderTable
                       requirements={templateForm.hospitalityRequirements}
                       onChange={(requirements) => setTemplateForm(prev => ({ ...prev, hospitalityRequirements: requirements }))}
                     />
+                  </div>
+
+                  {/* Miscellaneous Details Section - Future-ready for stage plots, etc. */}
+                  <div className="mt-8 border-t border-gray-200 pt-6">
+                    <div className="mb-4">
+                      <h5 className="text-md font-semibold text-gray-900 mb-2">Miscellaneous Details</h5>
+                      <p className="text-sm text-gray-600">
+                        Additional requirements, special notes, or details that don't fit in the categories above. 
+                        This section will expand in the future to include stage plots and other specialized forms.
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Additional Notes & Requirements
+                      </label>
+                      <textarea
+                        value={templateForm.notes}
+                        onChange={(e) => setTemplateForm(prev => ({ ...prev, notes: e.target.value }))}
+                        placeholder="Special setup requirements, accessibility needs, unique equipment, stage plot details, or any other important information for venues..."
+                        rows={4}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p className="text-xs text-gray-500 mt-2">
+                        Examples: "Need 20ft ceiling clearance for light show", "Drummer uses double kick setup", 
+                        "Requires specific stage dimensions", "Has pyrotechnics that need approval"
+                      </p>
+                    </div>
                   </div>
 
                   {/* Default Template */}
