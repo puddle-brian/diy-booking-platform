@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
 import { ShowStatus, AgeRestriction } from '@prisma/client';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
+
+// Helper function to get user from request (JWT only)
+async function getUserFromRequest(request: NextRequest) {
+  const token = request.cookies.get('auth-token')?.value;
+  if (!token) {
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    console.log('🎵 API: Using JWT user:', decoded.userId);
+    return { userId: decoded.userId, source: 'jwt' };
+  } catch (error) {
+    console.error('🎵 API: JWT verification failed:', error);
+    return null;
+  }
+}
 
 // Conflict resolution: Update tour requests when a show is confirmed
 async function resolveShowRequestConflicts(confirmedShow: any): Promise<void> {
@@ -244,6 +264,15 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     
+    // Get authenticated user
+    const userAuth = await getUserFromRequest(request);
+    if (!userAuth) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
     // Validate required fields
     const requiredFields = ['date', 'venueName', 'artistName'];
     for (const field of requiredFields) {
@@ -334,26 +363,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Find or create user for createdBy
-    let createdById = body.createdBy;
-    if (!createdById) {
-      // Use system user or create one
-      let systemUser = await prisma.user.findFirst({
-        where: { username: 'system' }
-      });
-      
-      if (!systemUser) {
-        systemUser = await prisma.user.create({
-          data: {
-            username: 'system',
-            email: 'system@diyshows.com',
-            verified: true
-          }
-        });
-      }
-      createdById = systemUser.id;
-    }
-    
     // Check for date conflicts
     const conflictingShow = await prisma.show.findFirst({
       where: {
@@ -386,7 +395,7 @@ export async function POST(request: NextRequest) {
           body.ageRestriction.toUpperCase().replace('-', '_') as AgeRestriction : 
           'ALL_AGES',
         status: (body.status?.toUpperCase() || 'CONFIRMED') as ShowStatus,
-        createdById: createdById
+        createdById: userAuth.userId
       },
       include: {
         artist: {
