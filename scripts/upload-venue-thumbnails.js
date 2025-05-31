@@ -13,28 +13,33 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// Artist thumbnail mappings (filename to cloudinary public_id)
-const artistThumbnails = {
-  'band.png': 'band',
-  'solo.png': 'solo',
-  'duo.png': 'duo',
-  'collective.png': 'collective',
-  'singer-songwriter.png': 'singer-songwriter',
-  'rapper.png': 'rapper',
-  'dj.png': 'dj',
-  'comedian.png': 'comedian',
-  'poet.png': 'poet',
-  'storyteller.png': 'storyteller',
-  'dancer.png': 'dancer',
-  'magician.png': 'magician',
-  'lecturer.png': 'lecturer',
-  'theater-group.png': 'theater-group',
-  'noise-artist.png': 'noise-artist',
+// Venue thumbnail mappings (filename to cloudinary public_id)
+const venueThumbnails = {
+  'house-show.png': 'house-show',
+  'community-space.png': 'community-space',
+  'record-store.png': 'record-store',
+  'vfw-hall.png': 'vfw-hall',
+  'arts-center.png': 'arts-center',
+  'warehouse.png': 'warehouse',
+  'bar.png': 'bar',
+  'club.png': 'club',
+  'theater.png': 'theater',
+  'coffee-shop.png': 'coffee-shop',
+  'bookstore.png': 'bookstore',
+  'gallery.png': 'gallery',
+  'library.png': 'library',
+  'park.png': 'park',
+  'basement.png': 'basement',
+  'loft.png': 'loft',
+  'church.png': 'church',
+  'brewery.png': 'brewery',
+  'rooftop.png': 'rooftop',
+  'restaurant.png': 'restaurant',
   'other.png': 'other'
 };
 
-async function uploadArtistThumbnails() {
-  console.log('🎵 Starting artist thumbnail upload to Cloudinary...\n');
+async function uploadVenueThumbnails() {
+  console.log('🏢 Starting venue thumbnail upload to Cloudinary...\n');
 
   // Check if Cloudinary is configured
   if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
@@ -46,11 +51,11 @@ async function uploadArtistThumbnails() {
     process.exit(1);
   }
 
-  const thumbnailsDir = path.join(__dirname, '..', 'art', 'artist thumbnails');
+  const thumbnailsDir = path.join(__dirname, '..', 'art', 'venue thumbnails');
   
   // Check if directory exists
   if (!fs.existsSync(thumbnailsDir)) {
-    console.error(`❌ Artist thumbnails directory not found: ${thumbnailsDir}`);
+    console.error(`❌ Venue thumbnails directory not found: ${thumbnailsDir}`);
     process.exit(1);
   }
 
@@ -59,7 +64,7 @@ async function uploadArtistThumbnails() {
   let uploadCount = 0;
   let errorCount = 0;
 
-  for (const [filename, publicId] of Object.entries(artistThumbnails)) {
+  for (const [filename, publicId] of Object.entries(venueThumbnails)) {
     const filePath = path.join(thumbnailsDir, filename);
     
     if (!fs.existsSync(filePath)) {
@@ -72,7 +77,7 @@ async function uploadArtistThumbnails() {
       
       const result = await cloudinary.uploader.upload(filePath, {
         public_id: publicId,
-        folder: 'diy-booking/thumbnails/artists',
+        folder: 'diy-booking/thumbnails/venues',
         overwrite: true,
         transformation: [
           { width: 400, height: 400, crop: 'fill', gravity: 'center' },
@@ -95,10 +100,10 @@ async function uploadArtistThumbnails() {
     console.log(`❌ Failed uploads: ${errorCount}`);
   }
   
-  console.log(`\n🔗 Your artist thumbnails are now available at:`);
-  console.log(`   https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/diy-booking/thumbnails/artists/[type]`);
-  console.log(`\n🎵 Artist thumbnails are ready to use!`);
+  console.log(`\n🔗 Your venue thumbnails are now available at:`);
+  console.log(`   https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/diy-booking/thumbnails/venues/[type]`);
+  console.log(`\n🏢 Venue thumbnails are ready to use!`);
 }
 
 // Run the upload
-uploadArtistThumbnails().catch(console.error); 
+uploadVenueThumbnails().catch(console.error); 

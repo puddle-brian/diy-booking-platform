@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from './OfferInput';
 
 interface Artist {
   id: string;
@@ -28,6 +29,7 @@ export default function VenueOfferForm({
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
   const [artistSearch, setArtistSearch] = useState('');
   const [showArtistDropdown, setShowArtistDropdown] = useState(false);
+  const [offerData, setOfferData] = useState<ParsedOffer | null>(null);
   
   const [offerForm, setOfferForm] = useState({
     // Target Artist
@@ -36,7 +38,6 @@ export default function VenueOfferForm({
     
     // Basic Offer Details
     proposedDate: '',
-    amount: '',
     ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+',
     capacity: '',
     
@@ -122,6 +123,9 @@ export default function VenueOfferForm({
     setError('');
 
     try {
+      // Convert parsed offer to legacy format
+      const legacyOffer = parsedOfferToLegacyFormat(offerData);
+      
       const response = await fetch(`/api/venues/${venueId}/offers`, {
         method: 'POST',
         headers: {
@@ -131,7 +135,8 @@ export default function VenueOfferForm({
           artistId: offerForm.artistId,
           title: offerForm.title || `${offerForm.artistName} - ${new Date(offerForm.proposedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName}`,
           proposedDate: offerForm.proposedDate,
-          amount: offerForm.amount ? parseFloat(offerForm.amount) : undefined,
+          amount: legacyOffer.amount,
+          doorDeal: legacyOffer.doorDeal,
           capacity: offerForm.capacity ? parseInt(offerForm.capacity) : undefined,
           ageRestriction: offerForm.ageRestriction,
           message: offerForm.message,
@@ -237,16 +242,17 @@ export default function VenueOfferForm({
         <div className="grid md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Guarantee ($)
+              Age Restriction
             </label>
-            <input
-              type="number"
-              step="0.01"
-              value={offerForm.amount}
-              onChange={(e) => setOfferForm(prev => ({ ...prev, amount: e.target.value }))}
+            <select
+              value={offerForm.ageRestriction}
+              onChange={(e) => setOfferForm(prev => ({ ...prev, ageRestriction: e.target.value as any }))}
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. 500"
-            />
+            >
+              <option value="all-ages">All Ages</option>
+              <option value="18+">18+</option>
+              <option value="21+">21+</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -259,20 +265,6 @@ export default function VenueOfferForm({
               className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="e.g. 150"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Age Restriction
-            </label>
-            <select
-              value={offerForm.ageRestriction}
-              onChange={(e) => setOfferForm(prev => ({ ...prev, ageRestriction: e.target.value as any }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all-ages">All Ages</option>
-              <option value="18+">18+</option>
-              <option value="21+">21+</option>
-            </select>
           </div>
         </div>
 
@@ -291,6 +283,18 @@ export default function VenueOfferForm({
           <p className="text-sm text-gray-500 mt-1">
             This message will be sent directly to the artist along with your offer.
           </p>
+        </div>
+
+        {/* Offer Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Offer
+          </label>
+          <OfferInput
+            value={offerData}
+            onChange={(data) => setOfferData(data)}
+            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         {/* Submit Buttons */}

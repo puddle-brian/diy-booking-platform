@@ -11,6 +11,8 @@ import LocationAutocomplete from './LocationAutocomplete';
 import TechnicalRequirementsTable from './TechnicalRequirementsTable';
 import HospitalityRiderTable from './HospitalityRiderTable';
 import VenueOfferForm from './VenueOfferForm';
+import { InlineOfferDisplay } from './OfferDisplay';
+import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from './OfferInput';
 
 interface VenueBid {
   id: string;
@@ -185,6 +187,7 @@ export default function TabbedTourItinerary({
   
   // Add venue offer form state
   const [showVenueOfferForm, setShowVenueOfferForm] = useState(false);
+  const [addDateOfferData, setAddDateOfferData] = useState<ParsedOffer | null>(null);
   
   // All the form states from original component
   const [addDateForm, setAddDateForm] = useState({
@@ -874,6 +877,9 @@ export default function TabbedTourItinerary({
       try {
         setAddDateLoading(true);
         
+        // Convert parsed offer to legacy format
+        const legacyOffer = parsedOfferToLegacyFormat(addDateOfferData);
+        
         const response = await fetch(`/api/venues/${venueId}/offers`, {
           method: 'POST',
           headers: {
@@ -883,7 +889,8 @@ export default function TabbedTourItinerary({
             artistId: addDateForm.artistId,
             title: `${addDateForm.artistName} - ${new Date(addDateForm.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName}`,
             proposedDate: addDateForm.date,
-            amount: addDateForm.guarantee ? parseFloat(addDateForm.guarantee) : undefined,
+            amount: legacyOffer.amount,
+            doorDeal: legacyOffer.doorDeal,
             capacity: addDateForm.capacity ? parseInt(addDateForm.capacity) : undefined,
             ageRestriction: addDateForm.ageRestriction,
             message: addDateForm.description.trim() || `Hey! We'd love to have you play at ${venueName}. We think you'd be a great fit for our space and audience. Let us know if you're interested!`,
@@ -900,6 +907,7 @@ export default function TabbedTourItinerary({
         
         // Reset form and close modal
         setShowAddDateForm(false);
+        setAddDateOfferData(null);
         setAddDateForm({
           type: 'offer',
           date: '',
@@ -1176,7 +1184,7 @@ export default function TabbedTourItinerary({
             <tr className="text-left text-xs font-medium text-gray-600">
               <th className="px-4 py-1.5 w-[10%]">Date</th>
               <th className="px-4 py-1.5 w-[15%]">Location</th>
-              <th className="px-4 py-1.5 w-[20%]">{venueId ? 'Artist/Request' : artistId ? 'Venue/Request' : 'Artist'}</th>
+              <th className="px-4 py-1.5 w-[20%]">{venueId ? 'Artist' : artistId ? 'Venue' : 'Artist'}</th>
               <th className="px-4 py-1.5 w-[10%]">Status</th>
               <th className="px-4 py-1.5 w-[8%]">Capacity</th>
               <th className="px-4 py-1.5 w-[8%]">Age</th>
@@ -1315,9 +1323,11 @@ export default function TabbedTourItinerary({
                       
                       {/* Offers */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600">
-                          {show.guarantee ? `$${show.guarantee}` : '-'}
-                        </div>
+                        <InlineOfferDisplay 
+                          amount={show.guarantee}
+                          doorDeal={show.doorDeal}
+                          className="text-xs text-gray-600"
+                        />
                       </td>
                       
                       {/* Bids (Show detail icon for shows) */}
@@ -1739,14 +1749,11 @@ export default function TabbedTourItinerary({
                                           
                                           {/* Offers */}
                                           <td className="px-4 py-1.5">
-                                            <div className="text-xs text-gray-600">
-                                              {bid.guarantee ? `$${bid.guarantee}` : '-'}
-                                              {bid.doorDeal && (
-                                                <span className="text-yellow-600 ml-1">
-                                                  ({bid.doorDeal.split} split)
-                                                </span>
-                                              )}
-                                            </div>
+                                            <InlineOfferDisplay 
+                                              amount={bid.guarantee}
+                                              doorDeal={bid.doorDeal}
+                                              className="text-xs text-gray-600"
+                                            />
                                           </td>
                                           
                                           {/* Bids (replaces the "Billing" column for bid rows) */}
@@ -2016,9 +2023,10 @@ export default function TabbedTourItinerary({
                       
                       {/* Offers */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600">
-                          {offer.amount ? `$${offer.amount}` : '-'}
-                        </div>
+                        <InlineOfferDisplay 
+                          amount={offer.amount}
+                          className="text-xs text-gray-600"
+                        />
                       </td>
                       
                       {/* Bids (N/A for offers) */}
@@ -2221,14 +2229,11 @@ export default function TabbedTourItinerary({
                   >
                     <option value="request">Request (looking for venues)</option>
                     <option value="confirmed">Confirmed (already booked)</option>
-                    <option value="offer">Make Offer (invite specific artist)</option>
                   </select>
                   <p className="text-sm text-gray-500 mt-1">
                     {addDateForm.type === 'request' 
                       ? 'Create a show request to find venues for this date'
-                      : addDateForm.type === 'confirmed' 
-                      ? 'Add a confirmed show that was booked outside the platform'
-                      : 'Create a targeted offer to invite a specific artist to play at your venue'
+                      : 'Add a confirmed show that was booked outside the platform'
                     }
                   </p>
                 </div>
@@ -2499,7 +2504,7 @@ export default function TabbedTourItinerary({
                   </div>
 
                   {/* Date and basic details */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Proposed Date *
@@ -2511,19 +2516,6 @@ export default function TabbedTourItinerary({
                         onChange={(e) => setAddDateForm(prev => ({ ...prev, date: e.target.value }))}
                         min={new Date().toISOString().split('T')[0]}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Guarantee ($)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={addDateForm.guarantee}
-                        onChange={(e) => setAddDateForm(prev => ({ ...prev, guarantee: e.target.value }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="e.g. 500"
                       />
                     </div>
                     <div>
@@ -2541,6 +2533,14 @@ export default function TabbedTourItinerary({
                       </select>
                     </div>
                   </div>
+
+                  {/* Offer Input */}
+                  <OfferInput
+                    value={addDateOfferData}
+                    onChange={setAddDateOfferData}
+                    label="Offer"
+                    placeholder="e.g., $500 guarantee, 70/30 door split, $300 + 80% after costs"
+                  />
 
                   {/* Personal Message */}
                   <div>
