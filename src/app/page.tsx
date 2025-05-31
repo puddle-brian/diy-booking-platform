@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../types/index';
+import { Venue, Artist, VenueType, ArtistType, VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS, CAPACITY_OPTIONS, getGenresForArtistTypes } from '../../types/index';
 import LocationSorting from '../components/LocationSorting';
 import CommunitySection from '../components/CommunitySection';
 import UserStatus from '../components/UserStatus';
@@ -160,24 +160,31 @@ function HomeContent() {
   const debouncedVenueLocation = useDebounce(venueSearchLocation, 300);
   const debouncedArtistLocation = useDebounce(artistSearchLocation, 300);
 
-  // Genre options
-  const genreOptions = {
-    'punk': 'Punk',
-    'hardcore': 'Hardcore', 
-    'folk': 'Folk',
-    'indie': 'Indie',
-    'metal': 'Metal',
-    'electronic': 'Electronic',
-    'experimental': 'Experimental',
-    'country': 'Country',
-    'hip-hop': 'Hip-Hop',
-    'jazz': 'Jazz',
-    'rock': 'Rock',
-    'emo': 'Emo',
-    'acoustic': 'Acoustic',
-    'post-hardcore': 'Post-Hardcore',
-    'alternative': 'Alternative'
-  };
+  // Genre options - dynamic based on selected artist types
+  const genreOptions = useMemo(() => {
+    if (selectedArtistTypes.length === 0) {
+      // If no artist types selected, show a general set of popular genres
+      return {
+        'punk': 'Punk',
+        'hardcore': 'Hardcore',
+        'indie-rock': 'Indie Rock',
+        'folk-acoustic': 'Folk/Acoustic',
+        'electronic': 'Electronic',
+        'hip-hop': 'Hip-Hop',
+        'experimental': 'Experimental',
+        'jazz': 'Jazz',
+        'metal': 'Metal',
+        'comedy': 'Comedy',
+        'poetry': 'Poetry'
+      };
+    }
+    
+    // Get genres for selected artist types
+    const genres = getGenresForArtistTypes(selectedArtistTypes as ArtistType[]);
+    return Object.fromEntries(
+      genres.map(genre => [genre.value, genre.label])
+    );
+  }, [selectedArtistTypes]);
 
   const ageRestrictionOptions = {
     'all-ages': 'All Ages',
@@ -186,12 +193,9 @@ function HomeContent() {
   };
 
   // Capacity range options for venues
-  const capacityOptions = {
-    '0-50': 'Under 50',
-    '50-200': '50-200',
-    '200-500': '200-500',
-    '500+': '500+'
-  };
+  const capacityOptions = Object.fromEntries(
+    CAPACITY_OPTIONS.map(option => [option.value, option.label])
+  );
 
   // Expected draw options for artists
   const drawOptions = {
@@ -313,15 +317,10 @@ function HomeContent() {
           return false;
         }
         if (selectedCapacities.length > 0) {
-          const matchesCapacity = selectedCapacities.some(range => {
+          const matchesCapacity = selectedCapacities.some(minCapacity => {
             const capacity = venue.capacity || 0;
-            switch (range) {
-              case '0-50': return capacity < 50;
-              case '50-200': return capacity >= 50 && capacity <= 200;
-              case '200-500': return capacity > 200 && capacity <= 500;
-              case '500+': return capacity > 500;
-              default: return false;
-            }
+            const minCap = parseInt(minCapacity);
+            return capacity >= minCap;
           });
           if (!matchesCapacity) return false;
         }

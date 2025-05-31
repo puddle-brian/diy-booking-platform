@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArtistType, ARTIST_TYPE_LABELS } from '../../../../types/index';
+import { Artist, ArtistType, ARTIST_TYPE_LABELS, CAPACITY_OPTIONS, getGenresForArtistType, artistTypeHasGenres } from '../../../../types/index';
 
 export default function AddArtist() {
   const router = useRouter();
@@ -386,14 +386,17 @@ export default function AddArtist() {
                 <label htmlFor="expectedDraw" className="block text-sm font-medium text-gray-700 mb-2">
                   Expected Draw
                 </label>
-                <input
-                  type="text"
+                <select
                   id="expectedDraw"
                   value={formData.expectedDraw}
                   onChange={(e) => setFormData({ ...formData, expectedDraw: e.target.value })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="200-500 people"
-                />
+                >
+                  <option value="">Select expected draw...</option>
+                  {CAPACITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

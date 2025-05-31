@@ -27,7 +27,7 @@ interface LocationAutocompleteProps {
 export default function LocationAutocomplete({
   value,
   onChange,
-  placeholder = "e.g., Seattle, WA",
+  placeholder = "e.g., London, UK or Seattle, WA",
   required = false,
   className = "",
   label = "Location",
@@ -227,7 +227,7 @@ export default function LocationAutocomplete({
       <p className="text-xs text-gray-500 mt-1">
         {value && suggestions.length === 0 && value.length >= 2 && !loading
           ? "New location - we'll help you connect with venues in this area!"
-          : "Start typing to see locations with existing venues and artists"
+          : "Start typing to see locations with existing venues and artists worldwide"
         }
       </p>
     </div>

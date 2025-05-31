@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import MediaEmbedSection from '../../../../components/MediaEmbedSection';
-import { Artist, ArtistType, ARTIST_TYPE_LABELS } from '../../../../../types/index';
+import { Artist, ArtistType, ARTIST_TYPE_LABELS, CAPACITY_OPTIONS, getGenresForArtistType, artistTypeHasGenres } from '../../../../../types/index';
 import { useAuth } from '../../../../contexts/AuthContext';
 
 export default function EditArtist({ params }: { params: Promise<{ id: string }> }) {
@@ -584,14 +584,17 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
                 <label htmlFor="expectedDraw" className="block text-sm font-medium text-gray-700 mb-2">
                   Expected Draw
                 </label>
-                <input
-                  type="text"
+                <select
                   id="expectedDraw"
                   value={formData.expectedDraw}
                   onChange={(e) => setFormData({ ...formData, expectedDraw: e.target.value })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                  placeholder="e.g., 50-100 people, varies by city"
-                />
+                >
+                  <option value="">Select expected draw...</option>
+                  {CAPACITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -599,19 +602,43 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
           {/* Genres */}
           <div className="bg-white rounded-lg p-6 shadow-sm">
             <h2 className="text-xl font-semibold mb-6">Genres</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {availableGenres.map((genre) => (
-                <label key={genre} className="flex items-center space-x-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.genres.includes(genre)}
-                    onChange={() => handleGenreToggle(genre)}
-                    className="rounded border-gray-300 text-black focus:ring-black"
-                  />
-                  <span className="text-sm capitalize">{genre}</span>
+            {/* Conditional Genres */}
+            {artistTypeHasGenres(formData.artistType) && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {formData.artistType === 'dj' ? 'Electronic Styles' : 
+                   formData.artistType === 'rapper' ? 'Hip-Hop Styles' :
+                   formData.artistType === 'comedian' ? 'Comedy Styles' :
+                   formData.artistType === 'poet' ? 'Poetry Styles' :
+                   formData.artistType === 'dancer' ? 'Dance Styles' :
+                   formData.artistType === 'theater-group' ? 'Theater Styles' :
+                   formData.artistType === 'lecturer' ? 'Lecture Topics' :
+                   formData.artistType === 'storyteller' ? 'Storytelling Styles' :
+                   formData.artistType === 'variety' ? 'Performance Types' :
+                   formData.artistType === 'visual-artist' ? 'Art Styles' :
+                   'Genres'}
                 </label>
-              ))}
-            </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {getGenresForArtistType(formData.artistType).map((genre) => (
+                    <label key={genre.value} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.genres.includes(genre.value)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ ...formData, genres: [...formData.genres, genre.value] });
+                          } else {
+                            setFormData({ ...formData, genres: formData.genres.filter(g => g !== genre.value) });
+                          }
+                        }}
+                        className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{genre.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Equipment Needs */}

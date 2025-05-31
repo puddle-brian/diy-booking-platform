@@ -2,13 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import LocationAutocomplete from '../../../components/LocationAutocomplete';
+import { ArtistType, ARTIST_TYPE_LABELS, CAPACITY_OPTIONS, getGenresForArtistType, artistTypeHasGenres } from '../../../../types/index';
 
 interface ArtistFormData {
   name: string;
-  city: string;
-  state: string;
+  location: string; // Combined city, state instead of separate fields
   country: string;
-  artistType: string;
+  artistType: ArtistType;
   genres: string[];
   members: string;
   yearFormed: string;
@@ -25,13 +26,12 @@ interface ArtistFormData {
 export default function SubmitArtist() {
   const [formData, setFormData] = useState<ArtistFormData>({
     name: '',
-    city: '',
-    state: '',
+    location: '', // Combined location field
     country: 'USA',
-    artistType: '',
+    artistType: 'band' as ArtistType, // Default to most common type
     genres: [],
-    members: '',
-    yearFormed: '',
+    members: '4', // Default to most common band size
+    yearFormed: new Date().getFullYear().toString(), // Default to current year
     tourStatus: 'active',
     contactEmail: '',
     contactPhone: '',
@@ -39,7 +39,7 @@ export default function SubmitArtist() {
     socialHandles: '',
     equipmentNeeds: [],
     description: '',
-    expectedDraw: '',
+    expectedDraw: '50', // Default to match venue capacity default
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +50,10 @@ export default function SubmitArtist() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleLocationChange = (value: string) => {
+    setFormData(prev => ({ ...prev, location: value }));
   };
 
   const handleCheckboxChange = (name: string, value: string) => {
@@ -67,12 +71,46 @@ export default function SubmitArtist() {
     setSubmitMessage('');
 
     try {
+      // Parse location into city, state, and country
+      const locationParts = formData.location.split(',').map(part => part.trim());
+      let city = '';
+      let state = '';
+      let country = formData.country; // Default to form country
+
+      if (locationParts.length >= 2) {
+        city = locationParts[0];
+        
+        // Handle different international formats:
+        // "Portland, OR" (US)
+        // "London, UK" (International without state)
+        // "Toronto, ON, Canada" (International with state)
+        if (locationParts.length === 2) {
+          const secondPart = locationParts[1];
+          // Check if it's a country (more than 2 chars, not a typical US state)
+          if (secondPart.length > 2 && !['USA', 'US'].includes(secondPart.toUpperCase())) {
+            // Likely "City, Country" format
+            country = secondPart;
+            state = '';
+          } else {
+            // Likely "City, State" format (US)
+            state = secondPart;
+            country = 'USA';
+          }
+        } else if (locationParts.length >= 3) {
+          // "City, State, Country" format
+          state = locationParts[1];
+          country = locationParts[2];
+        }
+      } else if (locationParts.length === 1) {
+        city = locationParts[0];
+      }
+
       // Transform form data to match API expectations
       const artistData = {
         name: formData.name,
-        city: formData.city,
-        state: formData.state,
-        country: formData.country,
+        city: city,
+        state: state,
+        country: country,
         artistType: formData.artistType,
         genres: formData.genres,
         members: formData.members ? parseInt(formData.members) : undefined,
@@ -114,13 +152,12 @@ export default function SubmitArtist() {
       // Reset form
       setFormData({
         name: '',
-        city: '',
-        state: '',
+        location: '',
         country: 'USA',
-        artistType: '',
+        artistType: 'band' as ArtistType,
         genres: [],
-        members: '',
-        yearFormed: '',
+        members: '4',
+        yearFormed: new Date().getFullYear().toString(),
         tourStatus: 'active',
         contactEmail: '',
         contactPhone: '',
@@ -128,7 +165,7 @@ export default function SubmitArtist() {
         socialHandles: '',
         equipmentNeeds: [],
         description: '',
-        expectedDraw: '',
+        expectedDraw: '50',
       });
 
     } catch (error) {
@@ -206,38 +243,16 @@ export default function SubmitArtist() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
-                  </label>
-                  <input
-                    id="city"
-                    name="city"
-                    type="text"
-                    required
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                    placeholder="City"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-2">
-                    State/Province *
-                  </label>
-                  <input
-                    id="state"
-                    name="state"
-                    type="text"
-                    required
-                    value={formData.state}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                    placeholder="State/Province"
-                  />
-                </div>
-              </div>
+              {/* Location Autocomplete - replaces separate city/state fields */}
+              <LocationAutocomplete
+                value={formData.location}
+                onChange={handleLocationChange}
+                placeholder="e.g., London, UK or Portland, OR"
+                required
+                label="Location"
+                showLabel={true}
+                className=""
+              />
 
               <div>
                 <label htmlFor="artist-type" className="block text-sm font-medium text-gray-700 mb-2">
@@ -252,11 +267,11 @@ export default function SubmitArtist() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
                 >
                   <option value="">Select artist type...</option>
-                  <option value="band">Band</option>
-                  <option value="solo">Solo Artist</option>
-                  <option value="collective">Collective</option>
-                  <option value="dj">DJ</option>
-                  <option value="other">Other</option>
+                  {Object.entries(ARTIST_TYPE_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -267,68 +282,92 @@ export default function SubmitArtist() {
             <h3 className="text-xl font-semibold mb-6">Artist Details</h3>
             
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="members" className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Members
-                  </label>
-                  <input
-                    id="members"
-                    name="members"
-                    type="number"
-                    value={formData.members}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                    placeholder="Number of band members"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="year-formed" className="block text-sm font-medium text-gray-700 mb-2">
-                    Year Formed
-                  </label>
-                  <input
-                    id="year-formed"
-                    name="yearFormed"
-                    type="number"
-                    value={formData.yearFormed}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                    placeholder="e.g., 2020"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Genres (check all that apply)
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { label: 'Punk', value: 'punk' },
-                    { label: 'Hardcore', value: 'hardcore' },
-                    { label: 'Folk/Acoustic', value: 'folk' },
-                    { label: 'Indie Rock', value: 'indie' },
-                    { label: 'Metal', value: 'metal' },
-                    { label: 'Electronic', value: 'electronic' },
-                    { label: 'Hip-Hop', value: 'hip-hop' },
-                    { label: 'Experimental', value: 'experimental' },
-                    { label: 'Jazz', value: 'jazz' },
-                    { label: 'Country', value: 'country' }
-                  ].map((genre) => (
-                    <label key={genre.value} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="genres"
-                        value={genre.value}
-                        checked={formData.genres.includes(genre.value)}
-                        onChange={(e) => handleCheckboxChange('genres', genre.value)}
-                        className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{genre.label}</span>
+              {/* Conditional Members - only show for multi-member artist types */}
+              {(['band', 'duo', 'collective', 'theater-group'].includes(formData.artistType)) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-300 ease-in-out">
+                  <div>
+                    <label htmlFor="members" className="block text-sm font-medium text-gray-700 mb-2">
+                      Number of Members
                     </label>
-                  ))}
+                    <select
+                      id="members"
+                      name="members"
+                      value={formData.members}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    >
+                      <option value="">Select...</option>
+                      <option value="1">1</option>
+                      <option value="2">2</option>
+                      <option value="3">3</option>
+                      <option value="4">4</option>
+                      <option value="5">5</option>
+                      <option value="6">6</option>
+                      <option value="7">7+</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="year-formed" className="block text-sm font-medium text-gray-700 mb-2">
+                      Year Formed
+                    </label>
+                    <select
+                      id="year-formed"
+                      name="yearFormed"
+                      value={formData.yearFormed}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    >
+                      <option value="">Select year...</option>
+                      {Array.from({length: 15}, (_, i) => {
+                        const year = new Date().getFullYear() - i;
+                        return (
+                          <option key={year} value={year.toString()}>
+                            {year}
+                          </option>
+                        );
+                      })}
+                      <option value="earlier">Earlier than {new Date().getFullYear() - 14}</option>
+                    </select>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Conditional Genres - show for artist types that have genres */}
+              {artistTypeHasGenres(formData.artistType) && (
+                <div className="transition-all duration-300 ease-in-out">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    {formData.artistType === 'dj' ? 'Electronic Styles (check all that apply)' : 
+                     formData.artistType === 'rapper' ? 'Hip-Hop Styles (check all that apply)' :
+                     formData.artistType === 'comedian' ? 'Comedy Styles (check all that apply)' :
+                     formData.artistType === 'poet' ? 'Poetry Styles (check all that apply)' :
+                     formData.artistType === 'dancer' ? 'Dance Styles (check all that apply)' :
+                     formData.artistType === 'theater-group' ? 'Theater Styles (check all that apply)' :
+                     formData.artistType === 'lecturer' ? 'Lecture Topics (check all that apply)' :
+                     formData.artistType === 'storyteller' ? 'Storytelling Styles (check all that apply)' :
+                     formData.artistType === 'variety' ? 'Performance Types (check all that apply)' :
+                     formData.artistType === 'visual-artist' ? 'Art Styles (check all that apply)' :
+                     'Genres (check all that apply)'}
+                  </label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {getGenresForArtistType(formData.artistType).map((genre) => (
+                      <label key={genre.value} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          name="genres"
+                          value={genre.value}
+                          checked={formData.genres.includes(genre.value)}
+                          onChange={(e) => handleCheckboxChange('genres', genre.value)}
+                          className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
+                        />
+                        <span className="ml-2 text-sm text-gray-700">{genre.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Select the styles that best describe your work. This helps venues find the right fit.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label htmlFor="tour-status" className="block text-sm font-medium text-gray-700 mb-2">
@@ -352,45 +391,20 @@ export default function SubmitArtist() {
                 <label htmlFor="expected-draw" className="block text-sm font-medium text-gray-700 mb-2">
                   Expected Draw
                 </label>
-                <input
+                <select
                   id="expected-draw"
                   name="expectedDraw"
-                  type="text"
                   value={formData.expectedDraw}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-                  placeholder="e.g., 50-100 people, local following, etc."
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Equipment Needs (check all that apply)
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { label: 'PA System', value: 'pa-system' },
-                    { label: 'Microphones', value: 'microphones' },
-                    { label: 'Drum Kit', value: 'drum-kit' },
-                    { label: 'Guitar Amps', value: 'guitar-amps' },
-                    { label: 'Bass Amp', value: 'bass-amp' },
-                    { label: 'Keyboards/Piano', value: 'keyboards-piano' },
-                    { label: 'Stage Lighting', value: 'stage-lighting' },
-                    { label: 'Recording Setup', value: 'recording-setup' }
-                  ].map((equipment) => (
-                    <label key={equipment.value} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="equipmentNeeds"
-                        value={equipment.value}
-                        checked={formData.equipmentNeeds.includes(equipment.value)}
-                        onChange={(e) => handleCheckboxChange('equipmentNeeds', equipment.value)}
-                        className="h-4 w-4 text-black focus:ring-black border-gray-300 rounded"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">{equipment.label}</span>
-                    </label>
+                >
+                  <option value="">Select expected draw...</option>
+                  {CAPACITY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
                   ))}
-                </div>
+                </select>
               </div>
 
               <div>

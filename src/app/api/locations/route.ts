@@ -72,13 +72,34 @@ export async function GET(request: NextRequest) {
 
     // Format locations for autocomplete
     const formattedLocations = locations.map((location: LocationData) => {
-      const displayName = location.stateProvince 
-        ? `${location.city}, ${location.stateProvince}`
-        : location.city;
+      // For international locations, include country in display name
+      let displayName = '';
+      if (location.country === 'USA') {
+        // US format: "Portland, OR"
+        displayName = location.stateProvince 
+          ? `${location.city}, ${location.stateProvince}`
+          : location.city;
+      } else {
+        // International format: "London, UK" or "Toronto, ON, Canada"
+        if (location.stateProvince) {
+          displayName = `${location.city}, ${location.stateProvince}, ${location.country}`;
+        } else {
+          displayName = `${location.city}, ${location.country}`;
+        }
+      }
       
       const venueCount = location._count.venues;
       const artistCount = location._count.artists;
       const totalCount = venueCount + artistCount;
+
+      // Enhanced description for international locations
+      let description = '';
+      if (totalCount > 0) {
+        const countryLabel = location.country === 'USA' ? '' : ` in ${location.country}`;
+        description = `${venueCount} venues, ${artistCount} artists${countryLabel}`;
+      } else {
+        description = location.country === 'USA' ? 'New location' : `New location in ${location.country}`;
+      }
 
       return {
         id: location.id,
@@ -89,9 +110,7 @@ export async function GET(request: NextRequest) {
         venueCount,
         artistCount,
         totalCount,
-        description: totalCount > 0 
-          ? `${venueCount} venues, ${artistCount} artists`
-          : 'New location'
+        description
       };
     });
 

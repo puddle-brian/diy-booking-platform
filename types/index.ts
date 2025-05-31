@@ -373,4 +373,252 @@ export const DEFAULT_ROLE_PERMISSIONS = {
     booker: ['edit_profile', 'manage_bookings', 'view_analytics'] as VenuePermission[],
     staff: ['view_analytics'] as VenuePermission[]
   }
-}; 
+};
+
+// Centralized capacity/draw options for consistency across venue capacity and artist expected draw
+export const CAPACITY_OPTIONS = [
+  { value: '15', label: 'Up to 15 people' },
+  { value: '30', label: '30+ people' },
+  { value: '50', label: '50+ people' },
+  { value: '100', label: '100+ people' },
+  { value: '200', label: '200+ people' },
+  { value: '500', label: '500+ people' },
+  { value: '1000', label: '1000+ people' }
+] as const;
+
+// Centralized Genre System - Conditional genres for each artist type
+export const GENRE_CATEGORIES = {
+  // Music Genres - for bands, solo artists, duos, collectives
+  MUSIC: [
+    { value: 'punk', label: 'Punk' },
+    { value: 'hardcore', label: 'Hardcore' },
+    { value: 'noise-rock', label: 'Noise Rock' },
+    { value: 'grindcore', label: 'Grindcore' },
+    { value: 'black-metal', label: 'Black Metal' },
+    { value: 'death-metal', label: 'Death Metal' },
+    { value: 'doom-sludge', label: 'Doom/Sludge' },
+    { value: 'thrash-metal', label: 'Thrash Metal' },
+    { value: 'post-punk', label: 'Post-Punk' },
+    { value: 'screamo-emo', label: 'Screamo/Emo' },
+    { value: 'crust-dbeat', label: 'Crust/D-Beat' },
+    { value: 'power-violence', label: 'Power Violence' },
+    { value: 'indie-rock', label: 'Indie Rock' },
+    { value: 'garage-rock', label: 'Garage Rock' },
+    { value: 'psych-rock', label: 'Psych Rock' },
+    { value: 'math-rock', label: 'Math Rock' },
+    { value: 'shoegaze', label: 'Shoegaze' },
+    { value: 'folk-acoustic', label: 'Folk/Acoustic' },
+    { value: 'singer-songwriter', label: 'Singer-Songwriter' },
+    { value: 'experimental', label: 'Experimental' },
+    { value: 'jazz', label: 'Jazz' },
+    { value: 'blues', label: 'Blues' },
+    { value: 'country', label: 'Country' },
+    { value: 'bluegrass', label: 'Bluegrass' },
+    { value: 'alternative', label: 'Alternative' },
+    { value: 'grunge', label: 'Grunge' },
+    { value: 'post-rock', label: 'Post-Rock' }
+  ],
+
+  // Electronic/DJ Genres
+  ELECTRONIC: [
+    { value: 'house', label: 'House' },
+    { value: 'techno', label: 'Techno' },
+    { value: 'drum-bass', label: 'Drum & Bass' },
+    { value: 'dubstep', label: 'Dubstep' },
+    { value: 'breakbeat', label: 'Breakbeat' },
+    { value: 'ambient', label: 'Ambient' },
+    { value: 'industrial', label: 'Industrial' },
+    { value: 'noise-electronic', label: 'Noise' },
+    { value: 'experimental-electronic', label: 'Experimental Electronic' },
+    { value: 'hardcore-electronic', label: 'Hardcore Electronic' },
+    { value: 'jungle', label: 'Jungle' },
+    { value: 'gabber', label: 'Gabber' },
+    { value: 'idm', label: 'IDM' },
+    { value: 'trap', label: 'Trap' },
+    { value: 'vaporwave', label: 'Vaporwave' },
+    { value: 'synthwave', label: 'Synthwave' },
+    { value: 'footwork', label: 'Footwork' },
+    { value: 'bass-music', label: 'Bass Music' },
+    { value: 'trance', label: 'Trance' },
+    { value: 'downtempo', label: 'Downtempo' },
+    { value: 'glitch', label: 'Glitch' }
+  ],
+
+  // Hip-Hop/Rap Genres
+  HIP_HOP: [
+    { value: 'underground-hip-hop', label: 'Underground Hip-Hop' },
+    { value: 'conscious-rap', label: 'Conscious Rap' },
+    { value: 'battle-rap', label: 'Battle Rap' },
+    { value: 'freestyle', label: 'Freestyle' },
+    { value: 'boom-bap', label: 'Boom Bap' },
+    { value: 'trap-rap', label: 'Trap' },
+    { value: 'drill', label: 'Drill' },
+    { value: 'lo-fi-hip-hop', label: 'Lo-Fi Hip-Hop' },
+    { value: 'experimental-hip-hop', label: 'Experimental Hip-Hop' },
+    { value: 'jazz-rap', label: 'Jazz Rap' },
+    { value: 'hardcore-rap', label: 'Hardcore Rap' }
+  ],
+
+  // Comedy Styles
+  COMEDY: [
+    { value: 'stand-up', label: 'Stand-Up' },
+    { value: 'improv', label: 'Improv' },
+    { value: 'sketch', label: 'Sketch Comedy' },
+    { value: 'storytelling-comedy', label: 'Storytelling' },
+    { value: 'musical-comedy', label: 'Musical Comedy' },
+    { value: 'observational', label: 'Observational' },
+    { value: 'political-comedy', label: 'Political' },
+    { value: 'dark-comedy', label: 'Dark Comedy' },
+    { value: 'absurdist', label: 'Absurdist' },
+    { value: 'character-comedy', label: 'Character Comedy' }
+  ],
+
+  // Spoken Word/Poetry Styles
+  SPOKEN_WORD: [
+    { value: 'slam-poetry', label: 'Slam Poetry' },
+    { value: 'narrative-poetry', label: 'Narrative Poetry' },
+    { value: 'political-poetry', label: 'Political Poetry' },
+    { value: 'performance-poetry', label: 'Performance Poetry' },
+    { value: 'experimental-poetry', label: 'Experimental Poetry' },
+    { value: 'confessional', label: 'Confessional' },
+    { value: 'beat-poetry', label: 'Beat Poetry' },
+    { value: 'social-justice', label: 'Social Justice' },
+    { value: 'love-poetry', label: 'Love Poetry' },
+    { value: 'nature-poetry', label: 'Nature Poetry' }
+  ],
+
+  // Dance Styles
+  DANCE: [
+    { value: 'contemporary', label: 'Contemporary' },
+    { value: 'hip-hop-dance', label: 'Hip-Hop' },
+    { value: 'ballet', label: 'Ballet' },
+    { value: 'modern-dance', label: 'Modern' },
+    { value: 'jazz-dance', label: 'Jazz' },
+    { value: 'tap', label: 'Tap' },
+    { value: 'breakdancing', label: 'Breakdancing' },
+    { value: 'experimental-dance', label: 'Experimental' },
+    { value: 'cultural-dance', label: 'Cultural/Traditional' },
+    { value: 'performance-art', label: 'Performance Art' }
+  ],
+
+  // Theater Styles
+  THEATER: [
+    { value: 'experimental-theater', label: 'Experimental Theater' },
+    { value: 'devised-theater', label: 'Devised Theater' },
+    { value: 'physical-theater', label: 'Physical Theater' },
+    { value: 'musical-theater', label: 'Musical Theater' },
+    { value: 'political-theater', label: 'Political Theater' },
+    { value: 'immersive-theater', label: 'Immersive Theater' },
+    { value: 'street-theater', label: 'Street Theater' },
+    { value: 'puppet-theater', label: 'Puppet Theater' },
+    { value: 'solo-performance', label: 'Solo Performance' },
+    { value: 'community-theater', label: 'Community Theater' }
+  ],
+
+  // Lecture/Speaker Topics
+  LECTURE: [
+    { value: 'activism', label: 'Activism' },
+    { value: 'social-justice', label: 'Social Justice' },
+    { value: 'environmental', label: 'Environmental' },
+    { value: 'technology', label: 'Technology' },
+    { value: 'arts-culture', label: 'Arts & Culture' },
+    { value: 'history', label: 'History' },
+    { value: 'philosophy', label: 'Philosophy' },
+    { value: 'science', label: 'Science' },
+    { value: 'politics', label: 'Politics' },
+    { value: 'education', label: 'Education' },
+    { value: 'community-organizing', label: 'Community Organizing' }
+  ],
+
+  // Storytelling Styles
+  STORYTELLING: [
+    { value: 'personal-narrative', label: 'Personal Narrative' },
+    { value: 'folklore', label: 'Folklore' },
+    { value: 'historical-stories', label: 'Historical Stories' },
+    { value: 'ghost-stories', label: 'Ghost Stories' },
+    { value: 'comedy-storytelling', label: 'Comedy Storytelling' },
+    { value: 'cultural-stories', label: 'Cultural Stories' },
+    { value: 'adventure-stories', label: 'Adventure Stories' },
+    { value: 'family-stories', label: 'Family Stories' },
+    { value: 'travel-stories', label: 'Travel Stories' },
+    { value: 'interactive-storytelling', label: 'Interactive Storytelling' }
+  ],
+
+  // Variety/Magic Acts
+  VARIETY: [
+    { value: 'magic', label: 'Magic' },
+    { value: 'juggling', label: 'Juggling' },
+    { value: 'circus-arts', label: 'Circus Arts' },
+    { value: 'fire-performance', label: 'Fire Performance' },
+    { value: 'balloon-art', label: 'Balloon Art' },
+    { value: 'mentalism', label: 'Mentalism' },
+    { value: 'escape-artistry', label: 'Escape Artistry' },
+    { value: 'ventriloquism', label: 'Ventriloquism' },
+    { value: 'mime', label: 'Mime' },
+    { value: 'clowning', label: 'Clowning' },
+    { value: 'street-performance', label: 'Street Performance' }
+  ],
+
+  // Visual Art Styles
+  VISUAL_ART: [
+    { value: 'live-painting', label: 'Live Painting' },
+    { value: 'performance-art', label: 'Performance Art' },
+    { value: 'installation-art', label: 'Installation Art' },
+    { value: 'digital-art', label: 'Digital Art' },
+    { value: 'street-art', label: 'Street Art' },
+    { value: 'sculpture', label: 'Sculpture' },
+    { value: 'mixed-media', label: 'Mixed Media' },
+    { value: 'conceptual-art', label: 'Conceptual Art' },
+    { value: 'interactive-art', label: 'Interactive Art' },
+    { value: 'video-art', label: 'Video Art' }
+  ]
+} as const;
+
+// Artist Type to Genre Category Mapping
+export const ARTIST_TYPE_GENRES: Record<ArtistType, keyof typeof GENRE_CATEGORIES | null> = {
+  'band': 'MUSIC',
+  'solo': 'MUSIC',
+  'duo': 'MUSIC',
+  'collective': 'MUSIC',
+  'singer-songwriter': 'MUSIC',
+  'dj': 'ELECTRONIC',
+  'rapper': 'HIP_HOP',
+  'comedian': 'COMEDY',
+  'poet': 'SPOKEN_WORD',
+  'dancer': 'DANCE',
+  'theater-group': 'THEATER',
+  'lecturer': 'LECTURE',
+  'storyteller': 'STORYTELLING',
+  'variety': 'VARIETY',
+  'experimental': 'MUSIC', // Can be music or other, defaulting to music
+  'visual-artist': 'VISUAL_ART'
+};
+
+// Helper function to get genres for a specific artist type
+export function getGenresForArtistType(artistType: ArtistType): Array<{value: string, label: string}> {
+  const genreCategory = ARTIST_TYPE_GENRES[artistType];
+  if (!genreCategory) return [];
+  return GENRE_CATEGORIES[genreCategory] || [];
+}
+
+// Helper function to get genres for multiple artist types (for venues)
+export function getGenresForArtistTypes(artistTypes: ArtistType[]): Array<{value: string, label: string}> {
+  const allGenres = new Map<string, string>();
+  
+  artistTypes.forEach(artistType => {
+    const genres = getGenresForArtistType(artistType);
+    genres.forEach(genre => {
+      allGenres.set(genre.value, genre.label);
+    });
+  });
+  
+  // Convert back to array and sort alphabetically
+  return Array.from(allGenres.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+// Helper function to check if an artist type has genres
+export function artistTypeHasGenres(artistType: ArtistType): boolean {
+  return ARTIST_TYPE_GENRES[artistType] !== null;
+} 
