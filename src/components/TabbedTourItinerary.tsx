@@ -1953,7 +1953,7 @@ export default function TabbedTourItinerary({
                                 name: request.artistName
                               }}
                               variant="outline"
-                              size="sm"
+                              size="xs"
                               onSuccess={() => fetchData()}
                             >
                               Make Offer
