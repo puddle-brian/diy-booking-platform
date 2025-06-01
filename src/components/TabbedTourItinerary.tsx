@@ -14,6 +14,7 @@ import HospitalityRiderTable from './HospitalityRiderTable';
 import VenueOfferForm from './VenueOfferForm';
 import { InlineOfferDisplay } from './OfferDisplay';
 import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from './OfferInput';
+import ShowDocumentModal from './ShowDocumentModal';
 
 interface VenueBid {
   id: string;
@@ -191,6 +192,12 @@ export default function TabbedTourItinerary({
   // Add venue offer form state
   const [showVenueOfferForm, setShowVenueOfferForm] = useState(false);
   const [addDateOfferData, setAddDateOfferData] = useState<ParsedOffer | null>(null);
+  
+  // Show Document Modal state
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedDocumentShow, setSelectedDocumentShow] = useState<Show | null>(null);
+  const [selectedDocumentBid, setSelectedDocumentBid] = useState<VenueBid | null>(null);
+  const [selectedDocumentTourRequest, setSelectedDocumentTourRequest] = useState<TourRequest | null>(null);
   
   // All the form states from original component
   const [addDateForm, setAddDateForm] = useState({
@@ -1351,6 +1358,28 @@ export default function TabbedTourItinerary({
     }
   };
 
+  // Show Document Modal handlers
+  const handleShowDocumentModal = (show: Show) => {
+    setSelectedDocumentShow(show);
+    setSelectedDocumentBid(null);
+    setSelectedDocumentTourRequest(null);
+    setShowDocumentModal(true);
+  };
+
+  const handleBidDocumentModal = (bid: VenueBid) => {
+    setSelectedDocumentBid(bid);
+    setSelectedDocumentShow(null);
+    setSelectedDocumentTourRequest(null);
+    setShowDocumentModal(true);
+  };
+
+  const handleTourRequestDocumentModal = (request: TourRequest) => {
+    setSelectedDocumentTourRequest(request);
+    setSelectedDocumentShow(null);
+    setSelectedDocumentBid(null);
+    setShowDocumentModal(true);
+  };
+
   if (loading) {
     return (
       <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
@@ -1592,7 +1621,7 @@ export default function TabbedTourItinerary({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleShowDetailModal(show);
+                            handleShowDocumentModal(show);
                           }}
                           className="inline-flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-800 hover:bg-green-200 rounded transition-colors"
                           title="View detailed show information"
@@ -1611,7 +1640,7 @@ export default function TabbedTourItinerary({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleShowDetailModal(show);
+                                handleShowDocumentModal(show);
                               }}
                               className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-200 hover:border-blue-300 transition-colors"
                               title="Add financial terms, set times, and other details"
@@ -2035,7 +2064,7 @@ export default function TabbedTourItinerary({
                                             <button
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleViewBidDetails(bid);
+                                                handleBidDocumentModal(bid);
                                               }}
                                               className="inline-flex items-center justify-center w-5 h-5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 rounded transition-colors"
                                               title="View detailed bid information"
@@ -2977,6 +3006,28 @@ export default function TabbedTourItinerary({
             />
           </div>
         </div>
+      )}
+
+      {/* Show Document Modal */}
+      {showDocumentModal && (
+        <ShowDocumentModal
+          show={selectedDocumentShow || undefined}
+          bid={selectedDocumentBid || undefined}
+          tourRequest={selectedDocumentTourRequest || undefined}
+          isOpen={showDocumentModal}
+          onClose={() => {
+            setShowDocumentModal(false);
+            setSelectedDocumentShow(null);
+            setSelectedDocumentBid(null);
+            setSelectedDocumentTourRequest(null);
+          }}
+          viewerType={actualViewerType}
+          onUpdate={(data) => {
+            // TODO: Handle document updates
+            console.log('Document updated:', data);
+            fetchData(); // Refresh data for now
+          }}
+        />
       )}
     </div>
   );
