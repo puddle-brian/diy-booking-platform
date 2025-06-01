@@ -15,6 +15,8 @@ import VenueOfferForm from './VenueOfferForm';
 import { InlineOfferDisplay } from './OfferDisplay';
 import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from './OfferInput';
 import ShowDocumentModal from './ShowDocumentModal';
+import UniversalMakeOfferModal from './UniversalMakeOfferModal';
+import MakeOfferButton from './MakeOfferButton';
 
 interface VenueBid {
   id: string;
@@ -158,6 +160,7 @@ export default function TabbedTourItinerary({
 }: TabbedTourItineraryProps) {
   // Use editable prop to determine if user has permissions
   // Only members should have edit permissions and see action buttons
+  // If viewerType is explicitly set, use that - this handles venue users viewing artist pages
   const actualViewerType = viewerType !== 'public' ? viewerType : 
     (editable && artistId) ? 'artist' : 
     (editable && venueId) ? 'venue' : 
@@ -291,6 +294,10 @@ export default function TabbedTourItinerary({
     lodging: 'flexible' as 'floor-space' | 'hotel' | 'flexible',
     priority: 'medium' as 'high' | 'medium' | 'low'
   });
+
+  // Universal Make Offer Modal state
+  const [showUniversalOfferModal, setShowUniversalOfferModal] = useState(false);
+  const [offerTargetArtist, setOfferTargetArtist] = useState<{ id: string; name: string } | null>(null);
 
   // All the utility functions from original component (keeping them identical)
   const fetchVenues = async () => {
@@ -662,8 +669,25 @@ export default function TabbedTourItinerary({
   };
 
   const handlePlaceBid = (tourRequest: TourRequest) => {
-    setSelectedTourRequest(tourRequest);
-    setShowBidForm(true);
+    // If we have venue info, use the traditional bid form
+    if (venueId && venueName) {
+      setSelectedTourRequest(tourRequest);
+      setShowBidForm(true);
+      return;
+    }
+    
+    // If we don't have venue info but user is identified as venue, open universal offer modal
+    if (actualViewerType === 'venue') {
+      setOfferTargetArtist({
+        id: tourRequest.artistId,
+        name: tourRequest.artistName
+      });
+      setShowUniversalOfferModal(true);
+      return;
+    }
+    
+    // Fallback to original error message
+    alert('To submit a bid, we need your venue information. Please visit your venue profile page first to set up bidding.');
   };
 
   const handleViewBidDetails = (bid: VenueBid) => {
@@ -1156,15 +1180,19 @@ export default function TabbedTourItinerary({
       if (addDateForm.type === 'request') {
         console.log('🎯 TabbedTourItinerary: Creating tour request...');
         
-        if (!addDateForm.startDate || !addDateForm.endDate || !addDateForm.location || !addDateForm.title) {
+        if (!addDateForm.startDate || !addDateForm.endDate || !addDateForm.location) {
           alert('Please fill in all required fields for the tour request.');
           return;
         }
 
+        // Auto-generate title if empty
+        const title = addDateForm.title.trim() || `${artistName} Show Request`;
+
         // Create tour request with all the detailed fields
         const tourRequestData = {
           artistId: artistId,
-          title: addDateForm.title,
+          artistName: artistName, // Fix: Add missing artistName field
+          title: title,
           description: addDateForm.description,
           startDate: addDateForm.startDate,
           endDate: addDateForm.endDate,
@@ -1855,7 +1883,7 @@ export default function TabbedTourItinerary({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleTourRequestDetailModal(request);
+                              handleTourRequestDocumentModal(request);
                             }}
                             className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
                             title="View detailed request information"
@@ -1887,11 +1915,9 @@ export default function TabbedTourItinerary({
                       {/* Bids Count */}
                       <td className="px-4 py-1.5">
                         <div className="text-xs">
-                          {requestBids.length > 0 ? (
-                            <span className="text-blue-600 font-medium">{requestBids.length}</span>
-                          ) : (
-                            <span className="text-gray-400">0</span>
-                          )}
+                          <span className={requestBids.length > 0 ? "text-blue-600 font-medium" : "text-gray-400"}>
+                            {requestBids.length}
+                          </span>
                         </div>
                       </td>
                       
@@ -1919,17 +1945,19 @@ export default function TabbedTourItinerary({
                             </button>
                           )}
 
-                          {/* Place Bid button for venues */}
+                          {/* Make Offer Button for venues */}
                           {actualViewerType === 'venue' && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePlaceBid(request);
+                            <MakeOfferButton
+                              targetArtist={{
+                                id: request.artistId,
+                                name: request.artistName
                               }}
-                              className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                              variant="outline"
+                              size="sm"
+                              onSuccess={() => fetchData()}
                             >
-                              Bid
-                            </button>
+                              Make Offer
+                            </MakeOfferButton>
                           )}
 
                           {/* Expand/Collapse Indicator */}
@@ -2613,16 +2641,18 @@ export default function TabbedTourItinerary({
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title *
+                      Title (Optional)
                     </label>
                     <input
                       type="text"
-                      required
                       value={addDateForm.title}
                       onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="e.g., West Coast Tour"
+                      placeholder={`${artistName} Show Request`}
                       className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
+                    <p className="text-sm text-gray-500 mt-1">
+                      Leave blank to use "{artistName} Show Request" or customize it
+                    </p>
                   </div>
 
                   {/* Template Selector - Enhanced prominence */}
@@ -3027,6 +3057,22 @@ export default function TabbedTourItinerary({
             console.log('Document updated:', data);
             fetchData(); // Refresh data for now
           }}
+        />
+      )}
+
+      {/* Universal Make Offer Modal */}
+      {showUniversalOfferModal && (
+        <UniversalMakeOfferModal
+          isOpen={showUniversalOfferModal}
+          onClose={() => {
+            setShowUniversalOfferModal(false);
+            setOfferTargetArtist(null);
+          }}
+          onSuccess={(offer) => {
+            console.log('Offer created successfully:', offer);
+            fetchData(); // Refresh the itinerary
+          }}
+          preSelectedArtist={offerTargetArtist || undefined}
         />
       )}
     </div>

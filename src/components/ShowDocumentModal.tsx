@@ -263,6 +263,87 @@ export default function ShowDocumentModal({
           canEdit: viewerType !== 'public'
         }
       ]);
+    } else if (tourRequest) {
+      console.log('🎯 ShowDocumentModal: Processing tour request data:', tourRequest);
+      
+      // Tour request - populate from tour request data
+      setDocumentData({
+        title: tourRequest.title,
+        startDate: tourRequest.startDate,
+        endDate: tourRequest.endDate,
+        artistName: tourRequest.artistName,
+        location: tourRequest.location,
+        
+        // Artist requirements from tour request
+        equipment: tourRequest.equipment,
+        guaranteeRange: tourRequest.guaranteeRange,
+        acceptsDoorDeals: tourRequest.acceptsDoorDeals,
+        merchandising: tourRequest.merchandising,
+        ageRestriction: tourRequest.ageRestriction,
+        travelMethod: tourRequest.travelMethod,
+        lodging: tourRequest.lodging,
+        priority: tourRequest.priority,
+        
+        // Audience expectations
+        expectedDraw: tourRequest.expectedDraw,
+        description: tourRequest.description
+      });
+      
+      // For tour requests, artist sections are "proposed" (they've specified their needs), venue sections are "draft" (waiting for bids)
+      setSections([
+        {
+          id: 'venue-offer',
+          title: 'Venue Offer & Terms',
+          owner: 'venue',
+          status: 'draft', // Waiting for venue bids
+          data: { 
+            // Empty - venues will fill this when they bid
+          },
+          canEdit: viewerType === 'venue'
+        },
+        {
+          id: 'artist-requirements',
+          title: 'Artist Requirements & Rider',
+          owner: 'artist',
+          status: 'proposed', // Artist has specified their requirements
+          data: { 
+            // Equipment needs
+            equipment: tourRequest.equipment,
+            
+            // Business requirements
+            guaranteeRange: tourRequest.guaranteeRange,
+            acceptsDoorDeals: tourRequest.acceptsDoorDeals,
+            merchandising: tourRequest.merchandising,
+            ageRestriction: tourRequest.ageRestriction,
+            
+            // Travel & logistics
+            travelMethod: tourRequest.travelMethod,
+            lodging: tourRequest.lodging,
+            priority: tourRequest.priority,
+            
+            // Technical and hospitality requirements
+            technicalRequirements: [],
+            hospitalityRequirements: [],
+            
+            // Tour details
+            expectedDraw: tourRequest.expectedDraw,
+            description: tourRequest.description,
+            tourStatus: tourRequest.tourStatus,
+            flexibility: tourRequest.flexibility
+          },
+          canEdit: viewerType === 'artist'
+        },
+        {
+          id: 'show-schedule',
+          title: 'Show Day Schedule',
+          owner: 'shared',
+          status: 'draft', // Will be filled when show is confirmed
+          data: { 
+            // Empty - will be filled when venue bids or show is confirmed
+          },
+          canEdit: viewerType !== 'public'
+        }
+      ]);
     }
   }, [show, bid, tourRequest, viewerType]);
 
@@ -338,6 +419,25 @@ export default function ShowDocumentModal({
                   month: 'long',
                   day: 'numeric'
                 })}
+                {documentData.startDate && documentData.endDate && (
+                  <>
+                    {new Date(documentData.startDate).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                    {' - '}
+                    {new Date(documentData.endDate).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                    {' • '}
+                    {documentData.location}
+                  </>
+                )}
               </p>
             </div>
             <button
@@ -382,6 +482,228 @@ export default function ShowDocumentModal({
                 {/* Section Content */}
                 <div className="space-y-3">
                   {section.id === 'venue-offer' && (
+                    <div className="space-y-4">
+                      {/* Show empty state if no venue data (tour request waiting for bids) */}
+                      {!section.data || Object.keys(section.data).length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-2xl">🏢</span>
+                          </div>
+                          <p className="font-medium mb-2">Waiting for Venue Offers</p>
+                          <p className="text-sm">
+                            {viewerType === 'venue' 
+                              ? "Submit a bid to show your offer details here."
+                              : "Venue bids and offers will appear here when submitted."
+                            }
+                          </p>
+                          {viewerType === 'venue' && (
+                            <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                              Submit Bid
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <>
+                          {/* Basic Venue Info */}
+                          <div>
+                            <h5 className="font-medium text-gray-800 mb-2">
+                              {bid ? 'Venue & Show Details' : 'Show Information'}
+                            </h5>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="font-medium text-gray-700">Date:</span>
+                                <span className="ml-2 text-gray-900">{section.data.date && new Date(section.data.date).toLocaleDateString()}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Venue:</span>
+                                <span className="ml-2 text-gray-900">{section.data.venueName}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">
+                                  {bid ? 'Capacity' : 'Location'}:
+                                </span>
+                                <span className="ml-2 text-gray-900">
+                                  {bid ? section.data.capacity : section.data.location}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">
+                                  {bid ? 'Age Restriction' : 'Capacity'}:
+                                </span>
+                                <span className="ml-2 text-gray-900">
+                                  {bid ? section.data.ageRestriction : section.data.capacity}
+                                </span>
+                              </div>
+                              {!bid && (
+                                <div>
+                                  <span className="font-medium text-gray-700">Age Restriction:</span>
+                                  <span className="ml-2 text-gray-900">{section.data.ageRestriction}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Financial Terms - Only show if there are any */}
+                          {(section.data.guarantee || section.data.doorDeal || section.data.ticketPrice || section.data.merchandiseSplit) && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-2">Financial Terms</h5>
+                              <div className="space-y-2">
+                                <InlineOfferDisplay 
+                                  amount={section.data.guarantee}
+                                  doorDeal={section.data.doorDeal}
+                                  className="text-sm"
+                                />
+                                
+                                {section.data.ticketPrice && (section.data.ticketPrice.advance || section.data.ticketPrice.door) && (
+                                  <div className="text-sm">
+                                    <span className="font-medium text-gray-700">Ticket Prices:</span>
+                                    <div className="ml-4 mt-1 grid grid-cols-2 gap-2">
+                                      {section.data.ticketPrice.advance && (
+                                        <div className="text-gray-900">Advance: ${section.data.ticketPrice.advance}</div>
+                                      )}
+                                      {section.data.ticketPrice.door && (
+                                        <div className="text-gray-900">Door: ${section.data.ticketPrice.door}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {section.data.merchandiseSplit && (
+                                  <div className="text-sm">
+                                    <span className="font-medium text-gray-700">Merchandise Split:</span>
+                                    <span className="ml-2 text-gray-900">{section.data.merchandiseSplit} (Artist/Venue)</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* What Venue Provides - Only for bids */}
+                          {bid && (section.data.equipmentProvided || section.data.promotion || section.data.lodging) && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-2">What We Provide</h5>
+                              <div className="space-y-3 text-sm">
+                                {section.data.equipmentProvided && Object.values(section.data.equipmentProvided).some(Boolean) && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Equipment:</span>
+                                    <div className="ml-4 mt-1 grid grid-cols-2 gap-1">
+                                      {section.data.equipmentProvided.pa && <div className="text-gray-900">• PA System</div>}
+                                      {section.data.equipmentProvided.mics && <div className="text-gray-900">• Microphones</div>}
+                                      {section.data.equipmentProvided.drums && <div className="text-gray-900">• Drum Kit</div>}
+                                      {section.data.equipmentProvided.amps && <div className="text-gray-900">• Amplifiers</div>}
+                                      {section.data.equipmentProvided.piano && <div className="text-gray-900">• Piano/Keyboard</div>}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {section.data.promotion && Object.values(section.data.promotion).some(Boolean) && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Promotion:</span>
+                                    <div className="ml-4 mt-1 grid grid-cols-2 gap-1">
+                                      {section.data.promotion.social && <div className="text-gray-900">• Social Media</div>}
+                                      {section.data.promotion.flyerPrinting && <div className="text-gray-900">• Flyer Printing</div>}
+                                      {section.data.promotion.radioSpots && <div className="text-gray-900">• Radio Spots</div>}
+                                      {section.data.promotion.pressCoverage && <div className="text-gray-900">• Press Coverage</div>}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {section.data.lodging && section.data.lodging.offered && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Lodging:</span>
+                                    <div className="ml-4 mt-1">
+                                      <div className="text-gray-900 capitalize">{section.data.lodging.type?.replace('-', ' ')}</div>
+                                      {section.data.lodging.details && (
+                                        <div className="text-gray-600 text-xs mt-1">{section.data.lodging.details}</div>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Billing & Performance - Show for both bids and shows */}
+                          {(section.data.billingPosition || section.data.setLength || section.data.otherActs || section.data.billingOrder) && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-2">Billing & Performance</h5>
+                              <div className="space-y-2 text-sm">
+                                {/* For bids */}
+                                {section.data.billingPosition && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Billing Position:</span>
+                                    <span className="ml-2 text-gray-900 capitalize">{section.data.billingPosition.replace('-', ' ')}</span>
+                                  </div>
+                                )}
+                                {section.data.setLength && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Set Length:</span>
+                                    <span className="ml-2 text-gray-900">{section.data.setLength} minutes</span>
+                                  </div>
+                                )}
+                                {section.data.otherActs && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Other Acts:</span>
+                                    <span className="ml-2 text-gray-900">{section.data.otherActs}</span>
+                                  </div>
+                                )}
+                                {section.data.billingNotes && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Notes:</span>
+                                    <span className="ml-2 text-gray-900">{section.data.billingNotes}</span>
+                                  </div>
+                                )}
+                                
+                                {/* For confirmed shows */}
+                                {section.data.billingOrder && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Billing Position:</span>
+                                    <span className="ml-2 text-gray-900 capitalize">{section.data.billingOrder.position?.replace('-', ' ')}</span>
+                                    {section.data.billingOrder.setLength && (
+                                      <span className="ml-2 text-gray-600">({section.data.billingOrder.setLength} min)</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Message & Additional Terms - Only for bids */}
+                          {bid && (section.data.message || section.data.additionalTerms) && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-2">Additional Information</h5>
+                              <div className="space-y-2 text-sm">
+                                {section.data.message && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Message:</span>
+                                    <div className="ml-2 text-gray-900 bg-gray-50 p-2 rounded text-sm mt-1">{section.data.message}</div>
+                                  </div>
+                                )}
+                                {section.data.additionalTerms && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Additional Terms:</span>
+                                    <div className="ml-2 text-gray-900 bg-gray-50 p-2 rounded text-sm mt-1">{section.data.additionalTerms}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Notes - Only for confirmed shows */}
+                          {!bid && section.data.notes && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-2">Notes</h5>
+                              <div className="text-sm">
+                                <div className="text-gray-900 bg-gray-50 p-2 rounded">{section.data.notes}</div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {section.id === 'artist-requirements' && (
                     <div className="space-y-4">
                       {/* Basic Venue Info */}
                       <div>
@@ -582,23 +904,139 @@ export default function ShowDocumentModal({
 
                   {section.id === 'artist-requirements' && (
                     <div className="space-y-4">
-                      <div className="text-center py-8 text-gray-500">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <span className="text-2xl">🎸</span>
+                      {/* Show actual tour request data if available */}
+                      {tourRequest && section.data && Object.keys(section.data).length > 0 ? (
+                        <>
+                          {/* Equipment Needs */}
+                          {section.data.equipment && Object.values(section.data.equipment).some(Boolean) && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-2">Equipment Needs</h5>
+                              <div className="ml-4 mt-1 grid grid-cols-2 gap-1 text-sm">
+                                {section.data.equipment.needsPA && <div className="text-red-600">• PA System Required</div>}
+                                {section.data.equipment.needsMics && <div className="text-red-600">• Microphones Required</div>}
+                                {section.data.equipment.needsDrums && <div className="text-red-600">• Drum Kit Required</div>}
+                                {section.data.equipment.needsAmps && <div className="text-red-600">• Amplifiers Required</div>}
+                                {section.data.equipment.acoustic && <div className="text-green-600">• Acoustic Performance</div>}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Business Requirements */}
+                          <div>
+                            <h5 className="font-medium text-gray-800 mb-2">Business Terms</h5>
+                            <div className="space-y-2 text-sm">
+                              {section.data.guaranteeRange && (section.data.guaranteeRange.min > 0 || section.data.guaranteeRange.max > 0) && (
+                                <div>
+                                  <span className="font-medium text-gray-700">Guarantee Range:</span>
+                                  <span className="ml-2 text-gray-900">
+                                    ${section.data.guaranteeRange.min} - ${section.data.guaranteeRange.max}
+                                  </span>
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-medium text-gray-700">Door Deals:</span>
+                                <span className={`ml-2 ${section.data.acceptsDoorDeals ? 'text-green-600' : 'text-red-600'}`}>
+                                  {section.data.acceptsDoorDeals ? 'Accepted' : 'Not accepted'}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Merchandising:</span>
+                                <span className={`ml-2 ${section.data.merchandising ? 'text-green-600' : 'text-red-600'}`}>
+                                  {section.data.merchandising ? 'Required' : 'Not needed'}
+                                </span>
+                              </div>
+                              {section.data.ageRestriction && (
+                                <div>
+                                  <span className="font-medium text-gray-700">Age Preference:</span>
+                                  <span className="ml-2 text-gray-900 capitalize">{section.data.ageRestriction}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Travel & Logistics */}
+                          <div>
+                            <h5 className="font-medium text-gray-800 mb-2">Travel & Logistics</h5>
+                            <div className="space-y-2 text-sm">
+                              <div>
+                                <span className="font-medium text-gray-700">Travel Method:</span>
+                                <span className="ml-2 text-gray-900 capitalize">{section.data.travelMethod}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Lodging:</span>
+                                <span className="ml-2 text-gray-900 capitalize">{section.data.lodging?.replace('-', ' ')}</span>
+                              </div>
+                              <div>
+                                <span className="font-medium text-gray-700">Priority:</span>
+                                <span className={`ml-2 font-medium ${
+                                  section.data.priority === 'high' ? 'text-red-600' :
+                                  section.data.priority === 'medium' ? 'text-yellow-600' :
+                                  'text-green-600'
+                                }`}>
+                                  {section.data.priority?.charAt(0).toUpperCase() + section.data.priority?.slice(1)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Tour Information */}
+                          {(section.data.expectedDraw || section.data.description || section.data.tourStatus) && (
+                            <div>
+                              <h5 className="font-medium text-gray-800 mb-2">Tour Information</h5>
+                              <div className="space-y-2 text-sm">
+                                {section.data.expectedDraw && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Expected Draw:</span>
+                                    <span className="ml-2 text-gray-900">
+                                      {section.data.expectedDraw.min}-{section.data.expectedDraw.max}
+                                    </span>
+                                    {section.data.expectedDraw.description && (
+                                      <div className="ml-6 text-gray-600 text-xs mt-1">{section.data.expectedDraw.description}</div>
+                                    )}
+                                  </div>
+                                )}
+                                {section.data.tourStatus && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Tour Status:</span>
+                                    <span className="ml-2 text-gray-900 capitalize">{section.data.tourStatus?.replace('-', ' ')}</span>
+                                  </div>
+                                )}
+                                {section.data.flexibility && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Routing Flexibility:</span>
+                                    <span className="ml-2 text-gray-900 capitalize">{section.data.flexibility?.replace('-', ' ')}</span>
+                                  </div>
+                                )}
+                                {section.data.description && (
+                                  <div>
+                                    <span className="font-medium text-gray-700">Description:</span>
+                                    <div className="ml-2 text-gray-900 bg-gray-50 p-2 rounded text-sm mt-1">{section.data.description}</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        // Fallback for when no data is available
+                        <div className="text-center py-8 text-gray-500">
+                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <span className="text-2xl">🎸</span>
+                          </div>
+                          <p className="font-medium mb-2">Artist Requirements & Rider</p>
+                          <p className="text-sm">
+                            {viewerType === 'artist' 
+                              ? "Add your technical requirements, hospitality needs, and other rider details here."
+                              : "Artist will add their technical requirements and rider details here."
+                            }
+                          </p>
+                          {viewerType === 'artist' && (
+                            <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
+                              Add Requirements
+                            </button>
+                          )}
                         </div>
-                        <p className="font-medium mb-2">Artist Requirements & Rider</p>
-                        <p className="text-sm">
-                          {viewerType === 'artist' 
-                            ? "Add your technical requirements, hospitality needs, and other rider details here."
-                            : "Artist will add their technical requirements and rider details here."
-                          }
-                        </p>
-                        {viewerType === 'artist' && (
-                          <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
-                            Add Requirements
-                          </button>
-                        )}
-                      </div>
+                      )}
                     </div>
                   )}
 

@@ -76,7 +76,7 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
             title="Show Dates"
             showTitle={true}
             editable={context.canEdit}
-            viewerType={context.viewerType === 'public' ? 'public' : context.entityType}
+            viewerType={context.viewerType === 'admin' ? 'public' : context.viewerType}
           />
         </div>
 

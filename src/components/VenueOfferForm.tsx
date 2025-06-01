@@ -15,13 +15,19 @@ interface VenueOfferFormProps {
   venueName: string;
   onSuccess: (offer: any) => void;
   onCancel: () => void;
+  // Optional pre-selected artist (when opened from artist page)
+  preSelectedArtist?: {
+    id: string;
+    name: string;
+  };
 }
 
 export default function VenueOfferForm({ 
   venueId, 
   venueName, 
   onSuccess, 
-  onCancel 
+  onCancel,
+  preSelectedArtist
 }: VenueOfferFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -66,6 +72,18 @@ export default function VenueOfferForm({
       setFilteredArtists(filtered);
     }
   }, [artistSearch, artists]);
+
+  // Auto-populate artist if preselected
+  useEffect(() => {
+    if (preSelectedArtist) {
+      setOfferForm(prev => ({
+        ...prev,
+        artistId: preSelectedArtist.id,
+        artistName: preSelectedArtist.name
+      }));
+      setArtistSearch(preSelectedArtist.name);
+    }
+  }, [preSelectedArtist]);
 
   const loadArtists = async () => {
     try {

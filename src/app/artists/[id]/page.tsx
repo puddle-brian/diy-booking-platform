@@ -378,9 +378,17 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     viewerType: (() => {
       if (!user) return 'public';
       if (user.role === 'admin') return 'admin';
+      
       // Check if user is a member of this artist
       const isMember = members.some(member => member.id === user.id);
-      return isMember ? 'artist' : 'public';
+      if (isMember) return 'artist';
+      
+      // Check if user is a venue user (has venue association)
+      // This allows venue users to bid on tour requests even when viewing artist pages
+      const hasVenueMembership = user.memberships?.some(membership => membership.entityType === 'venue');
+      if (venue || hasVenueMembership) return 'venue';
+      
+      return 'public';
     })(),
     entityType: 'artist',
     isOwner: (() => {

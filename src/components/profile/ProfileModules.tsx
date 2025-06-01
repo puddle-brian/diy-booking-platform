@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import MessageButton from '../MessageButton';
 import FavoriteButton from '../FavoriteButton';
+import MakeOfferButton from '../MakeOfferButton';
 import { VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../../types/index';
 
 // Centralized Module Styling Configuration
@@ -373,6 +374,20 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ entity, context, m
           >
             Send Message
           </MessageButton>
+
+          {/* Make Offer Button - Prime placement for venues viewing artists */}
+          {isArtist && context.viewerType === 'venue' && (
+            <MakeOfferButton
+              targetArtist={{
+                id: entity.id,
+                name: entity.name
+              }}
+              variant="outline"
+              size="md"
+            >
+              Make Offer
+            </MakeOfferButton>
+          )}
           
           {/* Edit Profile Button - Only show for owners/admins */}
           {context.canEdit && (
