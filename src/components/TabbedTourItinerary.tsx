@@ -175,7 +175,7 @@ interface TabbedTourItineraryProps {
 }
 
 interface TimelineEntry {
-  type: 'show' | 'tour-request' | 'venue-bid';
+  type: 'show' | 'tour-request'; // 🎯 SIMPLIFIED: Removed 'venue-bid' since everything is now unified as tour-request rows
   date: string;
   endDate?: string;
   data: Show | TourRequest | VenueBid;
@@ -607,17 +607,6 @@ export default function TabbedTourItinerary({
             date: request.startDate,
             endDate: request.endDate,
             data: request
-          });
-        }
-      });
-    } else if (venueId) {
-      // Add venue bids for venues (regular tour requests they've bid on)
-      venueBids.forEach(bid => {
-        if (!['expired', 'cancelled', 'declined'].includes(bid.status)) {
-          entries.push({
-            type: 'venue-bid',
-            date: bid.proposedDate,
-            data: bid
           });
         }
       });
@@ -2017,7 +2006,7 @@ export default function TabbedTourItinerary({
                       id: `offer-bid-${originalOffer.id}`,
                       tourRequestId: request.id,
                       venueId: originalOffer.venueId,
-                      venueName: originalOffer.venueName,
+                      venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
                       proposedDate: bidDate, // 🎯 FIX: Use date without timezone info
                       guarantee: originalOffer.amount, // 🎯 FIX: Ensure amount transfer
                       doorDeal: originalOffer.doorDeal ? {
@@ -2107,7 +2096,49 @@ export default function TabbedTourItinerary({
                       
                       {/* Title */}
                       <td className="px-4 py-1.5">
-                        <div className="text-sm font-medium text-blue-900 truncate">{request.title}</div>
+                        <div className="text-sm font-medium text-blue-900 truncate">
+                          {/* Page Context + Bid Status Logic (Option B) */}
+                          {(() => {
+                            if (venueId) {
+                              // On venue pages: Always show artist name (regardless of bid count)
+                              return (
+                                <a 
+                                  href={`/artists/${request.artistId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View artist page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {request.artistName}
+                                </a>
+                              );
+                            } else {
+                              // On artist pages: Show bid status/interest level
+                              const bidCount = requestBids.length;
+                              
+                              if (bidCount === 0) {
+                                return (
+                                  <span className="text-gray-600">
+                                    Seeking venues
+                                  </span>
+                                );
+                              } else if (bidCount === 1) {
+                                // Single venue interested - show count instead of venue name
+                                return (
+                                  <span className="text-blue-600 font-medium">
+                                    1 venue interested
+                                  </span>
+                                );
+                              } else {
+                                // Multiple venues interested - show count
+                                return (
+                                  <span className="text-green-600 font-medium">
+                                    {bidCount} venues interested
+                                  </span>
+                                );
+                              }
+                            }
+                          })()}
+                        </div>
                       </td>
                       
                       {/* Status */}
@@ -2577,160 +2608,8 @@ export default function TabbedTourItinerary({
                     )}
                   </React.Fragment>
                 );
-              } else if (entry.type === 'venue-bid') {
-                const bid = entry.data as VenueBid;
-                return (
-                  <React.Fragment key={`bid-${bid.id}`}>
-                    <tr 
-                      className="bg-purple-50 transition-colors duration-150 hover:bg-purple-100 hover:shadow-sm border-l-4 border-purple-400 hover:border-purple-500"
-                    >
-                      {/* Date */}
-                      <td className="px-4 py-1.5">
-                        <div className="text-sm font-medium text-purple-900">
-                          <ItineraryDate
-                            date={bid.proposedDate}
-                            className="text-sm font-medium text-purple-900"
-                          />
-                        </div>
-                      </td>
-                      
-                      {/* Location */}
-                      <td className="px-4 py-1.5">
-                        <div className="text-sm text-purple-900 truncate">
-                          {/* Show venue location (city, state) where the show happens */}
-                          {bid.location || bid.venueName || '-'}
-                        </div>
-                      </td>
-                      
-                      {/* Venue Name */}
-                      <td className="px-4 py-1.5">
-                        <div className="flex items-center space-x-2">
-                          <div className="text-sm font-medium text-purple-900 truncate">
-                            {bid.venueId && bid.venueId !== 'external-venue' ? (
-                              <a 
-                                href={`/venues/${bid.venueId}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                                title="View venue page"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {bid.venueName}
-                              </a>
-                            ) : (
-                              bid.venueName || 'Unknown Venue'
-                            )}
-                          </div>
-                          
-                          {/* Message indicator if there's a message */}
-                          {bid.message && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                alert(bid.message);
-                              }}
-                              className="inline-flex items-center justify-center w-5 h-5 bg-purple-500 hover:bg-purple-600 text-white rounded-full transition-colors"
-                              title={bid.message}
-                            >
-                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                      
-                      {/* Status */}
-                      <td className="px-4 py-1.5">
-                        <span className={getBidStatusBadge(bid).className}>
-                          {getBidStatusBadge(bid).text}
-                        </span>
-                      </td>
-                      
-                      {/* Capacity */}
-                      <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600">
-                          {bid.capacity || '-'}
-                        </div>
-                      </td>
-                      
-                      {/* Age */}
-                      <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600">
-                          {bid.ageRestriction === 'ALL_AGES' ? 'all-ages' : 
-                           bid.ageRestriction === 'EIGHTEEN_PLUS' ? '18+' : 
-                           bid.ageRestriction === 'TWENTY_ONE_PLUS' ? '21+' : 
-                           bid.ageRestriction === '18_PLUS' ? '18+' : 
-                           bid.ageRestriction === '21_PLUS' ? '21+' : 
-                           bid.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
-                        </div>
-                      </td>
-                      
-                      {/* Offers */}
-                      <td className="px-4 py-1.5">
-                        <InlineOfferDisplay 
-                          amount={bid.guarantee}
-                          doorDeal={bid.doorDeal}
-                          className="text-xs text-gray-600"
-                        />
-                      </td>
-                      
-                      {/* Bids (Document icon) */}
-                      <td className="px-4 py-1.5">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleBidDocumentModal(bid);
-                          }}
-                          className="inline-flex items-center justify-center w-5 h-5 text-purple-600 hover:text-purple-800 hover:bg-purple-200 rounded transition-colors"
-                          title="View detailed bid information"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </button>
-                      </td>
-                      
-                      {/* Actions */}
-                      <td className="px-4 py-1.5">
-                        <div className="flex items-center space-x-0.5 flex-wrap">
-                          {/* Show bid status for venues viewing their own bids */}
-                          {actualViewerType === 'venue' && venueId === bid.venueId && (
-                            <>
-                              {bid.status === 'pending' && (
-                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-yellow-800 bg-yellow-100">
-                                  Pending
-                                </span>
-                              )}
-                              {bid.status === 'hold' && (
-                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-blue-800 bg-blue-100">
-                                  {bid.holdPosition === 1 ? '1st Hold' : bid.holdPosition === 2 ? '2nd Hold' : bid.holdPosition === 3 ? '3rd Hold' : 'On Hold'}
-                                </span>
-                              )}
-                              {bid.status === 'accepted' && (
-                                <button
-                                  onClick={() => handleConfirmShow(bid)}
-                                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 transition-colors"
-                                  title="Confirm this show"
-                                >
-                                  Confirm
-                                </button>
-                              )}
-                              {(bid.status === 'pending' || bid.status === 'hold') && (
-                                <button
-                                  onClick={() => handleCancelBid(bid)}
-                                  className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 transition-colors ml-1"
-                                  title="Cancel this bid"
-                                >
-                                  ✕
-                                </button>
-                              )}
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  </React.Fragment>
-                );
               }
+              // 🎯 REMOVED: venue-bid rendering section since everything is now unified as tour-request rows
               return null;
             })}
             
