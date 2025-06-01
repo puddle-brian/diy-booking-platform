@@ -2895,13 +2895,15 @@ export default function TabbedTourItinerary({
                     </div>
                   )}
 
-                  {/* Modular Template-Driven Form Sections */}
-                  <TemplateFormRenderer
-                    formData={addDateForm}
-                    onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
-                    mode="confirmed"
-                    showTemplateSelector={false}
-                  />
+                  {/* Modular Template-Driven Form Sections - Only show for artists */}
+                  {artistId && actualViewerType === 'artist' && (
+                    <TemplateFormRenderer
+                      formData={addDateForm}
+                      onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
+                      mode="confirmed"
+                      showTemplateSelector={false}
+                    />
+                  )}
                 </div>
               )}
               {/* Submit Buttons */}
