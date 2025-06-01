@@ -168,7 +168,7 @@ export default function OfferInput({
     const parsed = parseOfferInput(inputText);
     setParsedOffer(parsed);
     onChange(parsed);
-  }, [inputText, onChange]);
+  }, [inputText]);
 
   // Preset options
   const presets = [

@@ -18,6 +18,7 @@ import ShowDocumentModal from './ShowDocumentModal';
 import UniversalMakeOfferModal from './UniversalMakeOfferModal';
 import MakeOfferButton from './MakeOfferButton';
 import { ItineraryDate } from './DateDisplay';
+import OfferFormCore from './OfferFormCore';
 
 interface VenueBid {
   id: string;
@@ -98,8 +99,47 @@ interface VenueOffer {
   alternativeDates?: string[];
   message?: string;
   amount?: number;
+  doorDeal?: {
+    split: string;
+    minimumGuarantee?: number;
+    afterExpenses?: boolean;
+  };
+  ticketPrice?: {
+    advance?: number;
+    door?: number;
+  };
+  merchandiseSplit?: string;
+  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  lineupPosition?: number;
+  setLength?: number;
+  otherActs?: string;
+  billingNotes?: string;
   capacity?: number;
   ageRestriction?: string;
+  equipmentProvided?: {
+    pa: boolean;
+    mics: boolean;
+    drums: boolean;
+    amps: boolean;
+    piano: boolean;
+  };
+  loadIn?: string;
+  soundcheck?: string;
+  doorsOpen?: string;
+  showTime?: string;
+  curfew?: string;
+  promotion?: {
+    social: boolean;
+    flyerPrinting: boolean;
+    radioSpots: boolean;
+    pressCoverage: boolean;
+  };
+  lodging?: {
+    offered: boolean;
+    type: 'floor-space' | 'couch' | 'private-room';
+    details?: string;
+  };
+  additionalTerms?: string;
   status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
   createdAt: string;
   updatedAt: string;
@@ -135,10 +175,10 @@ interface TabbedTourItineraryProps {
 }
 
 interface TimelineEntry {
-  type: 'show' | 'tour-request' | 'venue-bid' | 'venue-offer';
+  type: 'show' | 'tour-request' | 'venue-bid';
   date: string;
   endDate?: string;
-  data: Show | TourRequest | VenueBid | VenueOffer;
+  data: Show | TourRequest | VenueBid;
   parentTourRequest?: TourRequest;
 }
 
@@ -195,7 +235,6 @@ export default function TabbedTourItinerary({
   
   // Add venue offer form state
   const [showVenueOfferForm, setShowVenueOfferForm] = useState(false);
-  const [addDateOfferData, setAddDateOfferData] = useState<ParsedOffer | null>(null);
   
   // Show Document Modal state
   const [showDocumentModal, setShowDocumentModal] = useState(false);
@@ -490,20 +529,77 @@ export default function TabbedTourItinerary({
       });
     });
     
-    // Add venue offers (for both venues and artists)
+    // 🎯 UNIFIED SYSTEM: Convert venue offers to synthetic tour requests with bids
+    // This creates a consistent UX where all booking opportunities are tour-request rows
     venueOffers.forEach(offer => {
       const status = offer.status.toLowerCase();
       if (!['cancelled', 'declined'].includes(status)) {
+        // 🎯 FIX: Ensure proper date handling - use original proposedDate without conversion
+        // Extract just the date part to avoid timezone issues with ISO timestamps
+        const offerDate = offer.proposedDate.split('T')[0]; // Extract YYYY-MM-DD from ISO timestamp
+        
+        // Create synthetic tour request from venue offer
+        const syntheticRequest: TourRequest = {
+          id: `venue-offer-${offer.id}`, // Prefix to distinguish synthetic requests
+          artistId: offer.artistId,
+          artistName: offer.artistName || offer.artist?.name || 'Unknown Artist',
+          title: offer.title,
+          description: offer.description || `Offer from ${offer.venueName}`,
+          startDate: offerDate, // 🎯 FIX: Use consistent date without timezone
+          endDate: offerDate, // Single date for offers
+          isSingleDate: true,
+          location: offer.venue?.location ? 
+            `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
+            offer.venueName || 'Unknown Location',
+          radius: 0, // Not applicable for venue offers
+          flexibility: 'exact-cities' as const,
+          genres: [], // Could be enhanced with venue/artist genre matching
+          expectedDraw: {
+            min: 0,
+            max: offer.capacity || 0,
+            description: `Venue capacity: ${offer.capacity || 'Unknown'}`
+          },
+          tourStatus: 'exploring-interest' as const,
+          ageRestriction: (offer.ageRestriction as any) || 'flexible',
+          equipment: {
+            needsPA: false,
+            needsMics: false, 
+            needsDrums: false,
+            needsAmps: false,
+            acoustic: false
+          },
+          // 🎯 FIX: Don't set guaranteeRange for venue offers - they have specific amounts, not ranges
+          acceptsDoorDeals: !!offer.doorDeal,
+          merchandising: false,
+          travelMethod: 'van' as const,
+          lodging: 'flexible' as const,
+          status: 'active' as const, // Always active for display
+          priority: 'medium' as const,
+          responses: 1, // Always 1 since there's exactly one offer/bid
+          createdAt: offer.createdAt || new Date().toISOString(),
+          updatedAt: offer.updatedAt || new Date().toISOString(),
+          expiresAt: offer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          
+          // 🎯 VENUE-INITIATED FLAGS: Mark as venue-initiated for ownership control
+          isVenueInitiated: true,
+          venueInitiatedBy: offer.venueId,
+          originalOfferId: offer.id
+        } as TourRequest & { 
+          isVenueInitiated?: boolean; 
+          venueInitiatedBy?: string; 
+          originalOfferId?: string; 
+        };
+        
         entries.push({
-          type: 'venue-offer',
-          date: offer.proposedDate,
-          data: offer
+          type: 'tour-request',
+          date: offerDate, // 🎯 FIX: Use consistent date without timezone
+          data: syntheticRequest
         });
       }
     });
     
     if (artistId) {
-      // Add tour requests as date ranges for artists
+      // Add regular artist-initiated tour requests
       tourRequests.forEach(request => {
         if (request.status === 'active') {
           entries.push({
@@ -515,7 +611,7 @@ export default function TabbedTourItinerary({
         }
       });
     } else if (venueId) {
-      // Add venue bids for venues
+      // Add venue bids for venues (regular tour requests they've bid on)
       venueBids.forEach(bid => {
         if (!['expired', 'cancelled', 'declined'].includes(bid.status)) {
           entries.push({
@@ -589,7 +685,7 @@ export default function TabbedTourItinerary({
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       setActiveMonthTab(currentMonth);
     }
-  }, [monthGroups.length, monthGroups.map(g => g.monthKey).join(',')]); // Better dependencies
+  }, [monthGroups.length, activeMonthTab]); // 🎯 FIX: Simplified dependencies to prevent infinite loops
 
   const activeMonthEntries = monthGroups.find(group => group.monthKey === activeMonthTab)?.entries || [];
 
@@ -901,130 +997,11 @@ export default function TabbedTourItinerary({
       return;
     }
 
-    // Handle venue offer type - create the offer directly
-    if (addDateForm.type === 'offer' && venueId) {
-      console.log('🎯 TabbedTourItinerary: Creating venue offer...');
-      
-      if (!addDateForm.artistId || !addDateForm.date) {
-        alert('Please select an artist and date for the offer.');
-        return;
-      }
-
-      try {
-        setAddDateLoading(true);
-        
-        // Convert parsed offer to legacy format
-        const legacyOffer = parsedOfferToLegacyFormat(addDateOfferData);
-        
-        const response = await fetch(`/api/venues/${venueId}/offers`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            artistId: addDateForm.artistId,
-            title: `${addDateForm.artistName} - ${new Date(addDateForm.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName}`,
-            proposedDate: addDateForm.date,
-            amount: legacyOffer.amount,
-            doorDeal: legacyOffer.doorDeal,
-            capacity: addDateForm.capacity ? parseInt(addDateForm.capacity) : undefined,
-            ageRestriction: addDateForm.ageRestriction,
-            message: addDateForm.description.trim() || `Hey! We'd love to have you play at ${venueName}. We think you'd be a great fit for our space and audience. Let us know if you're interested!`,
-          }),
-        });
-
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result.error || 'Failed to create offer');
-        }
-
-        console.log('✅ TabbedTourItinerary: Venue offer created successfully', result);
-        
-        // Reset form and close modal
-        setShowAddDateForm(false);
-        setAddDateOfferData(null);
-        setAddDateForm({
-          type: 'offer',
-          date: '',
-          startDate: '',
-          endDate: '',
-          requestDate: '',
-          useSingleDate: true,
-          location: '',
-          artistId: '',
-          artistName: '',
-          venueId: '',
-          venueName: '',
-          title: '',
-          description: '',
-          guarantee: '',
-          capacity: '',
-          ageRestriction: 'all-ages',
-          loadIn: '',
-          soundcheck: '',
-          doorsOpen: '',
-          showTime: '',
-          curfew: '',
-          notes: '',
-          // Billing order fields
-          billingPosition: '',
-          lineupPosition: '',
-          setLength: '',
-          otherActs: '',
-          billingNotes: '',
-          equipment: {
-            needsPA: false,
-            needsMics: false,
-            needsDrums: false,
-            needsAmps: false,
-            acoustic: false
-          },
-          // New dynamic requirement arrays
-          technicalRequirements: [],
-          hospitalityRequirements: [],
-          guaranteeRange: {
-            min: 0,
-            max: 0
-          },
-          acceptsDoorDeals: true,
-          merchandising: true,
-          travelMethod: 'van' as 'van' | 'flying' | 'train' | 'other',
-          lodging: 'flexible' as 'floor-space' | 'hotel' | 'flexible',
-          priority: 'medium' as 'high' | 'medium' | 'low'
-        });
-
-        // Refresh data
-        await fetchData();
-        alert('Offer sent successfully!');
-        return;
-        
-      } catch (error) {
-        console.error('🚨 TabbedTourItinerary: Error creating venue offer:', error);
-        alert(`Failed to create offer: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        return;
-      } finally {
-        setAddDateLoading(false);
-      }
-    }
+    // Note: Offer type is now handled by OfferFormCore component
+    // This function only handles 'request' and 'confirmed' types
     
-    // Continue with regular form submission for other types
     try {
       setAddDateLoading(true);
-      
-      console.log('🎯 TabbedTourItinerary: Form submission started', {
-        type: addDateForm.type,
-        artistId,
-        artistName,
-        venueId,
-        venueName,
-        formData: addDateForm
-      });
-      
-      if (addDateLoading) {
-        console.log('🚨 TabbedTourItinerary: Form submission already in progress');
-        return;
-      }
 
       // Handle confirmed show creation
       if (addDateForm.type === 'confirmed') {
@@ -1429,6 +1406,157 @@ export default function TabbedTourItinerary({
     setSelectedDocumentShow(null);
     setSelectedDocumentBid(null);
     setShowDocumentModal(true);
+  };
+
+  // Add handler for venue offer document modal
+  const handleOfferDocumentModal = (offer: VenueOffer) => {
+    // Convert VenueOffer to VenueBid format for ShowDocumentModal compatibility
+    const bidFormatOffer: VenueBid = {
+      id: offer.id,
+      tourRequestId: '', // Not applicable for direct offers
+      venueId: offer.venueId,
+      venueName: offer.venueName,
+      proposedDate: offer.proposedDate,
+      guarantee: offer.amount,
+      doorDeal: offer.doorDeal ? {
+        split: offer.doorDeal.split,
+        minimumGuarantee: offer.doorDeal.minimumGuarantee
+      } : undefined, // 🎯 FIX: Preserve door deal structure (compatible fields only)
+      ticketPrice: offer.ticketPrice || {},
+      capacity: offer.capacity || 0,
+      ageRestriction: offer.ageRestriction || 'all-ages',
+      equipmentProvided: offer.equipmentProvided || {
+        pa: false,
+        mics: false,
+        drums: false,
+        amps: false,
+        piano: false
+      },
+      loadIn: offer.loadIn || '',
+      soundcheck: offer.soundcheck || '',
+      doorsOpen: offer.doorsOpen || '',
+      showTime: offer.showTime || '',
+      curfew: offer.curfew || '',
+      promotion: offer.promotion || {
+        social: false,
+        flyerPrinting: false,
+        radioSpots: false,
+        pressCoverage: false
+      },
+      message: offer.message || '',
+      status: offer.status.toLowerCase() as 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled',
+      readByArtist: true,
+      createdAt: offer.createdAt,
+      updatedAt: offer.updatedAt,
+      expiresAt: offer.expiresAt || '',
+      location: offer.venue?.location ? 
+        `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
+        offer.venueName,
+      billingPosition: offer.billingPosition,
+      lineupPosition: offer.lineupPosition,
+      setLength: offer.setLength,
+      otherActs: offer.otherActs,
+      billingNotes: offer.billingNotes
+    };
+
+    setSelectedDocumentBid(bidFormatOffer);
+    setSelectedDocumentShow(null);
+    setSelectedDocumentTourRequest(null);
+    setShowDocumentModal(true);
+  };
+
+  // Add this helper function for offer data conversion
+  const parsedOfferToLegacyFormat = (offerData: any) => {
+    if (!offerData) {
+      return { amount: null, doorDeal: null };
+    }
+
+    if (offerData.type === 'guarantee') {
+      return {
+        amount: offerData.guarantee, // 🎯 FIX: Use 'guarantee' field instead of 'amount'
+        doorDeal: null
+      };
+    } else if (offerData.type === 'door') {
+      return {
+        amount: null,
+        doorDeal: {
+          split: offerData.split,
+          minimumGuarantee: offerData.minimumGuarantee || 0
+        }
+      };
+    } else if (offerData.type === 'mixed') {
+      return {
+        amount: offerData.guarantee,
+        doorDeal: {
+          split: offerData.split,
+          minimumGuarantee: offerData.guarantee || 0
+        }
+      };
+    }
+
+    return { amount: null, doorDeal: null };
+  };
+
+  // Add this new function to handle offer form submission
+  const handleOfferFormSubmit = async (formData: any) => {
+    console.log('🎯 TabbedTourItinerary: Offer form submission started', formData);
+    console.log('🎯 TabbedTourItinerary: formData.offerData:', formData.offerData);
+    
+    try {
+      // Convert parsed offer to legacy format
+      const legacyOffer = parsedOfferToLegacyFormat(formData.offerData);
+      console.log('🎯 TabbedTourItinerary: legacyOffer after conversion:', legacyOffer);
+      
+      // 🎯 FIX: Parse date directly to avoid timezone conversion
+      const [year, month, day] = formData.proposedDate.split('-').map(Number);
+      const dateForTitle = new Date(year, month - 1, day); // Create date in local timezone
+      
+      const requestBody: any = {
+        artistId: formData.artistId,
+        title: `${formData.artistName} - ${dateForTitle.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName}`,
+        proposedDate: formData.proposedDate, // Keep original date string format
+        capacity: formData.capacity,
+        ageRestriction: formData.ageRestriction,
+        message: formData.message.trim() || `Hey! We'd love to have you play at ${venueName}. We think you'd be a great fit for our space and audience. Let us know if you're interested!`,
+      };
+
+      // Only add amount and doorDeal if they have values
+      if (legacyOffer.amount !== null && legacyOffer.amount !== undefined) {
+        requestBody.amount = legacyOffer.amount;
+      }
+      if (legacyOffer.doorDeal !== null && legacyOffer.doorDeal !== undefined) {
+        requestBody.doorDeal = legacyOffer.doorDeal;
+      }
+
+      console.log('🎯 TabbedTourItinerary: Final request body:', requestBody);
+      
+      const response = await fetch(`/api/venues/${venueId}/offers`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create offer');
+      }
+
+      console.log('✅ TabbedTourItinerary: Venue offer created successfully', result);
+      
+      // Reset form and close modal
+      setShowAddDateForm(false);
+      
+      // Refresh data
+      await fetchData();
+      alert('Offer sent successfully!');
+      
+    } catch (error) {
+      console.error('🚨 TabbedTourItinerary: Error creating venue offer:', error);
+      throw error; // Let OfferFormCore handle the error display
+    }
   };
 
   if (loading) {
@@ -1860,8 +1988,98 @@ export default function TabbedTourItinerary({
                   </React.Fragment>
                 );
               } else if (entry.type === 'tour-request') {
-                const request = entry.data as TourRequest;
-                const requestBids = venueBids.filter(bid => bid.tourRequestId === request.id);
+                const request = entry.data as TourRequest & { 
+                  isVenueInitiated?: boolean; 
+                  originalOfferId?: string; 
+                  venueInitiatedBy?: string;
+                };
+                
+                // 🎯 UNIFIED BID SYSTEM: Handle both regular bids and synthetic bids from venue offers
+                let requestBids: VenueBid[] = [];
+                
+                if (request.isVenueInitiated && request.originalOfferId) {
+                  // For synthetic requests, convert the venue offer to a bid format
+                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                  if (originalOffer) {
+                    console.log('🎯 Converting venue offer to synthetic bid:', {
+                      offerId: originalOffer.id,
+                      offerAmount: originalOffer.amount,
+                      offerDoorDeal: originalOffer.doorDeal,
+                      offerDate: originalOffer.proposedDate,
+                      offerDateRaw: originalOffer.proposedDate,
+                      offerTitle: originalOffer.title
+                    });
+                    
+                    // 🎯 FIX: Extract date part to avoid timezone conversion issues
+                    const bidDate = originalOffer.proposedDate.split('T')[0]; // Extract YYYY-MM-DD
+                    
+                    const syntheticBid: VenueBid = {
+                      id: `offer-bid-${originalOffer.id}`,
+                      tourRequestId: request.id,
+                      venueId: originalOffer.venueId,
+                      venueName: originalOffer.venueName,
+                      proposedDate: bidDate, // 🎯 FIX: Use date without timezone info
+                      guarantee: originalOffer.amount, // 🎯 FIX: Ensure amount transfer
+                      doorDeal: originalOffer.doorDeal ? {
+                        split: originalOffer.doorDeal.split,
+                        minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
+                      } : undefined, // 🎯 FIX: Preserve door deal structure (compatible fields only)
+                      ticketPrice: originalOffer.ticketPrice || {},
+                      capacity: originalOffer.capacity || originalOffer.venue?.capacity || 0,
+                      ageRestriction: originalOffer.ageRestriction || 'all-ages',
+                      equipmentProvided: originalOffer.equipmentProvided || {
+                        pa: false,
+                        mics: false,
+                        drums: false,
+                        amps: false,
+                        piano: false
+                      },
+                      loadIn: originalOffer.loadIn || '',
+                      soundcheck: originalOffer.soundcheck || '',
+                      doorsOpen: originalOffer.doorsOpen || '',
+                      showTime: originalOffer.showTime || '',
+                      curfew: originalOffer.curfew || '',
+                      promotion: originalOffer.promotion || {
+                        social: false,
+                        flyerPrinting: false,
+                        radioSpots: false,
+                        pressCoverage: false
+                      },
+                      message: originalOffer.message || '',
+                      status: originalOffer.status.toLowerCase() as 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled',
+                      readByArtist: true,
+                      createdAt: originalOffer.createdAt,
+                      updatedAt: originalOffer.updatedAt,
+                      expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                      location: originalOffer.venue?.location ? 
+                        `${originalOffer.venue.location.city}, ${originalOffer.venue.location.stateProvince}` : 
+                        undefined,
+                      // Additional venue offer fields
+                      billingPosition: originalOffer.billingPosition,
+                      lineupPosition: originalOffer.lineupPosition,
+                      setLength: originalOffer.setLength,
+                      otherActs: originalOffer.otherActs,
+                      billingNotes: originalOffer.billingNotes
+                    };
+                    
+                    console.log('🎯 Created synthetic bid:', {
+                      bidId: syntheticBid.id,
+                      guarantee: syntheticBid.guarantee,
+                      guaranteeType: typeof syntheticBid.guarantee,
+                      doorDeal: syntheticBid.doorDeal,
+                      proposedDate: syntheticBid.proposedDate,
+                      proposedDateType: typeof syntheticBid.proposedDate,
+                      originalOfferAmount: originalOffer.amount,
+                      originalOfferDate: originalOffer.proposedDate,
+                      extractedBidDate: bidDate
+                    });
+                    
+                    requestBids = [syntheticBid];
+                  }
+                } else {
+                  // For regular requests, use normal bid filtering
+                  requestBids = venueBids.filter(bid => bid.tourRequestId === request.id);
+                }
                 
                 return (
                   <React.Fragment key={`request-${request.id}`}>
@@ -1943,8 +2161,8 @@ export default function TabbedTourItinerary({
                       {/* Actions */}
                       <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-2">
-                          {/* Delete button for artists */}
-                          {actualViewerType === 'artist' && (
+                          {/* Delete button for artists - only for regular artist-initiated requests */}
+                          {actualViewerType === 'artist' && !request.isVenueInitiated && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -1964,8 +2182,35 @@ export default function TabbedTourItinerary({
                             </button>
                           )}
 
-                          {/* Make Offer Button for venues */}
-                          {actualViewerType === 'venue' && (
+                          {/* Delete button for venues - only for venue-initiated requests they created */}
+                          {actualViewerType === 'venue' && request.isVenueInitiated && venueId === request.venueInitiatedBy && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // For venue-initiated requests, delete the original offer
+                                if (request.originalOfferId) {
+                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                  if (originalOffer) {
+                                    handleOfferAction(originalOffer, 'cancel');
+                                  }
+                                }
+                              }}
+                              disabled={deleteLoading === request.id}
+                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              title="Cancel offer"
+                            >
+                              {deleteLoading === request.id ? (
+                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                                </svg>
+                              )}
+                            </button>
+                          )}
+
+                          {/* Make Offer Button for venues - only on regular artist-initiated requests */}
+                          {actualViewerType === 'venue' && !request.isVenueInitiated && (
                             <MakeOfferButton
                               targetArtist={{
                                 id: request.artistId,
@@ -2129,7 +2374,17 @@ export default function TabbedTourItinerary({
                                                   {bid.status === 'pending' && (
                                                     <>
                                                       <button
-                                                        onClick={() => handleBidAction(bid, 'accept')}
+                                                        onClick={() => {
+                                                          // For synthetic bids, use offer actions
+                                                          if (request.isVenueInitiated && request.originalOfferId) {
+                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                            if (originalOffer) {
+                                                              handleOfferAction(originalOffer, 'accept');
+                                                            }
+                                                          } else {
+                                                            handleBidAction(bid, 'accept');
+                                                          }
+                                                        }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
                                                         title="Accept this bid"
@@ -2137,17 +2392,33 @@ export default function TabbedTourItinerary({
                                                         ✓
                                                       </button>
                                                       <button
-                                                        onClick={() => handleBidAction(bid, 'hold')}
-                                                        disabled={bidActions[bid.id]}
+                                                        onClick={() => {
+                                                          // For synthetic bids, use offer actions (no hold functionality for offers)
+                                                          if (!request.isVenueInitiated) {
+                                                            handleBidAction(bid, 'hold');
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id] || request.isVenueInitiated}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 transition-colors"
-                                                        title="Place on hold"
+                                                        title={request.isVenueInitiated ? "Hold not available for offers" : "Place on hold"}
+                                                        style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
                                                       >
                                                         ⏸
                                                       </button>
                                                       <button
                                                         onClick={() => {
                                                           const reason = prompt('Reason for declining (optional):');
-                                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
+                                                          if (reason !== null) {
+                                                            // For synthetic bids, use offer actions
+                                                            if (request.isVenueInitiated && request.originalOfferId) {
+                                                              const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                              if (originalOffer) {
+                                                                handleOfferAction(originalOffer, 'decline');
+                                                              }
+                                                            } else {
+                                                              handleBidAction(bid, 'decline', reason);
+                                                            }
+                                                          }
                                                         }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
@@ -2161,7 +2432,17 @@ export default function TabbedTourItinerary({
                                                   {bid.status === 'hold' && (
                                                     <>
                                                       <button
-                                                        onClick={() => handleBidAction(bid, 'accept')}
+                                                        onClick={() => {
+                                                          // For synthetic bids, use offer actions
+                                                          if (request.isVenueInitiated && request.originalOfferId) {
+                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                            if (originalOffer) {
+                                                              handleOfferAction(originalOffer, 'accept');
+                                                            }
+                                                          } else {
+                                                            handleBidAction(bid, 'accept');
+                                                          }
+                                                        }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
                                                         title="Accept this bid"
@@ -2171,7 +2452,17 @@ export default function TabbedTourItinerary({
                                                       <button
                                                         onClick={() => {
                                                           const reason = prompt('Reason for declining (optional):');
-                                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
+                                                          if (reason !== null) {
+                                                            // For synthetic bids, use offer actions
+                                                            if (request.isVenueInitiated && request.originalOfferId) {
+                                                              const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                              if (originalOffer) {
+                                                                handleOfferAction(originalOffer, 'decline');
+                                                              }
+                                                            } else {
+                                                              handleBidAction(bid, 'decline', reason);
+                                                            }
+                                                          }
                                                         }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
@@ -2187,19 +2478,33 @@ export default function TabbedTourItinerary({
                                                       <button
                                                         onClick={() => {
                                                           if (confirm('Undo acceptance and return this bid to pending status? The venue will be notified.')) {
-                                                            handleBidAction(bid, 'undo-accept');
+                                                            // For synthetic bids, this would involve complex offer state management
+                                                            if (!request.isVenueInitiated) {
+                                                              handleBidAction(bid, 'undo-accept');
+                                                            }
                                                           }
                                                         }}
-                                                        disabled={bidActions[bid.id]}
+                                                        disabled={bidActions[bid.id] || request.isVenueInitiated}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-colors"
-                                                        title="Undo acceptance - return to pending"
+                                                        title={request.isVenueInitiated ? "Undo not available for offers" : "Undo acceptance - return to pending"}
+                                                        style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
                                                       >
                                                         ↶
                                                       </button>
                                                       <button
                                                         onClick={() => {
                                                           const reason = prompt('Reason for declining (optional):');
-                                                          if (reason !== null) handleBidAction(bid, 'decline', reason);
+                                                          if (reason !== null) {
+                                                            // For synthetic bids, use offer actions
+                                                            if (request.isVenueInitiated && request.originalOfferId) {
+                                                              const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                              if (originalOffer) {
+                                                                handleOfferAction(originalOffer, 'decline');
+                                                              }
+                                                            } else {
+                                                              handleBidAction(bid, 'decline', reason);
+                                                            }
+                                                          }
                                                         }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
@@ -2238,7 +2543,17 @@ export default function TabbedTourItinerary({
 
                                                   {(bid.status === 'pending' || bid.status === 'hold') && (
                                                     <button
-                                                      onClick={() => handleCancelBid(bid)}
+                                                      onClick={() => {
+                                                        // For synthetic bids, cancel the original offer
+                                                        if (request.isVenueInitiated && request.originalOfferId) {
+                                                          const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                          if (originalOffer) {
+                                                            handleOfferAction(originalOffer, 'cancel');
+                                                          }
+                                                        } else {
+                                                          handleCancelBid(bid);
+                                                        }
+                                                      }}
                                                       className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 transition-colors ml-1"
                                                       title="Cancel this bid"
                                                     >
@@ -2262,11 +2577,10 @@ export default function TabbedTourItinerary({
                     )}
                   </React.Fragment>
                 );
-              } else if (entry.type === 'venue-offer') {
-                const offer = entry.data as VenueOffer;
-                
+              } else if (entry.type === 'venue-bid') {
+                const bid = entry.data as VenueBid;
                 return (
-                  <React.Fragment key={`offer-${offer.id}`}>
+                  <React.Fragment key={`bid-${bid.id}`}>
                     <tr 
                       className="bg-purple-50 transition-colors duration-150 hover:bg-purple-100 hover:shadow-sm border-l-4 border-purple-400 hover:border-purple-500"
                     >
@@ -2274,7 +2588,7 @@ export default function TabbedTourItinerary({
                       <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-purple-900">
                           <ItineraryDate
-                            date={offer.proposedDate}
+                            date={bid.proposedDate}
                             className="text-sm font-medium text-purple-900"
                           />
                         </div>
@@ -2284,58 +2598,37 @@ export default function TabbedTourItinerary({
                       <td className="px-4 py-1.5">
                         <div className="text-sm text-purple-900 truncate">
                           {/* Show venue location (city, state) where the show happens */}
-                          {offer.venue?.location ? 
-                            `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
-                            offer.venueName || '-'
-                          }
+                          {bid.location || bid.venueName || '-'}
                         </div>
                       </td>
                       
-                      {/* Artist/Venue Name */}
+                      {/* Venue Name */}
                       <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-2">
                           <div className="text-sm font-medium text-purple-900 truncate">
-                            {venueId ? (
-                              // For venues viewing offers, show artist name as link
-                              offer.artist?.id ? (
-                                <a 
-                                  href={`/artists/${offer.artist.id}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View artist page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {offer.artist.name}
-                                </a>
-                              ) : (
-                                offer.artist?.name || offer.artistName || 'Unknown Artist'
-                              )
+                            {bid.venueId && bid.venueId !== 'external-venue' ? (
+                              <a 
+                                href={`/venues/${bid.venueId}`}
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                                title="View venue page"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {bid.venueName}
+                              </a>
                             ) : (
-                              // For artists viewing offers, show venue name as link
-                              offer.venue?.id ? (
-                                <a 
-                                  href={`/venues/${offer.venue.id}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View venue page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {offer.venue.name}
-                                </a>
-                              ) : (
-                                offer.venue?.name || offer.venueName || 'Unknown Venue'
-                              )
+                              bid.venueName || 'Unknown Venue'
                             )}
                           </div>
                           
                           {/* Message indicator if there's a message */}
-                          {offer.message && (
+                          {bid.message && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // TODO: Show message in tooltip or modal
-                                alert(offer.message);
+                                alert(bid.message);
                               }}
                               className="inline-flex items-center justify-center w-5 h-5 bg-purple-500 hover:bg-purple-600 text-white rounded-full transition-colors"
-                              title={offer.message}
+                              title={bid.message}
                             >
                               <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
@@ -2347,91 +2640,90 @@ export default function TabbedTourItinerary({
                       
                       {/* Status */}
                       <td className="px-4 py-1.5">
-                        <span className={getOfferStatusBadge(offer).className}>
-                          {getOfferStatusBadge(offer).text}
+                        <span className={getBidStatusBadge(bid).className}>
+                          {getBidStatusBadge(bid).text}
                         </span>
                       </td>
                       
                       {/* Capacity */}
                       <td className="px-4 py-1.5">
                         <div className="text-xs text-gray-600">
-                          {offer.capacity || offer.venue?.capacity || '-'}
+                          {bid.capacity || '-'}
                         </div>
                       </td>
                       
                       {/* Age */}
                       <td className="px-4 py-1.5">
                         <div className="text-xs text-gray-600">
-                          {offer.ageRestriction === 'ALL_AGES' ? 'all-ages' : 
-                           offer.ageRestriction === 'EIGHTEEN_PLUS' ? '18+' : 
-                           offer.ageRestriction === 'TWENTY_ONE_PLUS' ? '21+' : 
-                           offer.ageRestriction?.toLowerCase() || '-'}
+                          {bid.ageRestriction === 'ALL_AGES' ? 'all-ages' : 
+                           bid.ageRestriction === 'EIGHTEEN_PLUS' ? '18+' : 
+                           bid.ageRestriction === 'TWENTY_ONE_PLUS' ? '21+' : 
+                           bid.ageRestriction === '18_PLUS' ? '18+' : 
+                           bid.ageRestriction === '21_PLUS' ? '21+' : 
+                           bid.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
                         </div>
                       </td>
                       
                       {/* Offers */}
                       <td className="px-4 py-1.5">
                         <InlineOfferDisplay 
-                          amount={offer.amount}
+                          amount={bid.guarantee}
+                          doorDeal={bid.doorDeal}
                           className="text-xs text-gray-600"
                         />
                       </td>
                       
-                      {/* Bids (N/A for offers) */}
+                      {/* Bids (Document icon) */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-400">-</div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleBidDocumentModal(bid);
+                          }}
+                          className="inline-flex items-center justify-center w-5 h-5 text-purple-600 hover:text-purple-800 hover:bg-purple-200 rounded transition-colors"
+                          title="View detailed bid information"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
                       </td>
                       
                       {/* Actions */}
                       <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-0.5 flex-wrap">
-                          {/* Accept/Decline buttons for artists viewing pending offers - ONLY if they're a member of the target artist */}
-                          {editable && artistId && artistId === offer.artistId && offer.status?.toLowerCase() === 'pending' && (
+                          {/* Show bid status for venues viewing their own bids */}
+                          {actualViewerType === 'venue' && venueId === bid.venueId && (
                             <>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOfferAction(offer, 'accept');
-                                }}
-                                className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 transition-colors"
-                                title="Accept this offer"
-                              >
-                                ✓
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOfferAction(offer, 'decline');
-                                }}
-                                className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 transition-colors"
-                                title="Decline this offer"
-                              >
-                                ✕
-                              </button>
+                              {bid.status === 'pending' && (
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-yellow-800 bg-yellow-100">
+                                  Pending
+                                </span>
+                              )}
+                              {bid.status === 'hold' && (
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-blue-800 bg-blue-100">
+                                  {bid.holdPosition === 1 ? '1st Hold' : bid.holdPosition === 2 ? '2nd Hold' : bid.holdPosition === 3 ? '3rd Hold' : 'On Hold'}
+                                </span>
+                              )}
+                              {bid.status === 'accepted' && (
+                                <button
+                                  onClick={() => handleConfirmShow(bid)}
+                                  className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 transition-colors"
+                                  title="Confirm this show"
+                                >
+                                  Confirm
+                                </button>
+                              )}
+                              {(bid.status === 'pending' || bid.status === 'hold') && (
+                                <button
+                                  onClick={() => handleCancelBid(bid)}
+                                  className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 transition-colors ml-1"
+                                  title="Cancel this bid"
+                                >
+                                  ✕
+                                </button>
+                              )}
                             </>
-                          )}
-                          
-                          {/* Status display for non-pending offers */}
-                          {offer.status?.toLowerCase() !== 'pending' && (
-                            <span className={getOfferStatusBadge(offer).className}>
-                              {getOfferStatusBadge(offer).text}
-                            </span>
-                          )}
-                          
-                          {/* Delete button for venues - ONLY if they're a member of the venue that created the offer */}
-                          {editable && venueId && venueId === offer.venueId && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOfferAction(offer, 'cancel');
-                              }}
-                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                              title="Delete offer"
-                            >
-                              <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
-                              </svg>
-                            </button>
                           )}
                         </div>
                       </td>
@@ -2543,289 +2835,258 @@ export default function TabbedTourItinerary({
       {/* Add Date Form Modal */}
       {showAddDateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Add Date
-                </h3>
-                <div className="flex items-center space-x-3">
-                  <button
-                    onClick={() => setShowAddDateForm(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+          {addDateForm.type === 'offer' && venueId && venueName ? (
+            // Use OfferFormCore for consistent offer experience
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <OfferFormCore
+                venueId={venueId}
+                venueName={venueName}
+                onSubmit={handleOfferFormSubmit}
+                onCancel={() => setShowAddDateForm(false)}
+                title="Make Offer to Artist"
+                subtitle="Invite a specific artist to play at your venue on this date"
+                submitButtonText="Send Offer"
+                showCapacityField={true}
+              />
+            </div>
+          ) : (
+            // Keep existing form for request and confirmed types
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Add Date
+                  </h3>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      onClick={() => setShowAddDateForm(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <form onSubmit={handleAddDateSubmit} className="px-6 py-4 space-y-6">
-              {/* Type Selection - Only for Artists */}
-              {artistId && actualViewerType === 'artist' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type *
-                  </label>
-                  <select
-                    required
-                    value={addDateForm.type}
-                    onChange={(e) => setAddDateForm(prev => ({ ...prev, type: e.target.value as 'request' | 'confirmed' | 'offer' }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="request">Request (looking for venues)</option>
-                    <option value="confirmed">Confirmed (already booked)</option>
-                  </select>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {addDateForm.type === 'request' 
-                      ? 'Create a show request to find venues for this date'
-                      : 'Add a confirmed show that was booked outside the platform'
-                    }
-                  </p>
-                </div>
-              )}
-
-              {/* Type Selection - Only for Venues */}
-              {venueId && actualViewerType === 'venue' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Type *
-                  </label>
-                  <select
-                    required
-                    value={addDateForm.type}
-                    onChange={(e) => setAddDateForm(prev => ({ ...prev, type: e.target.value as 'request' | 'confirmed' | 'offer' }))}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="offer">Make Offer (invite specific artist)</option>
-                    <option value="confirmed">Confirmed Show (already booked)</option>
-                  </select>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {addDateForm.type === 'offer' 
-                      ? 'Create a targeted offer to invite a specific artist to play at your venue'
-                      : 'Add a confirmed show that was booked outside the platform'
-                    }
-                  </p>
-                </div>
-              )}
-
-              {/* Basic Information */}
-              {addDateForm.type === 'request' ? (
-                // Date input for requests - with toggle between single date and range
-                <div className="space-y-4">
-                  {/* Date Format Toggle */}
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                      Date Format
+              
+              <form onSubmit={handleAddDateSubmit} className="px-6 py-4 space-y-6">
+                {/* Type Selection - Only for Artists */}
+                {artistId && actualViewerType === 'artist' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type *
                     </label>
-                    <div className="flex items-center space-x-6">
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="dateFormat"
-                          checked={addDateForm.useSingleDate}
-                          onChange={(e) => setAddDateForm(prev => ({ 
-                            ...prev, 
-                            useSingleDate: true,
-                            // Clear other format when switching
-                            startDate: '',
-                            endDate: ''
-                          }))}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-900">
-                          Single Date
-                        </span>
-                      </label>
-                      <label className="flex items-center">
-                        <input
-                          type="radio"
-                          name="dateFormat"
-                          checked={!addDateForm.useSingleDate}
-                          onChange={(e) => setAddDateForm(prev => ({ 
-                            ...prev, 
-                            useSingleDate: false,
-                            // Clear other format when switching
-                            requestDate: ''
-                          }))}
-                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
-                        />
-                        <span className="ml-2 text-sm font-medium text-gray-900">
-                          Date Range
-                        </span>
-                      </label>
-                    </div>
-                    <p className="text-xs text-blue-700 mt-2">
-                      {addDateForm.useSingleDate 
-                        ? "Create one request for a specific date. Need multiple dates? Create separate requests."
-                        : "Legacy format: Create one request that covers multiple dates in a range."
+                    <select
+                      required
+                      value={addDateForm.type}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, type: e.target.value as 'request' | 'confirmed' | 'offer' }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="request">Request (looking for venues)</option>
+                      <option value="confirmed">Confirmed (already booked)</option>
+                    </select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {addDateForm.type === 'request' 
+                        ? 'Create a show request to find venues for this date'
+                        : 'Add a confirmed show that was booked outside the platform'
                       }
                     </p>
                   </div>
+                )}
 
-                  {/* Date Input - Changes based on toggle */}
-                  {addDateForm.useSingleDate ? (
-                    // Single Date Input
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Show Date *
+                {/* Type Selection - Only for Venues */}
+                {venueId && actualViewerType === 'venue' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type *
+                    </label>
+                    <select
+                      required
+                      value={addDateForm.type}
+                      onChange={(e) => setAddDateForm(prev => ({ ...prev, type: e.target.value as 'request' | 'confirmed' | 'offer' }))}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="offer">Make Offer (invite specific artist)</option>
+                      <option value="confirmed">Confirmed Show (already booked)</option>
+                    </select>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {addDateForm.type === 'offer' 
+                        ? 'Create a targeted offer to invite a specific artist to play at your venue'
+                        : 'Add a confirmed show that was booked outside the platform'
+                      }
+                    </p>
+                  </div>
+                )}
+
+                {/* Basic Information */}
+                {addDateForm.type === 'request' ? (
+                  // Date input for requests - with toggle between single date and range
+                  <div className="space-y-4">
+                    {/* Date Format Toggle */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Date Format
                       </label>
-                      <input
-                        type="date"
-                        required
-                        value={addDateForm.requestDate}
-                        onChange={(e) => setAddDateForm(prev => ({ ...prev, requestDate: e.target.value }))}
-                        min={new Date().toISOString().split('T')[0]}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      <p className="text-sm text-gray-500 mt-1">
-                        Select the specific date you want to perform
+                      <div className="flex items-center space-x-6">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="dateFormat"
+                            checked={addDateForm.useSingleDate}
+                            onChange={(e) => setAddDateForm(prev => ({ 
+                              ...prev, 
+                              useSingleDate: true,
+                              // Clear other format when switching
+                              startDate: '',
+                              endDate: ''
+                            }))}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm font-medium text-gray-900">
+                            Single Date
+                          </span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="dateFormat"
+                            checked={!addDateForm.useSingleDate}
+                            onChange={(e) => setAddDateForm(prev => ({ 
+                              ...prev, 
+                              useSingleDate: false,
+                              // Clear other format when switching
+                              requestDate: ''
+                            }))}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                          />
+                          <span className="ml-2 text-sm font-medium text-gray-900">
+                            Date Range
+                          </span>
+                        </label>
+                      </div>
+                      <p className="text-xs text-blue-700 mt-2">
+                        {addDateForm.useSingleDate 
+                          ? "Create one request for a specific date. Need multiple dates? Create separate requests."
+                          : "Legacy format: Create one request that covers multiple dates in a range."
+                        }
                       </p>
                     </div>
-                  ) : (
-                    // Date Range Input (Legacy)
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    {/* Date Input - Changes based on toggle */}
+                    {addDateForm.useSingleDate ? (
+                      // Single Date Input
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Start Date *
+                          Show Date *
                         </label>
                         <input
                           type="date"
                           required
-                          value={addDateForm.startDate}
-                          onChange={(e) => setAddDateForm(prev => ({ ...prev, startDate: e.target.value }))}
+                          value={addDateForm.requestDate}
+                          onChange={(e) => setAddDateForm(prev => ({ ...prev, requestDate: e.target.value }))}
                           min={new Date().toISOString().split('T')[0]}
                           className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Select the specific date you want to perform
+                        </p>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          End Date *
-                        </label>
-                        <input
-                          type="date"
-                          required
-                          value={addDateForm.endDate}
-                          onChange={(e) => setAddDateForm(prev => ({ ...prev, endDate: e.target.value }))}
-                          min={addDateForm.startDate || new Date().toISOString().split('T')[0]}
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Location *
-                    </label>
-                    <LocationAutocomplete
-                      value={addDateForm.location}
-                      onChange={(value) => setAddDateForm(prev => ({ ...prev, location: value }))}
-                      placeholder="e.g., Seattle, WA or Pacific Northwest"
-                      required
-                      label="Location"
-                      showLabel={false}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={addDateForm.title}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder={`${artistName} Show Request`}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      Leave blank to use "{artistName} Show Request" or customize it
-                    </p>
-                  </div>
-
-                  {/* Template Selector - Enhanced prominence */}
-                  {artistId && viewerType === 'artist' && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <TemplateSelector
-                        artistId={artistId}
-                        onTemplateApply={handleTemplateApply}
-                        className="mb-0"
-                        autoFillDefault={true}
-                      />
-                    </div>
-                  )}
-
-                  {/* Modular Template-Driven Form Sections */}
-                  <TemplateFormRenderer
-                    formData={addDateForm}
-                    onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
-                    mode="request"
-                    showTemplateSelector={false}
-                  />
-                </div>
-              ) : addDateForm.type === 'offer' ? (
-                // Offer form - Artist selection and basic details
-                <div className="space-y-4">
-                  {/* Artist Selection - TOP CENTER FIELD */}
-                  <div className="relative">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select Artist *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={addDateForm.artistName}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setAddDateForm(prev => ({ ...prev, artistName: value, artistId: '' }));
-                        handleArtistSearch(value);
-                      }}
-                      onFocus={() => {
-                        if (addDateForm.artistName && artistSearchResults.length > 0) {
-                          setShowArtistDropdown(true);
-                        }
-                      }}
-                      onBlur={() => {
-                        // Delay hiding dropdown to allow clicks
-                        setTimeout(() => setShowArtistDropdown(false), 200);
-                      }}
-                      placeholder="Search for artist by name, genre, or location"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    
-                    {/* Artist Search Dropdown */}
-                    {showArtistDropdown && artistSearchResults.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                        {artistSearchResults.map((artist) => (
-                          <button
-                            key={artist.id}
-                            type="button"
-                            onClick={() => selectArtist(artist)}
-                            className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                          >
-                            <div className="font-medium text-gray-900">{artist.name}</div>
-                            <div className="text-sm text-gray-500">
-                              {artist.city}, {artist.state} • {artist.genres?.join(', ') || 'Various genres'}
-                            </div>
-                          </button>
-                        ))}
+                    ) : (
+                      // Date Range Input (Legacy)
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Start Date *
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={addDateForm.startDate}
+                            onChange={(e) => setAddDateForm(prev => ({ ...prev, startDate: e.target.value }))}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            End Date *
+                          </label>
+                          <input
+                            type="date"
+                            required
+                            value={addDateForm.endDate}
+                            onChange={(e) => setAddDateForm(prev => ({ ...prev, endDate: e.target.value }))}
+                            min={addDateForm.startDate || new Date().toISOString().split('T')[0]}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
                       </div>
                     )}
-                    
-                    {addDateForm.artistId && (
-                      <p className="text-sm text-green-600 mt-1">
-                        ✓ Selected: {addDateForm.artistName}
-                      </p>
-                    )}
-                  </div>
 
-                  {/* Date and basic details */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Proposed Date *
+                        Location *
+                      </label>
+                      <LocationAutocomplete
+                        value={addDateForm.location}
+                        onChange={(value) => setAddDateForm(prev => ({ ...prev, location: value }))}
+                        placeholder="e.g., Seattle, WA or Pacific Northwest"
+                        required
+                        label="Location"
+                        showLabel={false}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Title (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={addDateForm.title}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder={`${artistName} Show Request`}
+                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Leave blank to use "{artistName} Show Request" or customize it
+                      </p>
+                    </div>
+
+                    {/* Template Selector - Enhanced prominence */}
+                    {artistId && viewerType === 'artist' && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <TemplateSelector
+                          artistId={artistId}
+                          onTemplateApply={handleTemplateApply}
+                          className="mb-0"
+                          autoFillDefault={true}
+                        />
+                      </div>
+                    )}
+
+                    {/* Modular Template-Driven Form Sections */}
+                    <TemplateFormRenderer
+                      formData={addDateForm}
+                      onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
+                      mode="request"
+                      showTemplateSelector={false}
+                    />
+                  </div>
+                ) : addDateForm.type === 'offer' ? (
+                  // This section is now handled by OfferFormCore - remove old form
+                  <div className="p-6 text-center">
+                    <p className="text-gray-500">
+                      Offer form is now handled by the dedicated OfferFormCore component.
+                    </p>
+                  </div>
+                ) : (
+                  // Confirmed show form - Should match request form pattern but with venue selection
+                  <div className="space-y-4">
+                    {/* Single Date for confirmed shows */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Show Date *
                       </label>
                       <input
                         type="date"
@@ -2836,247 +3097,187 @@ export default function TabbedTourItinerary({
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+
+                    {/* Venue Selection - For Artists */}
+                    {artistId && actualViewerType === 'artist' && (
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Venue *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addDateForm.venueName}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setAddDateForm(prev => ({ ...prev, venueName: value, venueId: '' }));
+                            handleVenueSearch(value);
+                          }}
+                          onFocus={() => {
+                            if (addDateForm.venueName && venueSearchResults.length > 0) {
+                              setShowVenueDropdown(true);
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => setShowVenueDropdown(false), 200);
+                          }}
+                          placeholder="Search for venue by name or location"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        
+                        {/* Venue Search Dropdown */}
+                        {showVenueDropdown && venueSearchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {venueSearchResults.map((venue) => (
+                              <button
+                                key={venue.id}
+                                type="button"
+                                onClick={() => selectVenue(venue)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium text-gray-900">{venue.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {venue.city}, {venue.state} • {venue.capacity} capacity
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {addDateForm.venueId && (
+                          <p className="text-sm text-green-600 mt-1">
+                            ✓ Selected: {addDateForm.venueName}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Artist Selection - For Venues */}
+                    {venueId && actualViewerType === 'venue' && (
+                      <div className="relative">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Artist *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addDateForm.artistName}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setAddDateForm(prev => ({ ...prev, artistName: value, artistId: '' }));
+                            handleArtistSearch(value);
+                          }}
+                          onFocus={() => {
+                            if (addDateForm.artistName && artistSearchResults.length > 0) {
+                              setShowArtistDropdown(true);
+                            }
+                          }}
+                          onBlur={() => {
+                            setTimeout(() => setShowArtistDropdown(false), 200);
+                          }}
+                          placeholder="Search for artist by name, genre, or location"
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        
+                        {/* Artist Search Dropdown */}
+                        {showArtistDropdown && artistSearchResults.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                            {artistSearchResults.map((artist) => (
+                              <button
+                                key={artist.id}
+                                type="button"
+                                onClick={() => selectArtist(artist)}
+                                className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                              >
+                                <div className="font-medium text-gray-900">{artist.name}</div>
+                                <div className="text-sm text-gray-500">
+                                  {artist.city}, {artist.state} • {artist.genres?.join(', ') || 'Various genres'}
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {addDateForm.artistId && (
+                          <p className="text-sm text-green-600 mt-1">
+                            ✓ Selected: {addDateForm.artistName}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Show Title */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Age Restriction
-                      </label>
-                      <select
-                        value={addDateForm.ageRestriction}
-                        onChange={(e) => setAddDateForm(prev => ({ ...prev, ageRestriction: e.target.value as 'all-ages' | '18+' | '21+' }))}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="all-ages">All Ages</option>
-                        <option value="18+">18+</option>
-                        <option value="21+">21+</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Offer Input */}
-                  <OfferInput
-                    value={addDateOfferData}
-                    onChange={setAddDateOfferData}
-                    label="Offer"
-                    placeholder="e.g., $500 guarantee, 70/30 door split, $300 + 80% after costs"
-                  />
-
-                  {/* Personal Message */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Personal Message
-                    </label>
-                    <textarea
-                      value={addDateForm.description}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, description: e.target.value }))}
-                      placeholder="Hey! We'd love to have you play at our venue. We think you'd be a great fit for our space and audience. Let us know if you're interested!"
-                      rows={4}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      {addDateForm.description.trim() 
-                        ? "This custom message will be sent to the artist along with your offer."
-                        : "Leave blank to use the default message, or write your own personal note."
-                      }
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                // Confirmed show form - Should match request form pattern but with venue selection
-                <div className="space-y-4">
-                  {/* Single Date for confirmed shows */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Show Date *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={addDateForm.date}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, date: e.target.value }))}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  {/* Venue Selection - For Artists */}
-                  {artistId && actualViewerType === 'artist' && (
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Venue *
+                        Show Title (Optional)
                       </label>
                       <input
                         type="text"
-                        required
-                        value={addDateForm.venueName}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setAddDateForm(prev => ({ ...prev, venueName: value, venueId: '' }));
-                          handleVenueSearch(value);
-                        }}
-                        onFocus={() => {
-                          if (addDateForm.venueName && venueSearchResults.length > 0) {
-                            setShowVenueDropdown(true);
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowVenueDropdown(false), 200);
-                        }}
-                        placeholder="Search for venue by name or location"
+                        value={addDateForm.title}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
+                        placeholder="Leave blank to auto-generate"
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      
-                      {/* Venue Search Dropdown */}
-                      {showVenueDropdown && venueSearchResults.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {venueSearchResults.map((venue) => (
-                            <button
-                              key={venue.id}
-                              type="button"
-                              onClick={() => selectVenue(venue)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="font-medium text-gray-900">{venue.name}</div>
-                              <div className="text-sm text-gray-500">
-                                {venue.city}, {venue.state} • {venue.capacity} capacity
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {addDateForm.venueId && (
-                        <p className="text-sm text-green-600 mt-1">
-                          ✓ Selected: {addDateForm.venueName}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Artist Selection - For Venues */}
-                  {venueId && actualViewerType === 'venue' && (
-                    <div className="relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Artist *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={addDateForm.artistName}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setAddDateForm(prev => ({ ...prev, artistName: value, artistId: '' }));
-                          handleArtistSearch(value);
-                        }}
-                        onFocus={() => {
-                          if (addDateForm.artistName && artistSearchResults.length > 0) {
-                            setShowArtistDropdown(true);
-                          }
-                        }}
-                        onBlur={() => {
-                          setTimeout(() => setShowArtistDropdown(false), 200);
-                        }}
-                        placeholder="Search for artist by name, genre, or location"
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                      
-                      {/* Artist Search Dropdown */}
-                      {showArtistDropdown && artistSearchResults.length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                          {artistSearchResults.map((artist) => (
-                            <button
-                              key={artist.id}
-                              type="button"
-                              onClick={() => selectArtist(artist)}
-                              className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
-                            >
-                              <div className="font-medium text-gray-900">{artist.name}</div>
-                              <div className="text-sm text-gray-500">
-                                {artist.city}, {artist.state} • {artist.genres?.join(', ') || 'Various genres'}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      
-                      {addDateForm.artistId && (
-                        <p className="text-sm text-green-600 mt-1">
-                          ✓ Selected: {addDateForm.artistName}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Show Title */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Show Title (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={addDateForm.title}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
-                      placeholder="Leave blank to auto-generate"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      If left blank, we'll create a title like "{artistId ? artistName : 'Artist'} at {addDateForm.venueName || 'Venue'}"
-                    </p>
-                  </div>
-
-                  {/* Template Selector - Enhanced prominence for confirmed shows too */}
-                  {artistId && actualViewerType === 'artist' && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span className="text-sm font-medium text-blue-800">Quick Fill from Template</span>
-                      </div>
-                      <TemplateSelector
-                        artistId={artistId}
-                        onTemplateApply={handleTemplateApply}
-                        autoFillDefault={true}
-                        className="mb-0"
-                      />
-                      <p className="text-xs text-blue-700 mt-2">
-                        Templates can pre-fill show details like set length, billing position, and technical requirements.
+                      <p className="text-sm text-gray-500 mt-1">
+                        If left blank, we'll create a title like "{artistId ? artistName : 'Artist'} at {addDateForm.venueName || 'Venue'}"
                       </p>
                     </div>
-                  )}
 
-                  {/* Modular Template-Driven Form Sections - Only show for artists */}
-                  {artistId && actualViewerType === 'artist' && (
-                    <TemplateFormRenderer
-                      formData={addDateForm}
-                      onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
-                      mode="confirmed"
-                      showTemplateSelector={false}
-                    />
-                  )}
+                    {/* Template Selector - Enhanced prominence for confirmed shows too */}
+                    {artistId && actualViewerType === 'artist' && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          <span className="text-sm font-medium text-blue-800">Quick Fill from Template</span>
+                        </div>
+                        <TemplateSelector
+                          artistId={artistId}
+                          onTemplateApply={handleTemplateApply}
+                          autoFillDefault={true}
+                          className="mb-0"
+                        />
+                        <p className="text-xs text-blue-700 mt-2">
+                          Templates can pre-fill show details like set length, billing position, and technical requirements.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Modular Template-Driven Form Sections - Only show for artists */}
+                    {artistId && actualViewerType === 'artist' && (
+                      <TemplateFormRenderer
+                        formData={addDateForm}
+                        onChange={(field, value) => setAddDateForm(prev => ({ ...prev, [field]: value }))}
+                        mode="confirmed"
+                        showTemplateSelector={false}
+                      />
+                    )}
+                  </div>
+                )}
+                {/* Submit Buttons */}
+                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddDateForm(false)}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={addDateLoading}
+                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {addDateLoading ? 'Adding...' : 
+                     addDateForm.type === 'request' ? 'Create Tour Request' :
+                     addDateForm.type === 'offer' ? 'Send Offer' :
+                     'Add to Calendar'}
+                  </button>
                 </div>
-              )}
-              {/* Submit Buttons */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={() => setShowAddDateForm(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={addDateLoading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {addDateLoading ? 'Adding...' : 
-                   addDateForm.type === 'request' ? 'Create Tour Request' :
-                   addDateForm.type === 'offer' ? 'Send Offer' :
-                   'Add to Calendar'}
-                </button>
-              </div>
-            </form>
-          </div>
+              </form>
+            </div>
+          )}
         </div>
       )}
 
