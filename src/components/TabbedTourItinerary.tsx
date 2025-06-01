@@ -17,6 +17,7 @@ import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from './OfferInput
 import ShowDocumentModal from './ShowDocumentModal';
 import UniversalMakeOfferModal from './UniversalMakeOfferModal';
 import MakeOfferButton from './MakeOfferButton';
+import { ItineraryDate } from './DateDisplay';
 
 interface VenueBid {
   id: string;
@@ -208,6 +209,8 @@ export default function TabbedTourItinerary({
     date: '',
     startDate: '',
     endDate: '',
+    requestDate: '', // New single date field
+    useSingleDate: true, // New toggle - default to single date
     location: '',
     artistId: '',
     artistName: '',
@@ -864,7 +867,7 @@ export default function TabbedTourItinerary({
       }
 
       await fetchData();
-      alert('Tour request deleted successfully.');
+      // alert('Tour request deleted successfully.');
     } catch (error) {
       console.error('Error deleting tour request:', error);
       alert(`Failed to delete tour request: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -946,6 +949,8 @@ export default function TabbedTourItinerary({
           date: '',
           startDate: '',
           endDate: '',
+          requestDate: '',
+          useSingleDate: true,
           location: '',
           artistId: '',
           artistName: '',
@@ -1127,6 +1132,8 @@ export default function TabbedTourItinerary({
           date: '',
           startDate: '',
           endDate: '',
+          requestDate: '',
+          useSingleDate: true,
           location: '',
           artistId: '',
           artistName: '',
@@ -1180,22 +1187,28 @@ export default function TabbedTourItinerary({
       if (addDateForm.type === 'request') {
         console.log('🎯 TabbedTourItinerary: Creating tour request...');
         
-        if (!addDateForm.startDate || !addDateForm.endDate || !addDateForm.location) {
-          alert('Please fill in all required fields for the tour request.');
-          return;
+        // Validate based on date format
+        if (addDateForm.useSingleDate) {
+          if (!addDateForm.requestDate || !addDateForm.location) {
+            alert('Please fill in all required fields for the tour request.');
+            return;
+          }
+        } else {
+          if (!addDateForm.startDate || !addDateForm.endDate || !addDateForm.location) {
+            alert('Please fill in all required fields for the tour request.');
+            return;
+          }
         }
 
         // Auto-generate title if empty
         const title = addDateForm.title.trim() || `${artistName} Show Request`;
 
-        // Create tour request with all the detailed fields
-        const tourRequestData = {
+        // Create tour request with appropriate date fields
+        const tourRequestData: any = {
           artistId: artistId,
-          artistName: artistName, // Fix: Add missing artistName field
+          artistName: artistName,
           title: title,
           description: addDateForm.description,
-          startDate: addDateForm.startDate,
-          endDate: addDateForm.endDate,
           location: addDateForm.location,
           guaranteeRange: addDateForm.guaranteeRange,
           acceptsDoorDeals: addDateForm.acceptsDoorDeals,
@@ -1208,6 +1221,14 @@ export default function TabbedTourItinerary({
           hospitalityRequirements: addDateForm.hospitalityRequirements,
           equipment: addDateForm.equipment
         };
+
+        // Add appropriate date fields based on format
+        if (addDateForm.useSingleDate) {
+          tourRequestData.requestDate = addDateForm.requestDate;
+        } else {
+          tourRequestData.startDate = addDateForm.startDate;
+          tourRequestData.endDate = addDateForm.endDate;
+        }
 
         const response = await fetch('/api/tour-requests', {
           method: 'POST',
@@ -1232,6 +1253,8 @@ export default function TabbedTourItinerary({
           date: '',
           startDate: '',
           endDate: '',
+          requestDate: '',
+          useSingleDate: true,
           location: '',
           artistId: '',
           artistName: '',
@@ -1277,7 +1300,7 @@ export default function TabbedTourItinerary({
 
         // Refresh data
         await fetchData();
-        alert('Tour request created successfully!');
+        // alert('Tour request created successfully!');
         return;
       }
       
@@ -1551,11 +1574,10 @@ export default function TabbedTourItinerary({
                       {/* Date */}
                       <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-gray-900">
-                          {new Date(show.date).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                          <ItineraryDate
+                            date={show.date}
+                            className="text-sm font-medium text-gray-900"
+                          />
                         </div>
                       </td>
                       
@@ -1851,15 +1873,12 @@ export default function TabbedTourItinerary({
                       {/* Date Range */}
                       <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-blue-900">
-                          {new Date(request.startDate).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric'
-                          })}
-                          {' - '}
-                          {new Date(request.endDate).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                          <ItineraryDate
+                            startDate={request.startDate}
+                            endDate={request.endDate}
+                            isSingleDate={request.isSingleDate}
+                            className="text-sm font-medium text-blue-900"
+                          />
                         </div>
                       </td>
                       
@@ -2003,11 +2022,10 @@ export default function TabbedTourItinerary({
                                           {/* Date */}
                                           <td className="px-4 py-1.5">
                                             <div className="text-sm font-medium text-yellow-900">
-                                              {new Date(bid.proposedDate).toLocaleDateString('en-US', {
-                                                weekday: 'short',
-                                                month: 'short',
-                                                day: 'numeric'
-                                              })}
+                                              <ItineraryDate
+                                                date={bid.proposedDate}
+                                                className="text-sm font-medium text-yellow-900"
+                                              />
                                             </div>
                                           </td>
                                           
@@ -2255,11 +2273,10 @@ export default function TabbedTourItinerary({
                       {/* Date */}
                       <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-purple-900">
-                          {new Date(offer.proposedDate).toLocaleDateString('en-US', {
-                            weekday: 'short',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                          <ItineraryDate
+                            date={offer.proposedDate}
+                            className="text-sm font-medium text-purple-900"
+                          />
                         </div>
                       </td>
                       
@@ -2596,36 +2613,109 @@ export default function TabbedTourItinerary({
 
               {/* Basic Information */}
               {addDateForm.type === 'request' ? (
-                // Date range for requests
+                // Date input for requests - with toggle between single date and range
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Date Format Toggle */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Date Format
+                    </label>
+                    <div className="flex items-center space-x-6">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="dateFormat"
+                          checked={addDateForm.useSingleDate}
+                          onChange={(e) => setAddDateForm(prev => ({ 
+                            ...prev, 
+                            useSingleDate: true,
+                            // Clear other format when switching
+                            startDate: '',
+                            endDate: ''
+                          }))}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-900">
+                          Single Date
+                        </span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="dateFormat"
+                          checked={!addDateForm.useSingleDate}
+                          onChange={(e) => setAddDateForm(prev => ({ 
+                            ...prev, 
+                            useSingleDate: false,
+                            // Clear other format when switching
+                            requestDate: ''
+                          }))}
+                          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm font-medium text-gray-900">
+                          Date Range
+                        </span>
+                      </label>
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2">
+                      {addDateForm.useSingleDate 
+                        ? "Create one request for a specific date. Need multiple dates? Create separate requests."
+                        : "Legacy format: Create one request that covers multiple dates in a range."
+                      }
+                    </p>
+                  </div>
+
+                  {/* Date Input - Changes based on toggle */}
+                  {addDateForm.useSingleDate ? (
+                    // Single Date Input
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Start Date *
+                        Show Date *
                       </label>
                       <input
                         type="date"
                         required
-                        value={addDateForm.startDate}
-                        onChange={(e) => setAddDateForm(prev => ({ ...prev, startDate: e.target.value }))}
+                        value={addDateForm.requestDate}
+                        onChange={(e) => setAddDateForm(prev => ({ ...prev, requestDate: e.target.value }))}
                         min={new Date().toISOString().split('T')[0]}
                         className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
+                      <p className="text-sm text-gray-500 mt-1">
+                        Select the specific date you want to perform
+                      </p>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        End Date *
-                      </label>
-                      <input
-                        type="date"
-                        required
-                        value={addDateForm.endDate}
-                        onChange={(e) => setAddDateForm(prev => ({ ...prev, endDate: e.target.value }))}
-                        min={addDateForm.startDate || new Date().toISOString().split('T')[0]}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
+                  ) : (
+                    // Date Range Input (Legacy)
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Start Date *
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={addDateForm.startDate}
+                          onChange={(e) => setAddDateForm(prev => ({ ...prev, startDate: e.target.value }))}
+                          min={new Date().toISOString().split('T')[0]}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          End Date *
+                        </label>
+                        <input
+                          type="date"
+                          required
+                          value={addDateForm.endDate}
+                          onChange={(e) => setAddDateForm(prev => ({ ...prev, endDate: e.target.value }))}
+                          min={addDateForm.startDate || new Date().toISOString().split('T')[0]}
+                          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Location *

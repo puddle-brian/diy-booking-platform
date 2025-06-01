@@ -99,8 +99,10 @@ export interface TourRequest {
   description: string;
   
   // Geography & Timing - ATOMIC: One location per request
-  startDate: string;
-  endDate: string;
+  startDate: string; // For legacy ranges and single dates
+  endDate?: string; // Optional - only for legacy date ranges
+  requestDate?: string; // New single date field
+  isSingleDate?: boolean; // Flag to distinguish single dates from ranges
   location: string; // Single location: "Seattle, WA" or "Pacific Northwest"
   radius: number; // Search radius in miles (25, 50, 100, 200, 500, 1000+)
   flexibility: 'exact-cities' | 'region-flexible' | 'route-flexible';

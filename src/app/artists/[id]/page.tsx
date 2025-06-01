@@ -55,7 +55,9 @@ interface TourRequest {
   title: string;
   description: string;
   startDate: string;
-  endDate: string;
+  endDate?: string;
+  requestDate?: string;
+  isSingleDate?: boolean;
   cities: string[];
   regions: string[];
   flexibility: 'exact-cities' | 'region-flexible' | 'route-flexible';

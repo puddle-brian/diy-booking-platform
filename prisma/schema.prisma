@@ -163,8 +163,15 @@ model TourRequest {
   createdById     String
   title           String
   description     String?
-  startDate       DateTime
-  endDate         DateTime
+  
+  // Legacy date range fields (keep for backward compatibility)
+  startDate       DateTime?     // Made optional
+  endDate         DateTime?     // Made optional
+  
+  // New single date field
+  requestDate     DateTime?     // Single date for new requests
+  isLegacyRange   Boolean       @default(false) // Flag to track old vs new format
+  
   targetLocations String[]
   genres          String[]
   status          RequestStatus @default(ACTIVE)
@@ -178,6 +185,8 @@ model TourRequest {
   @@index([createdById])
   @@index([status])
   @@index([startDate, endDate])
+  @@index([requestDate])        // New index for single dates
+  @@index([isLegacyRange])      // Index for filtering old vs new
   @@index([targetLocations])
   @@index([genres])
   @@index([createdAt])
