@@ -1960,15 +1960,6 @@ export default function TabbedTourItinerary({
                   // For synthetic requests, convert the venue offer to a bid format
                   const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
                   if (originalOffer) {
-                    console.log('🎯 Converting venue offer to synthetic bid:', {
-                      offerId: originalOffer.id,
-                      offerAmount: originalOffer.amount,
-                      offerDoorDeal: originalOffer.doorDeal,
-                      offerDate: originalOffer.proposedDate,
-                      offerDateRaw: originalOffer.proposedDate,
-                      offerTitle: originalOffer.title
-                    });
-                    
                     // 🎯 FIX: Extract date part to avoid timezone conversion issues
                     const bidDate = originalOffer.proposedDate.split('T')[0]; // Extract YYYY-MM-DD
                     
@@ -1977,12 +1968,12 @@ export default function TabbedTourItinerary({
                       tourRequestId: request.id,
                       venueId: originalOffer.venueId,
                       venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
-                      proposedDate: bidDate, // 🎯 FIX: Use date without timezone info
-                      guarantee: originalOffer.amount, // 🎯 FIX: Ensure amount transfer
+                      proposedDate: bidDate,
+                      guarantee: originalOffer.amount,
                       doorDeal: originalOffer.doorDeal ? {
                         split: originalOffer.doorDeal.split,
                         minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
-                      } : undefined, // 🎯 FIX: Preserve door deal structure (compatible fields only)
+                      } : undefined,
                       ticketPrice: originalOffer.ticketPrice || {},
                       capacity: originalOffer.capacity || originalOffer.venue?.capacity || 0,
                       ageRestriction: originalOffer.ageRestriction || 'all-ages',
@@ -2021,23 +2012,83 @@ export default function TabbedTourItinerary({
                       billingNotes: originalOffer.billingNotes
                     };
                     
-                    console.log('🎯 Created synthetic bid:', {
-                      bidId: syntheticBid.id,
-                      guarantee: syntheticBid.guarantee,
-                      guaranteeType: typeof syntheticBid.guarantee,
-                      doorDeal: syntheticBid.doorDeal,
-                      proposedDate: syntheticBid.proposedDate,
-                      proposedDateType: typeof syntheticBid.proposedDate,
-                      originalOfferAmount: originalOffer.amount,
-                      originalOfferDate: originalOffer.proposedDate,
-                      extractedBidDate: bidDate
-                    });
-                    
                     requestBids = [syntheticBid];
                   }
                 } else {
-                  // For regular requests, use normal bid filtering
+                  // For regular requests, use normal bid filtering PLUS venue offers that match this request
                   requestBids = venueBids.filter(bid => bid.tourRequestId === request.id);
+                  
+                  // 🎯 FIX: Also include venue offers that match this tour request's date/location
+                  const matchingOffers = venueOffers.filter(offer => {
+                    if (['cancelled', 'declined'].includes(offer.status.toLowerCase())) {
+                      return false;
+                    }
+                    
+                    // Extract date from offer (YYYY-MM-DD format)
+                    const offerDate = offer.proposedDate.split('T')[0];
+                    
+                    // Check if offer date matches request date range
+                    const requestStart = request.startDate;
+                    const requestEnd = request.endDate || request.startDate;
+                    
+                    return offerDate >= requestStart && offerDate <= requestEnd;
+                  });
+                  
+                  // Convert matching offers to synthetic bids
+                  const syntheticBidsFromOffers = matchingOffers.map(offer => {
+                    const bidDate = offer.proposedDate.split('T')[0];
+                    
+                    return {
+                      id: `offer-bid-${offer.id}`,
+                      tourRequestId: request.id,
+                      venueId: offer.venueId,
+                      venueName: offer.venueName || offer.venue?.name || 'Unknown Venue',
+                      proposedDate: bidDate,
+                      guarantee: offer.amount,
+                      doorDeal: offer.doorDeal ? {
+                        split: offer.doorDeal.split,
+                        minimumGuarantee: offer.doorDeal.minimumGuarantee
+                      } : undefined,
+                      ticketPrice: offer.ticketPrice || {},
+                      capacity: offer.capacity || offer.venue?.capacity || 0,
+                      ageRestriction: offer.ageRestriction || 'all-ages',
+                      equipmentProvided: offer.equipmentProvided || {
+                        pa: false,
+                        mics: false,
+                        drums: false,
+                        amps: false,
+                        piano: false
+                      },
+                      loadIn: offer.loadIn || '',
+                      soundcheck: offer.soundcheck || '',
+                      doorsOpen: offer.doorsOpen || '',
+                      showTime: offer.showTime || '',
+                      curfew: offer.curfew || '',
+                      promotion: offer.promotion || {
+                        social: false,
+                        flyerPrinting: false,
+                        radioSpots: false,
+                        pressCoverage: false
+                      },
+                      message: offer.message || '',
+                      status: offer.status.toLowerCase() as 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled',
+                      readByArtist: true,
+                      createdAt: offer.createdAt,
+                      updatedAt: offer.updatedAt,
+                      expiresAt: offer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                      location: offer.venue?.location ? 
+                        `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
+                        undefined,
+                      billingPosition: offer.billingPosition,
+                      lineupPosition: offer.lineupPosition,
+                      setLength: offer.setLength,
+                      otherActs: offer.otherActs,
+                      billingNotes: offer.billingNotes
+                    } as VenueBid;
+                  });
+                  
+                  // Combine regular bids with synthetic bids from venue offers
+                  requestBids = [...requestBids, ...syntheticBidsFromOffers];
                 }
                 
                 return (
@@ -2217,6 +2268,7 @@ export default function TabbedTourItinerary({
                                 id: request.artistId,
                                 name: request.artistName
                               }}
+                              preSelectedDate={request.startDate}
                               variant="outline"
                               size="xs"
                               onSuccess={() => fetchData()}

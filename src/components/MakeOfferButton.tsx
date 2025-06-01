@@ -7,6 +7,8 @@ interface MakeOfferButtonProps {
     id: string;
     name: string;
   };
+  // Optional pre-selected date (for tour request context)
+  preSelectedDate?: string;
   // Button styling options
   variant?: 'primary' | 'secondary' | 'inline' | 'outline';
   size?: 'xs' | 'sm' | 'md' | 'lg';
@@ -17,6 +19,7 @@ interface MakeOfferButtonProps {
 
 export default function MakeOfferButton({
   targetArtist,
+  preSelectedDate,
   variant = 'primary',
   size = 'md',
   children,
@@ -68,6 +71,7 @@ export default function MakeOfferButton({
           }
         }}
         preSelectedArtist={targetArtist}
+        preSelectedDate={preSelectedDate}
       />
     </>
   );

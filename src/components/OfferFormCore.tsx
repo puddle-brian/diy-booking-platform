@@ -23,6 +23,9 @@ interface OfferFormCoreProps {
     name: string;
   };
   
+  // Pre-selection (when coming from tour request date)
+  preSelectedDate?: string;
+  
   // Customization
   title?: string;
   subtitle?: string;
@@ -39,6 +42,7 @@ export default function OfferFormCore({
   onCancel,
   loading = false,
   preSelectedArtist,
+  preSelectedDate,
   title = "Make Offer to Artist",
   subtitle,
   submitButtonText = "Send Offer",
@@ -49,7 +53,7 @@ export default function OfferFormCore({
   const [formData, setFormData] = useState({
     artistId: preSelectedArtist?.id || '',
     artistName: preSelectedArtist?.name || '',
-    proposedDate: '',
+    proposedDate: preSelectedDate || '',
     ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+',
     message: `Hey! We'd love to have you play at ${venueName}. We think you'd be a great fit for our space and audience. Let us know if you're interested!`
   });

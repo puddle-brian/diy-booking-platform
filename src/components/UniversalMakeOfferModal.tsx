@@ -12,6 +12,8 @@ interface UniversalMakeOfferModalProps {
     id: string;
     name: string;
   };
+  // Optional pre-selected date (when opened from tour request)
+  preSelectedDate?: string;
 }
 
 interface Venue {
@@ -28,7 +30,8 @@ export default function UniversalMakeOfferModal({
   isOpen,
   onClose,
   onSuccess,
-  preSelectedArtist
+  preSelectedArtist,
+  preSelectedDate
 }: UniversalMakeOfferModalProps) {
   const { user } = useAuth();
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -269,6 +272,7 @@ export default function UniversalMakeOfferModal({
             loading={loading}
             error={error}
             preSelectedArtist={preSelectedArtist}
+            preSelectedDate={preSelectedDate}
             title="Make Offer to Artist"
             subtitle={`Invite a specific artist to play at ${selectedVenue.name}`}
             submitButtonText="Send Offer"
@@ -277,4 +281,4 @@ export default function UniversalMakeOfferModal({
       </div>
     </div>
   );
-} 
+}
