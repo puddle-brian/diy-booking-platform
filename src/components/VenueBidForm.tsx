@@ -22,7 +22,7 @@ export default function VenueBidForm({
   const [error, setError] = useState('');
   
   const [bidForm, setBidForm] = useState({
-    proposedDate: tourRequest.startDate,
+    proposedDate: tourRequest.isSingleDate ? (tourRequest as any).requestDate : tourRequest.startDate,
     alternativeDates: [''],
     guarantee: '300',
     doorDeal: {
@@ -159,7 +159,12 @@ export default function VenueBidForm({
         </h3>
         <div className="text-sm text-gray-600">
           <span className="font-medium">{tourRequest.artistName}</span> • 
-          {new Date(tourRequest.startDate).toLocaleDateString()} - {new Date(tourRequest.endDate).toLocaleDateString()} • 
+          {tourRequest.isSingleDate && (tourRequest as any).requestDate
+            ? new Date((tourRequest as any).requestDate).toLocaleDateString()
+            : tourRequest.startDate && tourRequest.endDate
+            ? `${new Date(tourRequest.startDate).toLocaleDateString()} - ${new Date(tourRequest.endDate).toLocaleDateString()}`
+            : 'Date TBD'
+          } • 
           {tourRequest.expectedDraw.min}-{tourRequest.expectedDraw.max} expected draw
         </div>
         {tourRequest.guaranteeRange && (
@@ -186,12 +191,17 @@ export default function VenueBidForm({
             required
             value={bidForm.proposedDate}
             onChange={(e) => setBidForm(prev => ({ ...prev, proposedDate: e.target.value }))}
-            min={tourRequest.startDate}
-            max={tourRequest.endDate}
+            min={tourRequest.isSingleDate ? (tourRequest as any).requestDate : tourRequest.startDate}
+            max={tourRequest.isSingleDate ? (tourRequest as any).requestDate : tourRequest.endDate}
             className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-xs text-gray-500 mt-1">
-            Must be between {new Date(tourRequest.startDate).toLocaleDateString()} and {new Date(tourRequest.endDate).toLocaleDateString()}
+            {tourRequest.isSingleDate && (tourRequest as any).requestDate
+              ? `Date for: ${new Date((tourRequest as any).requestDate).toLocaleDateString()}`
+              : tourRequest.startDate && tourRequest.endDate
+              ? `Must be between ${new Date(tourRequest.startDate).toLocaleDateString()} and ${new Date(tourRequest.endDate).toLocaleDateString()}`
+              : 'Please enter a date'
+            }
           </p>
         </div>
 
@@ -215,8 +225,8 @@ export default function VenueBidForm({
                 type="date"
                 value={date}
                 onChange={(e) => updateAlternativeDate(index, e.target.value)}
-                min={tourRequest.startDate}
-                max={tourRequest.endDate}
+                min={tourRequest.isSingleDate ? (tourRequest as any).requestDate : tourRequest.startDate}
+                max={tourRequest.isSingleDate ? (tourRequest as any).requestDate : tourRequest.endDate}
                 className="flex-1 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               <button
