@@ -32,24 +32,37 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
 
   // Check for authentication on mount
   useEffect(() => {
-    checkAuth();
-  }, []);
+    // Don't check auth immediately after login to avoid race condition
+    if (!justLoggedIn) {
+      checkAuth();
+    } else {
+      setLoading(false);
+      setJustLoggedIn(false);
+    }
+  }, [justLoggedIn]);
 
   const checkAuth = async () => {
     try {
       const response = await fetch('/api/auth/me');
+      
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
       } else {
-        setUser(null);
+        // Only clear user if we're not in the middle of a login flow
+        if (!justLoggedIn) {
+          setUser(null);
+        }
       }
     } catch (error) {
       console.error('Auth check failed:', error);
-      setUser(null);
+      if (!justLoggedIn) {
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -69,6 +82,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const data = await response.json();
     setUser(data.user);
+    setJustLoggedIn(true);
+    
+    // Get fresh user data with memberships after a short delay
+    setTimeout(() => {
+      checkAuth();
+    }, 100);
   };
 
   const logout = async () => {

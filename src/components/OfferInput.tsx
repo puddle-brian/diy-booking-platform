@@ -28,160 +28,147 @@ interface OfferInputProps {
   required?: boolean;
 }
 
+type OfferType = 'guarantee' | 'split' | 'guarantee-plus-split';
+
 export default function OfferInput({
   value,
   onChange,
-  placeholder = "e.g., $500 guarantee, 70/30 door split, $300 + 80% after costs",
+  placeholder = "Enter offer details",
   className = "",
   disabled = false,
   showPresets = true,
   label,
   required = false
 }: OfferInputProps) {
-  const [inputText, setInputText] = useState(value?.rawInput || '');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [parsedOffer, setParsedOffer] = useState<ParsedOffer | null>(value || null);
+  // Internal state for the separate inputs
+  const [offerType, setOfferType] = useState<OfferType>('guarantee');
+  const [guaranteeAmount, setGuaranteeAmount] = useState('500'); // Default to $500
+  const [artistPercent, setArtistPercent] = useState('70');
+  const [minimumAmount, setMinimumAmount] = useState('');
+  const [bonusPercent, setBonusPercent] = useState('80');
+  const [afterExpenses, setAfterExpenses] = useState('');
 
-  // Parse natural language input into structured offer
-  const parseOfferInput = (input: string): ParsedOffer | null => {
-    if (!input.trim()) return null;
-
-    const text = input.toLowerCase().trim();
-    
-    // Pattern 1: Simple guarantee - "$500", "$500 guarantee", "500 flat"
-    const guaranteeMatch = text.match(/^\$?(\d+(?:\.\d{2})?)\s*(?:guarantee|flat|fixed)?$/);
-    if (guaranteeMatch) {
-      const amount = parseFloat(guaranteeMatch[1]);
-      return {
-        type: 'guarantee',
-        displayText: `$${amount} guarantee`,
-        guarantee: amount,
-        rawInput: input
-      };
-    }
-
-    // Pattern 2: Percentage split - "70/30", "70/30 split", "80/20 door"
-    const percentageSplitMatch = text.match(/^(\d+)\/(\d+)\s*(?:split|door)?$/);
-    if (percentageSplitMatch) {
-      const artistPct = parseInt(percentageSplitMatch[1]);
-      const venuePct = parseInt(percentageSplitMatch[2]);
-      if (artistPct + venuePct === 100) {
-        return {
-          type: 'percentage',
-          displayText: `${artistPct}/${venuePct} split`,
-          percentage: {
-            artistPercentage: artistPct,
-            venuePercentage: venuePct
-          },
-          rawInput: input
-        };
+  // Initialize from existing value
+  useEffect(() => {
+    if (value) {
+      switch (value.type) {
+        case 'guarantee':
+          setOfferType('guarantee');
+          setGuaranteeAmount(value.guarantee?.toString() || '');
+          break;
+        case 'percentage':
+          setOfferType('split');
+          setArtistPercent(value.percentage?.artistPercentage?.toString() || '70');
+          setMinimumAmount(value.percentage?.minimumGuarantee?.toString() || '');
+          setAfterExpenses(value.percentage?.afterExpenses?.toString() || '');
+          break;
+        case 'guarantee-plus-percentage':
+          setOfferType('guarantee-plus-split');
+          setGuaranteeAmount(value.guarantee?.toString() || '');
+          setBonusPercent(value.bonusPercentage?.toString() || '80');
+          setAfterExpenses(value.afterExpenses?.toString() || '');
+          break;
       }
     }
+  }, [value]);
 
-    // Pattern 3: Guarantee + percentage - "$300 + 80% after costs", "$500 plus 70% after $200"
-    const guaranteePlusMatch = text.match(/^\$?(\d+(?:\.\d{2})?)\s*(?:\+|plus)\s*(\d+)%\s*(?:after\s*(?:\$?(\d+(?:\.\d{2})?))?)?/);
-    if (guaranteePlusMatch) {
-      const guarantee = parseFloat(guaranteePlusMatch[1]);
-      const percentage = parseInt(guaranteePlusMatch[2]);
-      const afterExpenses = guaranteePlusMatch[3] ? parseFloat(guaranteePlusMatch[3]) : undefined;
-      
-      return {
-        type: 'guarantee-plus-percentage',
-        displayText: `$${guarantee} + ${percentage}%${afterExpenses ? ` after $${afterExpenses}` : ' after costs'}`,
-        guarantee,
-        bonusPercentage: percentage,
-        afterExpenses,
-        rawInput: input
-      };
-    }
+  // Generate ParsedOffer from current inputs
+  const generateOffer = (): ParsedOffer | null => {
+    switch (offerType) {
+      case 'guarantee': {
+        if (!guaranteeAmount || isNaN(Number(guaranteeAmount))) return null;
+        const amount = Number(guaranteeAmount);
+        return {
+          type: 'guarantee',
+          displayText: `$${amount} guarantee`,
+          guarantee: amount,
+          rawInput: `$${amount} guarantee`
+        };
+      }
 
-    // Pattern 4: Percentage with minimum - "70% of door, $200 minimum", "80% with $300 min"
-    const percentageMinMatch = text.match(/^(\d+)%\s*(?:of\s*door)?(?:,\s*|\s+(?:with\s+)?)?\$?(\d+(?:\.\d{2})?)\s*(?:minimum|min)$/);
-    if (percentageMinMatch) {
-      const artistPct = parseInt(percentageMinMatch[1]);
-      const minimum = parseFloat(percentageMinMatch[2]);
-      
-      return {
-        type: 'percentage',
-        displayText: `${artistPct}% split, $${minimum} minimum`,
-        percentage: {
-          artistPercentage: artistPct,
-          venuePercentage: 100 - artistPct,
-          minimumGuarantee: minimum
-        },
-        rawInput: input
-      };
-    }
-
-    // Pattern 4b: Split with minimum - "70/30 with $200 min", "80/20 with $300 minimum"
-    const splitWithMinMatch = text.match(/^(\d+)\/(\d+)\s+with\s+\$?(\d+(?:\.\d{2})?)\s*(?:minimum|min)$/);
-    if (splitWithMinMatch) {
-      const artistPct = parseInt(splitWithMinMatch[1]);
-      const venuePct = parseInt(splitWithMinMatch[2]);
-      const minimum = parseFloat(splitWithMinMatch[3]);
-      
-      if (artistPct + venuePct === 100) {
+      case 'split': {
+        if (!artistPercent || isNaN(Number(artistPercent))) return null;
+        const artistPct = Number(artistPercent);
+        const venuePct = 100 - artistPct;
+        const minimum = minimumAmount ? Number(minimumAmount) : undefined;
+        const expenses = afterExpenses ? Number(afterExpenses) : undefined;
+        
+        let displayText = `${artistPct}/${venuePct} split`;
+        if (minimum) displayText += `, $${minimum} min`;
+        if (expenses) displayText += `, after $${expenses}`;
+        
         return {
           type: 'percentage',
-          displayText: `${artistPct}/${venuePct} split, $${minimum} minimum`,
+          displayText,
           percentage: {
             artistPercentage: artistPct,
             venuePercentage: venuePct,
-            minimumGuarantee: minimum
-          },
-          rawInput: input
-        };
-      }
-    }
-
-    // Pattern 5: Percentage split after expenses - "70/30 after $500", "80/20 after expenses"
-    const splitAfterMatch = text.match(/^(\d+)\/(\d+)\s*after\s*(?:\$?(\d+(?:\.\d{2})?)|\w+)$/);
-    if (splitAfterMatch) {
-      const artistPct = parseInt(splitAfterMatch[1]);
-      const venuePct = parseInt(splitAfterMatch[2]);
-      const expenses = splitAfterMatch[3] ? parseFloat(splitAfterMatch[3]) : undefined;
-      
-      if (artistPct + venuePct === 100) {
-        return {
-          type: 'percentage',
-          displayText: `${artistPct}/${venuePct} split${expenses ? ` after $${expenses}` : ' after expenses'}`,
-          percentage: {
-            artistPercentage: artistPct,
-            venuePercentage: venuePct,
+            minimumGuarantee: minimum,
             afterExpenses: expenses
           },
-          rawInput: input
+          rawInput: displayText
         };
       }
+
+      case 'guarantee-plus-split': {
+        if (!guaranteeAmount || !bonusPercent || isNaN(Number(guaranteeAmount)) || isNaN(Number(bonusPercent))) return null;
+        const baseAmount = Number(guaranteeAmount);
+        const bonus = Number(bonusPercent);
+        const expensesAmount = afterExpenses ? Number(afterExpenses) : undefined;
+        
+        let displayText = `$${baseAmount} + ${bonus}%`;
+        if (expensesAmount) displayText += ` after $${expensesAmount}`;
+        else displayText += ' after costs';
+        
+        return {
+          type: 'guarantee-plus-percentage',
+          displayText,
+          guarantee: baseAmount,
+          bonusPercentage: bonus,
+          afterExpenses: expensesAmount,
+          rawInput: displayText
+        };
+      }
+
+      default:
+        return null;
     }
-
-    // If no pattern matches, treat as custom
-    return {
-      type: 'custom',
-      displayText: input,
-      rawInput: input
-    };
   };
 
-  // Update parsed offer when input changes
+  // Update parent when inputs change
   useEffect(() => {
-    const parsed = parseOfferInput(inputText);
-    setParsedOffer(parsed);
-    onChange(parsed);
-  }, [inputText]);
+    const offer = generateOffer();
+    onChange(offer);
+  }, [offerType, guaranteeAmount, artistPercent, minimumAmount, bonusPercent, afterExpenses]);
 
-  // Preset options
-  const presets = [
-    { label: 'Fixed Rate', value: '$500 guarantee' },
-    { label: 'Split', value: '70/30' },
-    { label: 'Split + Min', value: '70/30 with $200 min' },
-    { label: 'Guarantee + %', value: '$300 + 80% after costs' }
-  ];
+  // Initialize default value on mount
+  useEffect(() => {
+    const offer = generateOffer();
+    if (offer) {
+      onChange(offer);
+    }
+  }, []); // Only run on mount
 
-  const handlePresetClick = (presetValue: string) => {
-    setInputText(presetValue);
-    setShowSuggestions(false);
+  // Set defaults when switching offer types
+  const handleOfferTypeChange = (newType: OfferType) => {
+    setOfferType(newType);
+    
+    // Set sensible defaults for each type
+    switch (newType) {
+      case 'guarantee':
+        if (!guaranteeAmount) setGuaranteeAmount('500');
+        break;
+      case 'split':
+        if (!artistPercent) setArtistPercent('70');
+        break;
+      case 'guarantee-plus-split':
+        if (!guaranteeAmount) setGuaranteeAmount('300');
+        if (!bonusPercent) setBonusPercent('80');
+        break;
+    }
   };
+
+  const currentOffer = generateOffer();
 
   return (
     <div className={`space-y-2 ${className}`}>
@@ -190,109 +177,128 @@ export default function OfferInput({
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
-      
-      <div className="relative">
-        {/* Main Input */}
-        <input
-          type="text"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          placeholder={placeholder}
-          disabled={disabled}
-          required={required}
-          className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-        />
 
-        {/* Preset Suggestions */}
-        {showPresets && showSuggestions && !disabled && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
-            <div className="p-2 border-b border-gray-100">
-              <div className="text-xs font-medium text-gray-500 mb-2">Quick Presets</div>
-              <div className="grid grid-cols-2 gap-1">
-                {presets.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    onClick={() => handlePresetClick(preset.value)}
-                    className="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded text-left transition-colors"
-                  >
-                    <div className="font-medium">{preset.label}</div>
-                    <div className="text-gray-600">{preset.value}</div>
-                  </button>
-                ))}
-              </div>
+      {/* Compact Type Selector + Main Input */}
+      <div className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg bg-white">
+        {/* Type Dropdown - Clearly styled */}
+        <select 
+          value={offerType} 
+          onChange={(e) => handleOfferTypeChange(e.target.value as OfferType)}
+          disabled={disabled}
+          className="px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-gray-50 text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="guarantee">Pay</option>
+          <option value="split">Split</option>
+          <option value="guarantee-plus-split">Pay + Split</option>
+        </select>
+
+        {/* Main Input Based on Type */}
+        {offerType === 'guarantee' && (
+          <div className="flex items-center gap-2">
+            <div className="flex items-center bg-white border border-gray-300 rounded-md px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+              <span className="text-gray-500 text-sm font-medium">$</span>
+              <input
+                type="number"
+                value={guaranteeAmount}
+                onChange={(e) => setGuaranteeAmount(e.target.value)}
+                placeholder="500"
+                step="50"
+                min="0"
+                disabled={disabled}
+                required={required}
+                className="w-20 text-sm bg-transparent border-0 focus:outline-none text-center text-gray-900 font-medium"
+              />
             </div>
+            <span className="text-gray-600 text-sm">flat payment</span>
+          </div>
+        )}
+
+        {offerType === 'split' && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center bg-white border border-gray-300 rounded-md px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+              <input
+                type="number"
+                value={artistPercent}
+                onChange={(e) => setArtistPercent(e.target.value)}
+                placeholder="70"
+                step="5"
+                min="0"
+                max="100"
+                disabled={disabled}
+                required={required}
+                className="w-16 text-sm bg-transparent border-0 focus:outline-none text-center text-gray-900 font-medium"
+              />
+              <span className="text-gray-500 text-sm font-medium">%</span>
+            </div>
+            <span className="text-gray-600 text-sm">of door revenue</span>
             
-            <div className="p-2">
-              <div className="text-xs text-gray-500">
-                Examples: "$500 guarantee", "70/30", "$300 + 80% after costs", "70/30 with $200 min"
+            {/* Optional minimum - consistent styling */}
+            <div className="flex items-center gap-1 text-xs">
+              <span className="text-gray-500">min</span>
+              <div className="flex items-center bg-white border border-gray-300 rounded-md px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                <span className="text-gray-500 text-sm font-medium">$</span>
+                <input
+                  type="number"
+                  value={minimumAmount}
+                  onChange={(e) => setMinimumAmount(e.target.value)}
+                  placeholder="0"
+                  step="25"
+                  min="0"
+                  disabled={disabled}
+                  className="w-16 text-sm bg-transparent border-0 focus:outline-none text-center text-gray-900 font-medium"
+                />
               </div>
             </div>
           </div>
         )}
+
+        {offerType === 'guarantee-plus-split' && (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center bg-white border border-gray-300 rounded-md px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+              <span className="text-gray-500 text-sm font-medium">$</span>
+              <input
+                type="number"
+                value={guaranteeAmount}
+                onChange={(e) => setGuaranteeAmount(e.target.value)}
+                placeholder="300"
+                step="50"
+                min="0"
+                disabled={disabled}
+                required={required}
+                className="w-20 text-sm bg-transparent border-0 focus:outline-none text-center text-gray-900 font-medium"
+              />
+            </div>
+            
+            <span className="text-gray-500 text-sm">+</span>
+            
+            <div className="flex items-center bg-white border border-gray-300 rounded-md px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+              <input
+                type="number"
+                value={bonusPercent}
+                onChange={(e) => setBonusPercent(e.target.value)}
+                placeholder="80"
+                step="5"
+                min="0"
+                max="100"
+                disabled={disabled}
+                required={required}
+                className="w-16 text-sm bg-transparent border-0 focus:outline-none text-center text-gray-900 font-medium"
+              />
+              <span className="text-gray-500 text-sm font-medium">%</span>
+            </div>
+            
+            <span className="text-gray-600 text-sm">after costs</span>
+          </div>
+        )}
       </div>
 
-      {/* Parsed Result Display */}
-      {parsedOffer && parsedOffer.type !== 'custom' && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-start space-x-2">
-            <div className="flex-shrink-0 mt-0.5">
-              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-blue-900">
-                {parsedOffer.displayText}
-              </div>
-              <div className="text-xs text-blue-700 mt-1">
-                {parsedOffer.type === 'guarantee' && 'Fixed payment regardless of attendance'}
-                {parsedOffer.type === 'percentage' && 'Revenue split based on ticket sales'}
-                {parsedOffer.type === 'guarantee-plus-percentage' && 'Base payment plus percentage of revenue'}
-              </div>
-              
-              {/* Breakdown */}
-              <div className="text-xs text-blue-600 mt-2 space-y-1">
-                {parsedOffer.guarantee && (
-                  <div>├─ Base: ${parsedOffer.guarantee} guarantee</div>
-                )}
-                {parsedOffer.percentage && (
-                  <div>├─ Split: {parsedOffer.percentage.artistPercentage}% artist / {parsedOffer.percentage.venuePercentage}% venue</div>
-                )}
-                {parsedOffer.bonusPercentage && (
-                  <div>├─ Bonus: {parsedOffer.bonusPercentage}% of revenue after costs</div>
-                )}
-                {parsedOffer.percentage?.minimumGuarantee && (
-                  <div>├─ Minimum: ${parsedOffer.percentage.minimumGuarantee} guaranteed</div>
-                )}
-                {parsedOffer.afterExpenses && (
-                  <div>├─ After: ${parsedOffer.afterExpenses} expenses</div>
-                )}
-                <div>└─ Artist gets: {getArtistPayoutDescription(parsedOffer)}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Custom/Unparsed Input Warning */}
-      {parsedOffer && parsedOffer.type === 'custom' && inputText.trim() && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <div className="flex items-start space-x-2">
-            <div className="flex-shrink-0 mt-0.5">
-              <svg className="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <div className="text-sm font-medium text-yellow-900">Custom offer format</div>
-              <div className="text-xs text-yellow-700 mt-1">
-                This will be saved as-is. For better parsing, try formats like "$500 guarantee" or "70/30 split".
-              </div>
-            </div>
-          </div>
+      {/* Compact Preview - Only if offer exists */}
+      {currentOffer && (
+        <div className="text-sm text-gray-600 bg-blue-50 px-3 py-2 rounded border border-blue-200">
+          <strong className="text-blue-900">{currentOffer.displayText}</strong>
+          <span className="text-xs text-blue-700 ml-2">
+            → {getArtistPayoutDescription(currentOffer)}
+          </span>
         </div>
       )}
     </div>
@@ -303,16 +309,16 @@ export default function OfferInput({
 function getArtistPayoutDescription(offer: ParsedOffer): string {
   switch (offer.type) {
     case 'guarantee':
-      return `$${offer.guarantee} flat`;
+      return `$${offer.guarantee} guaranteed`;
     
     case 'percentage':
       if (offer.percentage?.minimumGuarantee) {
-        return `$${offer.percentage.minimumGuarantee} minimum, potentially more`;
+        return `$${offer.percentage.minimumGuarantee}+ guaranteed`;
       }
-      return `${offer.percentage?.artistPercentage}% of door revenue`;
+      return `${offer.percentage?.artistPercentage}% of door`;
     
     case 'guarantee-plus-percentage':
-      return `$${offer.guarantee} minimum, plus ${offer.bonusPercentage}% upside`;
+      return `$${offer.guarantee}+ guaranteed`;
     
     default:
       return 'Custom terms';
@@ -359,7 +365,9 @@ export function parsedOfferToLegacyFormat(offer: ParsedOffer | null) {
 
 // Helper to convert legacy format back to ParsedOffer
 export function legacyFormatToParsedOffer(amount: number | null, doorDeal: any): ParsedOffer | null {
-  if (!amount && !doorDeal) return null;
+  if (!amount && !doorDeal) {
+    return null;
+  }
 
   // Simple guarantee
   if (amount && !doorDeal) {
@@ -372,44 +380,96 @@ export function legacyFormatToParsedOffer(amount: number | null, doorDeal: any):
   }
 
   // Door deal with or without guarantee
-  if (doorDeal && doorDeal.split) {
-    const splitMatch = doorDeal.split.match(/^(\d+)\/(\d+)$/);
-    if (splitMatch) {
-      const artistPct = parseInt(splitMatch[1]);
-      const venuePct = parseInt(splitMatch[2]);
-      
-      if (amount && amount > 0) {
-        return {
-          type: 'percentage',
-          displayText: `${artistPct}% split, $${amount} minimum`,
-          percentage: {
-            artistPercentage: artistPct,
-            venuePercentage: venuePct,
-            minimumGuarantee: amount
-          },
-          rawInput: `${artistPct}% split, $${amount} minimum`
-        };
-      } else {
-        return {
-          type: 'percentage',
-          displayText: `${artistPct}/${venuePct} split`,
-          percentage: {
-            artistPercentage: artistPct,
-            venuePercentage: venuePct,
-            afterExpenses: doorDeal.afterExpenses
-          },
-          rawInput: `${artistPct}/${venuePct} split`
-        };
+  if (doorDeal) {
+    // Handle both string and object formats for split
+    let splitString = '';
+    if (typeof doorDeal.split === 'string') {
+      splitString = doorDeal.split;
+    } else if (typeof doorDeal === 'string') {
+      // Handle case where entire doorDeal is a string
+      splitString = doorDeal;
+    } else if (doorDeal.artistPercentage && doorDeal.venuePercentage) {
+      // Handle object format with separate percentage fields
+      splitString = `${doorDeal.artistPercentage}/${doorDeal.venuePercentage}`;
+    } else if (doorDeal.split && typeof doorDeal.split === 'object') {
+      // Handle nested split object
+      if (doorDeal.split.artistPercentage && doorDeal.split.venuePercentage) {
+        splitString = `${doorDeal.split.artistPercentage}/${doorDeal.split.venuePercentage}`;
       }
     }
     
-    // Custom format
-    return {
-      type: 'custom',
-      displayText: doorDeal.split,
-      rawInput: doorDeal.split
-    };
+    if (splitString) {
+      // Try multiple regex patterns to be more flexible
+      const patterns = [
+        /^(\d+)\/(\d+)$/,           // Standard: "70/30"
+        /^(\d+)\s*\/\s*(\d+)$/,    // With spaces: "70 / 30"
+        /^(\d+)%?\s*\/\s*(\d+)%?$/, // With percentage signs: "70%/30%"
+        /^(\d+)\s*-\s*(\d+)$/,     // With dash: "70-30"
+        /^(\d+)\s*:\s*(\d+)$/      // With colon: "70:30"
+      ];
+      
+      let splitMatch = null;
+      for (const pattern of patterns) {
+        splitMatch = splitString.match(pattern);
+        if (splitMatch) {
+          break;
+        }
+      }
+      
+      if (splitMatch) {
+        const artistPct = parseInt(splitMatch[1]);
+        const venuePct = parseInt(splitMatch[2]);
+        
+        // Validate percentages make sense
+        if (artistPct >= 0 && artistPct <= 100 && venuePct >= 0 && venuePct <= 100) {
+          
+          // 🎯 FIX: Detect guarantee-plus-percentage format
+          // If we have an amount AND the split is "X/0", it's a guarantee + bonus percentage
+          if (amount && amount > 0 && venuePct === 0 && artistPct > 0) {
+            return {
+              type: 'guarantee-plus-percentage',
+              displayText: `$${amount} + ${artistPct}% after costs`,
+              guarantee: amount,
+              bonusPercentage: artistPct,
+              afterExpenses: doorDeal.afterExpenses,
+              rawInput: `$${amount} + ${artistPct}% after costs`
+            };
+          }
+          
+          if (amount && amount > 0) {
+            return {
+              type: 'percentage',
+              displayText: `${artistPct}% split, $${amount} minimum`,
+              percentage: {
+                artistPercentage: artistPct,
+                venuePercentage: venuePct,
+                minimumGuarantee: amount
+              },
+              rawInput: `${artistPct}% split, $${amount} minimum`
+            };
+          } else {
+            return {
+              type: 'percentage',
+              displayText: `${artistPct}/${venuePct} split`,
+              percentage: {
+                artistPercentage: artistPct,
+                venuePercentage: venuePct,
+                afterExpenses: doorDeal.afterExpenses || doorDeal.minimumGuarantee
+              },
+              rawInput: `${artistPct}/${venuePct} split`
+            };
+          }
+        }
+      }
+      
+      // Custom format - use the raw split string
+      return {
+        type: 'custom',
+        displayText: splitString,
+        rawInput: splitString
+      };
+    }
   }
 
   return null;
-} 
+}

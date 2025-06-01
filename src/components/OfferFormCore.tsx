@@ -27,7 +27,6 @@ interface OfferFormCoreProps {
   title?: string;
   subtitle?: string;
   submitButtonText?: string;
-  showCapacityField?: boolean;
   
   // Error handling
   error?: string;
@@ -43,7 +42,6 @@ export default function OfferFormCore({
   title = "Make Offer to Artist",
   subtitle,
   submitButtonText = "Send Offer",
-  showCapacityField = true,
   error
 }: OfferFormCoreProps) {
   // Form state
@@ -53,8 +51,7 @@ export default function OfferFormCore({
     artistName: preSelectedArtist?.name || '',
     proposedDate: '',
     ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+',
-    capacity: '',
-    message: ''
+    message: `Hey! We'd love to have you play at ${venueName}. We think you'd be a great fit for our space and audience. Let us know if you're interested!`
   });
 
   // Artist search state
@@ -115,7 +112,6 @@ export default function OfferFormCore({
       artistName: formData.artistName,
       proposedDate: formData.proposedDate,
       ageRestriction: formData.ageRestriction,
-      capacity: formData.capacity ? parseInt(formData.capacity) : undefined,
       message: formData.message,
       offerData: offerData // The parsed offer data from OfferInput
     };
@@ -159,9 +155,6 @@ export default function OfferFormCore({
             placeholder="e.g., $500 guarantee, 70/30 door split after $300, $400 + 80% after costs"
             className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
           />
-          <p className="text-xs text-blue-700 mt-2">
-            💡 This is what the artist will see first. Make it compelling!
-          </p>
         </div>
 
         {/* Artist Selection - Only show if not pre-selected */}
@@ -257,25 +250,6 @@ export default function OfferFormCore({
           </div>
         </div>
 
-        {/* Optional Capacity Field */}
-        {showCapacityField && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Expected Capacity (Optional)
-            </label>
-            <input
-              type="number"
-              value={formData.capacity}
-              onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g. 150"
-            />
-            <p className="text-sm text-gray-500 mt-1">
-              Help the artist understand the scale of the show
-            </p>
-          </div>
-        )}
-
         {/* Personal Message */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -289,7 +263,7 @@ export default function OfferFormCore({
             className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <p className="text-sm text-gray-500 mt-1">
-            This message will be sent directly to the artist along with your offer.
+            A default message is provided. Feel free to customize it or leave as-is.
           </p>
         </div>
 

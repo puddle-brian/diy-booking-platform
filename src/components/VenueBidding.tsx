@@ -126,7 +126,7 @@ export default function VenueBidding({ venueId, venueName, artistFilter }: Venue
         setShowBidForm(false);
         setSelectedRequest(null);
         setBidForm({ guarantee: '', doorSplit: '', additionalTerms: '', message: '' });
-        alert('Bid submitted successfully!');
+        console.log('✅ Bid submitted successfully');
       } else {
         const error = await response.json();
         alert(`Failed to submit bid: ${error.error}`);

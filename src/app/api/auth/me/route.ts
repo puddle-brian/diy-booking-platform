@@ -78,11 +78,11 @@ export async function GET(request: NextRequest) {
     try {
       const membershipRecords = await (prisma as any).membership.findMany({
         where: {
-          userId: decoded.userId,
+          userId: user.id,
           status: 'ACTIVE'
         }
       });
-
+      
       // For each membership, get the entity details
       for (const membership of membershipRecords) {
         try {

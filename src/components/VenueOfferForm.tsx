@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import OfferFormCore from './OfferFormCore';
+import { parsedOfferToLegacyFormat } from './OfferInput';
 
 interface Artist {
   id: string;
@@ -20,39 +21,6 @@ interface VenueOfferFormProps {
     id: string;
     name: string;
   };
-}
-
-// Helper function to convert parsed offer to legacy format
-function parsedOfferToLegacyFormat(offerData: any) {
-  if (!offerData) {
-    return { amount: null, doorDeal: null };
-  }
-
-  // Handle different offer types from OfferInput
-  if (offerData.type === 'guarantee') {
-    return {
-      amount: offerData.amount,
-      doorDeal: null
-    };
-  } else if (offerData.type === 'door') {
-    return {
-      amount: null,
-      doorDeal: {
-        split: offerData.split,
-        minimumGuarantee: offerData.minimumGuarantee || 0
-      }
-    };
-  } else if (offerData.type === 'mixed') {
-    return {
-      amount: offerData.guarantee,
-      doorDeal: {
-        split: offerData.split,
-        minimumGuarantee: offerData.guarantee || 0
-      }
-    };
-  }
-
-  return { amount: null, doorDeal: null };
 }
 
 export default function VenueOfferForm({ 
@@ -84,7 +52,6 @@ export default function VenueOfferForm({
           proposedDate: formData.proposedDate,
           amount: legacyOffer.amount,
           doorDeal: legacyOffer.doorDeal,
-          capacity: formData.capacity,
           ageRestriction: formData.ageRestriction,
           message: formData.message,
         }),
@@ -116,7 +83,6 @@ export default function VenueOfferForm({
       title="Make Offer to Artist"
       subtitle={`Invite a specific artist to play at ${venueName}`}
       submitButtonText="Send Offer"
-      showCapacityField={true}
     />
   );
 } 

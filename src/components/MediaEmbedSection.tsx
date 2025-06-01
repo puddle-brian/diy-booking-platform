@@ -84,8 +84,8 @@ export default function MediaEmbedSection({
         }
       } else {
         // Add new embed
-        if (Array.isArray(embeds) && embeds.length >= maxEmbeds) {
-          alert(`Maximum of ${maxEmbeds} embeds allowed`);
+        if (embeds.length >= maxEmbeds) {
+          console.warn(`Maximum of ${maxEmbeds} embeds allowed`);
           return;
         }
 
@@ -111,7 +111,6 @@ export default function MediaEmbedSection({
 
     } catch (error) {
       console.error('Failed to save embed:', error);
-      alert('Failed to save embed. Please try again.');
     }
   };
 
@@ -124,14 +123,14 @@ export default function MediaEmbedSection({
       });
 
       if (response.ok) {
-        setEmbeds(prevEmbeds => Array.isArray(prevEmbeds) ? prevEmbeds.filter(embed => embed.id !== id) : []);
+        setEmbeds(prev => prev.filter(e => e.id !== id));
       } else {
         throw new Error('Failed to delete embed');
       }
 
     } catch (error) {
       console.error('Failed to delete embed:', error);
-      alert('Failed to delete embed. Please try again.');
+      // Could revert the optimistic update here if needed
     }
   };
 
@@ -163,7 +162,7 @@ export default function MediaEmbedSection({
 
     } catch (error) {
       console.error('Failed to update featured status:', error);
-      alert('Failed to update featured status. Please try again.');
+      // Could revert the optimistic update here if needed
     }
   };
 

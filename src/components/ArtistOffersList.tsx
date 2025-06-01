@@ -78,9 +78,9 @@ export default function ArtistOffersList({ artistId, artistName }: ArtistOffersL
       await fetchOffers();
       
       if (action === 'accept') {
-        alert('Offer accepted! The show has been confirmed.');
+        console.log('✅ Offer accepted successfully');
       } else {
-        alert('Offer declined.');
+        console.log('✅ Offer declined successfully');
       }
     } catch (error) {
       console.error(`Error ${action}ing offer:`, error);

@@ -388,7 +388,10 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
       // Check if user is a venue user (has venue association)
       // This allows venue users to bid on tour requests even when viewing artist pages
       const hasVenueMembership = user.memberships?.some(membership => membership.entityType === 'venue');
-      if (venue || hasVenueMembership) return 'venue';
+      
+      if (venue || hasVenueMembership) {
+        return 'venue';
+      }
       
       return 'public';
     })(),

@@ -72,15 +72,15 @@ export default function MessageThread({
         }),
       });
 
-      if (response.ok) {
-        const message = await response.json();
-        setMessages(prev => [...prev, message]);
-        setNewMessage('');
-      } else {
-        alert('Failed to send message');
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
       }
+      setMessages(prev => [...prev, data]);
+      setNewMessage('');
     } catch (error) {
-      alert('Failed to send message');
+      console.error('Failed to send message:', error);
+      // UI should handle this error state
     } finally {
       setSending(false);
     }

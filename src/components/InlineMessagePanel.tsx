@@ -97,7 +97,6 @@ export default function InlineMessagePanel({
 
       if (response.status === 401) {
         console.error('Authentication failed - user may need to log in again');
-        alert('Please log in again to send messages');
         return;
       }
 
@@ -108,11 +107,10 @@ export default function InlineMessagePanel({
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('Failed to create conversation:', errorData);
-        alert(`Failed to start conversation: ${errorData.error || 'Please try again'}`);
       }
     } catch (error) {
-      console.error('Error initializing conversation:', error);
-      alert('Failed to start conversation. Please check your connection and try again.');
+      console.error('Error starting conversation:', error);
+      // UI should handle this error state gracefully
     } finally {
       setLoading(false);
     }
@@ -157,7 +155,6 @@ export default function InlineMessagePanel({
 
       if (response.status === 401) {
         console.error('Authentication failed while sending message');
-        alert('Please log in again to send messages');
         return;
       }
 
@@ -168,11 +165,10 @@ export default function InlineMessagePanel({
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
         console.error('Failed to send message:', errorData);
-        alert(`Failed to send message: ${errorData.error || 'Please try again'}`);
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Failed to send message. Please check your connection and try again.');
+      // UI should handle this error state gracefully
     } finally {
       setSending(false);
     }

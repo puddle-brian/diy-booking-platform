@@ -98,6 +98,7 @@ export async function GET(request: NextRequest) {
       showsThisYear: 0, // TODO: Count from shows
       hasAccount: false, // TODO: Check if venue has user account
       unavailableDates: [], // Add this field for compatibility
+      ownerId: venue.submittedById, // Add ownership info for make offer modal
       createdAt: venue.createdAt,
       updatedAt: venue.updatedAt
     }));
@@ -201,6 +202,7 @@ export async function POST(request: NextRequest) {
       showsThisYear: 0,
       hasAccount: false,
       unavailableDates: [], // Add this field for compatibility
+      ownerId: venue.submittedById, // Add ownership info for make offer modal
       createdAt: venue.createdAt,
       updatedAt: venue.updatedAt
     };

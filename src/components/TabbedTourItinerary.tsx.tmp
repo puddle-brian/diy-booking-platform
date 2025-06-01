@@ -2695,7 +2695,6 @@ export default function TabbedTourItinerary({
                 title="Make Offer to Artist"
                 subtitle="Invite a specific artist to play at your venue on this date"
                 submitButtonText="Send Offer"
-
               />
             </div>
           ) : (
