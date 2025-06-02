@@ -628,6 +628,14 @@ export default function TabbedTourItinerary({
               venue: req.venue,
               artist: req.artist
             }));
+          
+          // 🎯 DEBUG: Log venue offers before setting state
+          console.log('🎯 Venue offers from API:', legacyVenueOffers.map(offer => ({
+            id: offer.id,
+            status: offer.status,
+            venueName: offer.venueName
+          })));
+          
           setVenueOffers(legacyVenueOffers);
         }
       }
@@ -775,7 +783,17 @@ export default function TabbedTourItinerary({
     // This creates a consistent UX where all booking opportunities are tour-request rows
     venueOffers.forEach(offer => {
       const status = offer.status.toLowerCase();
-      if (!['cancelled', 'declined'].includes(status)) {
+      
+      // 🎯 DEBUG: Log offer status to see what we're getting from API
+      console.log('🔍 Processing venue offer:', {
+        id: offer.id,
+        status: offer.status,
+        statusLowercase: status,
+        shouldInclude: !['cancelled', 'declined', 'rejected', 'expired'].includes(status)
+      });
+      
+      // 🎯 ENHANCED FILTERING: Ensure declined/rejected offers disappear completely from UI
+      if (!['cancelled', 'declined', 'rejected', 'expired'].includes(status)) {
         // 🎯 FIX: Ensure proper date handling - use original proposedDate without conversion
         // Extract just the date part to avoid timezone issues with ISO timestamps
         const offerDate = offer.proposedDate.split('T')[0]; // Extract YYYY-MM-DD from ISO timestamp
@@ -837,6 +855,8 @@ export default function TabbedTourItinerary({
           date: offerDate, // 🎯 FIX: Use consistent date without timezone
           data: syntheticRequest
         });
+      } else {
+        console.log('🚫 Filtering out venue offer with status:', status);
       }
     });
     
@@ -1138,6 +1158,22 @@ export default function TabbedTourItinerary({
     setBidActions(prev => ({ ...prev, [bid.id]: true }));
     
     try {
+      // 🎯 IMMEDIATE UI FEEDBACK: For decline actions, immediately remove from local state
+      if (action === 'decline') {
+        // For venue offers (synthetic bids), remove from venueOffers
+        if (bid.id.startsWith('offer-bid-')) {
+          const originalOfferId = bid.id.replace('offer-bid-', '');
+          setVenueOffers(prevOffers => 
+            prevOffers.filter(offer => offer.id !== originalOfferId)
+          );
+        } else {
+          // For regular bids, remove from venueBids
+          setVenueBids(prevBids => 
+            prevBids.filter(prevBid => prevBid.id !== bid.id)
+          );
+        }
+      }
+
       // 🎯 UPDATED: Use unified ShowRequest bid API
       const response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
         method: 'PUT',
@@ -1153,22 +1189,41 @@ export default function TabbedTourItinerary({
       });
 
       if (!response.ok) {
+        // If API call fails, restore the bid/offer if we removed it optimistically
+        if (action === 'decline') {
+          if (bid.id.startsWith('offer-bid-')) {
+            // Restore offer - we'd need to find the original offer, but this is complex
+            // Let's just refresh data instead
+            await fetchData();
+          } else {
+            setVenueBids(prevBids => [...prevBids, bid]);
+          }
+        }
         const errorData = await response.json();
         throw new Error(errorData.error || `Failed to ${action} bid`);
       }
 
-      await fetchData();
+      // Refresh data to ensure everything is in sync
+      if (action !== 'decline') {
+        await fetchData();
+      }
       
       const actionMessages = {
         accept: 'Bid accepted! You can now coordinate with the venue to finalize details.',
         hold: 'Bid placed on hold. You have time to consider other options.',
-        decline: 'Bid declined.'
+        decline: 'Bid declined and removed from your itinerary.'
       };
       
-      console.log(`✅ ${actionMessages[action as keyof typeof actionMessages] || `Bid ${action}ed successfully.`}`);
+      const message = actionMessages[action as keyof typeof actionMessages] || `Bid ${action}ed successfully.`;
+      console.log(`✅ ${message}`);
+      
+      // Show success message for decline actions
+      if (action === 'decline') {
+        showSuccess('Bid Declined', 'The bid has been removed from your itinerary.');
+      }
     } catch (error) {
       console.error(`Error ${action}ing bid:`, error);
-      alert(`Failed to ${action} bid: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showError(`${action.charAt(0).toUpperCase() + action.slice(1)} Failed`, `Failed to ${action} bid: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setBidActions(prev => ({ ...prev, [bid.id]: false }));
     }
@@ -1543,6 +1598,14 @@ export default function TabbedTourItinerary({
     const actionText = action === 'accept' ? 'accept' : action === 'decline' ? 'decline' : action;
     
     try {
+      // 🎯 IMMEDIATE UI FEEDBACK: For decline actions, immediately remove from local state
+      if (action === 'decline') {
+        // Optimistically update local state to remove the offer immediately
+        setVenueOffers(prevOffers => 
+          prevOffers.filter(prevOffer => prevOffer.id !== offer.id)
+        );
+      }
+
       // 🎯 UPDATED: Use unified ShowRequest API instead of venue-specific offers endpoint
       const response = await fetch(`/api/show-requests/${offer.id}`, {
         method: 'PUT',
@@ -1553,16 +1616,27 @@ export default function TabbedTourItinerary({
       });
 
       if (!response.ok) {
+        // If API call fails, restore the offer if we removed it optimistically
+        if (action === 'decline') {
+          setVenueOffers(prevOffers => [...prevOffers, offer]);
+        }
         throw new Error(`Failed to ${actionText} offer`);
       }
 
-      // Refresh data to show updated status
-      await fetchData();
+      // Refresh data to ensure everything is in sync
+      if (action !== 'decline') {
+        await fetchData();
+      }
       
       console.log(`✅ Offer ${actionText}ed successfully`);
+      
+      // Show success message for decline actions
+      if (action === 'decline') {
+        showSuccess('Offer Declined', 'The venue offer has been removed from your itinerary.');
+      }
     } catch (error) {
       console.error(`Error ${actionText}ing offer:`, error);
-      alert(`Failed to ${actionText} offer. Please try again.`);
+      showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer. Please try again.`);
     }
   };
 
@@ -2689,8 +2763,6 @@ export default function TabbedTourItinerary({
                                                       </button>
                                                       <button
                                                         onClick={() => {
-                                                          const reason = prompt('Reason for declining (optional):');
-                                                          if (reason !== null) {
                                                             // For synthetic bids, use offer actions
                                                             if (request.isVenueInitiated && request.originalOfferId) {
                                                               const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
@@ -2698,9 +2770,8 @@ export default function TabbedTourItinerary({
                                                                 handleOfferAction(originalOffer, 'decline');
                                                               }
                                                             } else {
-                                                              handleBidAction(bid, 'decline', reason);
+                                                              handleBidAction(bid, 'decline');
                                                             }
-                                                          }
                                                         }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
@@ -2733,8 +2804,6 @@ export default function TabbedTourItinerary({
                                                       </button>
                                                       <button
                                                         onClick={() => {
-                                                          const reason = prompt('Reason for declining (optional):');
-                                                          if (reason !== null) {
                                                             // For synthetic bids, use offer actions
                                                             if (request.isVenueInitiated && request.originalOfferId) {
                                                               const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
@@ -2742,9 +2811,8 @@ export default function TabbedTourItinerary({
                                                                 handleOfferAction(originalOffer, 'decline');
                                                               }
                                                             } else {
-                                                              handleBidAction(bid, 'decline', reason);
+                                                              handleBidAction(bid, 'decline');
                                                             }
-                                                          }
                                                         }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
@@ -2779,8 +2847,6 @@ export default function TabbedTourItinerary({
                                                       </button>
                                                       <button
                                                         onClick={() => {
-                                                          const reason = prompt('Reason for declining (optional):');
-                                                          if (reason !== null) {
                                                             // For synthetic bids, use offer actions
                                                             if (request.isVenueInitiated && request.originalOfferId) {
                                                               const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
@@ -2788,9 +2854,8 @@ export default function TabbedTourItinerary({
                                                                 handleOfferAction(originalOffer, 'decline');
                                                               }
                                                             } else {
-                                                              handleBidAction(bid, 'decline', reason);
+                                                              handleBidAction(bid, 'decline');
                                                             }
-                                                          }
                                                         }}
                                                         disabled={bidActions[bid.id]}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
