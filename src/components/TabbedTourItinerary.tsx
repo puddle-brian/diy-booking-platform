@@ -2376,19 +2376,17 @@ export default function TabbedTourItinerary({
                       
                       {/* Capacity (Expected Draw) */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600">{request.expectedDraw.min}-{request.expectedDraw.max}</div>
+                        {/* Empty for show requests - details available in expanded view */}
                       </td>
                       
                       {/* Age */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600">{request.ageRestriction || 'Flexible'}</div>
+                        {/* Empty for show requests - details available in expanded view */}
                       </td>
                       
                       {/* Guarantee Range */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600">
-                          {request.guaranteeRange ? `$${request.guaranteeRange.min}-${request.guaranteeRange.max}` : '-'}
-                        </div>
+                        {/* Empty for show requests - details available in expanded view */}
                       </td>
                       
                       {/* Bids Count */}
