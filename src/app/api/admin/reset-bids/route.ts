@@ -147,10 +147,10 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < Math.min(numBids, shuffledVenues.length); i++) {
         const venue = shuffledVenues[i];
         
-        // Create realistic bid dates near request date
+        // 🎯 FIX: Use exact request date instead of random offset for logical consistency
+        // Venues bidding on a specific date request should bid for that exact date
         const baseDate = new Date(showRequest.requestedDate);
-        const randomOffset = (Math.random() - 0.5) * 7 * 24 * 60 * 60 * 1000; // ±7 days
-        const proposedDate = new Date(baseDate.getTime() + randomOffset);
+        const proposedDate = new Date(showRequest.requestedDate);
 
         // 🎯 SOPHISTICATED STATUS DISTRIBUTION FOR REALISTIC TESTING
         let status: BidStatus = BidStatus.PENDING;
