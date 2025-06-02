@@ -863,7 +863,28 @@ export default function TabbedTourItinerary({
     const monthGroups: { [key: string]: MonthGroup } = {};
     
     entries.forEach(entry => {
-      const date = new Date(entry.date);
+      // 🎯 FIX: Use timezone-safe date parsing to avoid month shifting
+      // This prevents "2025-08-01" from being interpreted as UTC and shifting to July in negative timezones
+      let date: Date;
+      
+      if (typeof entry.date === 'string') {
+        if (entry.date.includes('T') || entry.date.includes('Z')) {
+          // ISO string with time - parse normally
+          date = new Date(entry.date);
+        } else {
+          // Date-only string (e.g., "2025-08-01") - treat as local date
+          const parts = entry.date.split('-');
+          if (parts.length === 3) {
+            // Create date in local timezone to avoid UTC conversion
+            date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          } else {
+            date = new Date(entry.date);
+          }
+        }
+      } else {
+        date = new Date(entry.date);
+      }
+      
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const monthLabel = date.toLocaleDateString('en-US', { 
         year: 'numeric', 
