@@ -2229,6 +2229,7 @@ export default function TabbedTourItinerary({
                                 id: request.artistId,
                                 name: request.artistName
                               }}
+                              preSelectedDate={request.startDate} // 🎯 FIX: Add the missing preSelectedDate prop
                               variant="outline"
                               size="xs"
                               onSuccess={() => fetchData()}
