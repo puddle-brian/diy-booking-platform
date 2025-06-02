@@ -3,20 +3,20 @@ import { prisma } from '../../../../../lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    // Clear all bids and tour requests from database
-    await prisma.bid.deleteMany({});
-    await prisma.tourRequest.deleteMany({});
+    // 🎯 UPDATED: Clear NEW unified system instead of old legacy system
+    await prisma.showRequestBid.deleteMany({});
+    await prisma.showRequest.deleteMany({});
     
-    console.log('🧹 Admin: Cleared all bids and tour requests from database');
+    console.log('🧹 Admin: Cleared all show request bids and show requests from database (NEW UNIFIED SYSTEM)');
     
     return NextResponse.json({ 
       success: true, 
-      message: 'All bids and tour requests cleared successfully from database' 
+      message: 'All show request bids and show requests cleared successfully from database (NEW UNIFIED SYSTEM)' 
     });
   } catch (error) {
-    console.error('Error clearing bids:', error);
+    console.error('Error clearing show request bids:', error);
     return NextResponse.json(
-      { error: 'Failed to clear bids', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Failed to clear show request bids', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

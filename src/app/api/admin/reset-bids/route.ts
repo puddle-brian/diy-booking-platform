@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
-import { RequestStatus, BidStatus, AgeRestriction, ShowStatus } from '@prisma/client';
+import { BidStatus, ShowStatus, AgeRestriction } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
     console.log('🔄 Starting comprehensive data reset...');
 
-    // First, clear existing tour requests, bids, and shows
-    await prisma.bid.deleteMany({});
-    await prisma.tourRequest.deleteMany({});
-    await prisma.show.deleteMany({});
-    console.log('🧹 Cleared existing tour requests, bids, and shows');
+    // 🎯 UPDATED: Clear NEW unified system instead of old legacy system
+    await prisma.showRequestBid.deleteMany({});
+    await prisma.showRequest.deleteMany({});
+    await prisma.show.deleteMany({}); // Still clear shows as they're shared
+    console.log('🧹 Cleared existing show requests, bids, and shows (NEW UNIFIED SYSTEM)');
 
     // Get debug artists and venues - use specific IDs to ensure we get the right ones
     const debugArtists = await prisma.artist.findMany({
@@ -57,86 +57,80 @@ export async function POST(request: NextRequest) {
     console.log(`🎵 Found ${debugArtists.length} debug artists:`, debugArtists.map(a => `${a.id}: ${a.name}`));
     console.log(`🏢 Found ${debugVenues.length} debug venues`);
 
-    // Create comprehensive tour requests
-    const tourRequests = [];
+    // 🎯 CREATE ARTIST-INITIATED SHOW REQUESTS (NEW UNIFIED SYSTEM)
+    const showRequests = [];
     const currentDate = new Date();
     const futureDate = new Date(currentDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
 
-    // Lightning Bolt - East Coast Tour (SHOWCASE BIDDING SYSTEM - 8+ bids)
-    if (debugArtists.find(a => a.id === '1748101913848')) {
-      const lightningBolt = debugArtists.find(a => a.id === '1748101913848');
-      
-      if (lightningBolt) {
-        tourRequests.push({
+    // Lightning Bolt - East Coast Tour (SHOWCASE BIDDING SYSTEM - 10+ bids)
+    const lightningBolt = debugArtists.find(a => a.id === '1748101913848');
+    if (lightningBolt) {
+      const lightningBoltRequest = await prisma.showRequest.create({
+        data: {
           title: 'Lightning Bolt East Coast Noise Tour',
           description: 'Seeking experimental venues for our intense noise rock performances. We bring our own amps and need venues that can handle LOUD music. Looking for 3-5 dates between Providence and Brooklyn.',
           artistId: lightningBolt.id,
-          startDate: new Date(futureDate.getTime() + 7 * 24 * 60 * 60 * 1000),
-          endDate: new Date(futureDate.getTime() + 21 * 24 * 60 * 60 * 1000),
-          status: RequestStatus.ACTIVE,
-          genres: ['noise rock', 'experimental', 'avant-garde'],
-          targetLocations: [],
-          createdById: systemUser.id
-        });
-      }
+          venueId: null, // Artist-initiated, open to any venue
+          createdById: systemUser.id,
+          requestedDate: new Date(futureDate.getTime() + 7 * 24 * 60 * 60 * 1000),
+          initiatedBy: 'ARTIST',
+          status: 'OPEN',
+          targetLocations: ['Providence, RI', 'Boston, MA', 'New York, NY', 'Philadelphia, PA'],
+          genres: ['noise rock', 'experimental', 'avant-garde']
+        }
+      });
+      showRequests.push(lightningBoltRequest);
     }
 
-    // The Menzingers - Summer Festival Circuit (HOLD MANAGEMENT SHOWCASE - 6+ bids)
-    if (debugArtists.find(a => a.id === '2')) {
-      const menzingers = debugArtists.find(a => a.id === '2');
-      
-      if (menzingers) {
-        tourRequests.push({
+    // The Menzingers - Summer Festival Circuit (HOLD MANAGEMENT SHOWCASE - 8+ bids)
+    const menzingers = debugArtists.find(a => a.id === '2');
+    if (menzingers) {
+      const menzingersRequest = await prisma.showRequest.create({
+        data: {
           title: 'Menzingers Summer Festival Run',
           description: 'Looking for mid-size venues and festivals for our summer tour. We have a strong following and can guarantee good turnout. Seeking 4-6 dates in the Northeast.',
           artistId: menzingers.id,
-          startDate: new Date(futureDate.getTime() + 45 * 24 * 60 * 60 * 1000),
-          endDate: new Date(futureDate.getTime() + 75 * 24 * 60 * 60 * 1000),
-          status: RequestStatus.ACTIVE,
-          genres: ['punk rock', 'indie rock', 'alternative'],
-          targetLocations: [],
-          createdById: systemUser.id
-        });
-      }
+          venueId: null,
+          createdById: systemUser.id,
+          requestedDate: new Date(futureDate.getTime() + 45 * 24 * 60 * 60 * 1000),
+          initiatedBy: 'ARTIST',
+          status: 'OPEN',
+          targetLocations: ['Boston, MA', 'New York, NY', 'Philadelphia, PA'],
+          genres: ['punk rock', 'indie rock', 'alternative']
+        }
+      });
+      showRequests.push(menzingersRequest);
     }
 
-    // Against Me! - Acoustic Tour (ACCEPTED BIDS SHOWCASE - 5+ bids)
-    if (debugArtists.find(a => a.id === '1')) {
-      const againstMe = debugArtists.find(a => a.id === '1');
-      
-      if (againstMe) {
-        tourRequests.push({
+    // Against Me! - Acoustic Tour (ACCEPTED BIDS SHOWCASE - 6+ bids)
+    const againstMe = debugArtists.find(a => a.id === '1');
+    if (againstMe) {
+      const againstMeRequest = await prisma.showRequest.create({
+        data: {
           title: 'Against Me! Intimate Acoustic Shows',
           description: 'Laura Jane Grace solo acoustic performances. Looking for intimate venues, coffee shops, and small clubs. Perfect for venues under 200 capacity.',
           artistId: againstMe.id,
-          startDate: new Date(futureDate.getTime() + 20 * 24 * 60 * 60 * 1000),
-          endDate: new Date(futureDate.getTime() + 35 * 24 * 60 * 60 * 1000),
-          status: RequestStatus.ACTIVE,
-          genres: ['folk punk', 'acoustic', 'singer-songwriter'],
-          targetLocations: [],
-          createdById: systemUser.id
-        });
-      }
-    }
-
-    // Create the tour requests in database
-    const createdTourRequests = [];
-    for (const tourRequest of tourRequests) {
-      const created = await prisma.tourRequest.create({
-        data: tourRequest
+          venueId: null,
+          createdById: systemUser.id,
+          requestedDate: new Date(futureDate.getTime() + 20 * 24 * 60 * 60 * 1000),
+          initiatedBy: 'ARTIST',
+          status: 'OPEN',
+          targetLocations: ['Austin, TX', 'Nashville, TN', 'Atlanta, GA'],
+          genres: ['folk punk', 'acoustic', 'singer-songwriter']
+        }
       });
-      createdTourRequests.push(created);
+      showRequests.push(againstMeRequest);
     }
 
-    console.log(`✅ Created ${createdTourRequests.length} tour requests`);
+    console.log(`✅ Created ${showRequests.length} show requests (NEW UNIFIED SYSTEM)`);
 
-    // 🎯 CREATE SOPHISTICATED BIDS WITH REALISTIC SCENARIOS
+    // 🎯 CREATE SOPHISTICATED BIDS WITH REALISTIC SCENARIOS (NEW SYSTEM)
     const createdBids = [];
 
-    for (const tourRequest of createdTourRequests) {
-      const artist = debugArtists.find(a => a.id === tourRequest.artistId);
+    for (const showRequest of showRequests) {
+      const artist = debugArtists.find(a => a.id === showRequest.artistId);
       
-      // Create MANY bids per tour request to showcase the system
+      // Create MANY bids per show request to showcase the system
       let numBids = 8; // Default to 8 bids per request
       
       if (artist?.name.includes('Lightning Bolt')) {
@@ -153,16 +147,16 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < Math.min(numBids, shuffledVenues.length); i++) {
         const venue = shuffledVenues[i];
         
-        // Create realistic bid dates within tour window
-        const tourDuration = tourRequest.endDate!.getTime() - tourRequest.startDate!.getTime();
-        const randomOffset = Math.random() * tourDuration;
-        const proposedDate = new Date(tourRequest.startDate!.getTime() + randomOffset);
+        // Create realistic bid dates near request date
+        const baseDate = new Date(showRequest.requestedDate);
+        const randomOffset = (Math.random() - 0.5) * 7 * 24 * 60 * 60 * 1000; // ±7 days
+        const proposedDate = new Date(baseDate.getTime() + randomOffset);
 
         // 🎯 SOPHISTICATED STATUS DISTRIBUTION FOR REALISTIC TESTING
         let status: BidStatus = BidStatus.PENDING;
         
         if (artist?.id === '1748101913848') {
-          // Lightning Bolt: Showcase ALL bid statuses for comprehensive testing
+          // Lightning Bolt: Showcase bid statuses that are actually visible in UI
           if (i === 0) {
             status = BidStatus.ACCEPTED; // First bid accepted
           } else if (i === 1) {
@@ -172,9 +166,9 @@ export async function POST(request: NextRequest) {
           } else if (i === 3) {
             status = BidStatus.PENDING; // Fresh pending bid
           } else if (i === 4) {
-            status = BidStatus.REJECTED; // Artist declined
+            status = BidStatus.PENDING; // More pending bids for testing
           } else if (i === 5) {
-            status = BidStatus.WITHDRAWN; // Venue withdrew
+            status = BidStatus.HOLD; // 3rd hold position
           } else if (i === 6) {
             status = BidStatus.PENDING; // More pending for testing
           } else {
@@ -191,7 +185,7 @@ export async function POST(request: NextRequest) {
           } else if (i === 3) {
             status = BidStatus.PENDING; // Fresh pending bid
           } else if (i === 4) {
-            status = BidStatus.REJECTED; // One rejected
+            status = BidStatus.PENDING; // More pending for realistic testing
           } else {
             status = BidStatus.PENDING; // More pending bids
           }
@@ -206,25 +200,23 @@ export async function POST(request: NextRequest) {
           } else if (i === 3) {
             status = BidStatus.PENDING; // Another pending
           } else {
-            status = BidStatus.REJECTED; // Some rejected
+            status = BidStatus.PENDING; // More pending for testing
           }
         } else {
-          // Other artists: Mix of statuses
+          // Other artists: Only visible statuses
           const rand = Math.random();
-          if (rand < 0.4) {
-            status = BidStatus.PENDING;
-          } else if (rand < 0.6) {
-            status = BidStatus.ACCEPTED;
+          if (rand < 0.6) {
+            status = BidStatus.PENDING; // Most bids are pending
           } else if (rand < 0.8) {
-            status = BidStatus.REJECTED;
+            status = BidStatus.ACCEPTED; // Some accepted
           } else {
-            status = BidStatus.WITHDRAWN;
+            status = BidStatus.HOLD; // Some on hold
           }
         }
 
-        // 🎯 CREATE DETAILED BID WITH ALL FIELDS
+        // 🎯 CREATE DETAILED BID WITH ALL FIELDS (NEW SYSTEM)
         const bidData = {
-          tourRequestId: tourRequest.id,
+          showRequestId: showRequest.id,
           venueId: venue.id,
           bidderId: systemUser.id,
           proposedDate,
@@ -239,15 +231,13 @@ export async function POST(request: NextRequest) {
           }`,
           status: status,
           
-                  // 🎯 HOLD MANAGEMENT - Set hold details for hold status bids
-        holdPosition: status === BidStatus.HOLD ? (i <= 2 ? i + 1 : 3) : undefined, // First 3 bids get hold positions 1, 2, 3
-        heldAt: status === BidStatus.HOLD ? new Date() : undefined,
-        heldUntil: status === BidStatus.HOLD ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : undefined, // 14 days from now
+          // 🎯 HOLD MANAGEMENT - Set hold details for hold status bids
+          holdPosition: status === BidStatus.HOLD ? (i <= 2 ? i + 1 : 3) : null, // First 3 bids get hold positions 1, 2, 3
+          heldAt: status === BidStatus.HOLD ? new Date() : null,
+          heldUntil: status === BidStatus.HOLD ? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000) : null, // 14 days from now
           
           // 🎯 ACCEPTANCE/DECLINE TRACKING
-          acceptedAt: status === BidStatus.ACCEPTED ? new Date() : undefined,
-          declinedAt: status === BidStatus.REJECTED ? new Date() : undefined,
-          declinedReason: status === BidStatus.REJECTED ? 'Schedule conflict' : undefined,
+          acceptedAt: status === BidStatus.ACCEPTED ? new Date() : null,
           
           // 🎯 BILLING ORDER - Realistic billing positions
           billingPosition: i === 0 ? 'headliner' :
@@ -267,32 +257,32 @@ export async function POST(request: NextRequest) {
                        'Opening slot, great for building local fanbase'
         };
 
-        const createdBid = await prisma.bid.create({
+        const createdBid = await prisma.showRequestBid.create({
           data: bidData
         });
         createdBids.push(createdBid);
       }
     }
 
-    console.log(`✅ Created ${createdBids.length} sophisticated bids with realistic statuses`);
+    console.log(`✅ Created ${createdBids.length} sophisticated bids with realistic statuses (NEW SYSTEM)`);
 
     // 🎯 CREATE CONFIRMED SHOWS (only from accepted bids)
     const acceptedBids = createdBids.filter(bid => bid.status === BidStatus.ACCEPTED);
     const createdShows = [];
 
     for (const bid of acceptedBids) {
-      const tourRequest = createdTourRequests.find(tr => tr.id === bid.tourRequestId);
-      const artist = debugArtists.find(a => a.id === tourRequest?.artistId);
+      const showRequest = showRequests.find(sr => sr.id === bid.showRequestId);
+      const artist = debugArtists.find(a => a.id === showRequest?.artistId);
       const venue = debugVenues.find(v => v.id === bid.venueId);
 
-      if (artist && venue && tourRequest && bid.proposedDate) {
+      if (artist && venue && showRequest && bid.proposedDate) {
         const show = await prisma.show.create({
           data: {
             title: `${artist.name} at ${venue.name}`,
             date: bid.proposedDate,
             artistId: artist.id,
             venueId: venue.id,
-            description: `${tourRequest.title} - Show at ${venue.name}`,
+            description: `${showRequest.title} - Show at ${venue.name}`,
             ticketPrice: Math.floor(Math.random() * 20) + 15, // $15-35
             ageRestriction: AgeRestriction.ALL_AGES,
             status: ShowStatus.CONFIRMED,
@@ -316,7 +306,7 @@ export async function POST(request: NextRequest) {
 
     // 🎯 CREATE ADDITIONAL STANDALONE SHOWS (only confirmed)
     const additionalShows = [];
-    const numAdditionalShows = Math.floor(Math.random() * 8) + 12; // 12-20 shows
+    const numAdditionalShows = Math.floor(Math.random() * 8) + 12;
     
     for (let i = 0; i < numAdditionalShows; i++) {
       const artist = debugArtists[Math.floor(Math.random() * debugArtists.length)];
@@ -355,10 +345,44 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Created ${additionalShows.length} additional confirmed shows`);
 
+    // 🎯 CREATE VENUE-INITIATED SHOW REQUESTS (Venue Offers)
+    const venueOffers = [];
+    for (let i = 0; i < 3; i++) {
+      const venue = debugVenues[i];
+      const artist = debugArtists[Math.floor(Math.random() * debugArtists.length)];
+      const requestDate = new Date(futureDate.getTime() + 60 + (i * 15));
+      const amount = Math.floor(Math.random() * 600) + 400; // $400-$1000
+      
+      if (venue && artist) {
+        const venueOffer = await prisma.showRequest.create({
+          data: {
+            artistId: artist.id,
+            venueId: venue.id,
+            createdById: systemUser.id,
+            title: `${artist.name} at ${venue.name}`,
+            description: `${venue.name} would love to host ${artist.name} for an unforgettable show!`,
+            requestedDate: requestDate,
+            initiatedBy: 'VENUE',
+            status: 'OPEN',
+            targetLocations: [venue.name],
+            genres: artist.genres || ['rock'],
+            amount: amount,
+            capacity: venue.capacity,
+            ageRestriction: 'ALL_AGES',
+            message: `Hey ${artist.name}! We're huge fans and would love to have you play at ${venue.name}. We can offer $${amount} guarantee and think our audience would absolutely love your sound.`
+          }
+        });
+        venueOffers.push(venueOffer);
+      }
+    }
+
+    console.log(`✅ Created ${venueOffers.length} venue-initiated show requests (offers)`);
+
     // Summary
     const totalShows = createdShows.length + additionalShows.length;
     const summary = {
-      tourRequests: createdTourRequests.length,
+      showRequests: showRequests.length,
+      venueOffers: venueOffers.length,
       bids: createdBids.length,
       totalShows: totalShows,
       bidsByStatus: {
@@ -370,17 +394,17 @@ export async function POST(request: NextRequest) {
         cancelled: createdBids.filter(b => b.status === BidStatus.CANCELLED).length
       },
       scenarios: {
-        lightningBolt: 'Lightning Bolt: 10 bids with all statuses (1 accepted, 6 pending, 1 rejected, 1 withdrawn) - perfect for testing bid management',
-        menzingers: 'Menzingers: 8 bids mostly pending (6 pending, 1 rejected) - perfect for testing hold system',
+        lightningBolt: 'Lightning Bolt: 10 bids with visible statuses (1 accepted, 6 pending, 3 hold) - perfect for testing bid management',
+        menzingers: 'Menzingers: 8 bids mostly pending (5 pending, 3 hold) - perfect for testing hold system',
         againstMe: 'Against Me: 6 bids with 2 accepted leading to confirmed shows - perfect for testing acceptance workflow'
       }
     };
 
-    console.log('🎉 Sophisticated booking data created!', summary);
+    console.log('🎉 Sophisticated booking data created with NEW UNIFIED SYSTEM!', summary);
 
     return NextResponse.json({ 
       success: true, 
-      message: `🎭 Created realistic booking scenarios! ${summary.tourRequests} tour requests with ${summary.bids} detailed bids (${summary.bidsByStatus.pending} pending, ${summary.bidsByStatus.accepted} accepted, ${summary.bidsByStatus.rejected} rejected, ${summary.bidsByStatus.withdrawn} withdrawn). ${summary.totalShows} confirmed shows. Lightning Bolt has 10 bids to test all statuses, Menzingers has 8 bids for hold testing, Against Me has 6 bids with acceptances. Click on tour requests to see expandable bid management!`,
+      message: `🎭 Created realistic booking scenarios! ${summary.showRequests} show requests + ${summary.venueOffers} venue offers with ${summary.bids} detailed bids (${summary.bidsByStatus.pending} pending, ${summary.bidsByStatus.hold} hold, ${summary.bidsByStatus.accepted} accepted). ${summary.totalShows} confirmed shows. Lightning Bolt has 10 bids with visible statuses, Menzingers has 8 bids for hold testing, Against Me has 6 bids with acceptances. All data uses realistic UI-visible statuses only!`,
       summary
     });
 

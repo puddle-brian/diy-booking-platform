@@ -557,7 +557,7 @@ export default function AdminPage() {
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Test Data Management</h2>
                   <p className="text-sm text-gray-600 mb-6">
-                    Manage test data for tour requests, bids, and shows. Use these tools to reset the system to a known state for testing.
+                    Manage test data for show requests, bids, and shows. Use these tools to reset the system to a known state for testing.
                   </p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -565,7 +565,7 @@ export default function AdminPage() {
                     <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <h4 className="font-medium text-yellow-900 mb-2">🔄 Reset Test Data</h4>
                       <p className="text-sm text-yellow-800 mb-3">
-                        Recreates all tour requests, bids, and shows with realistic test data
+                        Recreates all show requests, bids, and shows with realistic test data using the NEW UNIFIED SYSTEM
                       </p>
                       <button
                         onClick={handleResetBids}
@@ -653,13 +653,16 @@ export default function AdminPage() {
 
                   {/* Test Data Info */}
                   <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="font-medium text-yellow-900 mb-2">📊 What Test Data Includes</h4>
+                    <h4 className="font-medium text-yellow-900 mb-2">📊 What Test Data Includes (NEW UNIFIED SYSTEM)</h4>
                     <ul className="text-sm text-yellow-800 space-y-1">
-                      <li>• <strong>Lightning Bolt:</strong> 10 bids with all statuses (pending, accepted, rejected, withdrawn) - perfect for testing bid management</li>
-                      <li>• <strong>The Menzingers:</strong> 8 bids mostly pending - perfect for testing hold system</li>
+                      <li>• <strong>Lightning Bolt:</strong> 10 bids with UI-visible statuses (pending, hold, accepted) - perfect for testing bid management</li>
+                      <li>• <strong>The Menzingers:</strong> 8 bids focusing on hold system testing (pending, hold)</li>
                       <li>• <strong>Against Me!:</strong> 6 bids with acceptances leading to confirmed shows - perfect for testing acceptance workflow</li>
+                      <li>• <strong>Venue offers:</strong> 3 venue-initiated show requests (venues making offers to artists)</li>
                       <li>• <strong>Additional shows:</strong> 12-20 random confirmed shows across all artists and venues</li>
                       <li>• <strong>Realistic data:</strong> Proper dates, venues, pricing, and booking details</li>
+                      <li>• <strong>✅ FIXED:</strong> All data now uses the unified ShowRequest system that the UI actually reads from!</li>
+                      <li>• <strong>🎯 REALISTIC:</strong> Only creates bids with statuses that are actually visible in the UI (no rejected/withdrawn bids)</li>
                     </ul>
                   </div>
                 </div>
