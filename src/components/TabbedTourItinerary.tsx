@@ -2464,8 +2464,8 @@ export default function TabbedTourItinerary({
                             </button>
                           )}
 
-                          {/* Make Offer Button for venues - only on regular artist-initiated requests */}
-                          {actualViewerType === 'venue' && !request.isVenueInitiated && (
+                          {/* Make Offer Button for venues - on any request regardless of who initiated */}
+                          {actualViewerType === 'venue' && (
                             <MakeOfferButton
                               targetArtist={{
                                 id: request.artistId,
