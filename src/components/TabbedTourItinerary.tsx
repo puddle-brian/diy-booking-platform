@@ -23,7 +23,7 @@ import { useAlert } from './UniversalAlertModal';
 
 interface VenueBid {
   id: string;
-  tourRequestId: string;
+  showRequestId: string; // Changed from tourRequestId
   venueId: string;
   venueName: string;
   proposedDate: string;
@@ -424,7 +424,7 @@ export default function TabbedTourItinerary({
     setShowArtistDropdown(false);
   };
 
-  // Data fetching function (identical to original)
+  // Data fetching function (🎯 UPDATED to use unified ShowRequest API)
   const fetchData = async () => {
     if (!artistId && !venueId) return;
     
@@ -445,70 +445,287 @@ export default function TabbedTourItinerary({
       const showsData = await showsResponse.json();
       setShows(Array.isArray(showsData) ? showsData : []);
 
+      // 🎯 NEW UNIFIED API: Fetch show requests (replaces both tour-requests and venue-offers)
       if (artistId) {
-        // Fetch tour requests for artists
-        const requestsResponse = await fetch(`/api/tour-requests?artistId=${artistId}`);
-        if (!requestsResponse.ok) {
-          throw new Error('Failed to fetch tour requests');
-        }
-        const requestsData = await requestsResponse.json();
-        
-        // Handle both array and object with requests property
-        const requests = Array.isArray(requestsData) ? requestsData : (requestsData.requests || []);
-        setTourRequests(requests);
+        // For artists: get their requests + bids on them
+        const showRequestsResponse = await fetch(`/api/show-requests?artistId=${artistId}`);
+        if (showRequestsResponse.ok) {
+          const showRequestsData = await showRequestsResponse.json();
+          console.log('🎯 Fetched show requests for artist:', showRequestsData.length);
+          
+          // 🐛 DEBUG: Let's see what we're getting
+          console.log('🔍 Debug - First few show requests:', showRequestsData.slice(0, 3).map((req: any) => ({
+            id: req.id,
+            title: req.title,
+            initiatedBy: req.initiatedBy,
+            venueId: req.venueId,
+            venueName: req.venue?.name,
+            bidCount: req.bids?.length || 0,
+            hasBidsWithoutVenue: req.bids?.some((bid: any) => !bid.venue?.name) || false
+          })));
+          
+          // Convert ShowRequests back to legacy format for compatibility with existing UI
+          const legacyTourRequests: TourRequest[] = showRequestsData
+            .filter((req: any) => req.initiatedBy === 'ARTIST')
+            .map((req: any) => ({
+              id: req.id,
+              artistId: req.artistId,
+              artistName: req.artist?.name || 'Unknown Artist',
+              title: req.title,
+              description: req.description,
+              startDate: req.requestedDate.split('T')[0], // Convert to date string
+              endDate: req.requestedDate.split('T')[0],   // Single date for show requests
+              isSingleDate: true,
+              location: req.targetLocations?.[0] || 'Various Locations',
+              radius: 50,
+              flexibility: 'exact-cities' as const,
+              genres: req.genres || [],
+              expectedDraw: { min: 0, max: 0, description: '' },
+              tourStatus: 'exploring-interest' as const,
+              ageRestriction: 'flexible' as const,
+              equipment: {
+                needsPA: false,
+                needsMics: false,
+                needsDrums: false,
+                needsAmps: false,
+                acoustic: false
+              },
+              acceptsDoorDeals: true,
+              merchandising: true,
+              travelMethod: 'van' as const,
+              lodging: 'flexible' as const,
+              status: req.status === 'OPEN' ? 'active' : 'completed',
+              priority: 'medium' as const,
+              responses: req.bids?.length || 0,
+              createdAt: req.createdAt,
+              updatedAt: req.updatedAt,
+              expiresAt: req.expiresAt
+            }));
+          setTourRequests(legacyTourRequests);
 
-        // Fetch bids for each tour request
-        const allBids: VenueBid[] = [];
-        for (const request of requests) {
-          try {
-            const bidsResponse = await fetch(`/api/tour-requests/${request.id}/bids`);
-            if (bidsResponse.ok) {
-              const bidsData = await bidsResponse.json();
-              allBids.push(...(Array.isArray(bidsData) ? bidsData : []));
+          // Convert ShowRequestBids to legacy VenueBid format
+          const allBids: VenueBid[] = [];
+          showRequestsData.forEach((req: any) => {
+            if (req.bids) {
+              req.bids.forEach((bid: any) => {
+                // Skip bids without proper venue information to avoid "Unknown Venue" entries
+                if (!bid.venue?.name && !bid.venueId) {
+                  console.warn('Skipping bid with missing venue information:', bid.id);
+                  return;
+                }
+                
+                allBids.push({
+                  id: bid.id,
+                  showRequestId: req.id,
+                  venueId: bid.venueId,
+                  venueName: bid.venue?.name || 'Unknown Venue',
+                  proposedDate: bid.proposedDate || req.requestedDate,
+                  guarantee: bid.amount,
+                  doorDeal: bid.doorDeal,
+                  ticketPrice: {},
+                  capacity: bid.venue?.capacity || 0,
+                  ageRestriction: 'all-ages',
+                  equipmentProvided: {
+                    pa: false,
+                    mics: false,
+                    drums: false,
+                    amps: false,
+                    piano: false
+                  },
+                  loadIn: '',
+                  soundcheck: '',
+                  doorsOpen: '',
+                  showTime: '',
+                  curfew: '',
+                  promotion: {
+                    social: false,
+                    flyerPrinting: false,
+                    radioSpots: false,
+                    pressCoverage: false
+                  },
+                  message: bid.message || '',
+                  status: bid.status.toLowerCase() as any,
+                  readByArtist: true,
+                  createdAt: bid.createdAt,
+                  updatedAt: bid.updatedAt,
+                  expiresAt: '',
+                  location: bid.venue?.location ? 
+                    `${bid.venue.location.city}, ${bid.venue.location.stateProvince}` : 
+                    bid.venue?.name || 'Unknown Location',
+                  billingPosition: bid.billingPosition,
+                  lineupPosition: bid.lineupPosition,
+                  setLength: bid.setLength,
+                  otherActs: bid.otherActs,
+                  billingNotes: bid.billingNotes
+                });
+              });
             }
-          } catch (error) {
-            console.warn(`Failed to fetch bids for request ${request.id}:`, error);
-          }
-        }
-        setVenueBids(allBids);
+          });
+          setVenueBids(allBids);
 
-        // Fetch venue offers for artists
-        try {
-          const offersResponse = await fetch(`/api/artists/${artistId}/offers`);
-          if (offersResponse.ok) {
-            const offersData = await offersResponse.json();
-            setVenueOffers(Array.isArray(offersData) ? offersData : []);
-          }
-        } catch (error) {
-          console.warn('Failed to fetch venue offers:', error);
+          // Convert venue-initiated ShowRequests to legacy VenueOffer format  
+          const legacyVenueOffers: VenueOffer[] = showRequestsData
+            .filter((req: any) => req.initiatedBy === 'VENUE')
+            .map((req: any) => ({
+              id: req.id,
+              venueId: req.venue?.id || req.venueId || 'unknown',
+              venueName: req.venue?.name || 'Unknown Venue',
+              artistId: req.artistId,
+              artistName: req.artist?.name || 'Unknown Artist',
+              title: req.title,
+              description: req.description,
+              proposedDate: req.requestedDate,
+              alternativeDates: [],
+              message: req.message,
+              amount: req.amount,
+              doorDeal: req.doorDeal,
+              ticketPrice: req.ticketPrice,
+              merchandiseSplit: req.merchandiseSplit,
+              billingPosition: req.billingPosition as any,
+              lineupPosition: req.lineupPosition,
+              setLength: req.setLength,
+              otherActs: req.otherActs,
+              billingNotes: req.billingNotes,
+              capacity: req.capacity,
+              ageRestriction: req.ageRestriction,
+              equipmentProvided: req.equipmentProvided,
+              loadIn: req.loadIn,
+              soundcheck: req.soundcheck,
+              doorsOpen: req.doorsOpen,
+              showTime: req.showTime,
+              curfew: req.curfew,
+              promotion: req.promotion,
+              lodging: req.lodging,
+              additionalTerms: req.additionalTerms,
+              status: req.status === 'OPEN' ? 'pending' : 
+                     req.status === 'CONFIRMED' ? 'accepted' :
+                     req.status === 'DECLINED' ? 'declined' :
+                     req.status === 'CANCELLED' ? 'cancelled' : 'pending',
+              createdAt: req.createdAt,
+              updatedAt: req.updatedAt,
+              expiresAt: req.expiresAt,
+              venue: req.venue,
+              artist: req.artist
+            }));
+          setVenueOffers(legacyVenueOffers);
         }
       }
 
       if (venueId) {
-        // Fetch venue bids
-        try {
-          const bidsResponse = await fetch(`/api/venues/${venueId}/bids`);
-          if (bidsResponse.ok) {
-            const bidsData = await bidsResponse.json();
-            setVenueBids(Array.isArray(bidsData) ? bidsData : []);
-          }
-        } catch (error) {
-          console.warn('Failed to fetch venue bids:', error);
-        }
+        // For venues: get requests they can bid on + their own offers
+        const showRequestsResponse = await fetch(`/api/show-requests?venueId=${venueId}`);
+        if (showRequestsResponse.ok) {
+          const showRequestsData = await showRequestsResponse.json();
+          console.log('🎯 Fetched show requests for venue:', showRequestsData.length);
+          
+          // Convert to legacy formats (similar to artist logic but focused on venue perspective)
+          const legacyVenueOffers: VenueOffer[] = showRequestsData
+            .filter((req: any) => req.initiatedBy === 'VENUE' && req.venueId === venueId)
+            .map((req: any) => ({
+              id: req.id,
+              venueId: req.venueId || venueId,
+              venueName: req.venue?.name || venueName || 'Unknown Venue',
+              artistId: req.artistId,
+              artistName: req.artist?.name || 'Unknown Artist',
+              title: req.title,
+              description: req.description,
+              proposedDate: req.requestedDate,
+              alternativeDates: [],
+              message: req.message,
+              amount: req.amount,
+              doorDeal: req.doorDeal,
+              ticketPrice: req.ticketPrice,
+              merchandiseSplit: req.merchandiseSplit,
+              billingPosition: req.billingPosition as any,
+              lineupPosition: req.lineupPosition,
+              setLength: req.setLength,
+              otherActs: req.otherActs,
+              billingNotes: req.billingNotes,
+              capacity: req.capacity,
+              ageRestriction: req.ageRestriction,
+              equipmentProvided: req.equipmentProvided,
+              loadIn: req.loadIn,
+              soundcheck: req.soundcheck,
+              doorsOpen: req.doorsOpen,
+              showTime: req.showTime,
+              curfew: req.curfew,
+              promotion: req.promotion,
+              lodging: req.lodging,
+              additionalTerms: req.additionalTerms,
+              status: req.status === 'OPEN' ? 'pending' : 
+                     req.status === 'CONFIRMED' ? 'accepted' :
+                     req.status === 'DECLINED' ? 'declined' :
+                     req.status === 'CANCELLED' ? 'cancelled' : 'pending',
+              createdAt: req.createdAt,
+              updatedAt: req.updatedAt,
+              expiresAt: req.expiresAt,
+              venue: req.venue,
+              artist: req.artist
+            }));
+          setVenueOffers(legacyVenueOffers);
 
-        // Fetch venue offers for venues
-        try {
-          const offersResponse = await fetch(`/api/venues/${venueId}/offers`);
-          if (offersResponse.ok) {
-            const offersData = await offersResponse.json();
-            setVenueOffers(Array.isArray(offersData) ? offersData : []);
-          }
-        } catch (error) {
-          console.warn('Failed to fetch venue offers:', error);
+          // Get venue's bids on artist-initiated requests
+          const venueBids: VenueBid[] = [];
+          showRequestsData.forEach((req: any) => {
+            if (req.initiatedBy === 'ARTIST' && req.bids) {
+              req.bids
+                .filter((bid: any) => bid.venueId === venueId)
+                .forEach((bid: any) => {
+                  venueBids.push({
+                    id: bid.id,
+                    showRequestId: req.id,
+                    venueId: bid.venueId,
+                    venueName: bid.venue?.name || venueName || 'Unknown Venue',
+                    proposedDate: bid.proposedDate || req.requestedDate,
+                    guarantee: bid.amount,
+                    doorDeal: bid.doorDeal,
+                    ticketPrice: {},
+                    capacity: bid.venue?.capacity || 0,
+                    ageRestriction: 'all-ages',
+                    equipmentProvided: {
+                      pa: false,
+                      mics: false,
+                      drums: false,
+                      amps: false,
+                      piano: false
+                    },
+                    loadIn: '',
+                    soundcheck: '',
+                    doorsOpen: '',
+                    showTime: '',
+                    curfew: '',
+                    promotion: {
+                      social: false,
+                      flyerPrinting: false,
+                      radioSpots: false,
+                      pressCoverage: false
+                    },
+                    message: bid.message || '',
+                    status: bid.status.toLowerCase() as any,
+                    readByArtist: true,
+                    createdAt: bid.createdAt,
+                    updatedAt: bid.updatedAt,
+                    expiresAt: '',
+                    location: req.artist?.location ? 
+                      `${req.artist.location.city}, ${req.artist.location.stateProvince}` : 
+                      'Unknown Location',
+                    billingPosition: bid.billingPosition,
+                    lineupPosition: bid.lineupPosition,
+                    setLength: bid.setLength,
+                    otherActs: bid.otherActs,
+                    billingNotes: bid.billingNotes
+                  });
+                });
+            }
+          });
+          setVenueBids(venueBids);
         }
       }
+
+      console.log('✅ Data fetching completed with unified ShowRequest API');
     } catch (error) {
       console.error('Failed to fetch data:', error);
+      setFetchError(error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setLoading(false);
     }
@@ -825,7 +1042,7 @@ export default function TabbedTourItinerary({
               } : undefined,
               status: 'confirmed',
               bidId: bid.id,
-              tourRequestId: bid.tourRequestId,
+              showRequestId: bid.showRequestId,
               createdBy: 'venue'
             }),
           });
@@ -851,8 +1068,13 @@ export default function TabbedTourItinerary({
       `Cancel your bid for ${bid.artistName || 'this artist'} on ${new Date(bid.proposedDate).toLocaleDateString()}? This cannot be undone.`,
       async () => {
         try {
-          const response = await fetch(`/api/tour-requests/${bid.tourRequestId}/bids/${bid.id}`, {
+          // 🎯 UPDATED: Use unified ShowRequest bid API
+          const response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
             method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ bidId: bid.id }),
           });
 
           if (!response.ok) {
@@ -874,12 +1096,14 @@ export default function TabbedTourItinerary({
     setBidActions(prev => ({ ...prev, [bid.id]: true }));
     
     try {
-      const response = await fetch(`/api/tour-requests/${bid.tourRequestId}/bids/${bid.id}`, {
-        method: 'PATCH',
+      // 🎯 UPDATED: Use unified ShowRequest bid API
+      const response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          bidId: bid.id,
           action,
           reason,
           notes: holdNotes[bid.id] || ''
@@ -945,12 +1169,12 @@ export default function TabbedTourItinerary({
 
   const handleDeleteShowRequest = async (requestId: string, requestName: string) => {
     confirm(
-      'Delete Tour Request',
+      'Delete Show Request',
       `Delete "${requestName}"? This will also delete all associated bids and cannot be undone.`,
       async () => {
         setDeleteLoading(requestId);
         try {
-          const response = await fetch(`/api/tour-requests/${requestId}`, {
+          const response = await fetch(`/api/show-requests/${requestId}`, {
             method: 'DELETE',
           });
 
@@ -1159,19 +1383,19 @@ export default function TabbedTourItinerary({
         return;
       }
 
-      // Handle tour request creation (existing logic)
+      // Handle tour request creation (🎯 UPDATED to use unified ShowRequest API)
       if (addDateForm.type === 'request') {
-        console.log('🎯 TabbedTourItinerary: Creating tour request...');
+        console.log('🎯 TabbedTourItinerary: Creating show request...');
         
         // Validate based on date format
         if (addDateForm.useSingleDate) {
           if (!addDateForm.requestDate || !addDateForm.location) {
-            alert('Please fill in all required fields for the tour request.');
+            alert('Please fill in all required fields for the show request.');
             return;
           }
         } else {
           if (!addDateForm.startDate || !addDateForm.endDate || !addDateForm.location) {
-            alert('Please fill in all required fields for the tour request.');
+            alert('Please fill in all required fields for the show request.');
             return;
           }
         }
@@ -1179,48 +1403,34 @@ export default function TabbedTourItinerary({
         // Auto-generate title if empty
         const title = addDateForm.title.trim() || `${artistName} Show Request`;
 
-        // Create tour request with appropriate date fields
-        const tourRequestData: any = {
+        // Create show request (artist-initiated)
+        const showRequestData: any = {
           artistId: artistId,
-          artistName: artistName,
           title: title,
           description: addDateForm.description,
-          location: addDateForm.location,
-          guaranteeRange: addDateForm.guaranteeRange,
-          acceptsDoorDeals: addDateForm.acceptsDoorDeals,
-          merchandising: addDateForm.merchandising,
-          ageRestriction: addDateForm.ageRestriction,
-          travelMethod: addDateForm.travelMethod,
-          lodging: addDateForm.lodging,
-          priority: addDateForm.priority,
-          technicalRequirements: addDateForm.technicalRequirements,
-          hospitalityRequirements: addDateForm.hospitalityRequirements,
-          equipment: addDateForm.equipment
+          requestedDate: addDateForm.useSingleDate ? addDateForm.requestDate : addDateForm.startDate,
+          initiatedBy: 'ARTIST',
+          targetLocations: [addDateForm.location],
+          genres: [], // Could be enhanced with artist genres
+          // Note: Other fields like guaranteeRange, equipment, etc. can be added later
+          // The new unified model supports all the fields that were in tour requests
         };
 
-        // Add appropriate date fields based on format
-        if (addDateForm.useSingleDate) {
-          tourRequestData.requestDate = addDateForm.requestDate;
-        } else {
-          tourRequestData.startDate = addDateForm.startDate;
-          tourRequestData.endDate = addDateForm.endDate;
-        }
-
-        const response = await fetch('/api/tour-requests', {
+        const response = await fetch('/api/show-requests', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(tourRequestData),
+          body: JSON.stringify(showRequestData),
         });
 
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.error || 'Failed to create tour request');
+          throw new Error(result.error || 'Failed to create show request');
         }
 
-        console.log('✅ TabbedTourItinerary: Tour request created successfully', result);
+        console.log('✅ TabbedTourItinerary: Show request created successfully', result);
         
         // Reset form and close modal
         setShowAddDateForm(false);
@@ -1276,7 +1486,6 @@ export default function TabbedTourItinerary({
 
         // Refresh data
         await fetchData();
-        // alert('Tour request created successfully!');
         return;
       }
       
@@ -1292,11 +1501,8 @@ export default function TabbedTourItinerary({
     const actionText = action === 'accept' ? 'accept' : action === 'decline' ? 'decline' : action;
     
     try {
-      const endpoint = venueId 
-        ? `/api/venues/${venueId}/offers/${offer.id}`
-        : `/api/venues/${offer.venueId}/offers/${offer.id}`;
-
-      const response = await fetch(endpoint, {
+      // 🎯 UPDATED: Use unified ShowRequest API instead of venue-specific offers endpoint
+      const response = await fetch(`/api/show-requests/${offer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -1414,7 +1620,7 @@ export default function TabbedTourItinerary({
     // Convert VenueOffer to VenueBid format for ShowDocumentModal compatibility
     const bidFormatOffer: VenueBid = {
       id: offer.id,
-      tourRequestId: '', // Not applicable for direct offers
+      showRequestId: '', // Not applicable for direct offers
       venueId: offer.venueId,
       venueName: offer.venueName,
       proposedDate: offer.proposedDate,
@@ -1469,7 +1675,7 @@ export default function TabbedTourItinerary({
   // Add this helper function for offer data conversion
 // Remove the local function completely since we already import the correct one
 
-  // Add this new function to handle offer form submission
+  // Add this new function to handle offer form submission (🎯 UPDATED to use unified ShowRequest API)
   const handleOfferFormSubmit = async (formData: any) => {
     console.log('🎯 TabbedTourItinerary: Offer form submission started', formData);
     console.log('🎯 TabbedTourItinerary: formData.offerData:', formData.offerData);
@@ -1485,8 +1691,10 @@ export default function TabbedTourItinerary({
       
       const requestBody: any = {
         artistId: formData.artistId,
+        venueId: venueId, // Venue-initiated requests have a specific venue
         title: `${formData.artistName} - ${dateForTitle.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName}`,
-        proposedDate: formData.proposedDate, // Keep original date string format
+        requestedDate: formData.proposedDate, // Keep original date string format
+        initiatedBy: 'VENUE',
         capacity: formData.capacity,
         ageRestriction: formData.ageRestriction,
         message: formData.message.trim() || `Hey! We'd love to have you play at ${venueName}. We think you'd be a great fit for our space and audience. Let us know if you're interested!`,
@@ -1502,7 +1710,7 @@ export default function TabbedTourItinerary({
 
       console.log('🎯 TabbedTourItinerary: Final request body:', requestBody);
       
-      const response = await fetch(`/api/venues/${venueId}/offers`, {
+      const response = await fetch('/api/show-requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1516,7 +1724,7 @@ export default function TabbedTourItinerary({
         throw new Error(result.error || 'Failed to create offer');
       }
 
-      console.log('✅ TabbedTourItinerary: Venue offer created successfully', result);
+      console.log('✅ TabbedTourItinerary: Venue offer created successfully as ShowRequest', result);
       
       // Reset form and close modal
       setShowAddDateForm(false);
@@ -1986,7 +2194,7 @@ export default function TabbedTourItinerary({
                     
                     const syntheticBid: VenueBid = {
                       id: `offer-bid-${originalOffer.id}`,
-                      tourRequestId: request.id,
+                      showRequestId: request.id,
                       venueId: originalOffer.venueId,
                       venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
                       proposedDate: bidDate, // 🎯 FIX: Use date without timezone info
@@ -2049,7 +2257,7 @@ export default function TabbedTourItinerary({
                   }
                 } else {
                   // For regular requests, use normal bid filtering
-                  requestBids = venueBids.filter(bid => bid.tourRequestId === request.id);
+                  requestBids = venueBids.filter(bid => bid.showRequestId === request.id);
                 }
                 
                 return (

@@ -6,22 +6,17 @@ async function resetTestData() {
   console.log('🧹 Starting test data reset...');
   
   try {
-    // Clear all bids first (due to foreign key constraints)
-    console.log('🗑️ Clearing all bids...');
-    const deletedBids = await prisma.bid.deleteMany();
-    console.log(`✅ Deleted ${deletedBids.count} bids`);
+    // Clear all show request bids first (due to foreign key constraints)
+    console.log('🗑️ Clearing all show request bids...');
+    const deletedBids = await prisma.showRequestBid.deleteMany();
+    console.log(`✅ Deleted ${deletedBids.count} show request bids`);
 
-    // Clear all tour requests
-    console.log('🗑️ Clearing all tour requests...');
-    const deletedRequests = await prisma.tourRequest.deleteMany();
-    console.log(`✅ Deleted ${deletedRequests.count} tour requests`);
+    // Clear all show requests
+    console.log('🗑️ Clearing all show requests...');
+    const deletedRequests = await prisma.showRequest.deleteMany();
+    console.log(`✅ Deleted ${deletedRequests.count} show requests`);
 
-    // Clear all venue offers
-    console.log('🗑️ Clearing all venue offers...');
-    const deletedOffers = await prisma.venueOffer.deleteMany();
-    console.log(`✅ Deleted ${deletedOffers.count} venue offers`);
-
-    console.log('🎯 Generating new test data with single dates...');
+    console.log('🎯 Generating new test data with unified show requests...');
 
     // Get some artists, venues, and system user for creating requests
     const artists = await prisma.artist.findMany({ take: 3 });
@@ -54,7 +49,7 @@ async function resetTestData() {
       console.log('⚠️ No venues found - skipping bid generation');
     }
 
-    // Generate single-date tour requests for the next few months
+    // Generate unified show requests for the next few months
     const locations = [
       'Seattle, WA',
       'Portland, OR', 
@@ -80,7 +75,7 @@ async function resetTestData() {
     let createdCount = 0;
 
     for (const artist of artists) {
-      // Create 3-4 tour requests per artist with single dates
+      // Create 3-4 show requests per artist with single dates
       const requestCount = 3 + Math.floor(Math.random() * 2); // 3-4 requests
       
       for (let i = 0; i < requestCount; i++) {
@@ -92,29 +87,31 @@ async function resetTestData() {
         const location = locations[Math.floor(Math.random() * locations.length)];
         const artistGenres = genres[Math.floor(Math.random() * genres.length)];
 
-        const tourRequest = await prisma.tourRequest.create({
+        // Artist-initiated show request
+        const showRequest = await prisma.showRequest.create({
           data: {
             artistId: artist.id,
+            venueId: null, // Artist doesn't specify venue initially
             createdById: systemUser.id,
-            title: `${artist.name} Show Request`,
+            title: `${artist.name} - ${location}`,
             description: `Looking for a venue in ${location} for a ${artistGenres.join('/')} show.`,
-            requestDate: requestDate, // Single date!
-            isLegacyRange: false, // New format
+            requestedDate: requestDate,
+            initiatedBy: 'ARTIST',
+            status: 'OPEN',
             targetLocations: [location],
-            genres: artistGenres,
-            status: 'ACTIVE'
+            genres: artistGenres
           }
         });
 
-        createdRequests.push(tourRequest);
+        createdRequests.push(showRequest);
         createdCount++;
-        console.log(`✅ Created single-date request: ${artist.name} - ${requestDate.toDateString()} in ${location}`);
+        console.log(`✅ Created show request: ${artist.name} - ${requestDate.toDateString()} in ${location}`);
       }
     }
 
-    console.log(`🎉 Successfully created ${createdCount} new single-date tour requests!`);
+    console.log(`🎉 Successfully created ${createdCount} new show requests!`);
 
-    // Now generate realistic bids for these tour requests
+    // Now generate realistic bids for these show requests
     if (venues.length > 0) {
       console.log('🎭 Generating realistic test bids...');
       
@@ -135,7 +132,7 @@ async function resetTestData() {
       let holdPosition = 1;
 
       for (const request of createdRequests) {
-        // Each tour request gets 2-4 bids from different venues
+        // Each show request gets 2-4 bids from different venues
         const numBids = 2 + Math.floor(Math.random() * 3);
         const shuffledVenues = [...venues].sort(() => 0.5 - Math.random()).slice(0, numBids);
         
@@ -167,14 +164,14 @@ async function resetTestData() {
           const message = bidMessages[Math.floor(Math.random() * bidMessages.length)];
 
           // Create the proposed date (same as request date or nearby)
-          const proposedDate = new Date(request.requestDate);
+          const proposedDate = new Date(request.requestedDate);
           // Occasionally suggest alternative dates
           if (Math.random() > 0.8) {
             proposedDate.setDate(proposedDate.getDate() + (Math.random() > 0.5 ? 1 : -1));
           }
 
           const bidData = {
-            tourRequestId: request.id,
+            showRequestId: request.id,
             venueId: venue.id,
             bidderId: systemUser.id,
             proposedDate: proposedDate,
@@ -194,10 +191,10 @@ async function resetTestData() {
             })
           };
 
-          const bid = await prisma.bid.create({ data: bidData });
+          const bid = await prisma.showRequestBid.create({ data: bidData });
           bidCount++;
 
-          console.log(`✅ Created ${status.toLowerCase()} bid: ${venue.name} → ${request.title} ($${guarantee})`);
+          console.log(`✅ Created ${status.toLowerCase()} bid: ${venue.name} → ${request.artistId} ($${guarantee})`);
         }
       }
 
@@ -205,7 +202,7 @@ async function resetTestData() {
       console.log(`📊 Bid statuses: pending, hold, accepted, rejected`);
     }
 
-    console.log('📅 All requests use the new single-date format');
+    console.log('📅 All requests use the new unified show request format');
     console.log('🔄 Refresh your browser to see the new data');
 
   } catch (error) {

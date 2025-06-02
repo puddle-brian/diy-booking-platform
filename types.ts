@@ -151,7 +151,7 @@ export interface TourRequest {
 
 export interface VenueBid {
   id: string;
-  tourRequestId: string;
+  showRequestId: string;
   venueId: string;
   venueName: string;
   

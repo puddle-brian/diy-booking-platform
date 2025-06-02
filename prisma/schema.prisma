@@ -29,6 +29,8 @@ model User {
   tourRequests            TourRequest[]
   submittedVenues         Venue[]
   venueOffers             VenueOffer[]
+  showRequests            ShowRequest[]             // 🎯 NEW: Unified show requests
+  showRequestBids         ShowRequestBid[]          // 🎯 NEW: Bids on show requests
 
   @@index([email])
   @@index([role])
@@ -87,6 +89,8 @@ model Venue {
   shows          Show[]
   venueOffers    VenueOffer[]
   offerTemplates VenueOfferTemplate[]
+  showRequests   ShowRequest[]   // 🎯 NEW: Unified show requests
+  showRequestBids ShowRequestBid[] // 🎯 NEW: Bids on show requests
   location       Location        @relation(fields: [locationId], references: [id])
   submittedBy    User?           @relation(fields: [submittedById], references: [id])
 
@@ -125,6 +129,7 @@ model Artist {
   shows          Show[]
   tourRequests   TourRequest[]
   venueOffers    VenueOffer[]
+  showRequests   ShowRequest[]    // 🎯 NEW: Unified show requests
 
   @@index([locationId])
   @@index([artistType])
@@ -191,6 +196,127 @@ model TourRequest {
   @@index([genres])
   @@index([createdAt])
   @@map("tour_requests")
+}
+
+// 🎯 NEW UNIFIED MODEL: ShowRequest replaces both TourRequest and VenueOffer
+model ShowRequest {
+  id              String      @id @default(cuid())
+  
+  // WHO: Core entities
+  artistId        String
+  venueId         String?     // null = open to any venue (artist-initiated)
+  
+  // WHAT: Request details
+  title           String
+  description     String?
+  requestedDate   DateTime    // Single date (no more ranges)
+  
+  // WHO INITIATED: Request source
+  initiatedBy     RequestInitiator  // 'ARTIST' | 'VENUE'
+  createdById     String
+  
+  // STATUS: Unified workflow  
+  status          ShowRequestStatus @default(OPEN)
+  
+  // FINANCIAL TERMS (from VenueOffer)
+  amount          Float?      // Guarantee amount
+  doorDeal        Json?       // Door split terms
+  ticketPrice     Json?       // Advance/door pricing
+  merchandiseSplit String?    // e.g., "90/10"
+  
+  // SHOW DETAILS (from VenueOffer)
+  billingPosition String?     // headliner, support, opener
+  lineupPosition  Int?        // 1 = headliner, 2 = support, etc.
+  setLength       Int?        // Minutes
+  otherActs       String?     // Other acts on the bill
+  billingNotes    String?     // Additional billing context
+  
+  // VENUE DETAILS (from VenueOffer)
+  capacity        Int?
+  ageRestriction  String?
+  
+  // EQUIPMENT & LOGISTICS (from VenueOffer)
+  equipmentProvided Json?     // PA, mics, drums, etc.
+  loadIn          String?
+  soundcheck      String?
+  doorsOpen       String?
+  showTime        String?
+  curfew          String?
+  
+  // ADDITIONAL VALUE (from VenueOffer)
+  promotion       Json?       // Social, flyers, radio, etc.
+  lodging         Json?       // Floor space, couch, private room
+  additionalTerms String?
+  message         String?     // Personal pitch
+  
+  // TOUR CONTEXT (from TourRequest)
+  targetLocations String[]    // For artist-initiated requests
+  genres          String[]    // For filtering
+  
+  // EXPIRATION
+  expiresAt       DateTime?   // Auto-expire requests
+  
+  // SYSTEM FIELDS
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  // RELATIONS
+  artist          Artist      @relation(fields: [artistId], references: [id])
+  venue           Venue?      @relation(fields: [venueId], references: [id])
+  createdBy       User        @relation(fields: [createdById], references: [id])
+  bids            ShowRequestBid[] // New bid model
+  
+  // PREVENT DUPLICATES: Same venue can't make multiple offers to same artist on same date
+  @@unique([artistId, venueId, requestedDate], name: "unique_artist_venue_date")
+  
+  @@index([artistId])
+  @@index([venueId])  
+  @@index([requestedDate])
+  @@index([status])
+  @@index([initiatedBy])
+  @@index([createdAt])
+  @@map("show_requests")
+}
+
+// 🎯 NEW BID MODEL: ShowRequestBid replaces Bid with clearer naming
+model ShowRequestBid {
+  id               String           @id @default(cuid())
+  showRequestId    String
+  venueId          String
+  bidderId         String
+  proposedDate     DateTime?
+  message          String?
+  amount           Float?
+  status           BidStatus        @default(PENDING)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  acceptedAt       DateTime?
+  billingNotes     String?
+  billingPosition  String?
+  cancelledAt      DateTime?
+  cancelledReason  String?
+  declinedAt       DateTime?
+  declinedReason   String?
+  heldAt           DateTime?
+  heldUntil        DateTime?
+  holdPosition     Int?
+  lineupPosition   Int?
+  otherActs        String?
+  setLength        Int?
+  
+  // RELATIONS
+  showRequest      ShowRequest      @relation(fields: [showRequestId], references: [id])
+  venue            Venue            @relation(fields: [venueId], references: [id])
+  bidder           User             @relation(fields: [bidderId], references: [id])
+  
+  @@index([showRequestId])
+  @@index([venueId])
+  @@index([bidderId])
+  @@index([status])
+  @@index([proposedDate])
+  @@index([holdPosition])
+  @@index([createdAt])
+  @@map("show_request_bids")
 }
 
 model SceneReport {
@@ -689,4 +815,19 @@ enum OfferStatus {
   ACCEPTED
   DECLINED
   CANCELLED
+}
+
+// 🎯 NEW ENUMS for Unified ShowRequest Model
+enum RequestInitiator {
+  ARTIST
+  VENUE
+}
+
+enum ShowRequestStatus {
+  OPEN        // Artist-initiated, accepting bids
+  PENDING     // Venue-initiated, awaiting artist response
+  CONFIRMED   // Accepted, becomes a Show
+  DECLINED    // Artist declined venue offer
+  CANCELLED   // Cancelled by creator
+  EXPIRED     // Expired without response
 }

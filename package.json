@@ -18,7 +18,8 @@
     "db:studio": "npx prisma studio",
     "fix:troubadour": "node scripts/fix-troubadour-data.js",
     "fix:unknown-venues": "node scripts/fix-unknown-venues.js",
-    "add-default-templates": "node scripts/add-default-templates.js"
+    "add-default-templates": "node scripts/add-default-templates.js",
+    "migrate-unified": "node scripts/migrate-to-unified-show-requests.js"
   },
   "dependencies": {
     "@prisma/client": "^6.8.2",
