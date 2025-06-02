@@ -2437,16 +2437,25 @@ export default function TabbedTourItinerary({
                       {/* Actions */}
                       <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-2">
-                          {/* Delete button for artists - only for regular artist-initiated requests */}
-                          {actualViewerType === 'artist' && !request.isVenueInitiated && (
+                          {/* Delete button for artists - can delete ALL requests in their itinerary */}
+                          {actualViewerType === 'artist' && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteShowRequest(request.id, request.title);
+                                if (request.isVenueInitiated && request.originalOfferId) {
+                                  // For venue-initiated requests, cancel the original offer
+                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                  if (originalOffer) {
+                                    handleOfferAction(originalOffer, 'decline'); // Decline the offer instead of cancel
+                                  }
+                                } else {
+                                  // For artist-initiated requests, delete the request
+                                  handleDeleteShowRequest(request.id, request.title);
+                                }
                               }}
                               disabled={deleteLoading === request.id}
                               className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                              title="Delete tour request"
+                              title={request.isVenueInitiated ? "Decline venue offer" : "Delete tour request"}
                             >
                               {deleteLoading === request.id ? (
                                 <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
