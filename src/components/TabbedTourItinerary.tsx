@@ -1847,22 +1847,23 @@ export default function TabbedTourItinerary({
         <table className="w-full min-w-[1000px] table-fixed">
           <thead className="bg-gray-50">
             <tr className="text-left text-xs font-medium text-gray-600">
-              <th className="px-4 py-1.5 w-[10%]">Date</th>
-              <th className="px-4 py-1.5 w-[15%]">Location</th>
-              <th className="px-4 py-1.5 w-[20%]">{venueId ? 'Artist' : artistId ? 'Venue' : 'Artist'}</th>
+              <th className="px-2 py-1.5 w-[3%]"></th>
+              <th className="px-4 py-1.5 w-[12%]">Date</th>
+              <th className="px-4 py-1.5 w-[14%]">Location</th>
+              <th className="px-4 py-1.5 w-[19%]">{venueId ? 'Artist' : artistId ? 'Venue' : 'Artist'}</th>
               <th className="px-4 py-1.5 w-[10%]">Status</th>
-              <th className="px-4 py-1.5 w-[8%]">Capacity</th>
-              <th className="px-4 py-1.5 w-[8%]">Age</th>
+              <th className="px-4 py-1.5 w-[7%]">Capacity</th>
+              <th className="px-4 py-1.5 w-[7%]">Age</th>
               <th className="px-4 py-1.5 w-[10%]">Offers</th>
               <th className="px-4 py-1.5 w-[8%]">Bids</th>
-              <th className="px-4 py-1.5 w-[11%]">Actions</th>
+              <th className="px-4 py-1.5 w-[10%]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {/* Empty state - show when no entries in active month */}
             {activeMonthEntries.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl">📅</span>
                   </div>
@@ -1899,8 +1900,18 @@ export default function TabbedTourItinerary({
                       onClick={() => toggleShowExpansion(show.id)}
                       title={`Click to ${expandedShows.has(show.id) ? 'hide' : 'view'} show details`}
                     >
+                      {/* Expand/Collapse Chevron */}
+                      <td className="px-2 py-1.5 w-[3%]">
+                        <div className="flex items-center justify-center text-gray-400">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d={expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                          </svg>
+                        </div>
+                      </td>
+                      
                       {/* Date */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[12%]">
                         <div className="text-sm font-medium text-gray-900">
                           <ItineraryDate
                             date={show.date}
@@ -1910,12 +1921,12 @@ export default function TabbedTourItinerary({
                       </td>
                       
                       {/* Location */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[14%]">
                         <div className="text-sm text-gray-900 truncate">{show.city}, {show.state}</div>
                       </td>
                       
                       {/* Venue/Artist Name */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[19%]">
                         <div className="flex items-center space-x-2">
                           <div className="text-sm font-medium text-gray-900 truncate">
                             {artistId ? (
@@ -1968,25 +1979,25 @@ export default function TabbedTourItinerary({
                       </td>
                       
                       {/* Status */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[10%]">
                         <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
                           Confirmed
                         </span>
                       </td>
                       
                       {/* Capacity */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[7%]">
                         <div className="text-xs text-gray-600">{show.capacity}</div>
                       </td>
                       
                       
                       {/* Age */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[7%]">
                         <div className="text-xs text-gray-600">{show.ageRestriction}</div>
                       </td>
                       
                       {/* Offers */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[10%]">
                         <InlineOfferDisplay 
                           amount={show.guarantee}
                           doorDeal={show.doorDeal}
@@ -1995,7 +2006,7 @@ export default function TabbedTourItinerary({
                       </td>
                       
                       {/* Bids (Show detail icon for shows) */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[8%]">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -2011,7 +2022,7 @@ export default function TabbedTourItinerary({
                       </td>
                       
                       {/* Actions */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
                           {/* Add Details button for shows with minimal info */}
                           {editable && (!show.guarantee && !show.showTime && !show.loadIn) && (
@@ -2051,14 +2062,6 @@ export default function TabbedTourItinerary({
                               )}
                             </button>
                           )}
-                          
-                          {/* Expand/Collapse Indicator */}
-                          <div className="flex items-center text-gray-400">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                d={expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-                            </svg>
-                          </div>
                         </div>
                       </td>
                     </tr>
@@ -2068,15 +2071,16 @@ export default function TabbedTourItinerary({
                       <>
                         {/* Timeline Header Row */}
                         <tr className="bg-yellow-50">
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]">Time</td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[15%]">Event</td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[20%]">Details</td>
+                          <td className="px-2 py-2 text-left font-medium text-yellow-700 text-sm w-[3%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[12%]">Time</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[14%]">Event</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[19%]">Details</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[7%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[7%]"></td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]"></td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]"></td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[11%]">Actions</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]">Actions</td>
                         </tr>
                         
                         {/* Timeline Events */}
@@ -2133,15 +2137,16 @@ export default function TabbedTourItinerary({
                           
                           return events.map((event, index) => (
                             <tr key={index} className="hover:bg-yellow-100 bg-yellow-50">
-                              <td className="px-4 py-1.5 font-mono text-sm text-gray-900 w-[10%]">{event.time}</td>
-                              <td className="px-4 py-1.5 font-medium text-sm text-gray-900 w-[15%]">{event.event}</td>
-                              <td className="px-4 py-1.5 text-sm text-gray-600 w-[20%]">{event.details}</td>
+                              <td className="px-2 py-1.5 w-[3%]"></td>
+                              <td className="px-4 py-1.5 font-mono text-sm text-gray-900 w-[12%]">{event.time}</td>
+                              <td className="px-4 py-1.5 font-medium text-sm text-gray-900 w-[14%]">{event.event}</td>
+                              <td className="px-4 py-1.5 text-sm text-gray-600 w-[19%]">{event.details}</td>
+                              <td className="px-4 py-1.5 w-[10%]"></td>
+                              <td className="px-4 py-1.5 w-[7%]"></td>
+                              <td className="px-4 py-1.5 w-[7%]"></td>
                               <td className="px-4 py-1.5 w-[10%]"></td>
                               <td className="px-4 py-1.5 w-[8%]"></td>
-                              <td className="px-4 py-1.5 w-[8%]"></td>
-                              <td className="px-4 py-1.5 w-[10%]"></td>
-                              <td className="px-4 py-1.5 w-[8%]"></td>
-                              <td className="px-4 py-1.5 text-left w-[11%]">
+                              <td className="px-4 py-1.5 text-left w-[10%]">
                                 <div className="flex items-center space-x-2">
                                   {/* Only show edit/delete buttons for members with edit permissions */}
                                   {editable && (
@@ -2168,7 +2173,7 @@ export default function TabbedTourItinerary({
                         {/* Add Event Row */}
                         {editable && (
                           <tr className="bg-yellow-100">
-                            <td colSpan={8} className="px-4 py-1.5 text-left">
+                            <td colSpan={9} className="px-4 py-1.5 text-left">
                               <button className="w-full text-left text-sm text-yellow-600 hover:text-yellow-800 flex items-center">
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -2176,7 +2181,7 @@ export default function TabbedTourItinerary({
                                 Add Event
                               </button>
                             </td>
-                            <td className="px-4 py-1.5 text-left w-[11%]">
+                            <td className="px-4 py-1.5 text-left w-[10%]">
                               <div className="flex items-center">
                                 {/* Empty space to align with action buttons above */}
                               </div>
@@ -2288,8 +2293,18 @@ export default function TabbedTourItinerary({
                       onClick={() => toggleRequestExpansion(request.id)}
                       title={`Click to ${expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
                     >
+                      {/* Expand/Collapse Chevron */}
+                      <td className="px-2 py-1.5 w-[3%]">
+                        <div className="flex items-center justify-center text-gray-400">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                              d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                          </svg>
+                        </div>
+                      </td>
+                      
                       {/* Date Range */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[12%]">
                         <div className="text-sm font-medium text-blue-900">
                           <ItineraryDate
                             startDate={request.startDate}
@@ -2301,12 +2316,12 @@ export default function TabbedTourItinerary({
                       </td>
                       
                       {/* Location */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[14%]">
                         <div className="text-sm text-blue-900 truncate">{request.location}</div>
                       </td>
                       
                       {/* Title */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[19%]">
                         <div className="text-sm font-medium text-blue-900 truncate">
                           {/* Page Context + Bid Status Logic (Option B) */}
                           {(() => {
@@ -2353,7 +2368,7 @@ export default function TabbedTourItinerary({
                       </td>
                       
                       {/* Status */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-1">
                           <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                             Requested
@@ -2375,12 +2390,12 @@ export default function TabbedTourItinerary({
                       </td>
                       
                       {/* Capacity (Expected Draw) */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[7%]">
                         {/* Empty for show requests - details available in expanded view */}
                       </td>
                       
                       {/* Age */}
-                      <td className="px-4 py-1.5">
+                      <td className="px-4 py-1.5 w-[7%]">
                         {/* Empty for show requests - details available in expanded view */}
                       </td>
                       
@@ -2464,14 +2479,6 @@ export default function TabbedTourItinerary({
                               Make Offer
                             </MakeOfferButton>
                           )}
-
-                          {/* Expand/Collapse Indicator */}
-                          <div className="flex items-center text-gray-400">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-                            </svg>
-                          </div>
                         </div>
                       </td>
                     </tr>
@@ -2482,22 +2489,23 @@ export default function TabbedTourItinerary({
                         {/* Venue Bids - Compact Table Format */}
                         {requestBids.length > 0 && (
                           <tr>
-                            <td colSpan={9} className="px-0 py-0">
+                            <td colSpan={10} className="px-0 py-0">
                               <div className="bg-yellow-50 border-l-4 border-yellow-400">
                                 {/* Compact Bids Table */}
                                 <div className="overflow-x-auto">
                                   <table className="w-full min-w-[1000px] table-fixed">
                                     <thead className="bg-yellow-100">
                                       <tr className="text-left text-xs font-medium text-yellow-700">
-                                        <th className="px-4 py-1.5 w-[10%]">Date</th>
-                                        <th className="px-4 py-1.5 w-[15%]">Location</th>
-                                        <th className="px-4 py-1.5 w-[20%]">Venue</th>
+                                        <th className="px-2 py-1.5 w-[3%]"></th>
+                                        <th className="px-4 py-1.5 w-[12%]">Date</th>
+                                        <th className="px-4 py-1.5 w-[14%]">Location</th>
+                                        <th className="px-4 py-1.5 w-[19%]">Venue</th>
                                         <th className="px-4 py-1.5 w-[10%]">Status</th>
-                                        <th className="px-4 py-1.5 w-[8%]">Capacity</th>
-                                        <th className="px-4 py-1.5 w-[8%]">Age</th>
+                                        <th className="px-4 py-1.5 w-[7%]">Capacity</th>
+                                        <th className="px-4 py-1.5 w-[7%]">Age</th>
                                         <th className="px-4 py-1.5 w-[10%]">Offers</th>
                                         <th className="px-4 py-1.5 w-[8%]">Bids</th>
-                                        <th className="px-4 py-1.5 w-[11%]">Actions</th>
+                                        <th className="px-4 py-1.5 w-[10%]">Actions</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-yellow-200">
@@ -2505,8 +2513,11 @@ export default function TabbedTourItinerary({
                                         .filter((bid: VenueBid) => !['expired'].includes(bid.status))
                                         .map((bid: VenueBid) => (
                                         <tr key={`bid-${bid.id}`} className="bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150">
+                                          {/* Empty chevron column */}
+                                          <td className="px-2 py-1.5 w-[3%]"></td>
+                                          
                                           {/* Date */}
-                                          <td className="px-4 py-1.5">
+                                          <td className="px-4 py-1.5 w-[12%]">
                                             <div className="text-sm font-medium text-yellow-900">
                                               <ItineraryDate
                                                 date={bid.proposedDate}
@@ -2516,14 +2527,14 @@ export default function TabbedTourItinerary({
                                           </td>
                                           
                                           {/* Location - Extract from venue or use placeholder */}
-                                          <td className="px-4 py-1.5">
+                                          <td className="px-4 py-1.5 w-[14%]">
                                             <div className="text-sm text-yellow-900 truncate">
                                               {bid.location || '-'}
                                             </div>
                                           </td>
                                           
                                           {/* Venue */}
-                                          <td className="px-4 py-1.5">
+                                          <td className="px-4 py-1.5 w-[19%]">
                                             <div className="flex items-center space-x-2">
                                               <div className="text-sm font-medium text-yellow-900 truncate">
                                                 {bid.venueId && bid.venueId !== 'external-venue' ? (
@@ -2559,19 +2570,19 @@ export default function TabbedTourItinerary({
                                           </td>
                                           
                                           {/* Status */}
-                                          <td className="px-4 py-1.5">
+                                          <td className="px-4 py-1.5 w-[10%]">
                                             <span className={getBidStatusBadge(bid).className}>
                                               {getBidStatusBadge(bid).text}
                                             </span>
                                           </td>
                                           
                                           {/* Capacity */}
-                                          <td className="px-4 py-1.5">
+                                          <td className="px-4 py-1.5 w-[7%]">
                                             <div className="text-xs text-gray-600">{bid.capacity}</div>
                                           </td>
                                           
                                           {/* Age */}
-                                          <td className="px-4 py-1.5">
+                                          <td className="px-4 py-1.5 w-[7%]">
                                             <div className="text-xs text-gray-600">
                                               {bid.ageRestriction === 'ALL_AGES' ? 'all-ages' : 
                                                bid.ageRestriction === 'EIGHTEEN_PLUS' ? '18+' : 
@@ -2830,7 +2841,7 @@ export default function TabbedTourItinerary({
             {/* Add Date Row - Only show when no shows at all and user is a member */}
             {monthGroups.length === 0 && editable && (
               <tr>
-                <td colSpan={9} className="px-6 py-3">
+                <td colSpan={10} className="px-6 py-3">
                   <button
                     onClick={() => {
                       if (artistId) {
