@@ -2774,50 +2774,8 @@ export default function TabbedTourItinerary({
                                               )}
 
                                               {actualViewerType === 'venue' && (
-                                                <>
-                                                  {bid.status === 'pending' && (
-                                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-yellow-800 bg-yellow-100">
-                                                      Pending
-                                                    </span>
-                                                  )}
-
-                                                  {bid.status === 'hold' && (
-                                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-blue-800 bg-blue-100">
-                                                      {bid.holdPosition === 1 ? '1st Hold' : bid.holdPosition === 2 ? '2nd Hold' : bid.holdPosition === 3 ? '3rd Hold' : 'On Hold'}
-                                                    </span>
-                                                  )}
-
-                                                  {bid.status === 'accepted' && (
-                                                    <button
-                                                      onClick={() => handleConfirmShow(bid)}
-                                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 transition-colors"
-                                                      title="Confirm this show"
-                                                    >
-                                                      Confirm
-                                                    </button>
-                                                  )}
-
-                                                  {(bid.status === 'pending' || bid.status === 'hold') && (
-                                                    <button
-                                                      onClick={() => {
-                                                        // For synthetic bids, cancel the original offer
-                                                        if (request.isVenueInitiated && request.originalOfferId) {
-                                                          const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                          if (originalOffer) {
-                                                            handleOfferAction(originalOffer, 'cancel');
-                                                          }
-                                                        } else {
-                                                          handleCancelBid(bid);
-                                                        }
-                                                      }}
-                                                      className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 transition-colors ml-1"
-                                                      title="Cancel this bid"
-                                                    >
-                                                      ✕
-                                                    </button>
-                                                  )}
-                                                </>
-                                              )}
+                                null
+                              )}
                                             </div>
                                           </td>
                                         </tr>
