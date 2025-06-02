@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useFavorites } from '../../../hooks/useFavorites';
@@ -62,6 +62,10 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     recipientType: 'artist' | 'venue' | 'user';
   } | null>(null);
 
+  // 🚀 PERFORMANCE FIX: Add debouncing refs
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isLoadingRef = useRef(false);
+
   // Helper function to get headers with debug user info if needed
   const getApiHeaders = () => {
     const headers: Record<string, string> = {};
@@ -77,14 +81,25 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     return headers;
   };
 
+  // 🚀 PERFORMANCE FIX: Debounced conversation loading
+  const debouncedLoadConversations = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      loadConversations();
+    }, 300); // 300ms debounce
+  }, []);
+
   const loadConversations = async () => {
-    if (!user) {
-      console.log('🔐 Profile: No user found, skipping conversation load');
+    if (!user || isLoadingRef.current) {
+      console.log('🔐 Profile: No user found or already loading, skipping conversation load');
       return;
     }
     
     console.log('🔐 Profile: Loading conversations for user:', user.id, user.name);
     
+    isLoadingRef.current = true;
     setLoadingConversations(true);
     try {
       const headers = getApiHeaders();
@@ -112,6 +127,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
       console.error('🔐 Profile: Error loading conversations:', error);
     } finally {
       setLoadingConversations(false);
+      isLoadingRef.current = false;
     }
   };
 
@@ -186,7 +202,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         
         // After profile is loaded, check if this is the current user and load conversations
         if (user && user.id === profileId) {
-          await loadConversations();
+          loadConversations(); // Initial load - immediate, not debounced
         }
       } catch (err) {
         console.error('Error loading profile:', err);
@@ -198,6 +214,15 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     // Only load profile if we have the params
     loadProfile();
   }, [user, params, router]);
+
+  // 🚀 PERFORMANCE FIX: Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -688,7 +713,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
           recipientId={selectedConversation.recipientId}
           recipientName={selectedConversation.recipientName}
           recipientType={selectedConversation.recipientType}
-          onMessagesRead={loadConversations}
+          onMessagesRead={debouncedLoadConversations}
           context={{
             fromPage: 'user-profile',
             entityName: selectedConversation.recipientName,

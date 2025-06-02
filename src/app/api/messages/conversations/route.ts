@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     console.log('💬 API: Fetching conversations for user:', userAuth.userId, `(${userAuth.source})`);
 
-    // Get conversations where user is a participant
+    // 🚀 PERFORMANCE FIX: Optimized query - only fetch necessary data
     const conversations = await prisma.conversation.findMany({
       where: {
         participants: {
@@ -56,13 +56,11 @@ export async function GET(request: NextRequest) {
             createdAt: 'desc'
           },
           take: 1,
-          include: {
-            sender: {
-              select: {
-                id: true,
-                username: true
-              }
-            }
+          select: {
+            // 🚀 PERFORMANCE FIX: Only select needed fields, remove heavy sender include
+            content: true,
+            createdAt: true,
+            senderId: true
           }
         }
       },
@@ -87,7 +85,7 @@ export async function GET(request: NextRequest) {
         lastMessage: lastMessage ? {
           content: lastMessage.content,
           timestamp: lastMessage.createdAt,
-          senderName: lastMessage.sender.username,
+          senderName: lastMessage.senderId === userAuth.userId ? 'You' : otherParticipant?.user.username,
           isFromMe: lastMessage.senderId === userAuth.userId
         } : null,
         unreadCount: unreadCount,
@@ -95,7 +93,13 @@ export async function GET(request: NextRequest) {
       };
     }));
 
-    return NextResponse.json(formattedConversations);
+    // 🚀 PERFORMANCE FIX: Add caching headers to reduce repeated database calls
+    return NextResponse.json(formattedConversations, {
+      headers: {
+        'Cache-Control': 'private, max-age=60, stale-while-revalidate=30',
+        'X-Cache-Info': 'conversations-list'
+      }
+    });
 
   } catch (error) {
     console.error('💬 API Error fetching conversations:', error);

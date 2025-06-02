@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 import InlineMessagePanel from '../../components/InlineMessagePanel';
@@ -29,6 +29,9 @@ export default function MessagesPage() {
     recipientType: 'artist' | 'venue' | 'user';
   } | null>(null);
 
+  // 🚀 PERFORMANCE FIX: Add debouncing refs
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   // Helper function to get headers with debug user info if needed
   const getApiHeaders = () => {
     const headers: Record<string, string> = {};
@@ -44,11 +47,30 @@ export default function MessagesPage() {
     return headers;
   };
 
+  // 🚀 PERFORMANCE FIX: Debounced conversation loading
+  const debouncedLoadConversations = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      loadConversations();
+    }, 300); // 300ms debounce
+  }, []);
+
   useEffect(() => {
     if (user) {
-      loadConversations();
+      loadConversations(); // Initial load - immediate
     }
   }, [user]);
+
+  // 🚀 PERFORMANCE FIX: Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const loadConversations = async () => {
     try {
@@ -218,6 +240,7 @@ export default function MessagesPage() {
           recipientId={selectedConversation.recipientId}
           recipientName={selectedConversation.recipientName}
           recipientType={selectedConversation.recipientType}
+          onMessagesRead={debouncedLoadConversations}
           context={{
             fromPage: 'messages-inbox',
             entityName: selectedConversation.recipientName,

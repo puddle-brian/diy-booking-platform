@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface MessageNotificationBadgeProps {
@@ -11,27 +11,81 @@ export default function MessageNotificationBadge({ className = '' }: MessageNoti
   const { user } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounced refresh function to prevent excessive API calls
+  const debouncedRefresh = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      loadUnreadCount();
+    }, 500); // 500ms debounce
+  }, []);
 
   useEffect(() => {
     if (user) {
       loadUnreadCount();
       
-      // Refresh unread count every 30 seconds
-      const interval = setInterval(loadUnreadCount, 30000);
+      // 🚀 PERFORMANCE FIX: Reduce polling from 30s to 5 minutes
+      const startPolling = () => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        intervalRef.current = setInterval(loadUnreadCount, 5 * 60 * 1000); // 5 minutes
+      };
+
+      const stopPolling = () => {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      };
+
+      // 🚀 PERFORMANCE FIX: Only poll when tab is visible/focused
+      const handleVisibilityChange = () => {
+        if (document.hidden) {
+          stopPolling();
+        } else {
+          loadUnreadCount(); // Refresh when tab becomes visible
+          startPolling();
+        }
+      };
+
+      const handleFocus = () => {
+        loadUnreadCount();
+        startPolling();
+      };
+
+      const handleBlur = () => {
+        stopPolling();
+      };
+
+      // Start initial polling
+      startPolling();
+
+      // Listen for tab visibility changes
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      window.addEventListener('focus', handleFocus);
+      window.addEventListener('blur', handleBlur);
       
-      // Listen for custom events to refresh immediately
-      const handleRefresh = () => loadUnreadCount();
-      window.addEventListener('refreshUnreadCount', handleRefresh);
+      // 🚀 PERFORMANCE FIX: Use debounced refresh for custom events
+      window.addEventListener('refreshUnreadCount', debouncedRefresh);
       
       return () => {
-        clearInterval(interval);
-        window.removeEventListener('refreshUnreadCount', handleRefresh);
+        stopPolling();
+        if (debounceTimeoutRef.current) {
+          clearTimeout(debounceTimeoutRef.current);
+        }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('blur', handleBlur);
+        window.removeEventListener('refreshUnreadCount', debouncedRefresh);
       };
     }
-  }, [user]);
+  }, [user, debouncedRefresh]);
 
   const loadUnreadCount = async () => {
-    if (!user) return;
+    if (!user || loading) return;
     
     setLoading(true);
     try {
