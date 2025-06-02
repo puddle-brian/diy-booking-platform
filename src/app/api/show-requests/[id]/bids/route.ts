@@ -70,10 +70,10 @@ export async function GET(
 // POST /api/show-requests/[id]/bids - Create a new bid
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const showRequestId = params.id;
+    const { id: showRequestId } = await params;
     const body = await request.json();
     
     console.log('🎯 API: Creating bid for show request:', showRequestId);

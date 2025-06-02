@@ -4,10 +4,10 @@ import { prisma } from '../../../../../lib/prisma';
 // GET /api/show-requests/[id] - Get a specific show request
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const showRequestId = params.id;
+    const { id: showRequestId } = await params;
     
     const showRequest = await prisma.showRequest.findUnique({
       where: { id: showRequestId },
@@ -98,10 +98,10 @@ export async function GET(
 // PUT /api/show-requests/[id] - Update a show request
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const showRequestId = params.id;
+    const { id: showRequestId } = await params;
     const body = await request.json();
     
     console.log('🎯 API: Updating show request:', showRequestId, body);
@@ -188,10 +188,10 @@ export async function PUT(
 // DELETE /api/show-requests/[id] - Delete a show request
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const showRequestId = params.id;
+    const { id: showRequestId } = await params;
     
     console.log('🎯 API: Deleting show request:', showRequestId);
     

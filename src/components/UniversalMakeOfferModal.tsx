@@ -163,22 +163,69 @@ export default function UniversalMakeOfferModal({
       // Convert parsed offer to legacy format
       const legacyOffer = parsedOfferToLegacyFormat(formData.offerData);
       
-      const response = await fetch(`/api/venues/${selectedVenue.id}/offers`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          artistId: formData.artistId,
-          title: `${formData.artistName} - ${new Date(formData.proposedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${selectedVenue.name}`,
-          proposedDate: formData.proposedDate,
-          amount: legacyOffer.amount,
-          doorDeal: legacyOffer.doorDeal,
-          capacity: formData.capacity,
-          ageRestriction: formData.ageRestriction,
-          message: formData.message,
-        }),
-      });
+      // 🎯 NEW LOGIC: Check if there's an existing artist-initiated request for this artist+date
+      // If so, create a bid. If not, create a new venue-initiated request.
+      const checkResponse = await fetch(`/api/show-requests?artistId=${formData.artistId}`);
+      let shouldCreateBid = false;
+      let existingRequestId = null;
+      
+      if (checkResponse.ok) {
+        const existingRequests = await checkResponse.json();
+        
+        // Look for an existing artist-initiated request on the same date
+        const existingRequest = existingRequests.find((req: any) => 
+          req.initiatedBy === 'ARTIST' && 
+          req.requestedDate.split('T')[0] === formData.proposedDate
+        );
+        
+        if (existingRequest) {
+          shouldCreateBid = true;
+          existingRequestId = existingRequest.id;
+          console.log('🎯 Found existing artist request, creating bid instead of new request');
+        } else {
+          console.log('🎯 No existing artist request found, creating new venue-initiated request');
+        }
+      }
+
+      let response;
+      
+      if (shouldCreateBid && existingRequestId) {
+        // Create a bid on the existing artist request
+        response = await fetch(`/api/show-requests/${existingRequestId}/bids`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            venueId: selectedVenue.id,
+            bidderId: user?.id || 'system', // Use current user or fallback
+            proposedDate: formData.proposedDate,
+            message: formData.message,
+            amount: legacyOffer.amount,
+            // TODO: Add other bid fields like billingPosition, setLength, etc.
+          }),
+        });
+      } else {
+        // Create a new venue-initiated show request (direct offer to artist)
+        response = await fetch('/api/show-requests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            artistId: formData.artistId,
+            venueId: selectedVenue.id,
+            title: `${formData.artistName} - ${new Date(formData.proposedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${selectedVenue.name}`,
+            requestedDate: formData.proposedDate,
+            initiatedBy: 'VENUE',
+            amount: legacyOffer.amount,
+            doorDeal: legacyOffer.doorDeal,
+            capacity: formData.capacity,
+            ageRestriction: formData.ageRestriction,
+            message: formData.message,
+          }),
+        });
+      }
 
       const result = await response.json();
 
