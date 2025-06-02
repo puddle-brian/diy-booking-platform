@@ -19,6 +19,7 @@ import UniversalMakeOfferModal from './UniversalMakeOfferModal';
 import MakeOfferButton from './MakeOfferButton';
 import { ItineraryDate } from './DateDisplay';
 import OfferFormCore from './OfferFormCore';
+import { useAlert } from './UniversalAlertModal';
 
 interface VenueBid {
   id: string;
@@ -199,6 +200,9 @@ export default function TabbedTourItinerary({
   editable = false,
   viewerType = 'public'
 }: TabbedTourItineraryProps) {
+  // Initialize Universal Alert Modal system
+  const { AlertModal, confirm, error: showError, success: showSuccess, info: showInfo } = useAlert();
+
   // Use editable prop to determine if user has permissions
   // Only members should have edit permissions and see action buttons
   // If viewerType is explicitly set, use that - this handles venue users viewing artist pages
@@ -212,7 +216,7 @@ export default function TabbedTourItinerary({
   const [venueBids, setVenueBids] = useState<VenueBid[]>([]);
   const [venueOffers, setVenueOffers] = useState<VenueOffer[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [expandedBids, setExpandedBids] = useState<Set<string>>(new Set());
   const [expandedShows, setExpandedShows] = useState<Set<string>>(new Set());
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
@@ -340,7 +344,6 @@ export default function TabbedTourItinerary({
   // Universal Make Offer Modal state
   const [showUniversalOfferModal, setShowUniversalOfferModal] = useState(false);
   const [offerTargetArtist, setOfferTargetArtist] = useState<{ id: string; name: string } | null>(null);
-  const [offerPreSelectedDate, setOfferPreSelectedDate] = useState<string | null>(null);
 
   // All the utility functions from original component (keeping them identical)
   const fetchVenues = async () => {
@@ -785,82 +788,86 @@ export default function TabbedTourItinerary({
   };
 
   const handleConfirmShow = async (bid: VenueBid & { artistName?: string; location?: string }) => {
-    if (!confirm(`Confirm this show with ${bid.artistName || 'the artist'} on ${new Date(bid.proposedDate).toLocaleDateString()}?`)) {
-      return;
-    }
+    confirm(
+      'Confirm Show',
+      `Confirm this show with ${bid.artistName || 'the artist'} on ${new Date(bid.proposedDate).toLocaleDateString()}?`,
+      async () => {
+        try {
+          const response = await fetch(`/api/shows`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              artistId: (bid as any).tourRequest?.artistId || 'unknown',
+              artistName: bid.artistName || 'Unknown Artist',
+              venueId: venueId,
+              venueName: venueName,
+              date: bid.proposedDate,
+              city: bid.location?.split(',')[0] || venueName || 'Unknown',
+              state: bid.location?.split(',')[1]?.trim() || 'Unknown',
+              capacity: bid.capacity,
+              ageRestriction: bid.ageRestriction,
+              guarantee: bid.guarantee,
+              doorDeal: bid.doorDeal,
+              showTime: bid.showTime,
+              loadIn: bid.loadIn,
+              soundcheck: bid.soundcheck,
+              doorsOpen: bid.doorsOpen,
+              curfew: bid.curfew,
+              // Transfer billing order information from bid to show
+              billingOrder: bid.billingPosition ? {
+                position: bid.billingPosition,
+                lineupPosition: bid.lineupPosition,
+                setLength: bid.setLength,
+                otherActs: bid.otherActs ? bid.otherActs.split(',').map(act => act.trim()).filter(act => act) : [],
+                notes: bid.billingNotes
+              } : undefined,
+              status: 'confirmed',
+              bidId: bid.id,
+              tourRequestId: bid.tourRequestId,
+              createdBy: 'venue'
+            }),
+          });
 
-    try {
-      const response = await fetch(`/api/shows`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          artistId: (bid as any).tourRequest?.artistId || 'unknown',
-          artistName: bid.artistName || 'Unknown Artist',
-          venueId: venueId,
-          venueName: venueName,
-          date: bid.proposedDate,
-          city: bid.location?.split(',')[0] || venueName || 'Unknown',
-          state: bid.location?.split(',')[1]?.trim() || 'Unknown',
-          capacity: bid.capacity,
-          ageRestriction: bid.ageRestriction,
-          guarantee: bid.guarantee,
-          doorDeal: bid.doorDeal,
-          showTime: bid.showTime,
-          loadIn: bid.loadIn,
-          soundcheck: bid.soundcheck,
-          doorsOpen: bid.doorsOpen,
-          curfew: bid.curfew,
-          // Transfer billing order information from bid to show
-          billingOrder: bid.billingPosition ? {
-            position: bid.billingPosition,
-            lineupPosition: bid.lineupPosition,
-            setLength: bid.setLength,
-            otherActs: bid.otherActs ? bid.otherActs.split(',').map(act => act.trim()).filter(act => act) : [],
-            notes: bid.billingNotes
-          } : undefined,
-          status: 'confirmed',
-          bidId: bid.id,
-          tourRequestId: bid.tourRequestId,
-          createdBy: 'venue'
-        }),
-      });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to confirm show');
+          }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to confirm show');
+          await fetchData();
+          showSuccess('Show Confirmed', 'Show confirmed successfully');
+        } catch (error) {
+          console.error('Error confirming show:', error);
+          showError('Confirmation Failed', `Failed to confirm show: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
-
-      await fetchData();
-      console.log('✅ Show confirmed successfully');
-    } catch (error) {
-      console.error('Error confirming show:', error);
-      alert(`Failed to confirm show: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    );
   };
 
   const handleCancelBid = async (bid: VenueBid & { artistName?: string; location?: string }) => {
-    if (!confirm(`Cancel your bid for ${bid.artistName || 'this artist'} on ${new Date(bid.proposedDate).toLocaleDateString()}? This cannot be undone.`)) {
-      return;
-    }
+    confirm(
+      'Cancel Bid',
+      `Cancel your bid for ${bid.artistName || 'this artist'} on ${new Date(bid.proposedDate).toLocaleDateString()}? This cannot be undone.`,
+      async () => {
+        try {
+          const response = await fetch(`/api/tour-requests/${bid.tourRequestId}/bids/${bid.id}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const response = await fetch(`/api/tour-requests/${bid.tourRequestId}/bids/${bid.id}`, {
-        method: 'DELETE',
-      });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to cancel bid');
+          }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to cancel bid');
+          await fetchData();
+          showSuccess('Bid Cancelled', 'Bid cancelled successfully');
+        } catch (error) {
+          console.error('Error cancelling bid:', error);
+          showError('Cancellation Failed', `Failed to cancel bid: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
       }
-
-      await fetchData();
-      console.log('✅ Bid cancelled successfully');
-    } catch (error) {
-      console.error('Error cancelling bid:', error);
-      alert(`Failed to cancel bid: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    );
   };
 
   const handleBidAction = async (bid: VenueBid, action: string, reason?: string) => {
@@ -937,29 +944,31 @@ export default function TabbedTourItinerary({
   };
 
   const handleDeleteShowRequest = async (requestId: string, requestName: string) => {
-    if (!confirm(`Delete "${requestName}"? This will also delete all associated bids and cannot be undone.`)) {
-      return;
-    }
+    confirm(
+      'Delete Tour Request',
+      `Delete "${requestName}"? This will also delete all associated bids and cannot be undone.`,
+      async () => {
+        setDeleteLoading(requestId);
+        try {
+          const response = await fetch(`/api/tour-requests/${requestId}`, {
+            method: 'DELETE',
+          });
 
-    setDeleteLoading(requestId);
-    try {
-      const response = await fetch(`/api/tour-requests/${requestId}`, {
-        method: 'DELETE',
-      });
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to delete tour request');
+          }
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to delete tour request');
+          await fetchData();
+          showSuccess('Tour Request Deleted', 'Tour request deleted successfully.');
+        } catch (error) {
+          console.error('Error deleting tour request:', error);
+          showError('Deletion Failed', `Failed to delete tour request: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+          setDeleteLoading(null);
+        }
       }
-
-      await fetchData();
-      // alert('Tour request deleted successfully.');
-    } catch (error) {
-      console.error('Error deleting tour request:', error);
-      alert(`Failed to delete tour request: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setDeleteLoading(null);
-    }
+    );
   };
 
   // Simplified handlers for form submissions (keeping core logic)
@@ -1315,192 +1324,31 @@ export default function TabbedTourItinerary({
   };
 
   const handleDeleteShow = async (showId: string, showName: string) => {
-    if (!confirm(`Are you sure you want to delete "${showName}"?`)) {
-      return;
-    }
-    
-    try {
-      setDeleteShowLoading(showId);
-      
-      const response = await fetch(`/api/shows/${showId}`, {
-        method: 'DELETE',
-      });
+    confirm(
+      'Delete Show',
+      `Are you sure you want to delete "${showName}"?`,
+      async () => {
+        try {
+          setDeleteShowLoading(showId);
+          
+          const response = await fetch(`/api/shows/${showId}`, {
+            method: 'DELETE',
+          });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete show');
-      }
-
-      await fetchData();
-      console.log('✅ Show deleted successfully');
-    } catch (error) {
-      console.error('Error deleting show:', error);
-      alert('Failed to delete show. Please try again.');
-    } finally {
-      setDeleteShowLoading(null);
-    }
-  };
-
-  // 🎯 NEW: Check if user is viewing their own page vs someone else's
-  const isViewingOwnPage = () => {
-    if (actualViewerType === 'artist' && artistId) return true;
-    if (actualViewerType === 'venue' && venueId) return true;
-    return false;
-  };
-
-  // 🎯 NEW: Check if an entry belongs to the current viewer
-  const isViewerOwned = (entry: TimelineEntry) => {
-    if (entry.type === 'show') {
-      const show = entry.data as Show;
-      if (actualViewerType === 'artist') {
-        return show.artistId === artistId;
-      } else if (actualViewerType === 'venue') {
-        return show.venueId === venueId;
-      }
-    } else if (entry.type === 'tour-request') {
-      const request = entry.data as TourRequest & { 
-        isVenueInitiated?: boolean; 
-        venueInitiatedBy?: string;
-      };
-      if (actualViewerType === 'artist') {
-        return !request.isVenueInitiated && request.artistId === artistId;
-      } else if (actualViewerType === 'venue') {
-        return request.isVenueInitiated && request.venueInitiatedBy === venueId;
-      }
-    }
-    return false;
-  };
-
-  // 🎯 UPDATED: Universal Delete Action Determiner - now context-aware
-  const getDeleteAction = (entry: TimelineEntry, viewerType: string) => {
-    // 🎯 NEW: No action buttons when viewing someone else's page
-    if (!isViewingOwnPage()) {
-      return null;
-    }
-
-    if (entry.type === 'show') {
-      return {
-        text: 'Delete Show',
-        action: 'delete-show',
-        confirmMessage: 'Delete this confirmed show? This cannot be undone.',
-        buttonClass: 'bg-red-500 hover:bg-red-600'
-      };
-    } else if (entry.type === 'tour-request') {
-      const request = entry.data as TourRequest & { 
-        isVenueInitiated?: boolean; 
-        originalOfferId?: string; 
-        venueInitiatedBy?: string;
-      };
-      
-      if (viewerType === 'artist') {
-        if (request.isVenueInitiated) {
-          // Venue offer received by artist
-          return {
-            text: 'Decline & Remove',
-            action: 'decline-offer',
-            confirmMessage: 'Decline this venue offer and remove it from your calendar?',
-            buttonClass: 'bg-red-500 hover:bg-red-600'
-          };
-        } else {
-          // Artist's own tour request
-          return {
-            text: 'Cancel Request',
-            action: 'cancel-request',
-            confirmMessage: 'Cancel this tour request? This will also remove all associated bids.',
-            buttonClass: 'bg-red-500 hover:bg-red-600'
-          };
-        }
-      } else if (viewerType === 'venue') {
-        if (request.isVenueInitiated && venueId === request.venueInitiatedBy) {
-          // Venue's own offer
-          return {
-            text: 'Cancel Offer',
-            action: 'cancel-offer',
-            confirmMessage: 'Cancel your offer to this artist?',
-            buttonClass: 'bg-red-500 hover:bg-red-600'
-          };
-        } else {
-          // Artist request that venue is viewing/bidding on
-          return {
-            text: 'Stop Following',
-            action: 'unfollow-request',
-            confirmMessage: 'Remove this tour request from your calendar? You can still find it through search.',
-            buttonClass: 'bg-gray-500 hover:bg-gray-600'
-          };
-        }
-      }
-    }
-    
-    // Fallback
-    return {
-      text: 'Remove',
-      action: 'remove',
-      confirmMessage: 'Remove this item from your calendar?',
-      buttonClass: 'bg-gray-500 hover:bg-gray-600'
-    };
-  };
-
-  // 🎯 NEW: Universal Delete Handler
-  const handleUniversalDelete = async (entry: TimelineEntry, action: any) => {
-    const { confirmMessage } = action;
-    
-    if (!confirm(confirmMessage)) {
-      return;
-    }
-
-    try {
-      switch (action.action) {
-        case 'delete-show': {
-          const show = entry.data as Show;
-          const showName = `${show.artistName || 'Show'} at ${show.venueName || show.city}`;
-          await handleDeleteShow(show.id, showName);
-          break;
-        }
-        
-        case 'cancel-request': {
-          const request = entry.data as TourRequest;
-          await handleDeleteShowRequest(request.id, request.title);
-          break;
-        }
-        
-        case 'decline-offer': {
-          const request = entry.data as TourRequest & { originalOfferId?: string };
-          if (request.originalOfferId) {
-            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-            if (originalOffer) {
-              await handleOfferAction(originalOffer, 'decline');
-            }
+          if (!response.ok) {
+            throw new Error('Failed to delete show');
           }
-          break;
-        }
-        
-        case 'cancel-offer': {
-          const request = entry.data as TourRequest & { originalOfferId?: string };
-          if (request.originalOfferId) {
-            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-            if (originalOffer) {
-              await handleOfferAction(originalOffer, 'cancel');
-            }
-          }
-          break;
-        }
-        
-        case 'unfollow-request': {
-          // For now, just a placeholder - venues can't actually unfollow requests yet
-          // but this provides consistent UX
-          console.log('Unfollow request functionality would be implemented here');
-          // Could implement as hiding from calendar view or removing any bids
-          break;
-        }
-        
-        default: {
-          console.warn('Unknown delete action:', action.action);
-          break;
+
+          await fetchData();
+          showSuccess('Show Deleted', 'Show deleted successfully');
+        } catch (error) {
+          console.error('Error deleting show:', error);
+          showError('Delete Failed', 'Failed to delete show. Please try again.');
+        } finally {
+          setDeleteShowLoading(null);
         }
       }
-    } catch (error) {
-      console.error('Error in universal delete:', error);
-      alert(`Failed to ${action.text.toLowerCase()}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    }
+    );
   };
 
   const handleTourRequestDetailModal = (request: TourRequest) => {
@@ -1512,22 +1360,22 @@ export default function TabbedTourItinerary({
     const status = offer.status.toLowerCase();
     switch (status) {
       case 'pending':
-          return {
+        return {
           className: 'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800',
           text: 'Pending'
         };
       case 'accepted':
-          return {
+        return {
           className: 'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800',
           text: 'Accepted'
         };
       case 'declined':
-          return {
+        return {
           className: 'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800',
           text: 'Declined'
         };
       case 'cancelled':
-          return {
+        return {
           className: 'inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800',
           text: 'Cancelled'
         };
@@ -1701,11 +1549,11 @@ export default function TabbedTourItinerary({
     );
   }
 
-  if (error) {
+  if (fetchError) {
     return (
       <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
         <div className="text-red-600 text-center">
-          <p>Error loading itinerary: {error}</p>
+          <p>Error loading itinerary: {fetchError}</p>
           <button 
             onClick={fetchData}
             className="mt-2 text-sm underline hover:no-underline"
@@ -1770,15 +1618,14 @@ export default function TabbedTourItinerary({
         <table className="w-full min-w-[1000px] table-fixed">
           <thead className="bg-gray-50">
             <tr className="text-left text-xs font-medium text-gray-600">
-              <th className="px-2 py-1.5 w-[3%]"></th>
-              <th className="px-4 py-1.5 w-[11%]">Date</th>
+              <th className="px-4 py-1.5 w-[10%]">Date</th>
               <th className="px-4 py-1.5 w-[15%]">Location</th>
               <th className="px-4 py-1.5 w-[20%]">{venueId ? 'Artist' : artistId ? 'Venue' : 'Artist'}</th>
               <th className="px-4 py-1.5 w-[10%]">Status</th>
-              <th className="px-4 py-1.5 w-[7%]">Capacity</th>
+              <th className="px-4 py-1.5 w-[8%]">Capacity</th>
               <th className="px-4 py-1.5 w-[8%]">Age</th>
               <th className="px-4 py-1.5 w-[10%]">Offers</th>
-              <th className="px-4 py-1.5 w-[5%]">Bids</th>
+              <th className="px-4 py-1.5 w-[8%]">Bids</th>
               <th className="px-4 py-1.5 w-[11%]">Actions</th>
             </tr>
           </thead>
@@ -1786,7 +1633,7 @@ export default function TabbedTourItinerary({
             {/* Empty state - show when no entries in active month */}
             {activeMonthEntries.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={9} className="px-6 py-8 text-center text-gray-500">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl">📅</span>
                   </div>
@@ -1815,7 +1662,7 @@ export default function TabbedTourItinerary({
             {/* Render entries for active month */}
             {activeMonthEntries.map((entry, index) => {
               if (entry.type === 'show') {
-          const show = entry.data as Show;
+                const show = entry.data as Show;
                 return (
                   <React.Fragment key={`show-${show.id}`}>
                     <tr 
@@ -1823,18 +1670,6 @@ export default function TabbedTourItinerary({
                       onClick={() => toggleShowExpansion(show.id)}
                       title={`Click to ${expandedShows.has(show.id) ? 'hide' : 'view'} show details`}
                     >
-                      {/* Expand/Collapse Indicator */}
-                      <td className="px-2 py-1.5">
-                        <div className="flex items-center justify-center">
-                          <div className="flex items-center text-gray-400">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                d={expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-                            </svg>
-                          </div>
-                        </div>
-                      </td>
-                      
                       {/* Date */}
                       <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-gray-900">
@@ -1910,15 +1745,15 @@ export default function TabbedTourItinerary({
                         </span>
                       </td>
                       
-                      {/* Capacity - Empty for top-level show rows */}
+                      {/* Capacity */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600"></div>
+                        <div className="text-xs text-gray-600">{show.capacity}</div>
                       </td>
                       
                       
-                      {/* Age - Empty for top-level show rows */}
+                      {/* Age */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600"></div>
+                        <div className="text-xs text-gray-600">{show.ageRestriction}</div>
                       </td>
                       
                       {/* Offers */}
@@ -1967,30 +1802,34 @@ export default function TabbedTourItinerary({
                           )}
                           
                           {/* Delete button for members */}
-                          {editable && (() => {
-                            const deleteAction = getDeleteAction(entry, actualViewerType);
-                            if (!deleteAction) return null; // No buttons when viewing someone else's page
-                            
-                            return (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleUniversalDelete(entry, deleteAction);
-                                }}
-                                disabled={deleteShowLoading === show.id}
-                                className={`inline-flex items-center justify-center w-5 h-5 ${deleteAction.buttonClass} text-white rounded-full transition-colors`}
-                                title={deleteAction.text}
-                              >
-                                {deleteShowLoading === show.id ? (
-                                  <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
-                                ) : (
-                                  <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
-                                  </svg>
-                                )}
-                              </button>
-                            );
-                          })()}
+                          {editable && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const showName = `${show.artistName || 'Show'} at ${show.venueName || show.city}`;
+                                handleDeleteShow(show.id, showName);
+                              }}
+                              disabled={deleteShowLoading === show.id}
+                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              title="Delete show"
+                            >
+                              {deleteShowLoading === show.id ? (
+                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                                </svg>
+                              )}
+                            </button>
+                          )}
+                          
+                          {/* Expand/Collapse Indicator */}
+                          <div className="flex items-center text-gray-400">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                d={expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                            </svg>
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -2000,15 +1839,14 @@ export default function TabbedTourItinerary({
                       <>
                         {/* Timeline Header Row */}
                         <tr className="bg-yellow-50">
-                          <td className="px-2 py-2 text-left font-medium text-yellow-700 text-sm w-[3%]"></td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[11%]">Time</td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]">Time</td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[15%]">Event</td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[20%]">Details</td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]"></td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[7%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[10%]"></td>
-                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[5%]"></td>
+                          <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[8%]"></td>
                           <td className="px-4 py-2 text-left font-medium text-yellow-700 text-sm w-[11%]">Actions</td>
                         </tr>
                         
@@ -2066,15 +1904,14 @@ export default function TabbedTourItinerary({
                           
                           return events.map((event, index) => (
                             <tr key={index} className="hover:bg-yellow-100 bg-yellow-50">
-                              <td className="px-2 py-1.5 w-[3%]"></td>
-                              <td className="px-4 py-1.5 font-mono text-sm text-gray-900 w-[11%]">{event.time}</td>
+                              <td className="px-4 py-1.5 font-mono text-sm text-gray-900 w-[10%]">{event.time}</td>
                               <td className="px-4 py-1.5 font-medium text-sm text-gray-900 w-[15%]">{event.event}</td>
                               <td className="px-4 py-1.5 text-sm text-gray-600 w-[20%]">{event.details}</td>
                               <td className="px-4 py-1.5 w-[10%]"></td>
-                              <td className="px-4 py-1.5 w-[7%]"></td>
+                              <td className="px-4 py-1.5 w-[8%]"></td>
                               <td className="px-4 py-1.5 w-[8%]"></td>
                               <td className="px-4 py-1.5 w-[10%]"></td>
-                              <td className="px-4 py-1.5 w-[5%]"></td>
+                              <td className="px-4 py-1.5 w-[8%]"></td>
                               <td className="px-4 py-1.5 text-left w-[11%]">
                                 <div className="flex items-center space-x-2">
                                   {/* Only show edit/delete buttons for members with edit permissions */}
@@ -2102,7 +1939,7 @@ export default function TabbedTourItinerary({
                         {/* Add Event Row */}
                         {editable && (
                           <tr className="bg-yellow-100">
-                            <td colSpan={9} className="px-4 py-1.5 text-left">
+                            <td colSpan={8} className="px-4 py-1.5 text-left">
                               <button className="w-full text-left text-sm text-yellow-600 hover:text-yellow-800 flex items-center">
                                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -2133,8 +1970,17 @@ export default function TabbedTourItinerary({
                 
                 if (request.isVenueInitiated && request.originalOfferId) {
                   // For synthetic requests, convert the venue offer to a bid format
-            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-            if (originalOffer) {
+                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                  if (originalOffer) {
+                    console.log('🎯 Converting venue offer to synthetic bid:', {
+                      offerId: originalOffer.id,
+                      offerAmount: originalOffer.amount,
+                      offerDoorDeal: originalOffer.doorDeal,
+                      offerDate: originalOffer.proposedDate,
+                      offerDateRaw: originalOffer.proposedDate,
+                      offerTitle: originalOffer.title
+                    });
+                    
                     // 🎯 FIX: Extract date part to avoid timezone conversion issues
                     const bidDate = originalOffer.proposedDate.split('T')[0]; // Extract YYYY-MM-DD
                     
@@ -2143,12 +1989,12 @@ export default function TabbedTourItinerary({
                       tourRequestId: request.id,
                       venueId: originalOffer.venueId,
                       venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
-                      proposedDate: bidDate,
-                      guarantee: originalOffer.amount,
+                      proposedDate: bidDate, // 🎯 FIX: Use date without timezone info
+                      guarantee: originalOffer.amount, // 🎯 FIX: Ensure amount transfer
                       doorDeal: originalOffer.doorDeal ? {
                         split: originalOffer.doorDeal.split,
                         minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
-                      } : undefined,
+                      } : undefined, // 🎯 FIX: Preserve door deal structure (compatible fields only)
                       ticketPrice: originalOffer.ticketPrice || {},
                       capacity: originalOffer.capacity || originalOffer.venue?.capacity || 0,
                       ageRestriction: originalOffer.ageRestriction || 'all-ages',
@@ -2187,108 +2033,32 @@ export default function TabbedTourItinerary({
                       billingNotes: originalOffer.billingNotes
                     };
                     
+                    console.log('🎯 Created synthetic bid:', {
+                      bidId: syntheticBid.id,
+                      guarantee: syntheticBid.guarantee,
+                      guaranteeType: typeof syntheticBid.guarantee,
+                      doorDeal: syntheticBid.doorDeal,
+                      proposedDate: syntheticBid.proposedDate,
+                      proposedDateType: typeof syntheticBid.proposedDate,
+                      originalOfferAmount: originalOffer.amount,
+                      originalOfferDate: originalOffer.proposedDate,
+                      extractedBidDate: bidDate
+                    });
+                    
                     requestBids = [syntheticBid];
                   }
                 } else {
-                  // For regular requests, use normal bid filtering PLUS venue offers that match this request
+                  // For regular requests, use normal bid filtering
                   requestBids = venueBids.filter(bid => bid.tourRequestId === request.id);
-                  
-                  // 🎯 FIX: Also include venue offers that match this tour request's date/location
-                  const matchingOffers = venueOffers.filter(offer => {
-                    if (['cancelled', 'declined'].includes(offer.status.toLowerCase())) {
-                      return false;
-                    }
-                    
-                    // Extract date from offer (YYYY-MM-DD format)
-                    const offerDate = offer.proposedDate.split('T')[0];
-                    
-                    // Check if offer date matches request date range
-                    const requestStart = request.startDate;
-                    const requestEnd = request.endDate || request.startDate;
-                    
-                    return offerDate >= requestStart && offerDate <= requestEnd;
-                  });
-                  
-                  // Convert matching offers to synthetic bids
-                  const syntheticBidsFromOffers = matchingOffers.map(offer => {
-                    const bidDate = offer.proposedDate.split('T')[0];
-                    
-                    return {
-                      id: `offer-bid-${offer.id}`,
-                      tourRequestId: request.id,
-                      venueId: offer.venueId,
-                      venueName: offer.venueName || offer.venue?.name || 'Unknown Venue',
-                      proposedDate: bidDate,
-                      guarantee: offer.amount,
-                      doorDeal: offer.doorDeal ? {
-                        split: offer.doorDeal.split,
-                        minimumGuarantee: offer.doorDeal.minimumGuarantee
-                      } : undefined,
-                      ticketPrice: offer.ticketPrice || {},
-                      capacity: offer.capacity || offer.venue?.capacity || 0,
-                      ageRestriction: offer.ageRestriction || 'all-ages',
-                      equipmentProvided: offer.equipmentProvided || {
-                        pa: false,
-                        mics: false,
-                        drums: false,
-                        amps: false,
-                        piano: false
-                      },
-                      loadIn: offer.loadIn || '',
-                      soundcheck: offer.soundcheck || '',
-                      doorsOpen: offer.doorsOpen || '',
-                      showTime: offer.showTime || '',
-                      curfew: offer.curfew || '',
-                      promotion: offer.promotion || {
-                        social: false,
-                        flyerPrinting: false,
-                        radioSpots: false,
-                        pressCoverage: false
-                      },
-                      message: offer.message || '',
-                      status: offer.status.toLowerCase() as 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled',
-                      readByArtist: true,
-                      createdAt: offer.createdAt,
-                      updatedAt: offer.updatedAt,
-                      expiresAt: offer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                      location: offer.venue?.location ? 
-                        `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
-                        undefined,
-                      billingPosition: offer.billingPosition,
-                      lineupPosition: offer.lineupPosition,
-                      setLength: offer.setLength,
-                      otherActs: offer.otherActs,
-                      billingNotes: offer.billingNotes
-                    } as VenueBid;
-                  });
-                  
-                  // Combine regular bids with synthetic bids from venue offers
-                  requestBids = [...requestBids, ...syntheticBidsFromOffers];
                 }
                 
                 return (
                   <React.Fragment key={`request-${request.id}`}>
                     <tr 
-                      className={`cursor-pointer transition-colors duration-150 hover:bg-blue-100 hover:shadow-sm border-l-4 hover:border-blue-500 ${
-                        isViewerOwned(entry) 
-                          ? 'bg-blue-100 border-blue-500 ring-2 ring-blue-200' // Highlight viewer's own content
-                          : 'bg-blue-50 border-blue-400' // Normal styling for others' content
-                      }`}
+                      className="bg-blue-50 cursor-pointer transition-colors duration-150 hover:bg-blue-100 hover:shadow-sm border-l-4 border-blue-400 hover:border-blue-500"
                       onClick={() => toggleRequestExpansion(request.id)}
                       title={`Click to ${expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
                     >
-                      {/* Expand/Collapse Indicator */}
-                      <td className="px-2 py-1.5">
-                        <div className="flex items-center justify-center">
-                          <div className="flex items-center text-gray-400">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-                            </svg>
-                          </div>
-                        </div>
-                      </td>
-                      
                       {/* Date Range */}
                       <td className="px-4 py-1.5">
                         <div className="text-sm font-medium text-blue-900">
@@ -2375,19 +2145,21 @@ export default function TabbedTourItinerary({
                         </div>
                       </td>
                       
-                      {/* Capacity (Expected Draw) - Empty for top-level request rows */}
+                      {/* Capacity (Expected Draw) */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600"></div>
+                        <div className="text-xs text-gray-600">{request.expectedDraw.min}-{request.expectedDraw.max}</div>
                       </td>
                       
-                      {/* Age - Empty for top-level request rows */}
+                      {/* Age */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600"></div>
+                        <div className="text-xs text-gray-600">{request.ageRestriction || 'Flexible'}</div>
                       </td>
                       
-                      {/* Guarantee Range - Empty for top-level request rows */}
+                      {/* Guarantee Range */}
                       <td className="px-4 py-1.5">
-                        <div className="text-xs text-gray-600"></div>
+                        <div className="text-xs text-gray-600">
+                          {request.guaranteeRange ? `$${request.guaranteeRange.min}-${request.guaranteeRange.max}` : '-'}
+                        </div>
                       </td>
                       
                       {/* Bids Count */}
@@ -2402,44 +2174,16 @@ export default function TabbedTourItinerary({
                       {/* Actions */}
                       <td className="px-4 py-1.5">
                         <div className="flex items-center space-x-2">
-                          {/* 🎯 LEGITIMATE INTERACTION: Place Bid button for venues viewing artist requests */}
-                          {!request.isVenueInitiated && actualViewerType === 'venue' && (
+                          {/* Delete button for artists - only for regular artist-initiated requests */}
+                          {actualViewerType === 'artist' && !request.isVenueInitiated && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                // 🎯 AUTO-FILL DATE: Pre-fill the date from this specific tour request
-                                if (venueId && venueName) {
-                                  setSelectedTourRequest(request);
-                                  setShowBidForm(true);
-                                } else if (actualViewerType === 'venue') {
-                                  setOfferTargetArtist({
-                                    id: request.artistId,
-                                    name: request.artistName
-                                  });
-                                  // 🎯 AUTO-FILL DATE: Pass the tour request date to the modal
-                                  const dateToPass = request.isSingleDate ? (request as any).requestDate : request.startDate;
-                                  setOfferPreSelectedDate(dateToPass);
-                                  setShowUniversalOfferModal(true);
-                                }
-                              }}
-                              className="inline-flex items-center px-2 py-1 text-xs font-medium rounded border border-blue-600 text-blue-600 bg-white hover:bg-blue-50 transition-colors"
-                              title="Make an offer for this tour request"
-                            >
-                              Make Offer
-                            </button>
-                          )}
-                          
-                          {/* Universal Delete Button - only show when on own page */}
-                          {editable && getDeleteAction(entry, actualViewerType) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const deleteAction = getDeleteAction(entry, actualViewerType);
-                                if (deleteAction) handleUniversalDelete(entry, deleteAction);
+                                handleDeleteShowRequest(request.id, request.title);
                               }}
                               disabled={deleteLoading === request.id}
-                              className={`inline-flex items-center justify-center w-5 h-5 ${getDeleteAction(entry, actualViewerType)?.buttonClass} text-white rounded-full transition-colors`}
-                              title={getDeleteAction(entry, actualViewerType)?.text}
+                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              title="Delete tour request"
                             >
                               {deleteLoading === request.id ? (
                                 <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
@@ -2450,40 +2194,82 @@ export default function TabbedTourItinerary({
                               )}
                             </button>
                           )}
-                          
-                          {/* Subtle hint for viewer's own content when viewing someone else's page */}
-                          {editable && !getDeleteAction(entry, actualViewerType) && isViewerOwned(entry) && (
-                            <span className="text-xs text-blue-600 italic">
-                              Manage from your {actualViewerType} page
-                            </span>
+
+                          {/* Delete button for venues - only for venue-initiated requests they created */}
+                          {actualViewerType === 'venue' && request.isVenueInitiated && venueId === request.venueInitiatedBy && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // For venue-initiated requests, delete the original offer
+                                if (request.originalOfferId) {
+                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                  if (originalOffer) {
+                                    handleOfferAction(originalOffer, 'cancel');
+                                  }
+                                }
+                              }}
+                              disabled={deleteLoading === request.id}
+                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              title="Cancel offer"
+                            >
+                              {deleteLoading === request.id ? (
+                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                                </svg>
+                              )}
+                            </button>
                           )}
+
+                          {/* Make Offer Button for venues - only on regular artist-initiated requests */}
+                          {actualViewerType === 'venue' && !request.isVenueInitiated && (
+                            <MakeOfferButton
+                              targetArtist={{
+                                id: request.artistId,
+                                name: request.artistName
+                              }}
+                              variant="outline"
+                              size="xs"
+                              onSuccess={() => fetchData()}
+                            >
+                              Make Offer
+                            </MakeOfferButton>
+                          )}
+
+                          {/* Expand/Collapse Indicator */}
+                          <div className="flex items-center text-gray-400">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
+                                d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                            </svg>
+                          </div>
                         </div>
                       </td>
                     </tr>
 
-                    {/* Expanded Show Details */}
+                    {/* Expanded Bids Section */}
                     {expandedRequests.has(request.id) && (
                       <>
                         {/* Venue Bids - Compact Table Format */}
                         {requestBids.length > 0 && (
                           <tr>
-                            <td colSpan={10} className="px-0 py-0">
+                            <td colSpan={9} className="px-0 py-0">
                               <div className="bg-yellow-50 border-l-4 border-yellow-400">
                                 {/* Compact Bids Table */}
                                 <div className="overflow-x-auto">
                                   <table className="w-full min-w-[1000px] table-fixed">
                                     <thead className="bg-yellow-100">
-                                      <tr className="text-left text-xs font-semibold text-gray-800 border-b border-yellow-200">
-                                        <th className="px-2 py-0.5 w-[3%]"></th>
-                                        <th className="px-4 py-0.5 w-[11%]">Date</th>
-                                        <th className="px-4 py-0.5 w-[15%]">Location</th>
-                                        <th className="px-4 py-0.5 w-[20%]">Venue</th>
-                                        <th className="px-4 py-0.5 w-[10%]">Status</th>
-                                        <th className="px-4 py-0.5 w-[7%]">Capacity</th>
-                                        <th className="px-4 py-0.5 w-[8%]">Age</th>
-                                        <th className="px-4 py-0.5 w-[10%]">Offers</th>
-                                        <th className="px-4 py-0.5 w-[5%]">Bids</th>
-                                        <th className="px-4 py-0.5 w-[11%]">Actions</th>
+                                      <tr className="text-left text-xs font-medium text-yellow-700">
+                                        <th className="px-4 py-1.5 w-[10%]">Date</th>
+                                        <th className="px-4 py-1.5 w-[15%]">Location</th>
+                                        <th className="px-4 py-1.5 w-[20%]">Venue</th>
+                                        <th className="px-4 py-1.5 w-[10%]">Status</th>
+                                        <th className="px-4 py-1.5 w-[8%]">Capacity</th>
+                                        <th className="px-4 py-1.5 w-[8%]">Age</th>
+                                        <th className="px-4 py-1.5 w-[10%]">Offers</th>
+                                        <th className="px-4 py-1.5 w-[8%]">Bids</th>
+                                        <th className="px-4 py-1.5 w-[11%]">Actions</th>
                                       </tr>
                                     </thead>
                                     <tbody className="divide-y divide-yellow-200">
@@ -2491,9 +2277,6 @@ export default function TabbedTourItinerary({
                                         .filter((bid: VenueBid) => !['expired'].includes(bid.status))
                                         .map((bid: VenueBid) => (
                                         <tr key={`bid-${bid.id}`} className="bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150">
-                                          {/* Empty leftmost column */}
-                                          <td className="px-2 py-1.5"></td>
-                                          
                                           {/* Date */}
                                           <td className="px-4 py-1.5">
                                             <div className="text-sm font-medium text-yellow-900">
@@ -2599,205 +2382,202 @@ export default function TabbedTourItinerary({
                                           {/* Actions */}
                                           <td className="px-4 py-1.5">
                                             <div className="flex items-center space-x-0.5 flex-wrap">
-                                              {/* 🎯 BOUNDARY CHECK: Only show action buttons when viewing own page */}
-                                              {isViewingOwnPage() ? (
+                                              {actualViewerType === 'artist' && (
                                                 <>
-                                                  {/* ARTIST ACTIONS - Only when viewing own artist page */}
-                                                  {actualViewerType === 'artist' && (
+                                                  {bid.status === 'pending' && (
                                                     <>
-                                                      {bid.status === 'pending' && (
-                                                        <>
-                                                          <button
-                                                            onClick={() => {
-                                                              // For synthetic bids, use offer actions
-                                                              if (request.isVenueInitiated && request.originalOfferId) {
-                                                                const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                                if (originalOffer) {
-                                                                  handleOfferAction(originalOffer, 'accept');
-                                                                }
-                                                              } else {
-                                                                handleBidAction(bid, 'accept');
-                                                              }
-                                                            }}
-                                                            disabled={bidActions[bid.id]}
-                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                                            title="Accept this bid"
-                                                          >
-                                                            ✓
-                                                          </button>
-                                                          <button
-                                                            onClick={() => {
-                                                              // For synthetic bids, use offer actions (no hold functionality for offers)
-                                                              if (!request.isVenueInitiated) {
-                                                                handleBidAction(bid, 'hold');
-                                                              }
-                                                            }}
-                                                            disabled={bidActions[bid.id] || request.isVenueInitiated}
-                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 transition-colors"
-                                                            title={request.isVenueInitiated ? "Hold not available for offers" : "Place on hold"}
-                                                            style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
-                                                          >
-                                                            ⏸
-                                                          </button>
-                                                          <button
-                                                            onClick={() => {
-                                                              const reason = prompt('Reason for declining (optional):');
-                                                              if (reason !== null) {
-                                                                // For synthetic bids, use offer actions
-                                                                if (request.isVenueInitiated && request.originalOfferId) {
-                                                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                                  if (originalOffer) {
-                                                                    handleOfferAction(originalOffer, 'decline');
-                                                                  }
-                                                                } else {
-                                                                  handleBidAction(bid, 'decline', reason);
-                                                                }
-                                                              }
-                                                            }}
-                                                            disabled={bidActions[bid.id]}
-                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
-                                                            title="Decline this bid"
-                                                          >
-                                                            ✕
-                                                          </button>
-                                                        </>
-                                                      )}
-
-                                                      {bid.status === 'hold' && (
-                                                        <>
-                                                          <button
-                                                            onClick={() => {
-                                                              // For synthetic bids, use offer actions
-                                                              if (request.isVenueInitiated && request.originalOfferId) {
-                                                                const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                                if (originalOffer) {
-                                                                  handleOfferAction(originalOffer, 'accept');
-                                                                }
-                                                              } else {
-                                                                handleBidAction(bid, 'accept');
-                                                              }
-                                                            }}
-                                                            disabled={bidActions[bid.id]}
-                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                                            title="Accept this bid"
-                                                          >
-                                                            ✓
-                                                          </button>
-                                                          <button
-                                                            onClick={() => {
-                                                              const reason = prompt('Reason for declining (optional):');
-                                                              if (reason !== null) {
-                                                                // For synthetic bids, use offer actions
-                                                                if (request.isVenueInitiated && request.originalOfferId) {
-                                                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                                  if (originalOffer) {
-                                                                    handleOfferAction(originalOffer, 'decline');
-                                                                  }
-                                                                } else {
-                                                                  handleBidAction(bid, 'decline', reason);
-                                                                }
-                                                              }
-                                                            }}
-                                                            disabled={bidActions[bid.id]}
-                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
-                                                            title="Decline this bid"
-                                                          >
-                                                            ✕
-                                                          </button>
-                                                        </>
-                                                      )}
-
-                                                      {bid.status === 'accepted' && (
-                                                        <>
-                                                          <button
-                                                            onClick={() => {
-                                                              if (confirm('Undo acceptance and return this bid to pending status? The venue will be notified.')) {
-                                                                // For synthetic bids, this would involve complex offer state management
-                                                                if (!request.isVenueInitiated) {
-                                                                  handleBidAction(bid, 'undo-accept');
-                                                                }
-                                                              }
-                                                            }}
-                                                            disabled={bidActions[bid.id] || request.isVenueInitiated}
-                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-colors"
-                                                            title={request.isVenueInitiated ? "Undo not available for offers" : "Undo acceptance - return to pending"}
-                                                            style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
-                                                          >
-                                                            ↶
-                                                          </button>
-                                                          <button
-                                                            onClick={() => {
-                                                              const reason = prompt('Reason for declining (optional):');
-                                                              if (reason !== null) {
-                                                                // For synthetic bids, use offer actions
-                                                                if (request.isVenueInitiated && request.originalOfferId) {
-                                                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                                  if (originalOffer) {
-                                                                    handleOfferAction(originalOffer, 'decline');
-                                                                  }
-                                                                } else {
-                                                                  handleBidAction(bid, 'decline', reason);
-                                                                }
-                                                              }
-                                                            }}
-                                                            disabled={bidActions[bid.id]}
-                                                            className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
-                                                            title="Decline this bid"
-                                                          >
-                                                            ✕
-                                                          </button>
-                                                        </>
-                                                      )}
-                                                    </>
-                                                  )}
-
-                                                  {/* VENUE ACTIONS - Only when viewing own venue page */}
-                                                  {actualViewerType === 'venue' && (
-                                                    <>
-
-                                                      {bid.status === 'accepted' && (
-                                                        <button
-                                                          onClick={() => handleConfirmShow(bid)}
-                                                          className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 transition-colors"
-                                                          title="Confirm this show"
-                                                        >
-                                                          Confirm
-                                                        </button>
-                                                      )}
-
-                                                      {(bid.status === 'pending' || bid.status === 'hold') && (
-                                                        <button
-                                                          onClick={() => {
-                                                            // For synthetic bids, cancel the original offer
+                                                      <button
+                                                        onClick={() => {
+                                                          // For synthetic bids, use offer actions
+                                                          if (request.isVenueInitiated && request.originalOfferId) {
+                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                            if (originalOffer) {
+                                                              handleOfferAction(originalOffer, 'accept');
+                                                            }
+                                                          } else {
+                                                            handleBidAction(bid, 'accept');
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                                        title="Accept this bid"
+                                                      >
+                                                        ✓
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          // For synthetic bids, use offer actions (no hold functionality for offers)
+                                                          if (!request.isVenueInitiated) {
+                                                            handleBidAction(bid, 'hold');
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id] || request.isVenueInitiated}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 transition-colors"
+                                                        title={request.isVenueInitiated ? "Hold not available for offers" : "Place on hold"}
+                                                        style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
+                                                      >
+                                                        ⏸
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          const reason = prompt('Reason for declining (optional):');
+                                                          if (reason !== null) {
+                                                            // For synthetic bids, use offer actions
                                                             if (request.isVenueInitiated && request.originalOfferId) {
                                                               const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
                                                               if (originalOffer) {
-                                                                handleOfferAction(originalOffer, 'cancel');
+                                                                handleOfferAction(originalOffer, 'decline');
                                                               }
                                                             } else {
-                                                              handleCancelBid(bid);
+                                                              handleBidAction(bid, 'decline', reason);
                                                             }
-                                                          }}
-                                                          className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 transition-colors ml-1"
-                                                          title="Cancel this bid"
-                                                        >
-                                                          ✕
-                                                        </button>
-                                                      )}
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                        title="Decline this bid"
+                                                      >
+                                                        ✕
+                                                      </button>
+                                                    </>
+                                                  )}
+
+                                                  {bid.status === 'hold' && (
+                                                    <>
+                                                      <button
+                                                        onClick={() => {
+                                                          // For synthetic bids, use offer actions
+                                                          if (request.isVenueInitiated && request.originalOfferId) {
+                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                            if (originalOffer) {
+                                                              handleOfferAction(originalOffer, 'accept');
+                                                            }
+                                                          } else {
+                                                            handleBidAction(bid, 'accept');
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
+                                                        title="Accept this bid"
+                                                      >
+                                                        ✓
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          const reason = prompt('Reason for declining (optional):');
+                                                          if (reason !== null) {
+                                                            // For synthetic bids, use offer actions
+                                                            if (request.isVenueInitiated && request.originalOfferId) {
+                                                              const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                              if (originalOffer) {
+                                                                handleOfferAction(originalOffer, 'decline');
+                                                              }
+                                                            } else {
+                                                              handleBidAction(bid, 'decline', reason);
+                                                            }
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                        title="Decline this bid"
+                                                      >
+                                                        ✕
+                                                      </button>
+                                                    </>
+                                                  )}
+
+                                                  {bid.status === 'accepted' && (
+                                                    <>
+                                                      <button
+                                                        onClick={() => {
+                                                          confirm(
+                                                            'Undo Acceptance',
+                                                            'Undo acceptance and return this bid to pending status? The venue will be notified.',
+                                                            () => {
+                                                              // For synthetic bids, this would involve complex offer state management
+                                                              if (!request.isVenueInitiated) {
+                                                                handleBidAction(bid, 'undo-accept');
+                                                              }
+                                                            }
+                                                          );
+                                                        }}
+                                                        disabled={bidActions[bid.id] || request.isVenueInitiated}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                                                        title={request.isVenueInitiated ? "Undo not available for offers" : "Undo acceptance - return to pending"}
+                                                        style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
+                                                      >
+                                                        ↶
+                                                      </button>
+                                                      <button
+                                                        onClick={() => {
+                                                          const reason = prompt('Reason for declining (optional):');
+                                                          if (reason !== null) {
+                                                            // For synthetic bids, use offer actions
+                                                            if (request.isVenueInitiated && request.originalOfferId) {
+                                                              const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                              if (originalOffer) {
+                                                                handleOfferAction(originalOffer, 'decline');
+                                                              }
+                                                            } else {
+                                                              handleBidAction(bid, 'decline', reason);
+                                                            }
+                                                          }
+                                                        }}
+                                                        disabled={bidActions[bid.id]}
+                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
+                                                        title="Decline this bid"
+                                                      >
+                                                        ✕
+                                                      </button>
                                                     </>
                                                   )}
                                                 </>
-                                              ) : (
-                                                /* 🎯 VIEWING SOMEONE ELSE'S PAGE: Only show hint for own content */
-                                                <div className="flex items-center space-x-2">
-                                                  {/* Only show hint if this is viewer's own bid/offer */}
-                                                  {isViewerOwned(entry) && (
-                                                    <span className="text-xs text-blue-600 italic">
-                                                      Manage from your {actualViewerType} page
+                                              )}
+
+                                              {actualViewerType === 'venue' && (
+                                                <>
+                                                  {bid.status === 'pending' && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-yellow-800 bg-yellow-100">
+                                                      Pending
                                                     </span>
                                                   )}
-                                                  {/* Removed duplicate status badge - already shown in Status column */}
-                                                </div>
+
+                                                  {bid.status === 'hold' && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full text-blue-800 bg-blue-100">
+                                                      {bid.holdPosition === 1 ? '1st Hold' : bid.holdPosition === 2 ? '2nd Hold' : bid.holdPosition === 3 ? '3rd Hold' : 'On Hold'}
+                                                    </span>
+                                                  )}
+
+                                                  {bid.status === 'accepted' && (
+                                                    <button
+                                                      onClick={() => handleConfirmShow(bid)}
+                                                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 transition-colors"
+                                                      title="Confirm this show"
+                                                    >
+                                                      Confirm
+                                                    </button>
+                                                  )}
+
+                                                  {(bid.status === 'pending' || bid.status === 'hold') && (
+                                                    <button
+                                                      onClick={() => {
+                                                        // For synthetic bids, cancel the original offer
+                                                        if (request.isVenueInitiated && request.originalOfferId) {
+                                                          const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                                          if (originalOffer) {
+                                                            handleOfferAction(originalOffer, 'cancel');
+                                                          }
+                                                        } else {
+                                                          handleCancelBid(bid);
+                                                        }
+                                                      }}
+                                                      className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-gray-600 hover:bg-gray-700 transition-colors ml-1"
+                                                      title="Cancel this bid"
+                                                    >
+                                                      ✕
+                                                    </button>
+                                                  )}
+                                                </>
                                               )}
                                             </div>
                                           </td>
@@ -2822,7 +2602,7 @@ export default function TabbedTourItinerary({
             {/* Add Date Row - Only show when no shows at all and user is a member */}
             {monthGroups.length === 0 && editable && (
               <tr>
-                <td colSpan={10} className="px-6 py-3">
+                <td colSpan={9} className="px-6 py-3">
                   <button
                     onClick={() => {
                       if (artistId) {
@@ -2931,7 +2711,6 @@ export default function TabbedTourItinerary({
                 title="Make Offer to Artist"
                 subtitle="Invite a specific artist to play at your venue on this date"
                 submitButtonText="Send Offer"
-
               />
             </div>
           ) : (
@@ -3443,16 +3222,17 @@ export default function TabbedTourItinerary({
           onClose={() => {
             setShowUniversalOfferModal(false);
             setOfferTargetArtist(null);
-            setOfferPreSelectedDate(null);
           }}
           onSuccess={(offer) => {
             console.log('Offer created successfully:', offer);
             fetchData(); // Refresh the itinerary
           }}
           preSelectedArtist={offerTargetArtist || undefined}
-          preSelectedDate={offerPreSelectedDate || undefined}
         />
       )}
+
+      {/* Render the Alert Modal */}
+      {AlertModal}
     </div>
   );
 } 
