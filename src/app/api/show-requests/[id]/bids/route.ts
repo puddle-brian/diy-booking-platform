@@ -121,7 +121,15 @@ export async function POST(
         showRequestId: showRequestId,
         venueId: body.venueId,
         bidderId: body.bidderId,
-        proposedDate: body.proposedDate ? new Date(body.proposedDate) : showRequest.requestedDate,
+        proposedDate: body.proposedDate ? (() => {
+          // 🎯 FIX: Parse date string properly to avoid timezone issues
+          // If it's a date-only string like "2024-07-10", parse it as local date
+          if (typeof body.proposedDate === 'string' && body.proposedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const [year, month, day] = body.proposedDate.split('-').map(Number);
+            return new Date(year, month - 1, day); // month is 0-indexed
+          }
+          return new Date(body.proposedDate);
+        })() : showRequest.requestedDate,
         message: body.message || null,
         amount: body.amount ? parseFloat(body.amount) : null,
         billingPosition: body.billingPosition || null,
@@ -208,6 +216,14 @@ export async function PUT(
           acceptedAt: new Date()
         };
         break;
+      case 'undo-accept':
+        updateData = {
+          status: 'PENDING',
+          acceptedAt: null,
+          declinedAt: null,
+          declinedReason: body.reason || null
+        };
+        break;
       case 'hold':
         updateData = {
           status: 'HOLD',
@@ -226,7 +242,7 @@ export async function PUT(
         break;
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Must be accept, hold, or decline' },
+          { error: 'Invalid action. Must be accept, undo-accept, hold, or decline' },
           { status: 400 }
         );
     }

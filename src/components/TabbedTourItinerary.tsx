@@ -280,6 +280,12 @@ export default function TabbedTourItinerary({
   // Track deleted shows locally to avoid flashing
   const [deletedShows, setDeletedShows] = useState<Set<string>>(new Set());
   
+  // Add optimistic bid status tracking to prevent blinking during switches
+  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, 'pending' | 'accepted' | 'hold' | 'declined'>>(new Map());
+  
+  // Track recent undo actions to prevent race conditions
+  const [recentUndoActions, setRecentUndoActions] = useState<Set<string>>(new Set());
+  
   // Add venue offer form state
   const [showVenueOfferForm, setShowVenueOfferForm] = useState(false);
   
@@ -479,7 +485,39 @@ export default function TabbedTourItinerary({
   };
 
   // Add all the missing handler functions
-  const handleBidAction = async (bid: VenueBid, action: string, reason?: string) => {
+  
+  // Helper function to check for date conflicts when accepting bids/offers
+  const checkDateConflict = (proposedDate: string, excludeBidId?: string, excludeOfferId?: string) => {
+    const targetDate = proposedDate.split('T')[0]; // Get just the date part
+    
+    // Check for accepted bids on the same date (using real backend status for conflict detection)
+    const acceptedBid = venueBids.find(bid => 
+      bid.status === 'accepted' && 
+      bid.proposedDate.split('T')[0] === targetDate &&
+      bid.id !== excludeBidId
+    );
+    
+    // Check for accepted offers on the same date
+    const acceptedOffer = venueOffers.find(offer => 
+      (offer.status === 'accepted' || offer.status === 'ACCEPTED') && 
+      offer.proposedDate.split('T')[0] === targetDate &&
+      offer.id !== excludeOfferId
+    );
+    
+    return { acceptedBid, acceptedOffer };
+  };
+
+  // Helper function to get effective bid status (with optimistic overrides)
+  const getEffectiveBidStatus = (bid: VenueBid): 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled' => {
+    const override = bidStatusOverrides.get(bid.id);
+    if (override) {
+      return override;
+    }
+    return bid.status;
+  };
+
+  // Extract the original bid action logic into a separate function (defined first)
+  const proceedWithBidAction = async (bid: VenueBid, action: string, reason?: string) => {
     setBidActions(prev => ({ ...prev, [bid.id]: true }));
     
     // Optimistic update for decline action to avoid flashing
@@ -541,7 +579,8 @@ export default function TabbedTourItinerary({
     }
   };
 
-  const handleOfferAction = async (offer: VenueOffer, action: string) => {
+  // Extract the original offer action logic into a separate function (defined first)
+  const proceedWithOfferAction = async (offer: VenueOffer, action: string) => {
     const actionText = action === 'accept' ? 'accept' : action === 'decline' ? 'decline' : action;
     
     // Optimistic update for decline action to avoid flashing
@@ -589,8 +628,312 @@ export default function TabbedTourItinerary({
     }
   };
 
+  const handleBidAction = async (bid: VenueBid, action: string, reason?: string) => {
+    // Add conflict validation for accept action
+    if (action === 'accept') {
+      const { acceptedBid, acceptedOffer } = checkDateConflict(bid.proposedDate, bid.id);
+      
+      if (acceptedBid || acceptedOffer) {
+        const conflictVenue = acceptedBid ? acceptedBid.venueName : acceptedOffer?.venueName;
+        const conflictType = acceptedBid ? 'bid' : 'offer';
+        
+        confirm(
+          'Date Conflict',
+          `You've already accepted ${conflictType === 'bid' ? 'a bid' : 'an offer'} from ${conflictVenue} for this date. Only one booking can be accepted per date. Switch to ${bid.venueName} instead?`,
+          async () => {
+            // Optimistic updates for seamless UX
+            try {
+              // Immediately update UI state
+              if (acceptedBid) {
+                setBidStatusOverrides(prev => new Map(prev).set(acceptedBid.id, 'pending'));
+              }
+              setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'accepted'));
+              
+              // Perform backend updates
+              if (acceptedBid) {
+                await fetch(`/api/show-requests/${acceptedBid.showRequestId}/bids`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    bidId: acceptedBid.id,
+                    action: 'undo-accept',
+                    reason: `Reverted - switched to ${bid.venueName} for same date`
+                  }),
+                });
+              }
+              
+              if (acceptedOffer) {
+                await fetch(`/api/show-requests/${acceptedOffer.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    action: 'decline',
+                    reason: `Switched to ${bid.venueName} for same date`
+                  }),
+                });
+              }
+              
+              // Accept the new bid
+              await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  bidId: bid.id,
+                  action: 'accept',
+                  reason,
+                  notes: holdNotes[bid.id] || ''
+                }),
+              });
+              
+              // Refresh data to sync backend state
+              await fetchData();
+            } catch (error) {
+              // Revert optimistic updates on error
+              setBidStatusOverrides(prev => {
+                const newMap = new Map(prev);
+                if (acceptedBid) newMap.delete(acceptedBid.id);
+                newMap.delete(bid.id);
+                return newMap;
+              });
+              showError('Switch Failed', 'Failed to switch bookings. Please try again.');
+            }
+          }
+        );
+        return; // Exit early to wait for user confirmation
+      }
+    }
+    
+    // No conflict or not an accept action, proceed with optimistic update
+    return proceedWithBidActionOptimistic(bid, action, reason);
+  };
+
+  // Optimistic version of proceedWithBidAction
+  const proceedWithBidActionOptimistic = async (bid: VenueBid, action: string, reason?: string) => {
+    setBidActions(prev => ({ ...prev, [bid.id]: true }));
+    
+    // Immediate optimistic update
+    if (action === 'accept') {
+      setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'accepted'));
+    } else if (action === 'undo-accept') {
+      setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'pending'));
+    } else if (action === 'hold') {
+      setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'hold'));
+    } else if (action === 'decline') {
+      setDeclinedBids(prev => new Set([...prev, bid.id]));
+    }
+    
+    try {
+      const response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bidId: bid.id,
+          action,
+          reason,
+          notes: holdNotes[bid.id] || ''
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${action} bid`);
+      }
+
+      // Clear optimistic override since backend is now in sync  
+      // Don't clear for decline (uses different state) or undo-accept (needs to persist until backend syncs)
+      if (action !== 'decline' && action !== 'undo-accept') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(bid.id);
+          return newMap;
+        });
+      }
+      
+      const actionMessages = {
+        accept: 'Bid accepted! You can now coordinate with the venue to finalize details.',
+        hold: 'Bid placed on hold. You have time to consider other options.',
+        decline: 'Bid declined and removed from your itinerary.'
+      };
+      
+      if (action === 'decline') {
+        showSuccess('Bid Declined', 'The bid has been removed from your itinerary.');
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing bid:`, error);
+      
+      // Revert optimistic updates on error
+      if (action === 'accept') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(bid.id);
+          return newMap;
+        });
+      } else if (action === 'undo-accept') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(bid.id);
+          return newMap;
+        });
+      } else if (action === 'hold') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(bid.id);
+          return newMap;
+        });
+      } else if (action === 'decline') {
+        setDeclinedBids(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(bid.id);
+          return newSet;
+        });
+      }
+      
+      showError(`${action.charAt(0).toUpperCase() + action.slice(1)} Failed`, `Failed to ${action} bid: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setBidActions(prev => ({ ...prev, [bid.id]: false }));
+    }
+  };
+
+  // Optimistic version of proceedWithOfferAction (moved up for proper declaration order)
+  const proceedWithOfferActionOptimistic = async (offer: VenueOffer, action: string) => {
+    const actionText = action === 'accept' ? 'accept' : action === 'decline' ? 'decline' : action;
+    
+    // Immediate optimistic update
+    if (action === 'accept') {
+      setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
+    } else if (action === 'decline') {
+      setDeletedRequests(prev => new Set([...prev, `venue-offer-${offer.id}`]));
+    }
+    
+    try {
+      const response = await fetch(`/api/show-requests/${offer.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${actionText} offer`);
+      }
+
+      // Clear optimistic override since backend is now in sync  
+      // Don't clear for decline (uses different state) or undo-accept (needs to persist until backend syncs)
+      if (action !== 'decline' && action !== 'undo-accept') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(offer.id);
+          return newMap;
+        });
+      }
+      
+      if (action === 'decline') {
+        showSuccess('Offer Declined', 'The venue offer has been removed from your itinerary.');
+      }
+    } catch (error) {
+      console.error(`Error ${actionText}ing offer:`, error);
+      
+      // Revert optimistic updates on error
+      if (action === 'accept') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(offer.id);
+          return newMap;
+        });
+      } else if (action === 'decline') {
+        setDeletedRequests(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(`venue-offer-${offer.id}`);
+          return newSet;
+        });
+      }
+      
+      showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer. Please try again.`);
+    }
+  };
+
+  const handleOfferAction = async (offer: VenueOffer, action: string) => {
+    // Add conflict validation for accept action
+    if (action === 'accept') {
+      const { acceptedBid, acceptedOffer } = checkDateConflict(offer.proposedDate, undefined, offer.id);
+      
+      if (acceptedBid || acceptedOffer) {
+        const conflictVenue = acceptedBid ? acceptedBid.venueName : acceptedOffer?.venueName;
+        const conflictType = acceptedBid ? 'bid' : 'offer';
+        
+        confirm(
+          'Date Conflict',
+          `You've already accepted ${conflictType === 'bid' ? 'a bid' : 'an offer'} from ${conflictVenue} for this date. Only one booking can be accepted per date. Switch to ${offer.venueName} instead?`,
+          async () => {
+            // Optimistic updates for seamless UX
+            try {
+              // Immediately update UI state
+              if (acceptedBid) {
+                setBidStatusOverrides(prev => new Map(prev).set(acceptedBid.id, 'pending'));
+              }
+              setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
+              
+              // Perform backend updates
+              if (acceptedBid) {
+                await fetch(`/api/show-requests/${acceptedBid.showRequestId}/bids`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    bidId: acceptedBid.id,
+                    action: 'undo-accept',
+                    reason: `Reverted - switched to ${offer.venueName} for same date`
+                  }),
+                });
+              }
+              
+              if (acceptedOffer) {
+                await fetch(`/api/show-requests/${acceptedOffer.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    action: 'decline',
+                    reason: `Switched to ${offer.venueName} for same date`
+                  }),
+                });
+              }
+              
+              // Accept the new offer
+              await fetch(`/api/show-requests/${offer.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'accept'
+                }),
+              });
+              
+              // Refresh data to sync backend state
+              await fetchData();
+            } catch (error) {
+              // Revert optimistic updates on error
+              setBidStatusOverrides(prev => {
+                const newMap = new Map(prev);
+                if (acceptedBid) newMap.delete(acceptedBid.id);
+                newMap.delete(offer.id);
+                return newMap;
+              });
+              showError('Switch Failed', 'Failed to switch bookings. Please try again.');
+            }
+          }
+        );
+        return; // Exit early to wait for user confirmation
+      }
+    }
+    
+    // No conflict or not an accept action, proceed with optimistic update
+    return proceedWithOfferActionOptimistic(offer, action);
+  };
+
   const getBidStatusBadge = (bid: VenueBid) => {
-    switch (bid.status) {
+    const effectiveStatus = getEffectiveBidStatus(bid);
+    switch (effectiveStatus) {
       case 'pending':
         return {
           className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800',
@@ -619,7 +962,7 @@ export default function TabbedTourItinerary({
       default:
         return {
           className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800',
-          text: bid.status
+          text: effectiveStatus
         };
     }
   };
@@ -1483,7 +1826,7 @@ export default function TabbedTourItinerary({
                                             <div className="flex items-center space-x-0.5 flex-wrap">
                                               {actualViewerType === 'artist' && (
                                                 <>
-                                                  {bid.status === 'pending' && (
+                                                  {getEffectiveBidStatus(bid) === 'pending' && (
                                                     <>
                                                       <button
                                                         onClick={() => {
@@ -1535,7 +1878,7 @@ export default function TabbedTourItinerary({
                                                     </>
                                                   )}
 
-                                                  {bid.status === 'hold' && (
+                                                  {getEffectiveBidStatus(bid) === 'hold' && (
                                                     <>
                                                       <button
                                                         onClick={() => {
@@ -1574,7 +1917,7 @@ export default function TabbedTourItinerary({
                                                     </>
                                                   )}
 
-                                                  {bid.status === 'accepted' && (
+                                                  {getEffectiveBidStatus(bid) === 'accepted' && (
                                                     <>
                                                       <button
                                                         onClick={() => {
@@ -1594,23 +1937,6 @@ export default function TabbedTourItinerary({
                                                         style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
                                                       >
                                                         ↶
-                                                      </button>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (request.isVenueInitiated && request.originalOfferId) {
-                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                            if (originalOffer) {
-                                                              handleOfferAction(originalOffer, 'decline');
-                                                            }
-                                                          } else {
-                                                            handleBidAction(bid, 'decline');
-                                                          }
-                                                        }}
-                                                        disabled={bidActions[bid.id]}
-                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
-                                                        title="Decline this bid"
-                                                      >
-                                                        ✕
                                                       </button>
                                                     </>
                                                   )}
