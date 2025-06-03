@@ -198,7 +198,7 @@ export default function TabbedTourItinerary({
   viewerType = 'public'
 }: TabbedTourItineraryProps) {
   // Initialize Universal Alert Modal system
-  const { AlertModal, confirm, error: showError, success: showSuccess, info: showInfo } = useAlert();
+  const { AlertModal, confirm, error: showError, success: showSuccess, info: showInfo, toast } = useAlert();
 
   // Use editable prop to determine if user has permissions
   const actualViewerType = viewerType !== 'public' ? viewerType : 
@@ -379,6 +379,19 @@ export default function TabbedTourItinerary({
       setActiveMonthTab(currentMonth);
     }
   }, [monthGroups.length, activeMonthTab]);
+
+  // 🎯 FIX: Reset optimistic state when switching between venues/artists
+  useEffect(() => {
+    // Clear all optimistic state when artistId or venueId changes
+    setBidStatusOverrides(new Map());
+    setDeclinedBids(new Set());
+    setDeletedRequests(new Set());
+    setDeletedShows(new Set());
+    setBidActions({});
+    setHoldActions({});
+    setHoldNotes({});
+    setRecentUndoActions(new Set());
+  }, [artistId, venueId]);
 
   const activeMonthEntries = monthGroups.find(group => group.monthKey === activeMonthTab)?.entries || [];
 
@@ -591,7 +604,8 @@ export default function TabbedTourItinerary({
     }
     
     try {
-      const response = await fetch(`/api/show-requests/${offer.id}`, {
+      // 🎯 FIX: Use the correct venue offer API endpoint instead of show request endpoint
+      const response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -600,7 +614,8 @@ export default function TabbedTourItinerary({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${actionText} offer`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${actionText} offer`);
       }
 
       // Only refetch data for non-decline actions
@@ -624,7 +639,7 @@ export default function TabbedTourItinerary({
         });
       }
       
-      showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer. Please try again.`);
+      showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -641,6 +656,9 @@ export default function TabbedTourItinerary({
           'Date Conflict',
           `You've already accepted ${conflictType === 'bid' ? 'a bid' : 'an offer'} from ${conflictVenue} for this date. Only one booking can be accepted per date. Switch to ${bid.venueName} instead?`,
           async () => {
+            // Show loading toast (brief, auto-dismiss)
+            toast('info', 'Switching Bookings', `Switching to ${bid.venueName}...`, 2000);
+            
             // Optimistic updates for seamless UX
             try {
               // Immediately update UI state
@@ -663,7 +681,7 @@ export default function TabbedTourItinerary({
               }
               
               if (acceptedOffer) {
-                await fetch(`/api/show-requests/${acceptedOffer.id}`, {
+                await fetch(`/api/venues/${acceptedOffer.venueId}/offers/${acceptedOffer.id}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ 
@@ -687,6 +705,9 @@ export default function TabbedTourItinerary({
               
               // Refresh data to sync backend state
               await fetchData();
+              
+              // Show success toast (longer, auto-dismiss)
+              toast('success', 'Booking Updated', `Now booked with ${bid.venueName}!`, 4000);
             } catch (error) {
               // Revert optimistic updates on error
               setBidStatusOverrides(prev => {
@@ -808,7 +829,8 @@ export default function TabbedTourItinerary({
     }
     
     try {
-      const response = await fetch(`/api/show-requests/${offer.id}`, {
+      // 🎯 FIX: Use the correct venue offer API endpoint instead of show request endpoint
+      const response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -817,7 +839,8 @@ export default function TabbedTourItinerary({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${actionText} offer`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Failed to ${actionText} offer`);
       }
 
       // Clear optimistic override since backend is now in sync  
@@ -832,6 +855,10 @@ export default function TabbedTourItinerary({
       
       if (action === 'decline') {
         showSuccess('Offer Declined', 'The venue offer has been removed from your itinerary.');
+      } else if (action === 'accept') {
+        showSuccess('Offer Accepted', 'The venue offer has been accepted and added to your confirmed shows!');
+        // Refresh data to show the new confirmed show
+        await fetchData();
       }
     } catch (error) {
       console.error(`Error ${actionText}ing offer:`, error);
@@ -851,7 +878,7 @@ export default function TabbedTourItinerary({
         });
       }
       
-      showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer. Please try again.`);
+      showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -868,6 +895,9 @@ export default function TabbedTourItinerary({
           'Date Conflict',
           `You've already accepted ${conflictType === 'bid' ? 'a bid' : 'an offer'} from ${conflictVenue} for this date. Only one booking can be accepted per date. Switch to ${offer.venueName} instead?`,
           async () => {
+            // Show loading toast (brief, auto-dismiss)
+            toast('info', 'Switching Bookings', `Switching to ${offer.venueName}...`, 2000);
+            
             // Optimistic updates for seamless UX
             try {
               // Immediately update UI state
@@ -890,7 +920,7 @@ export default function TabbedTourItinerary({
               }
               
               if (acceptedOffer) {
-                await fetch(`/api/show-requests/${acceptedOffer.id}`, {
+                await fetch(`/api/venues/${acceptedOffer.venueId}/offers/${acceptedOffer.id}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ 
@@ -901,7 +931,7 @@ export default function TabbedTourItinerary({
               }
               
               // Accept the new offer
-              await fetch(`/api/show-requests/${offer.id}`, {
+              await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -911,6 +941,9 @@ export default function TabbedTourItinerary({
               
               // Refresh data to sync backend state
               await fetchData();
+              
+              // Show success toast (longer, auto-dismiss)
+              toast('success', 'Booking Updated', `Now booked with ${offer.venueName}!`, 4000);
             } catch (error) {
               // Revert optimistic updates on error
               setBidStatusOverrides(prev => {
@@ -1540,9 +1573,27 @@ export default function TabbedTourItinerary({
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-1">
-                          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            {requestBids.length > 0 ? 'Bidding' : 'Requested'}
-                          </span>
+                          {(() => {
+                            // If viewing as a venue, show venue's specific bid status
+                            if (venueId && requestBids.length > 0) {
+                              const venueBid = requestBids.find(bid => bid.venueId === venueId);
+                              if (venueBid) {
+                                const statusBadge = getBidStatusBadge(venueBid);
+                                return (
+                                  <span className={statusBadge.className}>
+                                    {statusBadge.text}
+                                  </span>
+                                );
+                              }
+                            }
+                            
+                            // Default logic for artists and venues without bids
+                            return (
+                              <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                {requestBids.length > 0 ? 'Bidding' : 'Requested'}
+                              </span>
+                            );
+                          })()}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1921,15 +1972,9 @@ export default function TabbedTourItinerary({
                                                     <>
                                                       <button
                                                         onClick={() => {
-                                                          confirm(
-                                                            'Undo Acceptance',
-                                                            'Undo acceptance and return this bid to pending status? The venue will be notified.',
-                                                            () => {
-                                                              if (!request.isVenueInitiated) {
-                                                                handleBidAction(bid, 'undo-accept');
-                                                              }
-                                                            }
-                                                          );
+                                                          if (!request.isVenueInitiated) {
+                                                            handleBidAction(bid, 'undo-accept');
+                                                          }
                                                         }}
                                                         disabled={bidActions[bid.id] || request.isVenueInitiated}
                                                         className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-colors"
