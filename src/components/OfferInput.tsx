@@ -51,10 +51,12 @@ export default function OfferInput({
   // Initialize from existing value
   useEffect(() => {
     if (value) {
+      console.log('🔄 OfferInput: Initializing from existing value:', value);
       switch (value.type) {
         case 'guarantee':
           setOfferType('guarantee');
           setGuaranteeAmount(value.guarantee?.toString() || '');
+          console.log('✅ OfferInput: Set guarantee amount to:', value.guarantee);
           break;
         case 'percentage':
           setOfferType('split');
@@ -141,11 +143,14 @@ export default function OfferInput({
     onChange(offer);
   }, [offerType, guaranteeAmount, artistPercent, minimumAmount, bonusPercent, afterExpenses]);
 
-  // Initialize default value on mount
+  // Initialize default value on mount (only if no existing value provided)
   useEffect(() => {
-    const offer = generateOffer();
-    if (offer) {
-      onChange(offer);
+    if (!value) {
+      console.log('🔄 OfferInput: No existing value, initializing with defaults');
+      const offer = generateOffer();
+      if (offer) {
+        onChange(offer);
+      }
     }
   }, []); // Only run on mount
 

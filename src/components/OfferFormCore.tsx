@@ -26,6 +26,16 @@ interface OfferFormCoreProps {
   // Pre-selection (when coming from tour request date)
   preSelectedDate?: string;
   
+  // Existing bid information (when updating)
+  existingBid?: {
+    id: string;
+    amount?: number;
+    message?: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  
   // Customization
   title?: string;
   subtitle?: string;
@@ -43,26 +53,63 @@ export default function OfferFormCore({
   loading = false,
   preSelectedArtist,
   preSelectedDate,
+  existingBid,
   title = "Make Offer to Artist",
   subtitle,
   submitButtonText = "Send Offer",
   error
 }: OfferFormCoreProps) {
   // Form state
-  const [offerData, setOfferData] = useState<any>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    artistId: string;
+    artistName: string;
+    proposedDate: string;
+    capacity: string;
+    ageRestriction: string;
+    message: string;
+  }>({
     artistId: preSelectedArtist?.id || '',
     artistName: preSelectedArtist?.name || '',
     proposedDate: preSelectedDate || '',
-    ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+',
-    message: `Hey! We'd love to have you play at ${venueName}. We think you'd be a great fit for our space and audience. Let us know if you're interested!`
+    capacity: '',
+    ageRestriction: 'ALL_AGES',
+    message: ''
   });
-
-  // Artist search state
-  const [artistSearch, setArtistSearch] = useState(preSelectedArtist?.name || '');
+  
+  const [offerData, setOfferData] = useState<any>(null);
   const [artists, setArtists] = useState<Artist[]>([]);
+  const [artistSearch, setArtistSearch] = useState('');
   const [showArtistDropdown, setShowArtistDropdown] = useState(false);
   const [filteredArtists, setFilteredArtists] = useState<Artist[]>([]);
+  const [hasInitializedFromExistingBid, setHasInitializedFromExistingBid] = useState(false);
+
+  // 🎯 LOAD EXISTING BID DATA: Pre-populate form if editing existing bid (ONLY ONCE)
+  useEffect(() => {
+    if (existingBid && !hasInitializedFromExistingBid) {
+      console.log('🔄 Pre-filling form with existing bid (first time only):', existingBid);
+      
+      // Pre-populate form with existing bid data
+      if (existingBid.amount) {
+        const parsedOffer = {
+          type: 'guarantee' as const,
+          displayText: `$${existingBid.amount} guarantee`,
+          guarantee: existingBid.amount,
+          rawInput: `$${existingBid.amount} guarantee`
+        };
+        setOfferData(parsedOffer);
+        console.log('✅ Set offer data:', parsedOffer);
+      }
+      
+      if (existingBid.message) {
+        setFormData(prev => ({ ...prev, message: existingBid.message || '' }));
+        console.log('✅ Set message:', existingBid.message);
+      }
+
+      // Mark that we've initialized to prevent re-running
+      setHasInitializedFromExistingBid(true);
+      console.log('🚫 Marked as initialized - will not override user input');
+    }
+  }, [existingBid, hasInitializedFromExistingBid]);
 
   // Load artists on mount
   useEffect(() => {
@@ -130,12 +177,61 @@ export default function OfferFormCore({
       {/* Header */}
       <div className="mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          {title}
+          {existingBid ? '✏️ Update Your Bid' : title}
         </h3>
         <p className="text-sm text-gray-600">
-          {defaultSubtitle}
+          {existingBid ? `Updating your existing bid for this show request` : defaultSubtitle}
         </p>
       </div>
+
+      {/* 🎯 EXISTING BID INDICATOR: Show when updating existing bid */}
+      {existingBid && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-amber-900 mb-3">You already have a bid on this request</h4>
+              
+              {/* Compact inline layout */}
+              <div className="flex flex-wrap items-center gap-4 text-sm text-amber-800 mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-700">Current bid:</span>
+                  <span className="px-2 py-1 bg-amber-100 text-amber-900 font-semibold rounded">
+                    ${existingBid.amount || 'No amount'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-700">Status:</span>
+                  <span className="px-2 py-1 bg-white text-amber-900 font-medium rounded border border-amber-200 capitalize">
+                    {existingBid.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-amber-700">Updated:</span>
+                  <span className="font-medium text-amber-900">
+                    {new Date(existingBid.updatedAt).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-start gap-2">
+                <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  Any changes you make will <strong>update your existing bid</strong> rather than creating a new one.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
@@ -291,7 +387,7 @@ export default function OfferFormCore({
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
             )}
-            {loading ? 'Sending Offer...' : submitButtonText}
+            {loading ? (existingBid ? 'Updating Bid...' : 'Sending Offer...') : (existingBid ? 'Update Bid' : submitButtonText)}
           </button>
         </div>
       </form>

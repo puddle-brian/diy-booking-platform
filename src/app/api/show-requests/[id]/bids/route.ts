@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/prisma';
+import { BidStatus } from '@prisma/client';
 
 // GET /api/show-requests/[id]/bids - Get bids for a show request
 export async function GET(
@@ -8,11 +9,19 @@ export async function GET(
 ) {
   try {
     const { id: showRequestId } = await params;
+    const { searchParams } = new URL(request.url);
+    const venueId = searchParams.get('venueId');
 
-    console.log(`🎯 API: Fetching bids for show request ${showRequestId}`);
+    console.log(`🎯 API: Fetching bids for show request ${showRequestId}${venueId ? ` (venue: ${venueId})` : ''}`);
+
+    // Build the where clause
+    const whereClause: any = { showRequestId };
+    if (venueId) {
+      whereClause.venueId = venueId;
+    }
 
     const bids = await prisma.showRequestBid.findMany({
-      where: { showRequestId },
+      where: whereClause,
       include: {
         venue: {
           select: {
@@ -55,7 +64,7 @@ export async function GET(
       ]
     });
 
-    console.log(`🎯 API: Found ${bids.length} bids for show request`);
+    console.log(`🎯 API: Found ${bids.length} bids for show request${venueId ? ` from venue ${venueId}` : ''}`);
 
     return NextResponse.json(bids);
   } catch (error) {
@@ -76,7 +85,7 @@ export async function POST(
     const { id: showRequestId } = await params;
     const body = await request.json();
     
-    console.log('🎯 API: Creating bid for show request:', showRequestId);
+    console.log('🎯 API: Creating/updating bid for show request:', showRequestId);
     
     // Validate required fields
     const requiredFields = ['venueId', 'bidderId'];
@@ -115,28 +124,11 @@ export async function POST(
       );
     }
 
-    // Create the bid
-    const newBid = await prisma.showRequestBid.create({
-      data: {
+    // 🎯 CHECK FOR EXISTING BID: Look for existing bid from this venue for this show request
+    const existingBid = await prisma.showRequestBid.findFirst({
+      where: {
         showRequestId: showRequestId,
-        venueId: body.venueId,
-        bidderId: body.bidderId,
-        proposedDate: body.proposedDate ? (() => {
-          // 🎯 FIX: Parse date string properly to avoid timezone issues
-          // If it's a date-only string like "2024-07-10", parse it as local date
-          if (typeof body.proposedDate === 'string' && body.proposedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const [year, month, day] = body.proposedDate.split('-').map(Number);
-            return new Date(year, month - 1, day); // month is 0-indexed
-          }
-          return new Date(body.proposedDate);
-        })() : showRequest.requestedDate,
-        message: body.message || null,
-        amount: body.amount ? parseFloat(body.amount) : null,
-        billingPosition: body.billingPosition || null,
-        lineupPosition: body.lineupPosition ? parseInt(body.lineupPosition) : null,
-        setLength: body.setLength ? parseInt(body.setLength) : null,
-        otherActs: body.otherActs || null,
-        status: 'PENDING'
+        venueId: body.venueId
       },
       include: {
         venue: {
@@ -163,13 +155,111 @@ export async function POST(
       }
     });
 
-    console.log(`✅ Bid created: ${venue.name} → ${showRequest.artist.name}`);
+    // Prepare the bid data
+    const bidData = {
+      proposedDate: body.proposedDate ? (() => {
+        // 🎯 FIX: Parse date string properly to avoid timezone issues
+        // If it's a date-only string like "2024-07-10", parse it as local date
+        if (typeof body.proposedDate === 'string' && body.proposedDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const [year, month, day] = body.proposedDate.split('-').map(Number);
+          return new Date(year, month - 1, day); // month is 0-indexed
+        }
+        return new Date(body.proposedDate);
+      })() : showRequest.requestedDate,
+      message: body.message || null,
+      amount: body.amount ? parseFloat(body.amount) : null,
+      billingPosition: body.billingPosition || null,
+      lineupPosition: body.lineupPosition ? parseInt(body.lineupPosition) : null,
+      setLength: body.setLength ? parseInt(body.setLength) : null,
+      otherActs: body.otherActs || null,
+      status: BidStatus.PENDING
+    };
 
-    return NextResponse.json(newBid, { status: 201 });
+    let result;
+    let isUpdate = false;
+
+    if (existingBid) {
+      // 🎯 UPDATE EXISTING BID: Update the existing bid instead of creating a duplicate
+      console.log(`🔄 Updating existing bid from ${venue.name} → ${showRequest.artist.name}`);
+      
+      result = await prisma.showRequestBid.update({
+        where: { id: existingBid.id },
+        data: bidData,
+        include: {
+          venue: {
+            select: {
+              id: true,
+              name: true,
+              venueType: true,
+              capacity: true,
+              location: {
+                select: {
+                  city: true,
+                  stateProvince: true,
+                  country: true
+                }
+              }
+            }
+          },
+          bidder: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        }
+      });
+      
+      isUpdate = true;
+      console.log(`✅ Bid updated: ${venue.name} → ${showRequest.artist.name}`);
+    } else {
+      // 🎯 CREATE NEW BID: No existing bid found, create a new one
+      console.log(`🆕 Creating new bid from ${venue.name} → ${showRequest.artist.name}`);
+      
+      result = await prisma.showRequestBid.create({
+        data: {
+          showRequestId: showRequestId,
+          venueId: body.venueId,
+          bidderId: body.bidderId,
+          ...bidData
+        },
+        include: {
+          venue: {
+            select: {
+              id: true,
+              name: true,
+              venueType: true,
+              capacity: true,
+              location: {
+                select: {
+                  city: true,
+                  stateProvince: true,
+                  country: true
+                }
+              }
+            }
+          },
+          bidder: {
+            select: {
+              id: true,
+              username: true
+            }
+          }
+        }
+      });
+      
+      console.log(`✅ Bid created: ${venue.name} → ${showRequest.artist.name}`);
+    }
+
+    // Return the result with additional metadata about the operation
+    return NextResponse.json({
+      ...result,
+      isUpdate // Let the frontend know if this was an update vs create
+    }, { status: isUpdate ? 200 : 201 });
   } catch (error) {
-    console.error('Error creating bid:', error);
+    console.error('Error creating/updating bid:', error);
     return NextResponse.json(
-      { error: 'Failed to create bid' },
+      { error: 'Failed to create/update bid' },
       { status: 500 }
     );
   }
@@ -212,13 +302,13 @@ export async function PUT(
     switch (body.action.toLowerCase()) {
       case 'accept':
         updateData = {
-          status: 'ACCEPTED',
+          status: BidStatus.ACCEPTED,
           acceptedAt: new Date()
         };
         break;
       case 'undo-accept':
         updateData = {
-          status: 'PENDING',
+          status: BidStatus.PENDING,
           acceptedAt: null,
           declinedAt: null,
           declinedReason: body.reason || null
@@ -226,7 +316,7 @@ export async function PUT(
         break;
       case 'hold':
         updateData = {
-          status: 'HOLD',
+          status: BidStatus.HOLD,
           heldAt: new Date()
         };
         if (body.notes) {
@@ -235,7 +325,7 @@ export async function PUT(
         break;
       case 'decline':
         updateData = {
-          status: 'REJECTED',
+          status: BidStatus.REJECTED,
           declinedAt: new Date(),
           declinedReason: body.reason || 'No reason provided'
         };
