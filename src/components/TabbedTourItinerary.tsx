@@ -1296,7 +1296,7 @@ export default function TabbedTourItinerary({
               <th className="px-2 py-1.5 w-[3%]"></th>
               <th className="px-4 py-1.5 w-[12%]">Date</th>
               <th className="px-4 py-1.5 w-[14%]">Location</th>
-              <th className="px-4 py-1.5 w-[19%]">{venueId ? 'Artist' : artistId ? 'Venue' : 'Artist'}</th>
+              <th className="px-4 py-1.5 w-[19%]">{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
               <th className="px-4 py-1.5 w-[10%]">Status</th>
               <th className="px-4 py-1.5 w-[7%]">Capacity</th>
               <th className="px-4 py-1.5 w-[7%]">Age</th>
@@ -1360,23 +1360,7 @@ export default function TabbedTourItinerary({
                     <td className="px-4 py-1.5 w-[19%]">
                       <div className="text-sm font-medium text-gray-900 truncate">
                         {(() => {
-                          if (venueId) {
-                            // For venue pages, show artist as clickable link
-                            if (show.artistId && show.artistId !== 'external-artist') {
-                              return (
-                                <a 
-                                  href={`/artists/${show.artistId}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View artist page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {show.artistName}
-                                </a>
-                              );
-                            } else {
-                              return show.artistName;
-                            }
-                          } else if (artistId) {
+                          if (artistId) {
                             // For artist pages, show venue as clickable link
                             if (show.venueId && show.venueId !== 'external-venue') {
                               return (
@@ -1391,6 +1375,22 @@ export default function TabbedTourItinerary({
                               );
                             } else {
                               return show.venueName;
+                            }
+                          } else if (venueId) {
+                            // For venue pages, show artist as clickable link
+                            if (show.artistId && show.artistId !== 'external-artist') {
+                              return (
+                                <a 
+                                  href={`/artists/${show.artistId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View artist page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {show.artistName}
+                                </a>
+                              );
+                            } else {
+                              return show.artistName;
                             }
                           } else {
                             // For public/general view, show artist name
@@ -1540,33 +1540,21 @@ export default function TabbedTourItinerary({
                   }
                 } else if (requestWithVenueBid.isVenueBid && requestWithVenueBid.originalShowRequestId) {
                   // 🎯 UPDATED: For synthetic requests from venue bids, use originalShowRequestId to find ALL competing bids
-                  console.log(`🎯 Found venue bid synthetic request:`);
-                  console.log(`   - Synthetic Request ID: ${request.id}`);
-                  console.log(`   - Original Show Request ID: ${requestWithVenueBid.originalShowRequestId}`);
-                  console.log(`   - Original Bid ID: ${requestWithVenueBid.originalBidId}`);
-                  
                   // 🎯 COMPETITIVE INTELLIGENCE: Show ALL bids on the original artist request
                   const allBidsOnRequest = venueBids.filter(bid => 
                     bid.showRequestId === requestWithVenueBid.originalShowRequestId && 
                     !declinedBids.has(bid.id)
                   );
                   
-                  console.log(`🎯 DEBUG: Filtering bids for original showRequestId: ${requestWithVenueBid.originalShowRequestId}`);
-                  console.log(`🎯 DEBUG: Total venue bids available: ${venueBids.length}`);
-                  console.log(`🎯 DEBUG: Bids with matching original showRequestId:`);
-                  venueBids.forEach(bid => {
-                    if (bid.showRequestId === requestWithVenueBid.originalShowRequestId) {
-                      console.log(`   ✓ ${bid.venueName} - ${bid.proposedDate} - Status: ${bid.status}`);
-                    }
-                  });
-                  console.log(`🎯 DEBUG: Declined bids to exclude: ${Array.from(declinedBids).join(', ')}`);
-                  console.log(`🎯 Showing ${allBidsOnRequest.length} total bids on this request for venue perspective`);
-                  
                   requestBids = allBidsOnRequest;
                 } else {
                   // For regular artist-initiated requests, use normal bid filtering
                   requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
                 }
+
+                // 🎯 Check if venue has existing bid for button text
+                const hasVenueBid = venueId && requestBids.some(bid => bid.venueId === venueId);
+                const shouldShowEdit = requestWithVenueBid.isVenueBid || hasVenueBid;
 
                 return (
                   <React.Fragment key={`request-${request.id}`}>
@@ -1597,24 +1585,8 @@ export default function TabbedTourItinerary({
                       <td className="px-4 py-1.5 w-[19%]">
                         <div className="text-sm font-medium text-gray-900 truncate">
                           {(() => {
-                            if (venueId) {
-                              // For venue pages, show artist as clickable link
-                              if (request.artistId && request.artistId !== 'external-artist') {
-                                return (
-                                  <a 
-                                    href={`/artists/${request.artistId}`}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    title="View artist page"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {request.artistName}
-                                  </a>
-                                );
-                              } else {
-                                return request.artistName;
-                              }
-                            } else if (artistId) {
-                              // For artist pages, show venue as clickable link
+                            if (artistId) {
+                              // For artist pages, show venue information
                               if (request.isVenueInitiated) {
                                 // For venue-initiated offers, show the venue name as clickable link
                                 const requestAsVenueRequest = request as TourRequest & { venueId?: string; venueName?: string };
@@ -1664,6 +1636,22 @@ export default function TabbedTourItinerary({
                                     );
                                   }
                                 }
+                              }
+                            } else if (venueId) {
+                              // For venue pages, show artist as clickable link
+                              if (request.artistId && request.artistId !== 'external-artist') {
+                                return (
+                                  <a 
+                                    href={`/artists/${request.artistId}`}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    title="View artist page"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {request.artistName}
+                                  </a>
+                                );
+                              } else {
+                                return request.artistName;
                               }
                             } else {
                               // For public/general view, show artist name
@@ -1789,7 +1777,8 @@ export default function TabbedTourItinerary({
                             </button>
                           )}
 
-                          {actualViewerType === 'venue' && !requestWithVenueBid.isVenueBid && !request.isVenueInitiated && (
+                          {/* 🎯 UPDATED: Make/Edit Offer Button - Show for all venue requests, dynamic text */}
+                          {actualViewerType === 'venue' && !request.isVenueInitiated && (
                             <MakeOfferButton
                               targetArtist={{
                                 id: request.artistId,
@@ -1800,7 +1789,7 @@ export default function TabbedTourItinerary({
                               size="xs"
                               onSuccess={() => fetchData()}
                             >
-                              Make Offer
+                              {shouldShowEdit ? 'Edit Offer' : 'Make Offer'}
                             </MakeOfferButton>
                           )}
 

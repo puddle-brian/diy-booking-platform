@@ -176,7 +176,8 @@ export function useTourItineraryData({
       if (artistId) {
         params.append('artistId', artistId);
       }
-      if (venueId) {
+      if (venueId && !artistId) {
+        // Only add venueId for shows if we're not viewing an artist page
         params.append('venueId', venueId);
       }
       params.append('t', timestamp.toString()); // Cache-busting parameter
@@ -190,28 +191,12 @@ export function useTourItineraryData({
 
       // 🎯 NEW UNIFIED API: Fetch show requests (replaces both tour-requests and venue-offers)
       if (artistId) {
-        // For artists: get their requests + bids on them
+        // 🎯 PRIMARY CASE: Viewing artist page (possibly by venue user)
+        // Always fetch the artist's requests + bids on them
         const showRequestsResponse = await fetch(`/api/show-requests?artistId=${artistId}&t=${timestamp}`);
         if (showRequestsResponse.ok) {
           const showRequestsData = await showRequestsResponse.json();
           console.log('🎯 Fetched show requests for artist:', showRequestsData.length);
-          
-          // 🐛 DEBUG: Let's see what we're getting
-          console.log('🔍 Debug - First few show requests:', showRequestsData.slice(0, 3).map((req: any) => ({
-            id: req.id,
-            title: req.title,
-            initiatedBy: req.initiatedBy,
-            venueId: req.venueId,
-            venueName: req.venue?.name,
-            bidCount: req.bids?.length || 0,
-            hasBidsWithoutVenue: req.bids?.some((bid: any) => !bid.venue?.name) || false,
-            bidDetails: req.bids?.map((bid: any) => ({
-              id: bid.id,
-              venueId: bid.venueId,
-              venueName: bid.venue?.name,
-              hasVenueRelation: !!bid.venue
-            })) || []
-          })));
           
           // Convert ShowRequests back to legacy format for compatibility with existing UI
           const legacyTourRequests: TourRequest[] = showRequestsData
@@ -258,31 +243,28 @@ export function useTourItineraryData({
             if (req.bids) {
               req.bids.forEach((bid: any) => {
                 // 🎯 FIX: Only skip bids if they have no venueId at all
-                // Having a venueId is sufficient - we can display even if venue relationship isn't populated
                 if (!bid.venueId) {
-                  console.warn('Skipping bid with missing venueId:', bid.id);
+                  console.log('🚫 Skipping bid with missing venueId:', bid.id);
                   return;
                 }
                 
-                // 🎯 IMPROVED: Try to get venue name from multiple sources
-                let venueName = 'Unknown Venue';
+                // 🎯 FIX: Handle venue names more gracefully for competitive bidding display
+                let displayVenueName = 'Unknown Venue';
                 if (bid.venue?.name) {
-                  venueName = bid.venue.name;
+                  displayVenueName = bid.venue.name;
+                } else if (bid.venueId === venueId && venueName) {
+                  // If this is the current venue's bid and we have the venue name
+                  displayVenueName = venueName;
                 } else if (bid.venueId) {
-                  // 🎯 SPECIFIC: Handle known venue IDs for testing
-                  if (bid.venueId === '1748094967307') {
-                    venueName = 'Lost Bag';
-                  } else {
-                    // Fallback: Show partial venue ID
-                    venueName = `Venue ${bid.venueId.slice(-6)}`;
-                  }
+                  // For other venues, show partial ID if name not available
+                  displayVenueName = `Venue ${bid.venueId.slice(-6)}`;
                 }
                 
                 allBids.push({
                   id: bid.id,
                   showRequestId: req.id,
                   venueId: bid.venueId,
-                  venueName: venueName,
+                  venueName: displayVenueName,
                   proposedDate: bid.proposedDate || req.requestedDate,
                   guarantee: bid.amount,
                   doorDeal: bid.doorDeal,
@@ -375,22 +357,12 @@ export function useTourItineraryData({
               artist: req.artist
             }));
           
-          // 🎯 DEBUG: Log venue offers before setting state
-          console.log('🎯 Venue offers from API:', legacyVenueOffers.map(offer => ({
-            id: offer.id,
-            status: offer.status,
-            venueName: offer.venueName
-          })));
-          
           setVenueOffers(legacyVenueOffers);
         }
-      }
-
-      if (venueId) {
-        // 🎯 FIX: For venues, get BOTH venue-initiated requests AND artist requests they've bid on
-        // First get venue-initiated requests
+      } else if (venueId) {
+        // 🎯 SECONDARY CASE: Viewing venue page (venue-only, no artist specified)
+        // Get BOTH venue-initiated requests AND artist requests they've bid on
         const venueInitiatedResponse = await fetch(`/api/show-requests?venueId=${venueId}&t=${timestamp}`);
-        // Then get all artist-initiated requests to find ones with this venue's bids
         const allArtistRequestsResponse = await fetch(`/api/show-requests?initiatedBy=ARTIST&t=${timestamp}`);
         
         if (venueInitiatedResponse.ok && allArtistRequestsResponse.ok) {

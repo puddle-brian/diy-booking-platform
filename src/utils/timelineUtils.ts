@@ -174,16 +174,13 @@ export function createTimelineEntries(
   venueOffers.forEach(offer => {
     const status = offer.status.toLowerCase();
     
-    // 🎯 DEBUG: Log offer status to see what we're getting from API
-    console.log('🔍 Processing venue offer:', {
-      id: offer.id,
-      status: offer.status,
-      statusLowercase: status,
-      shouldInclude: !['cancelled', 'declined', 'rejected', 'expired'].includes(status)
-    });
-    
     // 🎯 ENHANCED FILTERING: Ensure declined/rejected offers disappear completely from UI
     if (!['cancelled', 'declined', 'rejected', 'expired'].includes(status)) {
+      // 🎯 FIX: When viewing artist pages, only show offers FOR that specific artist
+      if (artistId && offer.artistId !== artistId) {
+        return; // Skip offers for other artists when viewing a specific artist page
+      }
+      
       // 🎯 FIX: Ensure proper date handling - use original proposedDate without conversion
       // Extract just the date part to avoid timezone issues with ISO timestamps
       const offerDate = offer.proposedDate.split('T')[0]; // Extract YYYY-MM-DD from ISO timestamp
@@ -253,8 +250,9 @@ export function createTimelineEntries(
     }
   });
   
-  // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view
-  if (venueId && venueBids.length > 0) {
+  // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view ONLY
+  // 🎯 FIX: Only create synthetic venue bid requests when viewing venue pages, not when venue users view artist pages
+  if (venueId && !artistId && venueBids.length > 0) {
     console.log(`🎯 Processing ${venueBids.length} venue bids for venue timeline`);
     
     // 🎯 FIX: Group bids by showRequestId to avoid creating duplicate request rows

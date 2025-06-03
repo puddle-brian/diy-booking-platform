@@ -13,6 +13,7 @@ import {
 import TabbedTourItinerary from '../TabbedTourItinerary';
 import MediaSection from '../MediaSection';
 import TeamManagementCard from './TeamManagementCard';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ProfileLayoutProps {
   entity: Artist | Venue;
@@ -39,9 +40,25 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
   onTemplateManage,
   hasSentInquiry
 }) => {
+  const { user } = useAuth();
   const isArtist = context.entityType === 'artist';
   const artist = isArtist ? entity as Artist : null;
   const venue = !isArtist ? entity as Venue : null;
+
+  // 🎯 NEW: Get current user's venue information for venue users viewing artist pages
+  const getUserVenueInfo = () => {
+    if (!user?.memberships || !isArtist) return { userVenueId: undefined, userVenueName: undefined };
+    
+    // Find user's primary venue membership (first venue in their memberships)
+    const venueMembership = user.memberships.find(m => m.entityType === 'venue');
+    
+    return {
+      userVenueId: venueMembership?.entityId,
+      userVenueName: venueMembership?.entityName
+    };
+  };
+
+  const { userVenueId, userVenueName } = getUserVenueInfo();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -72,7 +89,18 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
         <div className="grid gap-6 mb-8">
           {/* Tour Dates/Booking - HIGHEST PRIORITY */}
           <TabbedTourItinerary
-            {...(isArtist ? { artistId: entity.id, artistName: entity.name } : { venueId: entity.id, venueName: entity.name })}
+            {...(isArtist ? { 
+              artistId: entity.id, 
+              artistName: entity.name,
+              // 🎯 NEW: Pass venue info when venue user views artist page
+              ...(context.viewerType === 'venue' && userVenueId ? {
+                venueId: userVenueId,
+                venueName: userVenueName
+              } : {})
+            } : { 
+              venueId: entity.id, 
+              venueName: entity.name 
+            })}
             title="Show Dates"
             showTitle={true}
             editable={context.canEdit}
