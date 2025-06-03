@@ -1779,18 +1779,20 @@ export default function TabbedTourItinerary({
 
                           {/* 🎯 UPDATED: Make/Edit Offer Button - Show for all venue requests, dynamic text */}
                           {actualViewerType === 'venue' && !request.isVenueInitiated && (
-                            <MakeOfferButton
-                              targetArtist={{
-                                id: request.artistId,
-                                name: request.artistName
-                              }}
-                              preSelectedDate={request.startDate}
-                              variant="outline"
-                              size="xs"
-                              onSuccess={() => fetchData()}
-                            >
-                              {shouldShowEdit ? 'Edit Offer' : 'Make Offer'}
-                            </MakeOfferButton>
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <MakeOfferButton
+                                targetArtist={{
+                                  id: request.artistId,
+                                  name: request.artistName
+                                }}
+                                preSelectedDate={request.startDate}
+                                variant="outline"
+                                size="xs"
+                                onSuccess={() => fetchData()}
+                              >
+                                {shouldShowEdit ? 'Edit Offer' : 'Make Offer'}
+                              </MakeOfferButton>
+                            </div>
                           )}
 
                           {actualViewerType === 'venue' && requestWithVenueBid.isVenueBid && requestWithVenueBid.originalBidId && (
