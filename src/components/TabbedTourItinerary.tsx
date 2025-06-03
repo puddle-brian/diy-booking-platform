@@ -601,40 +601,97 @@ export default function TabbedTourItinerary({
       // Find and hide the synthetic tour request for this offer
       const syntheticRequestId = `venue-offer-${offer.id}`;
       setDeletedRequests(prev => new Set([...prev, syntheticRequestId]));
+    } else if (action === 'accept') {
+      // Optimistic update for accept action
+      setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
     }
     
     try {
-      // 🎯 FIX: Use the correct venue offer API endpoint instead of show request endpoint
-      const response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
+      // 🎯 NEW UNIFIED SYSTEM FIX: Check if this is a ShowRequest (new system) or VenueOffer (old system)
+      // ShowRequests from admin reset will have a different ID pattern and need different API endpoints
+      let response;
+      
+      // Try the new ShowRequest API first (for admin-created offers)
+      const showRequestResponse = await fetch(`/api/show-requests/${offer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ 
+          action: action === 'decline' ? 'decline' : action,
+          status: action === 'decline' ? 'DECLINED' : action === 'accept' ? 'CONFIRMED' : action.toUpperCase()
+        }),
       });
+
+      if (showRequestResponse.ok) {
+        // This was a ShowRequest from the new system
+        response = showRequestResponse;
+        console.log(`✅ Successfully updated ShowRequest ${offer.id} via new unified API`);
+      } else if (showRequestResponse.status === 404) {
+        // Not found as ShowRequest, try the old VenueOffer API
+        console.log(`🔄 ShowRequest not found, trying VenueOffer API for ${offer.id}`);
+        
+        response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action }),
+        });
+
+        if (response.ok) {
+          console.log(`✅ Successfully updated VenueOffer ${offer.id} via legacy API`);
+        }
+      } else {
+        // Some other error with ShowRequest API
+        response = showRequestResponse;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // 🎯 NEW: Auto-refresh on 404 errors (stale data detection)
+        if (response.status === 404) {
+          console.warn('🔄 Stale data detected (404 error), automatically refreshing...');
+          showInfo('Data Updated', 'The data has been refreshed to show the latest information.');
+          await fetchData(); // Auto-refresh to get fresh data
+          return; // Exit early since data was refreshed
+        }
+        
         throw new Error(errorData.error || `Failed to ${actionText} offer`);
       }
 
-      // Only refetch data for non-decline actions
-      if (action !== 'decline') {
-        await fetchData();
+      // Clear optimistic override since backend is now in sync  
+      // Don't clear for decline (uses different state) or undo-accept (needs to persist until backend syncs)
+      if (action !== 'decline' && action !== 'undo-accept') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(offer.id);
+          return newMap;
+        });
       }
       
       if (action === 'decline') {
         showSuccess('Offer Declined', 'The venue offer has been removed from your itinerary.');
+      } else if (action === 'accept') {
+        showSuccess('Offer Accepted', 'The venue offer has been accepted and added to your confirmed shows!');
+        // Refresh data to show the new confirmed show
+        await fetchData();
       }
     } catch (error) {
       console.error(`Error ${actionText}ing offer:`, error);
       
-      // Revert optimistic update on error
-      if (action === 'decline') {
-        const syntheticRequestId = `venue-offer-${offer.id}`;
+      // Revert optimistic updates on error
+      if (action === 'accept') {
+        setBidStatusOverrides(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(offer.id);
+          return newMap;
+        });
+      } else if (action === 'decline') {
         setDeletedRequests(prev => {
           const newSet = new Set(prev);
-          newSet.delete(syntheticRequestId);
+          newSet.delete(`venue-offer-${offer.id}`);
           return newSet;
         });
       }
@@ -821,25 +878,68 @@ export default function TabbedTourItinerary({
   const proceedWithOfferActionOptimistic = async (offer: VenueOffer, action: string) => {
     const actionText = action === 'accept' ? 'accept' : action === 'decline' ? 'decline' : action;
     
-    // Immediate optimistic update
-    if (action === 'accept') {
+    // Optimistic update for decline action to avoid flashing
+    if (action === 'decline') {
+      // Find and hide the synthetic tour request for this offer
+      const syntheticRequestId = `venue-offer-${offer.id}`;
+      setDeletedRequests(prev => new Set([...prev, syntheticRequestId]));
+    } else if (action === 'accept') {
+      // Optimistic update for accept action
       setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
-    } else if (action === 'decline') {
-      setDeletedRequests(prev => new Set([...prev, `venue-offer-${offer.id}`]));
     }
     
     try {
-      // 🎯 FIX: Use the correct venue offer API endpoint instead of show request endpoint
-      const response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
+      // 🎯 NEW UNIFIED SYSTEM FIX: Check if this is a ShowRequest (new system) or VenueOffer (old system)
+      // ShowRequests from admin reset will have a different ID pattern and need different API endpoints
+      let response;
+      
+      // Try the new ShowRequest API first (for admin-created offers)
+      const showRequestResponse = await fetch(`/api/show-requests/${offer.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ 
+          action: action === 'decline' ? 'decline' : action,
+          status: action === 'decline' ? 'DECLINED' : action === 'accept' ? 'CONFIRMED' : action.toUpperCase()
+        }),
       });
+
+      if (showRequestResponse.ok) {
+        // This was a ShowRequest from the new system
+        response = showRequestResponse;
+        console.log(`✅ Successfully updated ShowRequest ${offer.id} via new unified API`);
+      } else if (showRequestResponse.status === 404) {
+        // Not found as ShowRequest, try the old VenueOffer API
+        console.log(`🔄 ShowRequest not found, trying VenueOffer API for ${offer.id}`);
+        
+        response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ action }),
+        });
+
+        if (response.ok) {
+          console.log(`✅ Successfully updated VenueOffer ${offer.id} via legacy API`);
+        }
+      } else {
+        // Some other error with ShowRequest API
+        response = showRequestResponse;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
+        
+        // 🎯 NEW: Auto-refresh on 404 errors (stale data detection)
+        if (response.status === 404) {
+          console.warn('🔄 Stale data detected (404 error), automatically refreshing...');
+          showInfo('Data Updated', 'The data has been refreshed to show the latest information.');
+          await fetchData(); // Auto-refresh to get fresh data
+          return; // Exit early since data was refreshed
+        }
+        
         throw new Error(errorData.error || `Failed to ${actionText} offer`);
       }
 
@@ -1137,16 +1237,30 @@ export default function TabbedTourItinerary({
       {/* Header */}
       {showTitle && (
         <div className="px-6 py-4 border-b border-gray-200">
-          <div>
-            <h3 className="text-lg font-semibold">
-              {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
-            </h3>
-            <p className="text-sm text-gray-600 mt-1">
-              {filteredShows.length} confirmed show{filteredShows.length !== 1 ? 's' : ''}
-              {artistId && filteredTourRequests.length > 0 && (
-                <span> • {filteredTourRequests.length} active show request{filteredTourRequests.length !== 1 ? 's' : ''}</span>
-              )}
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold">
+                {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">
+                {filteredShows.length} confirmed show{filteredShows.length !== 1 ? 's' : ''}
+                {artistId && filteredTourRequests.length > 0 && (
+                  <span> • {filteredTourRequests.length} active show request{filteredTourRequests.length !== 1 ? 's' : ''}</span>
+                )}
+              </p>
+            </div>
+            {editable && (
+              <button
+                onClick={fetchData}
+                className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                title="Refresh data to get the latest updates"
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -168,6 +168,9 @@ export function useTourItineraryData({
     
     setLoading(true);
     try {
+      // Add cache-busting timestamp to prevent stale data during development
+      const timestamp = Date.now();
+      
       // Fetch shows
       const params = new URLSearchParams();
       if (artistId) {
@@ -176,6 +179,8 @@ export function useTourItineraryData({
       if (venueId) {
         params.append('venueId', venueId);
       }
+      params.append('t', timestamp.toString()); // Cache-busting parameter
+      
       const showsResponse = await fetch(`/api/shows?${params}`);
       if (!showsResponse.ok) {
         throw new Error('Failed to fetch shows');
@@ -186,7 +191,7 @@ export function useTourItineraryData({
       // 🎯 NEW UNIFIED API: Fetch show requests (replaces both tour-requests and venue-offers)
       if (artistId) {
         // For artists: get their requests + bids on them
-        const showRequestsResponse = await fetch(`/api/show-requests?artistId=${artistId}`);
+        const showRequestsResponse = await fetch(`/api/show-requests?artistId=${artistId}&t=${timestamp}`);
         if (showRequestsResponse.ok) {
           const showRequestsData = await showRequestsResponse.json();
           console.log('🎯 Fetched show requests for artist:', showRequestsData.length);
@@ -384,9 +389,9 @@ export function useTourItineraryData({
       if (venueId) {
         // 🎯 FIX: For venues, get BOTH venue-initiated requests AND artist requests they've bid on
         // First get venue-initiated requests
-        const venueInitiatedResponse = await fetch(`/api/show-requests?venueId=${venueId}`);
+        const venueInitiatedResponse = await fetch(`/api/show-requests?venueId=${venueId}&t=${timestamp}`);
         // Then get all artist-initiated requests to find ones with this venue's bids
-        const allArtistRequestsResponse = await fetch(`/api/show-requests?initiatedBy=ARTIST`);
+        const allArtistRequestsResponse = await fetch(`/api/show-requests?initiatedBy=ARTIST&t=${timestamp}`);
         
         if (venueInitiatedResponse.ok && allArtistRequestsResponse.ok) {
           const venueInitiatedData = await venueInitiatedResponse.json();
