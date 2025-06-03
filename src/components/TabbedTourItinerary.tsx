@@ -81,6 +81,9 @@ interface VenueBid {
   setLength?: number;
   otherActs?: string;
   billingNotes?: string;
+  // 🎯 NEW: Artist information for proper display in venue timelines
+  artistId?: string;
+  artistName?: string;
 }
 
 interface VenueOffer {
@@ -347,7 +350,12 @@ export default function TabbedTourItinerary({
     const syntheticRequestId = `venue-offer-${offer.id}`;
     return !deletedRequests.has(syntheticRequestId);
   });
-  const timelineEntries = createTimelineEntries(filteredShows, filteredTourRequests, filteredVenueOffers, artistId);
+  // 🎯 NEW: Filter venue bids - exclude bids whose synthetic request IDs are in deletedRequests
+  const filteredVenueBids = venueBids.filter(bid => {
+    const syntheticRequestId = `venue-bid-${bid.id}`;
+    return !deletedRequests.has(syntheticRequestId);
+  });
+  const timelineEntries = createTimelineEntries(filteredShows, filteredTourRequests, filteredVenueOffers, filteredVenueBids, artistId, venueId);
   const monthGroups = groupEntriesByMonth(timelineEntries);
 
   // Set active tab to first month with entries, or current month if no entries
@@ -861,7 +869,57 @@ export default function TabbedTourItinerary({
                     </td>
                     <td className="px-4 py-1.5 w-[19%]">
                       <div className="text-sm font-medium text-gray-900 truncate">
-                        {artistId ? show.venueName : show.artistName}
+                        {(() => {
+                          if (venueId) {
+                            // For venue pages, show artist as clickable link
+                            if (show.artistId && show.artistId !== 'external-artist') {
+                              return (
+                                <a 
+                                  href={`/artists/${show.artistId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View artist page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {show.artistName}
+                                </a>
+                              );
+                            } else {
+                              return show.artistName;
+                            }
+                          } else if (artistId) {
+                            // For artist pages, show venue as clickable link
+                            if (show.venueId && show.venueId !== 'external-venue') {
+                              return (
+                                <a 
+                                  href={`/venues/${show.venueId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View venue page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {show.venueName}
+                                </a>
+                              );
+                            } else {
+                              return show.venueName;
+                            }
+                          } else {
+                            // For public/general view, show artist name
+                            if (show.artistId && show.artistId !== 'external-artist') {
+                              return (
+                                <a 
+                                  href={`/artists/${show.artistId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View artist page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {show.artistName}
+                                </a>
+                              );
+                            } else {
+                              return show.artistName;
+                            }
+                          }
+                        })()}
                       </div>
                     </td>
                     <td className="px-4 py-1.5 w-[10%]">
@@ -920,9 +978,21 @@ export default function TabbedTourItinerary({
                 // Get bids for this request
                 let requestBids: VenueBid[] = [];
                 
-                if (request.isVenueInitiated && request.originalOfferId) {
-                  // For synthetic requests, convert the venue offer to a bid format
-                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                // 🎯 ADD TYPE EXTENSION for venue bid properties
+                const requestWithVenueBid = request as TourRequest & { 
+                  isVenueInitiated?: boolean; 
+                  originalOfferId?: string; 
+                  venueInitiatedBy?: string;
+                  isVenueBid?: boolean;
+                  originalBidId?: string;
+                  originalShowRequestId?: string;
+                  bidStatus?: string;
+                  bidAmount?: number;
+                };
+                
+                if (requestWithVenueBid.isVenueInitiated && requestWithVenueBid.originalOfferId) {
+                  // For synthetic requests from venue offers, convert the venue offer to a bid format
+                  const originalOffer = venueOffers.find(offer => offer.id === requestWithVenueBid.originalOfferId);
                   if (originalOffer) {
                     const bidDate = originalOffer.proposedDate.split('T')[0];
                     
@@ -971,13 +1041,40 @@ export default function TabbedTourItinerary({
                       lineupPosition: originalOffer.lineupPosition,
                       setLength: originalOffer.setLength,
                       otherActs: originalOffer.otherActs,
-                      billingNotes: originalOffer.billingNotes
+                      billingNotes: originalOffer.billingNotes,
+                      artistId: originalOffer.artist?.id,
+                      artistName: originalOffer.artist?.name
                     };
                     
                     requestBids = [syntheticBid];
                   }
+                } else if (requestWithVenueBid.isVenueBid && requestWithVenueBid.originalShowRequestId) {
+                  // 🎯 UPDATED: For synthetic requests from venue bids, use originalShowRequestId to find ALL competing bids
+                  console.log(`🎯 Found venue bid synthetic request:`);
+                  console.log(`   - Synthetic Request ID: ${request.id}`);
+                  console.log(`   - Original Show Request ID: ${requestWithVenueBid.originalShowRequestId}`);
+                  console.log(`   - Original Bid ID: ${requestWithVenueBid.originalBidId}`);
+                  
+                  // 🎯 COMPETITIVE INTELLIGENCE: Show ALL bids on the original artist request
+                  const allBidsOnRequest = venueBids.filter(bid => 
+                    bid.showRequestId === requestWithVenueBid.originalShowRequestId && 
+                    !declinedBids.has(bid.id)
+                  );
+                  
+                  console.log(`🎯 DEBUG: Filtering bids for original showRequestId: ${requestWithVenueBid.originalShowRequestId}`);
+                  console.log(`🎯 DEBUG: Total venue bids available: ${venueBids.length}`);
+                  console.log(`🎯 DEBUG: Bids with matching original showRequestId:`);
+                  venueBids.forEach(bid => {
+                    if (bid.showRequestId === requestWithVenueBid.originalShowRequestId) {
+                      console.log(`   ✓ ${bid.venueName} - ${bid.proposedDate} - Status: ${bid.status}`);
+                    }
+                  });
+                  console.log(`🎯 DEBUG: Declined bids to exclude: ${Array.from(declinedBids).join(', ')}`);
+                  console.log(`🎯 Showing ${allBidsOnRequest.length} total bids on this request for venue perspective`);
+                  
+                  requestBids = allBidsOnRequest;
                 } else {
-                  // For regular requests, use normal bid filtering
+                  // For regular artist-initiated requests, use normal bid filtering
                   requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
                 }
 
@@ -1008,40 +1105,91 @@ export default function TabbedTourItinerary({
                         <div className="text-sm text-blue-900 truncate">{request.location}</div>
                       </td>
                       <td className="px-4 py-1.5 w-[19%]">
-                        <div className="text-sm font-medium text-blue-900 truncate">
+                        <div className="text-sm font-medium text-gray-900 truncate">
                           {(() => {
                             if (venueId) {
-                              return (
-                                <a 
-                                  href={`/artists/${request.artistId}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View artist page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {request.artistName}
-                                </a>
-                              );
-                            } else {
-                              const bidCount = requestBids.length;
-                              
-                              if (bidCount === 0) {
+                              // For venue pages, show artist as clickable link
+                              if (request.artistId && request.artistId !== 'external-artist') {
                                 return (
-                                  <span className="text-gray-600">
-                                    Seeking venues
-                                  </span>
-                                );
-                              } else if (bidCount === 1) {
-                                return (
-                                  <span className="text-blue-600 font-medium">
-                                    1 venue interested
-                                  </span>
+                                  <a 
+                                    href={`/artists/${request.artistId}`}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    title="View artist page"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {request.artistName}
+                                  </a>
                                 );
                               } else {
+                                return request.artistName;
+                              }
+                            } else if (artistId) {
+                              // For artist pages, show venue as clickable link
+                              if (request.isVenueInitiated) {
+                                // For venue-initiated offers, show the venue name as clickable link
+                                const requestAsVenueRequest = request as TourRequest & { venueId?: string; venueName?: string };
+                                if (requestAsVenueRequest.venueId && requestAsVenueRequest.venueId !== 'external-venue') {
+                                  return (
+                                    <a 
+                                      href={`/venues/${requestAsVenueRequest.venueId}`}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      title="View venue page"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {requestAsVenueRequest.venueName}
+                                    </a>
+                                  );
+                                } else {
+                                  return <span>{requestAsVenueRequest.venueName}</span>;
+                                }
+                              } else {
+                                // For artist-initiated requests, show bid count
+                                if (requestBids.length === 0) {
+                                  return <span className="text-gray-500 text-sm">No bids yet</span>;
+                                } else {
+                                  // Show venue information based on bid activity
+                                  if (requestBids.length === 1) {
+                                    // Show the single venue name as clickable link
+                                    const singleBid = requestBids[0];
+                                    if (singleBid.venueId && singleBid.venueId !== 'external-venue') {
+                                      return (
+                                        <a 
+                                          href={`/venues/${singleBid.venueId}`}
+                                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                                          title="View venue page"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {singleBid.venueName}
+                                        </a>
+                                      );
+                                    } else {
+                                      return <span>{singleBid.venueName}</span>;
+                                    }
+                                  } else {
+                                    // Show count for multiple competing venues
+                                    return (
+                                      <span className="text-gray-600 text-sm">
+                                        {requestBids.length} competing venues
+                                      </span>
+                                    );
+                                  }
+                                }
+                              }
+                            } else {
+                              // For public/general view, show artist name
+                              if (request.artistId && request.artistId !== 'external-artist') {
                                 return (
-                                  <span className="text-green-600 font-medium">
-                                    {bidCount} venues interested
-                                  </span>
+                                  <a 
+                                    href={`/artists/${request.artistId}`}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    title="View artist page"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {request.artistName}
+                                  </a>
                                 );
+                              } else {
+                                return request.artistName;
                               }
                             }
                           })()}
@@ -1050,7 +1198,7 @@ export default function TabbedTourItinerary({
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-1">
                           <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                            Requested
+                            {requestBids.length > 0 ? 'Bidding' : 'Requested'}
                           </span>
                           <button
                             onClick={(e) => {
@@ -1115,7 +1263,7 @@ export default function TabbedTourItinerary({
                                 if (request.originalOfferId) {
                                   const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
                                   if (originalOffer) {
-                                    handleOfferAction(originalOffer, 'cancel');
+                                    handleOfferAction(originalOffer, 'decline'); // 🎯 FIX: Use 'decline' instead of 'cancel'
                                   }
                                 }
                               }}
@@ -1133,7 +1281,7 @@ export default function TabbedTourItinerary({
                             </button>
                           )}
 
-                          {actualViewerType === 'venue' && (
+                          {actualViewerType === 'venue' && !requestWithVenueBid.isVenueBid && !request.isVenueInitiated && (
                             <MakeOfferButton
                               targetArtist={{
                                 id: request.artistId,
@@ -1146,6 +1294,73 @@ export default function TabbedTourItinerary({
                             >
                               Make Offer
                             </MakeOfferButton>
+                          )}
+
+                          {actualViewerType === 'venue' && requestWithVenueBid.isVenueBid && requestWithVenueBid.originalBidId && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // 🎯 FIX: Find Lost Bag's own bid on this request, not just any originalBid
+                                const lostBagBid = venueBids.find(bid => 
+                                  bid.showRequestId === requestWithVenueBid.originalShowRequestId && 
+                                  bid.venueId === venueId
+                                );
+                                if (lostBagBid) {
+                                  console.log(`🎯 WITHDRAW: Found Lost Bag's bid to withdraw:`, lostBagBid.id, lostBagBid.venueName);
+                                  confirm(
+                                    'Withdraw Bid',
+                                    `Withdraw your bid for ${request.artistName}? This will remove this request from your timeline.`,
+                                    async () => {
+                                      try {
+                                        // Optimistic update - immediately hide the request row
+                                        setDeletedRequests(prev => new Set([...prev, request.id]));
+                                        
+                                        const response = await fetch(`/api/show-requests/${lostBagBid.showRequestId}/bids`, {
+                                          method: 'DELETE',
+                                          headers: {
+                                            'Content-Type': 'application/json',
+                                          },
+                                          body: JSON.stringify({
+                                            bidId: lostBagBid.id
+                                          }),
+                                        });
+
+                                        if (!response.ok) {
+                                          throw new Error('Failed to withdraw bid');
+                                        }
+
+                                        showSuccess('Bid Withdrawn', 'Your bid has been withdrawn and removed from your timeline.');
+                                      } catch (error) {
+                                        console.error('Error withdrawing bid:', error);
+                                        
+                                        // Revert optimistic update on error
+                                        setDeletedRequests(prev => {
+                                          const newSet = new Set(prev);
+                                          newSet.delete(request.id);
+                                          return newSet;
+                                        });
+                                        
+                                        showError('Withdrawal Failed', 'Failed to withdraw bid. Please try again.');
+                                      }
+                                    }
+                                  );
+                                } else {
+                                  console.error('🎯 WITHDRAW ERROR: Could not find Lost Bag bid for request', requestWithVenueBid.originalShowRequestId);
+                                  showError('Withdraw Failed', 'Could not find your bid to withdraw.');
+                                }
+                              }}
+                              disabled={deleteLoading === request.id}
+                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                              title="Withdraw your bid on this request"
+                            >
+                              {deleteLoading === request.id ? (
+                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
+                              ) : (
+                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                                </svg>
+                              )}
+                            </button>
                           )}
                         </div>
                       </td>
@@ -1400,6 +1615,56 @@ export default function TabbedTourItinerary({
                                                     </>
                                                   )}
                                                 </>
+                                              )}
+                                              
+                                              {/* 🎯 FIX: Only show withdraw button for venue's OWN bid */}
+                                              {false && actualViewerType === 'venue' && venueId && bid.venueId === venueId && (
+                                                <button
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    confirm(
+                                                      'Withdraw Bid',
+                                                      `Withdraw your bid for ${request.artistName}? This will remove this request from your timeline.`,
+                                                      async () => {
+                                                        try {
+                                                          // Optimistic update - immediately hide the request row
+                                                          setDeletedRequests(prev => new Set([...prev, request.id]));
+                                                          
+                                                          const response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
+                                                            method: 'DELETE',
+                                                            headers: {
+                                                              'Content-Type': 'application/json',
+                                                            },
+                                                            body: JSON.stringify({
+                                                              bidId: bid.id
+                                                            }),
+                                                          });
+
+                                                          if (!response.ok) {
+                                                            throw new Error('Failed to withdraw bid');
+                                                          }
+
+                                                          showSuccess('Bid Withdrawn', 'Your bid has been withdrawn and removed from your timeline.');
+                                                        } catch (error) {
+                                                          console.error('Error withdrawing bid:', error);
+                                                          
+                                                          // Revert optimistic update on error
+                                                          setDeletedRequests(prev => {
+                                                            const newSet = new Set(prev);
+                                                            newSet.delete(request.id);
+                                                            return newSet;
+                                                          });
+                                                          
+                                                          showError('Withdrawal Failed', 'Failed to withdraw bid. Please try again.');
+                                                        }
+                                                      }
+                                                    );
+                                                  }}
+                                                  className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 transition-colors"
+                                                  title="Withdraw your bid"
+                                                >
+                                                  🗑️
+                                                </button>
                                               )}
                                             </div>
                                           </td>

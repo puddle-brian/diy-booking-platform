@@ -347,13 +347,24 @@ export async function POST(request: NextRequest) {
 
     // 🎯 CREATE VENUE-INITIATED SHOW REQUESTS (Venue Offers)
     const venueOffers = [];
-    for (let i = 0; i < 3; i++) {
-      const venue = debugVenues[i];
+    
+    // 🎯 FIX: Ensure specific venues get offers for better testing
+    // Include Lost Bag specifically for debugging this issue
+    const lostBag = debugVenues.find(v => v.name.toLowerCase().includes('lost bag'));
+    const venuesToMakeOffers = [
+      ...debugVenues.slice(0, 3), // First 3 venues
+      ...(lostBag && !debugVenues.slice(0, 3).includes(lostBag) ? [lostBag] : []) // Add Lost Bag if not already included
+    ].slice(0, 5); // Limit to 5 total venue offers
+    
+    for (let i = 0; i < venuesToMakeOffers.length; i++) {
+      const venue = venuesToMakeOffers[i];
       const artist = debugArtists[Math.floor(Math.random() * debugArtists.length)];
-      const requestDate = new Date(futureDate.getTime() + 60 + (i * 15));
+      const requestDate = new Date(futureDate.getTime() + 60 + (i * 15) * 24 * 60 * 60 * 1000); // Days, not milliseconds
       const amount = Math.floor(Math.random() * 600) + 400; // $400-$1000
       
       if (venue && artist) {
+        console.log(`🏢 Creating venue offer from ${venue.name} to ${artist.name}...`);
+        
         const venueOffer = await prisma.showRequest.create({
           data: {
             artistId: artist.id,

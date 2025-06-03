@@ -56,6 +56,8 @@ interface VenueBid {
   setLength?: number;
   otherActs?: string;
   billingNotes?: string;
+  artistId?: string;
+  artistName?: string;
 }
 
 interface VenueOffer {
@@ -306,15 +308,18 @@ export function useTourItineraryData({
                   createdAt: bid.createdAt,
                   updatedAt: bid.updatedAt,
                   expiresAt: '',
-                  location: bid.venue?.location ? 
-                    `${bid.venue.location.city}, ${bid.venue.location.stateProvince}` : 
-                    bid.venue?.name || 'Unknown Location',
+                  location: req.artist?.location ? 
+                    `${req.artist.location.city}, ${req.artist.location.stateProvince}` : 
+                    'Unknown Location',
+                  // 🎯 NEW: Store actual artist information for proper display
+                  artistId: req.artistId,
+                  artistName: req.artist?.name || 'Unknown Artist',
                   billingPosition: bid.billingPosition,
                   lineupPosition: bid.lineupPosition,
                   setLength: bid.setLength,
                   otherActs: bid.otherActs,
                   billingNotes: bid.billingNotes
-                });
+                } as VenueBid & { artistId?: string; artistName?: string });
               });
             }
           });
@@ -377,14 +382,30 @@ export function useTourItineraryData({
       }
 
       if (venueId) {
-        // For venues: get requests they can bid on + their own offers
-        const showRequestsResponse = await fetch(`/api/show-requests?venueId=${venueId}`);
-        if (showRequestsResponse.ok) {
-          const showRequestsData = await showRequestsResponse.json();
-          console.log('🎯 Fetched show requests for venue:', showRequestsData.length);
+        // 🎯 FIX: For venues, get BOTH venue-initiated requests AND artist requests they've bid on
+        // First get venue-initiated requests
+        const venueInitiatedResponse = await fetch(`/api/show-requests?venueId=${venueId}`);
+        // Then get all artist-initiated requests to find ones with this venue's bids
+        const allArtistRequestsResponse = await fetch(`/api/show-requests?initiatedBy=ARTIST`);
+        
+        if (venueInitiatedResponse.ok && allArtistRequestsResponse.ok) {
+          const venueInitiatedData = await venueInitiatedResponse.json();
+          const allArtistRequestsData = await allArtistRequestsResponse.json();
+          
+          // Combine venue-initiated requests with artist requests that have this venue's bids
+          const artistRequestsWithVenueBids = allArtistRequestsData.filter((req: any) => 
+            req.bids && req.bids.some((bid: any) => bid.venueId === venueId)
+          );
+          
+          const combinedShowRequestsData = [...venueInitiatedData, ...artistRequestsWithVenueBids];
+          
+          console.log('🎯 Fetched show requests for venue:');
+          console.log(`  - Venue-initiated: ${venueInitiatedData.length}`);
+          console.log(`  - Artist requests with venue bids: ${artistRequestsWithVenueBids.length}`);
+          console.log(`  - Total combined: ${combinedShowRequestsData.length}`);
           
           // Convert to legacy formats (similar to artist logic but focused on venue perspective)
-          const legacyVenueOffers: VenueOffer[] = showRequestsData
+          const legacyVenueOffers: VenueOffer[] = combinedShowRequestsData
             .filter((req: any) => req.initiatedBy === 'VENUE' && req.venueId === venueId)
             .map((req: any) => ({
               id: req.id,
@@ -429,18 +450,35 @@ export function useTourItineraryData({
             }));
           setVenueOffers(legacyVenueOffers);
 
-          // Get venue's bids on artist-initiated requests
+          // Get venue's bids on artist-initiated requests (now includes ALL artist requests with venue bids)
           const venueBids: VenueBid[] = [];
-          showRequestsData.forEach((req: any) => {
+          combinedShowRequestsData.forEach((req: any) => {
             if (req.initiatedBy === 'ARTIST' && req.bids) {
-              req.bids
-                .filter((bid: any) => bid.venueId === venueId)
-                .forEach((bid: any) => {
+              // 🎯 COMPETITIVE INTELLIGENCE: Get ALL bids on requests where this venue has participated
+              // Check if this venue has bid on this request
+              const hasVenueBid = req.bids.some((bid: any) => bid.venueId === venueId);
+              
+              if (hasVenueBid) {
+                // If venue has bid on this request, show ALL bids for competitive intelligence
+                req.bids.forEach((bid: any) => {
+                  console.log(`🎯 Found ${bid.venueId === venueId ? 'OWN' : 'COMPETITOR'} bid: ${bid.venue?.name || `Venue ${bid.venueId?.slice(-6)}`} -> ${req.artist?.name || 'Unknown Artist'} (${req.title})`);
+                  
+                  // 🎯 IMPROVED: Get venue name from multiple sources for competitive bids
+                  let venueName = 'Unknown Venue';
+                  if (bid.venue?.name) {
+                    venueName = bid.venue.name;
+                  } else if (bid.venueId === venueId) {
+                    venueName = venueName || 'This Venue';
+                  } else if (bid.venueId) {
+                    // For competitor venues, show partial ID if name not available
+                    venueName = `Venue ${bid.venueId.slice(-6)}`;
+                  }
+                  
                   venueBids.push({
                     id: bid.id,
                     showRequestId: req.id,
                     venueId: bid.venueId,
-                    venueName: bid.venue?.name || venueName || 'Unknown Venue',
+                    venueName: venueName,
                     proposedDate: bid.proposedDate || req.requestedDate,
                     guarantee: bid.amount,
                     doorDeal: bid.doorDeal,
@@ -474,15 +512,21 @@ export function useTourItineraryData({
                     location: req.artist?.location ? 
                       `${req.artist.location.city}, ${req.artist.location.stateProvince}` : 
                       'Unknown Location',
+                    // 🎯 NEW: Store actual artist information for proper display
+                    artistId: req.artistId,
+                    artistName: req.artist?.name || 'Unknown Artist',
                     billingPosition: bid.billingPosition,
                     lineupPosition: bid.lineupPosition,
                     setLength: bid.setLength,
                     otherActs: bid.otherActs,
                     billingNotes: bid.billingNotes
-                  });
+                  } as VenueBid & { artistId?: string; artistName?: string });
                 });
+              }
             }
           });
+          
+          console.log(`🎯 Final venue bids found: ${venueBids.length}`);
           setVenueBids(venueBids);
         }
       }
@@ -509,4 +553,4 @@ export function useTourItineraryData({
     fetchError,
     fetchData
   };
-} 
+}

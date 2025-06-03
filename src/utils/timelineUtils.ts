@@ -148,13 +148,15 @@ interface MonthGroup {
 }
 
 /**
- * Creates timeline entries from shows, tour requests, and venue offers
+ * Creates timeline entries from shows, tour requests, venue offers, and venue bids
  */
 export function createTimelineEntries(
   shows: Show[],
   tourRequests: TourRequest[], 
   venueOffers: VenueOffer[],
-  artistId?: string
+  venueBids: VenueBid[] = [],
+  artistId?: string,
+  venueId?: string
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   
@@ -231,7 +233,10 @@ export function createTimelineEntries(
         // 🎯 VENUE-INITIATED FLAGS: Mark as venue-initiated for ownership control
         isVenueInitiated: true,
         venueInitiatedBy: offer.venueId,
-        originalOfferId: offer.id
+        originalOfferId: offer.id,
+        // 🎯 FIX: Add venue information for proper display in artist timelines
+        venueId: offer.venueId,
+        venueName: offer.venueName
       } as TourRequest & { 
         isVenueInitiated?: boolean; 
         venueInitiatedBy?: string; 
@@ -247,6 +252,98 @@ export function createTimelineEntries(
       console.log('🚫 Filtering out venue offer with status:', status);
     }
   });
+  
+  // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view
+  if (venueId && venueBids.length > 0) {
+    console.log(`🎯 Processing ${venueBids.length} venue bids for venue timeline`);
+    
+    // 🎯 FIX: Group bids by showRequestId to avoid creating duplicate request rows
+    const uniqueRequestIds = new Set<string>();
+    
+    venueBids.forEach(bid => {
+      const status = bid.status.toLowerCase();
+      
+      // Only show active bid statuses (same filtering as venue offers)
+      if (!['cancelled', 'declined', 'rejected', 'expired'].includes(status)) {
+        // 🎯 KEY FIX: Only create timeline entries for bids that belong to the current venue
+        if (bid.venueId === venueId && !uniqueRequestIds.has(bid.showRequestId)) {
+          uniqueRequestIds.add(bid.showRequestId);
+          
+          console.log(`🎯 Creating timeline entry for venue bid: ${bid.venueName} -> ${bid.location || 'Unknown Location'} on ${bid.proposedDate.split('T')[0]}`);
+          
+          const bidDate = bid.proposedDate.split('T')[0];
+          
+          // Create synthetic tour request from venue bid to show in venue timeline
+          const syntheticBidRequest: TourRequest = {
+            id: `venue-bid-${bid.id}`, // Use first bid ID for this request
+            artistId: (bid as any).artistId || 'unknown', // 🎯 FIX: Use stored artist ID
+            artistName: (bid as any).artistName || bid.location || 'Unknown Artist', // 🎯 FIX: Use stored artist name
+            title: `Bid on Artist Request`, // Generic title since we don't have full request info
+            description: bid.message || `Bid placed by ${bid.venueName}`,
+            startDate: bidDate,
+            endDate: bidDate,
+            isSingleDate: true,
+            location: bid.location || 'Unknown Location',
+            radius: 0,
+            targetLocations: [bid.location || 'Unknown Location'],
+            genres: [],
+            initiatedBy: 'ARTIST' as const,
+            flexibility: 'exact-cities' as const,
+            expectedDraw: {
+              min: 0,
+              max: bid.capacity || 0,
+              description: `Venue capacity: ${bid.capacity || 'Unknown'}`
+            },
+            tourStatus: 'exploring-interest' as const,
+            equipment: {
+              needsPA: false,
+              needsMics: false,
+              needsDrums: false,
+              needsAmps: false,
+              acoustic: false
+            },
+            guaranteeRange: {
+              min: bid.guarantee || 0,
+              max: bid.guarantee || 0
+            },
+            acceptsDoorDeals: true,
+            merchandising: true,
+            ageRestriction: 'all-ages' as const,
+            travelMethod: 'van' as const,
+            lodging: 'flexible' as const,
+            priority: 'medium' as const,
+            technicalRequirements: [],
+            hospitalityRequirements: [],
+            notes: bid.message || '',
+            status: 'active' as const,
+            requestedDate: bidDate,
+            responses: 1,
+            createdAt: bid.createdAt,
+            updatedAt: bid.updatedAt,
+            expiresAt: bid.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            // 🎯 Mark as venue bid synthetic request with metadata for proper handling
+            isVenueBid: true,
+            originalBidId: bid.id,
+            originalShowRequestId: bid.showRequestId,
+            bidStatus: bid.status,
+            bidAmount: bid.guarantee
+          } as TourRequest & { 
+            isVenueBid: boolean; 
+            originalBidId: string; 
+            originalShowRequestId: string;
+            bidStatus: string; 
+            bidAmount?: number;
+          };
+          
+          entries.push({
+            type: 'tour-request',
+            date: bidDate,
+            data: syntheticBidRequest
+          });
+        }
+      }
+    });
+  }
   
   if (artistId) {
     // Add regular artist-initiated tour requests
