@@ -112,7 +112,6 @@ export default function UniversalAlertModal({
   icon
 }: UniversalAlertProps) {
   const modalRef = useRef<HTMLDivElement>(null);
-  const firstButtonRef = useRef<HTMLButtonElement>(null);
 
   // Keyboard navigation
   useEffect(() => {
@@ -147,9 +146,10 @@ export default function UniversalAlertModal({
 
     document.addEventListener('keydown', handleKeyDown);
     
-    // Focus first button when modal opens
+    // 🎯 FIX: Focus the modal container instead of a specific button
+    // This provides accessibility without visually highlighting any button
     setTimeout(() => {
-      firstButtonRef.current?.focus();
+      modalRef.current?.focus();
     }, 100);
 
     return () => {
@@ -208,6 +208,7 @@ export default function UniversalAlertModal({
       {/* Modal */}
       <div
         ref={modalRef}
+        tabIndex={-1}
         className={`
           relative bg-white rounded-xl shadow-2xl w-full
           transform transition-all duration-300 ease-out
@@ -218,6 +219,7 @@ export default function UniversalAlertModal({
             ? 'max-w-sm' // Smaller for toasts
             : sizeStyles[size] // Normal size for modals
           }
+          focus:outline-none
         `}
         role="dialog"
         aria-modal="true"
@@ -273,7 +275,6 @@ export default function UniversalAlertModal({
               {buttons.map((button, index) => (
                 <button
                   key={index}
-                  ref={index === 0 ? firstButtonRef : undefined}
                   onClick={() => handleButtonClick(button, index)}
                   disabled={button.disabled || button.loading}
                   className={`
