@@ -1552,10 +1552,6 @@ export default function TabbedTourItinerary({
                   requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
                 }
 
-                // 🎯 Check if venue has existing bid for button text
-                const hasVenueBid = venueId && requestBids.some(bid => bid.venueId === venueId);
-                const shouldShowEdit = requestWithVenueBid.isVenueBid || hasVenueBid;
-
                 return (
                   <React.Fragment key={`request-${request.id}`}>
                     <tr 
@@ -1725,132 +1721,79 @@ export default function TabbedTourItinerary({
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          {actualViewerType === 'artist' && (
+                          {/* 🎯 FIXED: Single unified delete button - no more duplicates */}
+                          {editable && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (request.isVenueInitiated && request.originalOfferId) {
-                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                  if (originalOffer) {
-                                    handleOfferAction(originalOffer, 'decline');
-                                  }
-                                } else {
-                                  handleDeleteShowRequest(request.id, request.title);
-                                }
-                              }}
-                              disabled={deleteLoading === request.id}
-                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                              title={request.isVenueInitiated ? "Decline venue offer" : "Delete tour request"}
-                            >
-                              {deleteLoading === request.id ? (
-                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
-                                </svg>
-                              )}
-                            </button>
-                          )}
-
-                          {actualViewerType === 'venue' && request.isVenueInitiated && venueId === request.venueInitiatedBy && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (request.originalOfferId) {
-                                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                  if (originalOffer) {
-                                    handleOfferAction(originalOffer, 'decline'); // 🎯 FIX: Use 'decline' instead of 'cancel'
-                                  }
-                                }
-                              }}
-                              disabled={deleteLoading === request.id}
-                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                              title="Cancel offer"
-                            >
-                              {deleteLoading === request.id ? (
-                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
-                                </svg>
-                              )}
-                            </button>
-                          )}
-
-                          {/* 🎯 UPDATED: Make/Edit Offer Button - Show for all venue requests, dynamic text */}
-                          {actualViewerType === 'venue' && !request.isVenueInitiated && (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <MakeOfferButton
-                                targetArtist={{
-                                  id: request.artistId,
-                                  name: request.artistName
-                                }}
-                                preSelectedDate={request.startDate}
-                                variant="outline"
-                                size="xs"
-                                onSuccess={() => fetchData()}
-                              >
-                                {shouldShowEdit ? 'Edit Offer' : 'Make Offer'}
-                              </MakeOfferButton>
-                            </div>
-                          )}
-
-                          {actualViewerType === 'venue' && requestWithVenueBid.isVenueBid && requestWithVenueBid.originalBidId && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // 🎯 FIX: Find Lost Bag's own bid on this request, not just any originalBid
-                                const lostBagBid = venueBids.find(bid => 
-                                  bid.showRequestId === requestWithVenueBid.originalShowRequestId && 
-                                  bid.venueId === venueId
-                                );
-                                if (lostBagBid) {
-                                  console.log(`🎯 WITHDRAW: Found Lost Bag's bid to withdraw:`, lostBagBid.id, lostBagBid.venueName);
-                                  confirm(
-                                    'Withdraw Bid',
-                                    `Withdraw your bid for ${request.artistName}? This will remove this request from your timeline.`,
-                                    async () => {
-                                      try {
-                                        // Optimistic update - immediately hide the request row
-                                        setDeletedRequests(prev => new Set([...prev, request.id]));
-                                        
-                                        const response = await fetch(`/api/show-requests/${lostBagBid.showRequestId}/bids`, {
-                                          method: 'DELETE',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                          },
-                                          body: JSON.stringify({
-                                            bidId: lostBagBid.id
-                                          }),
-                                        });
-
-                                        if (!response.ok) {
-                                          throw new Error('Failed to withdraw bid');
-                                        }
-
-                                        showSuccess('Bid Withdrawn', 'Your bid has been withdrawn and removed from your timeline.');
-                                      } catch (error) {
-                                        console.error('Error withdrawing bid:', error);
-                                        
-                                        // Revert optimistic update on error
-                                        setDeletedRequests(prev => {
-                                          const newSet = new Set(prev);
-                                          newSet.delete(request.id);
-                                          return newSet;
-                                        });
-                                        
-                                        showError('Withdrawal Failed', 'Failed to withdraw bid. Please try again.');
-                                      }
+                                if (actualViewerType === 'artist') {
+                                  // Artist: decline offer or delete request
+                                  if (request.isVenueInitiated && request.originalOfferId) {
+                                    const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                    if (originalOffer) {
+                                      handleOfferAction(originalOffer, 'decline');
                                     }
-                                  );
-                                } else {
-                                  console.error('🎯 WITHDRAW ERROR: Could not find Lost Bag bid for request', requestWithVenueBid.originalShowRequestId);
-                                  showError('Withdraw Failed', 'Could not find your bid to withdraw.');
+                                  } else {
+                                    handleDeleteShowRequest(request.id, request.title);
+                                  }
+                                } else if (actualViewerType === 'venue') {
+                                  // Venue: cancel offer, withdraw bid, or delete request
+                                  if (request.originalOfferId) {
+                                    // Cancel venue-initiated offer
+                                    const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                                    if (originalOffer) {
+                                      handleOfferAction(originalOffer, 'decline');
+                                    }
+                                  } else if (requestWithVenueBid.isVenueBid && requestWithVenueBid.originalBidId) {
+                                    // Withdraw venue bid
+                                    const lostBagBid = venueBids.find(bid => 
+                                      bid.showRequestId === requestWithVenueBid.originalShowRequestId && 
+                                      bid.venueId === venueId
+                                    );
+                                    if (lostBagBid) {
+                                      confirm(
+                                        'Withdraw Bid',
+                                        `Withdraw your bid for ${request.artistName}? This will remove this request from your timeline.`,
+                                        async () => {
+                                          try {
+                                            setDeletedRequests(prev => new Set([...prev, request.id]));
+                                            const response = await fetch(`/api/show-requests/${lostBagBid.showRequestId}/bids`, {
+                                              method: 'DELETE',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ bidId: lostBagBid.id }),
+                                            });
+                                            if (!response.ok) throw new Error('Failed to withdraw bid');
+                                            showSuccess('Bid Withdrawn', 'Your bid has been withdrawn and removed from your timeline.');
+                                          } catch (error) {
+                                            console.error('Error withdrawing bid:', error);
+                                            setDeletedRequests(prev => {
+                                              const newSet = new Set(prev);
+                                              newSet.delete(request.id);
+                                              return newSet;
+                                            });
+                                            showError('Withdrawal Failed', 'Failed to withdraw bid. Please try again.');
+                                          }
+                                        }
+                                      );
+                                    }
+                                  } else {
+                                    // Delete regular request
+                                    handleDeleteShowRequest(request.id, request.title);
+                                  }
                                 }
                               }}
                               disabled={deleteLoading === request.id}
                               className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                              title="Withdraw your bid on this request"
+                              title={(() => {
+                                if (actualViewerType === 'artist') {
+                                  return request.isVenueInitiated ? "Decline venue offer" : "Delete tour request";
+                                } else if (actualViewerType === 'venue') {
+                                  if (request.originalOfferId) return "Cancel offer";
+                                  if (requestWithVenueBid.isVenueBid) return "Withdraw bid";
+                                  return "Delete request";
+                                }
+                                return "Delete";
+                              })()}
                             >
                               {deleteLoading === request.id ? (
                                 <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
@@ -2093,54 +2036,22 @@ export default function TabbedTourItinerary({
                                                 </>
                                               )}
                                               
-                                              {/* 🎯 FIX: Only show withdraw button for venue's OWN bid */}
-                                              {false && actualViewerType === 'venue' && venueId && bid.venueId === venueId && (
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    confirm(
-                                                      'Withdraw Bid',
-                                                      `Withdraw your bid for ${request.artistName}? This will remove this request from your timeline.`,
-                                                      async () => {
-                                                        try {
-                                                          // Optimistic update - immediately hide the request row
-                                                          setDeletedRequests(prev => new Set([...prev, request.id]));
-                                                          
-                                                          const response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
-                                                            method: 'DELETE',
-                                                            headers: {
-                                                              'Content-Type': 'application/json',
-                                                            },
-                                                            body: JSON.stringify({
-                                                              bidId: bid.id
-                                                            }),
-                                                          });
-
-                                                          if (!response.ok) {
-                                                            throw new Error('Failed to withdraw bid');
-                                                          }
-
-                                                          showSuccess('Bid Withdrawn', 'Your bid has been withdrawn and removed from your timeline.');
-                                                        } catch (error) {
-                                                          console.error('Error withdrawing bid:', error);
-                                                          
-                                                          // Revert optimistic update on error
-                                                          setDeletedRequests(prev => {
-                                                            const newSet = new Set(prev);
-                                                            newSet.delete(request.id);
-                                                            return newSet;
-                                                          });
-                                                          
-                                                          showError('Withdrawal Failed', 'Failed to withdraw bid. Please try again.');
-                                                        }
-                                                      }
-                                                    );
-                                                  }}
-                                                  className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 transition-colors"
-                                                  title="Withdraw your bid"
-                                                >
-                                                  🗑️
-                                                </button>
+                                              {/* 🎯 FIX: Only Edit Offer button for venues - no Withdraw button */}
+                                              {actualViewerType === 'venue' && bid.venueId === venueId && (
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                  <MakeOfferButton
+                                                    targetArtist={{
+                                                      id: request.artistId,
+                                                      name: request.artistName
+                                                    }}
+                                                    preSelectedDate={request.startDate}
+                                                    variant="outline"
+                                                    size="xs"
+                                                    onSuccess={() => fetchData()}
+                                                  >
+                                                    Edit Offer
+                                                  </MakeOfferButton>
+                                                </div>
                                               )}
                                             </div>
                                           </td>
