@@ -1302,7 +1302,7 @@ export default function TabbedTourItinerary({
               <th className="px-4 py-1.5 w-[7%]">Capacity</th>
               <th className="px-4 py-1.5 w-[7%]">Age</th>
               <th className="px-4 py-1.5 w-[10%]">Offers</th>
-              <th className="px-4 py-1.5 w-[8%]">Bids</th>
+              <th className="px-4 py-1.5 w-[8%]">details</th>
               <th className="px-4 py-1.5 w-[10%]">Actions</th>
             </tr>
           </thead>
@@ -1733,50 +1733,49 @@ export default function TabbedTourItinerary({
                       <td className="px-4 py-1.5 w-[7%]">
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
-                        {/* 🎯 NEW: Make Offer button in Offers column for venue-specific requests */}
-                        {actualViewerType === 'venue' && 
-                         !request.isVenueInitiated && 
-                         requestBids.length === 0 && 
-                         editable && (
-                          <div onClick={(e) => e.stopPropagation()}>
-                            <MakeOfferButton
-                              targetArtist={{
-                                id: request.artistId,
-                                name: request.artistName
-                              }}
-                              preSelectedDate={request.startDate}
-                              variant="outline"
-                              size="xs"
-                              onSuccess={() => fetchData()}
-                            >
-                              Make Offer
-                            </MakeOfferButton>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-4 py-1.5 w-[8%]">
                         <div className="flex items-center space-x-2">
+                          {/* Show bid count as "what's on offer" in terms of interest/competition */}
                           <div className="text-xs">
                             <span className={requestBids.length > 0 ? "text-blue-600 font-medium" : "text-gray-400"}>
-                              {requestBids.length}
+                              {requestBids.length} bid{requestBids.length !== 1 ? 's' : ''}
                             </span>
                           </div>
-                          {/* Show document icon for 0 bids so venues can review tour request details */}
-                          {requestBids.length === 0 && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleTourRequestDocumentModal(request);
-                              }}
-                              className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
-                              title="View tour request details"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </button>
+                          {/* 🎯 NEW: Make Offer button in Offers column for venue-specific requests */}
+                          {actualViewerType === 'venue' && 
+                           !request.isVenueInitiated && 
+                           requestBids.length === 0 && 
+                           editable && (
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <MakeOfferButton
+                                targetArtist={{
+                                  id: request.artistId,
+                                  name: request.artistName
+                                }}
+                                preSelectedDate={request.startDate}
+                                variant="outline"
+                                size="xs"
+                                onSuccess={() => fetchData()}
+                              >
+                                Make Offer
+                              </MakeOfferButton>
+                            </div>
                           )}
                         </div>
+                      </td>
+                      <td className="px-4 py-1.5 w-[8%]">
+                        {/* Document icon for viewing tour request details - always available */}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleTourRequestDocumentModal(request);
+                          }}
+                          className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
+                          title="View tour request details"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
@@ -1886,7 +1885,7 @@ export default function TabbedTourItinerary({
                                         <th className="px-4 py-1.5 w-[7%]">Capacity</th>
                                         <th className="px-4 py-1.5 w-[7%]">Age</th>
                                         <th className="px-4 py-1.5 w-[10%]">Offers</th>
-                                        <th className="px-4 py-1.5 w-[8%]">Bids</th>
+                                        <th className="px-4 py-1.5 w-[8%]">Details</th>
                                         <th className="px-4 py-1.5 w-[10%]">Actions</th>
                                       </tr>
                                     </thead>
