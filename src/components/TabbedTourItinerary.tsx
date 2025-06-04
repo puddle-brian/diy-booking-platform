@@ -1903,8 +1903,8 @@ export default function TabbedTourItinerary({
                                             {/* Document button removed - documents only shown in parent request row */}
                                           </td>
                                           <td className="px-4 py-1.5 w-[10%]">
-                                            {/* Only show bid action buttons to venue owners viewing their own bids */}
-                                            {venueId && bid.venueId === venueId ? (
+                                            {/* Only show bid action buttons to artists who have permission to manage bids */}
+                                            {permissions.canAcceptBid(bid, request) ? (
                                               <BidActionButtons
                                                 bid={bid}
                                                 request={request}
@@ -1917,7 +1917,7 @@ export default function TabbedTourItinerary({
                                               />
                                             ) : (
                                               <div className="text-xs text-gray-400">
-                                                {/* Artists can only view bids, not manage them */}
+                                                {/* Read-only view for non-authorized users */}
                                               </div>
                                             )}
                                           </td>
