@@ -1899,28 +1899,27 @@ export default function TabbedTourItinerary({
                                               className="text-xs text-gray-600"
                                             />
                                           </td>
-                                          <td className="px-4 py-1.5 w-[8%]">
-                                            <DocumentActionButton
-                                              type="bid"
-                                              bid={bid}
-                                              request={request}
-                                              permissions={permissions}
-                                              artistId={artistId}
-                                              onBidDocument={handleBidDocumentModal}
-                                            />
+                                          <td className="px-4 py-1.5 w-[8%]">                                 
                                             {/* Document button removed - documents only shown in parent request row */}
                                           </td>
                                           <td className="px-4 py-1.5 w-[10%]">
-                                            <BidActionButtons
-                                              bid={bid}
-                                              request={request}
-                                              permissions={permissions}
-                                              bidStatus={getEffectiveBidStatus(bid)}
-                                              isLoading={bidActions[bid.id]}
-                                              venueOffers={venueOffers}
-                                              onBidAction={handleBidAction}
-                                              onOfferAction={handleOfferAction}
-                                            />
+                                            {/* Only show bid action buttons to venue owners viewing their own bids */}
+                                            {venueId && bid.venueId === venueId ? (
+                                              <BidActionButtons
+                                                bid={bid}
+                                                request={request}
+                                                permissions={permissions}
+                                                bidStatus={getEffectiveBidStatus(bid)}
+                                                isLoading={bidActions[bid.id]}
+                                                venueOffers={venueOffers}
+                                                onBidAction={handleBidAction}
+                                                onOfferAction={handleOfferAction}
+                                              />
+                                            ) : (
+                                              <div className="text-xs text-gray-400">
+                                                {/* Artists can only view bids, not manage them */}
+                                              </div>
+                                            )}
                                           </td>
                                         </tr>
                                       ))}
