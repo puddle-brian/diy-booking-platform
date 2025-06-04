@@ -1908,6 +1908,7 @@ export default function TabbedTourItinerary({
                                               artistId={artistId}
                                               onBidDocument={handleBidDocumentModal}
                                             />
+                                            {/* Document button removed - documents only shown in parent request row */}
                                           </td>
                                           <td className="px-4 py-1.5 w-[10%]">
                                             <BidActionButtons

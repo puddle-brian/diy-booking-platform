@@ -323,8 +323,8 @@ export function useTourItineraryData({
                   createdAt: bid.createdAt,
                   updatedAt: bid.updatedAt,
                   expiresAt: '',
-                  location: req.artist?.location ? 
-                    `${req.artist.location.city}, ${req.artist.location.stateProvince}` : 
+                  location: bid.venue?.location ? 
+                    `${bid.venue.location.city}, ${bid.venue.location.stateProvince}` : 
                     'Unknown Location',
                   // 🎯 NEW: Store actual artist information for proper display
                   artistId: req.artistId,
@@ -587,8 +587,8 @@ export function useTourItineraryData({
                     createdAt: bid.createdAt,
                     updatedAt: bid.updatedAt,
                     expiresAt: '',
-                    location: req.artist?.location ? 
-                      `${req.artist.location.city}, ${req.artist.location.stateProvince}` : 
+                    location: bid.venue?.location ? 
+                      `${bid.venue.location.city}, ${bid.venue.location.stateProvince}` : 
                       'Unknown Location',
                     // 🎯 NEW: Store actual artist information for proper display
                     artistId: req.artistId,
