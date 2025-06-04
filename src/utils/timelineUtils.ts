@@ -357,6 +357,22 @@ export function createTimelineEntries(
     });
   }
   
+  // 🎯 NEW: Also add tourRequests to venue timelines (for venue-specific artist requests)
+  if (venueId && !artistId) {
+    // Add tour requests that are specifically targeted at this venue
+    tourRequests.forEach(request => {
+      if (request.status === 'active') {
+        console.log(`🎯 Adding venue-specific request to timeline: ${request.artistName} -> ${request.title} on ${request.startDate}`);
+        entries.push({
+          type: 'tour-request',
+          date: request.startDate,
+          endDate: request.endDate,
+          data: request
+        });
+      }
+    });
+  }
+  
   // Sort by date
   return entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }

@@ -303,9 +303,17 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
     viewerType: (() => {
       if (!user) return 'public';
       if (user.role === 'admin') return 'admin';
+      
       // Check if user is a member of this venue
       const isMember = members.some(member => member.id === user.id);
-      return isMember ? 'venue' : 'public';
+      if (isMember) return 'venue';
+      
+      // If not a venue member, check if user is an artist
+      // We'll check this by looking at the user's entity memberships
+      // For now, we'll use a simple check - if user has any artist memberships
+      // TODO: This could be improved by actually fetching user's artist memberships
+      // But for now, we'll assume any logged-in non-venue member could be an artist
+      return 'artist';
     })(),
     entityType: 'venue',
     isOwner: (() => {

@@ -147,6 +147,11 @@ export interface TourRequest {
   createdAt: string;
   updatedAt: string;
   expiresAt: string; // auto-close after certain period
+  
+  // 🎯 NEW: Venue-specific request metadata
+  isVenueSpecific?: boolean; // true if this is a direct request to a specific venue
+  venueSpecificId?: string; // target venue ID for venue-specific requests  
+  venueSpecificName?: string; // target venue name for venue-specific requests
 }
 
 export interface VenueBid {

@@ -201,40 +201,68 @@ export function useTourItineraryData({
           // Convert ShowRequests back to legacy format for compatibility with existing UI
           const legacyTourRequests: TourRequest[] = showRequestsData
             .filter((req: any) => req.initiatedBy === 'ARTIST')
-            .map((req: any) => ({
-              id: req.id,
-              artistId: req.artistId,
-              artistName: req.artist?.name || 'Unknown Artist',
-              title: req.title,
-              description: req.description,
-              startDate: req.requestedDate.split('T')[0], // Convert to date string
-              endDate: req.requestedDate.split('T')[0],   // Single date for show requests
-              isSingleDate: true,
-              location: req.targetLocations?.[0] || 'Various Locations',
-              radius: 50,
-              flexibility: 'exact-cities' as const,
-              genres: req.genres || [],
-              expectedDraw: { min: 0, max: 0, description: '' },
-              tourStatus: 'exploring-interest' as const,
-              ageRestriction: 'flexible' as const,
-              equipment: {
-                needsPA: false,
-                needsMics: false,
-                needsDrums: false,
-                needsAmps: false,
-                acoustic: false
-              },
-              acceptsDoorDeals: true,
-              merchandising: true,
-              travelMethod: 'van' as const,
-              lodging: 'flexible' as const,
-              status: req.status === 'OPEN' ? 'active' : 'completed',
-              priority: 'medium' as const,
-              responses: req.bids?.length || 0,
-              createdAt: req.createdAt,
-              updatedAt: req.updatedAt,
-              expiresAt: req.expiresAt
-            }));
+            .map((req: any) => {
+              // 🎯 NEW: Handle venue-specific requests properly  
+              // Venue-specific requests have both initiatedBy='ARTIST' AND venueId set
+              let location = req.targetLocations?.[0] || 'Various Locations';
+              let isVenueSpecific = false;
+              let venueSpecificId = null;
+              let venueSpecificName = null;
+              
+              // Check if this is a venue-specific request (artist-initiated + venueId set)
+              if (req.initiatedBy === 'ARTIST' && req.venueId) {
+                isVenueSpecific = true;
+                venueSpecificId = req.venueId;
+                venueSpecificName = req.venue?.name || 'Unknown Venue';
+                
+                // Use the venue's actual location if available from the API response
+                if (req.venue?.location) {
+                  location = `${req.venue.location.city}, ${req.venue.location.stateProvince}`;
+                } else {
+                  // Fallback to venue name if location not available
+                  location = venueSpecificName;
+                }
+              }
+              
+              return {
+                id: req.id,
+                artistId: req.artistId,
+                artistName: req.artist?.name || 'Unknown Artist',
+                title: req.title,
+                description: req.description,
+                startDate: req.requestedDate.split('T')[0], // Convert to date string
+                endDate: req.requestedDate.split('T')[0],   // Single date for show requests
+                isSingleDate: true,
+                location: location,
+                radius: 50,
+                flexibility: 'exact-cities' as const,
+                genres: req.genres || [],
+                expectedDraw: { min: 0, max: 0, description: '' },
+                tourStatus: 'exploring-interest' as const,
+                ageRestriction: 'flexible' as const,
+                equipment: {
+                  needsPA: false,
+                  needsMics: false,
+                  needsDrums: false,
+                  needsAmps: false,
+                  acoustic: false
+                },
+                acceptsDoorDeals: true,
+                merchandising: true,
+                travelMethod: 'van' as const,
+                lodging: 'flexible' as const,
+                status: req.status === 'OPEN' ? 'active' : 'completed',
+                priority: 'medium' as const,
+                responses: req.bids?.length || 0,
+                createdAt: req.createdAt,
+                updatedAt: req.updatedAt,
+                expiresAt: req.expiresAt,
+                // 🎯 NEW: Add venue-specific metadata for display logic
+                isVenueSpecific: isVenueSpecific,
+                venueSpecificId: venueSpecificId,
+                venueSpecificName: venueSpecificName
+              };
+            });
           setTourRequests(legacyTourRequests);
 
           // Convert ShowRequestBids to legacy VenueBid format
@@ -380,6 +408,79 @@ export function useTourItineraryData({
           console.log(`  - Venue-initiated: ${venueInitiatedData.length}`);
           console.log(`  - Artist requests with venue bids: ${artistRequestsWithVenueBids.length}`);
           console.log(`  - Total combined: ${combinedShowRequestsData.length}`);
+          
+          // 🎯 DEBUG: Log all venue-initiated data
+          console.log('🔍 Debug: All venueInitiatedData:', venueInitiatedData.map((req: any) => ({
+            id: req.id,
+            title: req.title,
+            initiatedBy: req.initiatedBy,
+            venueId: req.venueId,
+            artistName: req.artist?.name
+          })));
+          
+          // 🎯 NEW: Handle venue-specific artist requests (artist → venue direct requests)
+          const venueSpecificArtistRequests = venueInitiatedData.filter((req: any) => 
+            req.initiatedBy === 'ARTIST' && req.venueId === venueId
+          );
+          
+          console.log(`  - Venue-specific artist requests: ${venueSpecificArtistRequests.length}`);
+          console.log('🔍 Debug: Venue-specific requests:', venueSpecificArtistRequests.map((req: any) => ({
+            id: req.id,
+            title: req.title,
+            artistName: req.artist?.name,
+            date: req.requestedDate
+          })));
+          
+          // Convert venue-specific artist requests to legacy TourRequest format
+          const legacyTourRequests: TourRequest[] = venueSpecificArtistRequests.map((req: any) => ({
+            id: req.id,
+            artistId: req.artistId,
+            artistName: req.artist?.name || 'Unknown Artist',
+            title: req.title,
+            description: req.description,
+            startDate: req.requestedDate.split('T')[0],
+            endDate: req.requestedDate.split('T')[0],
+            isSingleDate: true,
+            location: req.targetLocations?.[0]?.replace(/^venue:\d+:/, '') || req.venue?.name || venueName || 'Unknown Location',
+            radius: 50,
+            flexibility: 'exact-cities' as const,
+            genres: req.genres || [],
+            expectedDraw: { min: 0, max: 0, description: '' },
+            tourStatus: 'exploring-interest' as const,
+            ageRestriction: 'flexible' as const,
+            equipment: {
+              needsPA: false,
+              needsMics: false,
+              needsDrums: false,
+              needsAmps: false,
+              acoustic: false
+            },
+            acceptsDoorDeals: true,
+            merchandising: true,
+            travelMethod: 'van' as const,
+            lodging: 'flexible' as const,
+            status: req.status === 'OPEN' ? 'active' : 'completed',
+            priority: 'medium' as const,
+            responses: req.bids?.length || 0,
+            createdAt: req.createdAt,
+            updatedAt: req.updatedAt,
+            expiresAt: req.expiresAt
+          }));
+          
+          console.log('🔄 Debug: Converting venue-specific requests to legacy format:');
+          console.log(`  - Input: ${venueSpecificArtistRequests.length} venue-specific requests`);
+          console.log(`  - Output: ${legacyTourRequests.length} legacy tour requests`);
+          console.log('🔍 Debug: Legacy tour requests:', legacyTourRequests.map((req: any) => ({
+            id: req.id,
+            artistName: req.artistName,
+            title: req.title,
+            startDate: req.startDate,
+            location: req.location,
+            status: req.status
+          })));
+          
+          setTourRequests(legacyTourRequests);
+          console.log('✅ Debug: Set tourRequests state with', legacyTourRequests.length, 'requests');
           
           // Convert to legacy formats (similar to artist logic but focused on venue perspective)
           const legacyVenueOffers: VenueOffer[] = combinedShowRequestsData

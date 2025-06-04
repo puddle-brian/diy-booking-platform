@@ -3,6 +3,8 @@ import { prisma } from '../../../../lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
+    console.log('🏢 API: Fetching venues from database');
+    
     const { searchParams } = new URL(request.url);
     const city = searchParams.get('city');
     const state = searchParams.get('state');
@@ -10,26 +12,63 @@ export async function GET(request: NextRequest) {
     const venueType = searchParams.get('venueType');
     const capacity = searchParams.get('capacity');
     const ageRestriction = searchParams.get('ageRestriction');
-    
-    console.log(`🏢 API: Fetching venues from database`);
+    const search = searchParams.get('search'); // Add generic search parameter
+    const limit = searchParams.get('limit'); // Add limit for autocomplete
     
     // Build where clause for filtering
     const where: any = {};
     
+    // Generic search across venue name, city, state, and description
+    if (search && search.trim()) {
+      const searchTerm = search.toLowerCase().trim();
+      where.OR = [
+        {
+          name: {
+            contains: searchTerm,
+            mode: 'insensitive'
+          }
+        },
+        {
+          description: {
+            contains: searchTerm,
+            mode: 'insensitive'
+          }
+        },
+        {
+          location: {
+            city: {
+              contains: searchTerm,
+              mode: 'insensitive'
+            }
+          }
+        },
+        {
+          location: {
+            stateProvince: {
+              contains: searchTerm,
+              mode: 'insensitive'
+            }
+          }
+        }
+      ];
+    }
+    
     if (city || state) {
-      where.location = {};
-      if (city) {
-        where.location.city = {
-          contains: city,
-          mode: 'insensitive'
-        };
-      }
-      if (state) {
-        where.location.stateProvince = {
-          equals: state,
-          mode: 'insensitive'
-        };
-      }
+      where.location = {
+        ...(where.location || {}),
+        ...(city && {
+          city: {
+            contains: city,
+            mode: 'insensitive'
+          }
+        }),
+        ...(state && {
+          stateProvince: {
+            equals: state,
+            mode: 'insensitive'
+          }
+        })
+      };
     }
     
     if (venueType) {
@@ -50,8 +89,8 @@ export async function GET(request: NextRequest) {
     // Note: Venues don't have genres in our schema - genres are for artists
     // If genre filtering is needed, it would be through associated shows/artists
     
-    // Fetch ALL venues with location data (no pagination)
-    const venues = await prisma.venue.findMany({
+    // Fetch venues with location data
+    const queryOptions: any = {
       where,
       include: {
         location: true
@@ -60,7 +99,17 @@ export async function GET(request: NextRequest) {
         { verified: 'desc' },
         { createdAt: 'desc' }
       ]
-    });
+    };
+    
+    // Add limit for autocomplete requests
+    if (limit) {
+      const limitNum = parseInt(limit);
+      if (limitNum > 0) {
+        queryOptions.take = limitNum;
+      }
+    }
+    
+    const venues = await prisma.venue.findMany(queryOptions);
     
     console.log(`🏢 API: Found ${venues.length} venues in database`);
     

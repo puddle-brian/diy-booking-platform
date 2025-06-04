@@ -195,11 +195,41 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Parse venue-specific requests from targetLocations
+    let parsedVenueId = body.venueId || null;
+    let cleanTargetLocations = body.targetLocations || [];
+
+    // Check if this is a venue-specific request (format: "venue:id:name")
+    if (body.targetLocations && body.targetLocations.length > 0) {
+      const firstLocation = body.targetLocations[0];
+      if (firstLocation.startsWith('venue:')) {
+        const parts = firstLocation.split(':');
+        if (parts.length >= 3) {
+          const venueId = parts[1];
+          const venueName = parts.slice(2).join(':'); // Handle names with colons
+          
+          // Verify venue exists
+          const venue = await prisma.venue.findUnique({
+            where: { id: venueId },
+            select: { id: true, name: true }
+          });
+          
+          if (venue) {
+            parsedVenueId = venueId;
+            cleanTargetLocations = [venueName]; // Store clean venue name instead of venue:id:name
+            console.log(`🎯 Venue-specific request detected: ${venueName} (${venueId})`);
+          } else {
+            console.warn(`⚠️ Venue ID ${venueId} not found, treating as regular location request`);
+          }
+        }
+      }
+    }
+
     // Create new show request
     const newShowRequest = await prisma.showRequest.create({
       data: {
         artistId: body.artistId,
-        venueId: body.venueId || null,
+        venueId: parsedVenueId, // Use parsed venue ID for venue-specific requests
         title: body.title,
         description: body.description || null,
         requestedDate: new Date(body.requestedDate),
@@ -239,7 +269,7 @@ export async function POST(request: NextRequest) {
         message: body.message || null,
         
         // Tour context
-        targetLocations: body.targetLocations || [],
+        targetLocations: cleanTargetLocations, // Use clean locations without venue:id:name format
         genres: body.genres || [],
         
         // Expiration

@@ -8,7 +8,8 @@ import ShowDetailModal from './ShowDetailModal';
 import TourRequestDetailModal from './TourRequestDetailModal';
 import TemplateSelector from './TemplateSelector';
 import TemplateFormRenderer from './TemplateFormRenderer';
-import LocationAutocomplete from './LocationAutocomplete';
+import LocationVenueAutocomplete from './LocationVenueAutocomplete';
+import UnifiedShowRequestForm from './UnifiedShowRequestForm';
 import TechnicalRequirementsTable from './TechnicalRequirementsTable';
 import HospitalityRiderTable from './HospitalityRiderTable';
 import VenueOfferForm from './VenueOfferForm';
@@ -1601,8 +1602,28 @@ export default function TabbedTourItinerary({
                                   return <span>{requestAsVenueRequest.venueName}</span>;
                                 }
                               } else {
-                                // For artist-initiated requests, show bid count
-                                if (requestBids.length === 0) {
+                                // For artist-initiated requests, show bid count or venue-specific info
+                                // 🎯 NEW: Check if this is a venue-specific request first
+                                const requestAsVenueSpecific = request as TourRequest & { 
+                                  isVenueSpecific?: boolean; 
+                                  venueSpecificId?: string; 
+                                  venueSpecificName?: string; 
+                                };
+                                
+                                if (requestAsVenueSpecific.isVenueSpecific && requestAsVenueSpecific.venueSpecificId) {
+                                  // This is a venue-specific request - show the venue name as clickable link
+                                  return (
+                                    <a 
+                                      href={`/venues/${requestAsVenueSpecific.venueSpecificId}`}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      title="View venue page"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {requestAsVenueSpecific.venueSpecificName}
+                                    </a>
+                                  );
+                                } else if (requestBids.length === 0) {
+                                  // Regular artist request with no bids yet
                                   return <span className="text-gray-500 text-sm">No bids yet</span>;
                                 } else {
                                   // Show venue information based on bid activity
@@ -1692,18 +1713,7 @@ export default function TabbedTourItinerary({
                               </span>
                             );
                           })()}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleTourRequestDocumentModal(request);
-                            }}
-                            className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
-                            title="View detailed request information"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </button>
+
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-[7%]">
@@ -1711,6 +1721,26 @@ export default function TabbedTourItinerary({
                       <td className="px-4 py-1.5 w-[7%]">
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
+                        {/* 🎯 NEW: Make Offer button in Offers column for venue-specific requests */}
+                        {actualViewerType === 'venue' && 
+                         !request.isVenueInitiated && 
+                         requestBids.length === 0 && 
+                         editable && (
+                          <div onClick={(e) => e.stopPropagation()}>
+                            <MakeOfferButton
+                              targetArtist={{
+                                id: request.artistId,
+                                name: request.artistName
+                              }}
+                              preSelectedDate={request.startDate}
+                              variant="outline"
+                              size="xs"
+                              onSuccess={() => fetchData()}
+                            >
+                              Make Offer
+                            </MakeOfferButton>
+                          </div>
+                        )}
                       </td>
                       <td className="px-4 py-1.5 w-[8%]">
                         <div className="text-xs">
@@ -2269,98 +2299,65 @@ export default function TabbedTourItinerary({
               />
             </div>
           ) : (
-            // Basic add date form for requests and confirmed shows
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    Add Date
-                  </h3>
-                  <button
-                    onClick={() => setShowAddDateForm(false)}
-                    className="text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                
-                if (addDateLoading) return;
-
+            // Use UnifiedShowRequestForm for requests and confirmed shows
+            <UnifiedShowRequestForm
+              formType={addDateForm.type}
+              artistId={artistId}
+              artistName={artistName}
+              venueId={venueId}
+              venueName={venueName}
+              onSubmit={async (formData: any) => {
                 try {
-                  setAddDateLoading(true);
-
                   if (addDateForm.type === 'confirmed') {
-                    if (!addDateForm.date) {
-                      alert('Please select a date for the show.');
-                      return;
-                    }
-
-                    let showTitle = addDateForm.title.trim();
+                    // Handle confirmed shows
+                    let showTitle = formData.title.trim();
                     if (!showTitle) {
-                      if (artistId && addDateForm.venueName) {
-                        showTitle = `${artistName} at ${addDateForm.venueName}`;
-                      } else if (venueId && addDateForm.artistName) {
-                        showTitle = `${addDateForm.artistName} at ${venueName}`;
+                      if (artistId && formData.venueName) {
+                        showTitle = `${artistName} at ${formData.venueName}`;
+                      } else if (venueId && formData.artistName) {
+                        showTitle = `${formData.artistName} at ${venueName}`;
                       } else {
-                        showTitle = `Show on ${new Date(addDateForm.date).toLocaleDateString()}`;
+                        showTitle = `Show on ${new Date(formData.date).toLocaleDateString()}`;
                       }
                     }
 
                     const showData = {
-                      date: addDateForm.date,
+                      date: formData.date,
                       title: showTitle,
-                      notes: addDateForm.notes.trim() || undefined,
+                      notes: formData.description?.trim() || undefined,
                       status: 'confirmed',
                       createdBy: artistId ? 'artist' : 'venue',
-                      guarantee: addDateForm.guarantee ? parseInt(addDateForm.guarantee) : undefined,
-                      ageRestriction: addDateForm.ageRestriction,
-                      loadIn: addDateForm.loadIn || undefined,
-                      soundcheck: addDateForm.soundcheck || undefined,
-                      doorsOpen: addDateForm.doorsOpen || undefined,
-                      showTime: addDateForm.showTime || undefined,
-                      curfew: addDateForm.curfew || undefined,
-                      acceptsDoorDeals: addDateForm.acceptsDoorDeals,
-                      merchandising: addDateForm.merchandising,
-                      travelMethod: addDateForm.travelMethod,
-                      lodging: addDateForm.lodging,
-                      technicalRequirements: addDateForm.technicalRequirements,
-                      hospitalityRequirements: addDateForm.hospitalityRequirements,
-                      equipment: addDateForm.equipment
+                      guarantee: formData.guarantee ? parseInt(formData.guarantee) : undefined,
+                      ageRestriction: formData.ageRestriction,
+                      doorsOpen: formData.doorsOpen || undefined,
+                      showTime: formData.showTime || undefined,
                     };
 
                     if (artistId) {
-                      if (!addDateForm.venueName.trim()) {
-                        alert('Please enter a venue name.');
-                        return;
+                      if (!formData.venueName?.trim()) {
+                        throw new Error('Please enter a venue name.');
                       }
                       
                       Object.assign(showData, {
                         artistId: artistId,
                         artistName: artistName,
-                        venueId: addDateForm.venueId || 'external-venue',
-                        venueName: addDateForm.venueName.trim(),
-                        city: addDateForm.location.split(',')[0]?.trim() || addDateForm.venueName.split(',')[0]?.trim() || 'Unknown',
-                        state: addDateForm.location.split(',')[1]?.trim() || addDateForm.venueName.split(',')[1]?.trim() || 'Unknown'
+                        venueId: formData.venueId || 'external-venue',
+                        venueName: formData.venueName.trim(),
+                        city: formData.location.split(',')[0]?.trim() || formData.venueName.split(',')[0]?.trim() || 'Unknown',
+                        state: formData.location.split(',')[1]?.trim() || formData.venueName.split(',')[1]?.trim() || 'Unknown'
                       });
                     } else if (venueId) {
-                      if (!addDateForm.artistName.trim()) {
-                        alert('Please enter an artist name.');
-                        return;
+                      if (!formData.artistName?.trim()) {
+                        throw new Error('Please enter an artist name.');
                       }
                       
                       Object.assign(showData, {
-                        artistId: addDateForm.artistId || 'external-artist',
-                        artistName: addDateForm.artistName.trim(),
+                        artistId: formData.artistId || 'external-artist',
+                        artistName: formData.artistName.trim(),
                         venueId: venueId,
                         venueName: venueName,
-                        city: addDateForm.location.split(',')[0]?.trim() || 'Unknown',
-                        state: addDateForm.location.split(',')[1]?.trim() || 'Unknown'
+                        city: formData.location.split(',')[0]?.trim() || 'Unknown',
+                        state: formData.location.split(',')[1]?.trim() || 'Unknown'
                       });
                     }
 
@@ -2377,34 +2374,17 @@ export default function TabbedTourItinerary({
                     if (!response.ok) {
                       throw new Error(result.error || 'Failed to create show');
                     }
-
-                    setShowAddDateForm(false);
-                    await fetchData();
-                    return;
-                  }
-
-                  if (addDateForm.type === 'request') {
-                    if (addDateForm.useSingleDate) {
-                      if (!addDateForm.requestDate || !addDateForm.location) {
-                        alert('Please fill in all required fields for the show request.');
-                        return;
-                      }
-                    } else {
-                      if (!addDateForm.startDate || !addDateForm.endDate || !addDateForm.location) {
-                        alert('Please fill in all required fields for the show request.');
-                        return;
-                      }
-                    }
-
-                    const title = addDateForm.title.trim() || `${artistName} Show Request`;
+                  } else if (addDateForm.type === 'request') {
+                    // Handle show requests
+                    const title = formData.title.trim() || `${artistName} Show Request`;
 
                     const showRequestData: any = {
                       artistId: artistId,
                       title: title,
-                      description: addDateForm.description,
-                      requestedDate: addDateForm.useSingleDate ? addDateForm.requestDate : addDateForm.startDate,
+                      description: formData.description,
+                      requestedDate: formData.requestDate,
                       initiatedBy: 'ARTIST',
-                      targetLocations: [addDateForm.location],
+                      targetLocations: [formData.location],
                       genres: []
                     };
 
@@ -2421,128 +2401,18 @@ export default function TabbedTourItinerary({
                     if (!response.ok) {
                       throw new Error(result.error || 'Failed to create show request');
                     }
-
-                    setShowAddDateForm(false);
-                    await fetchData();
-                    return;
                   }
-                  
+
+                  setShowAddDateForm(false);
+                  await fetchData();
                 } catch (error) {
                   console.error('Error in form submission:', error);
-                  alert(`Failed to submit form: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                } finally {
-                  setAddDateLoading(false);
+                  throw error; // Re-throw so UnifiedShowRequestForm can handle it
                 }
-              }} className="px-6 py-4 space-y-6">
-                {/* Type Selection */}
-                {((artistId && actualViewerType === 'artist') || (venueId && actualViewerType === 'venue')) && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Type *
-                    </label>
-                    <select
-                      required
-                      value={addDateForm.type}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, type: e.target.value as 'request' | 'confirmed' | 'offer' }))}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {artistId && (
-                        <>
-                          <option value="request">Request (looking for venues)</option>
-                          <option value="confirmed">Confirmed (already booked)</option>
-                        </>
-                      )}
-                      {venueId && (
-                        <>
-                          <option value="offer">Make Offer (invite specific artist)</option>
-                          <option value="confirmed">Confirmed Show (already booked)</option>
-                        </>
-                      )}
-                    </select>
-                  </div>
-                )}
-
-                {/* Date inputs based on type */}
-                {addDateForm.type === 'request' ? (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Show Date *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={addDateForm.requestDate}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, requestDate: e.target.value }))}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                ) : (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Show Date *
-                    </label>
-                    <input
-                      type="date"
-                      required
-                      value={addDateForm.date}
-                      onChange={(e) => setAddDateForm(prev => ({ ...prev, date: e.target.value }))}
-                      min={new Date().toISOString().split('T')[0]}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location *
-                  </label>
-                  <LocationAutocomplete
-                    value={addDateForm.location}
-                    onChange={(value) => setAddDateForm(prev => ({ ...prev, location: value }))}
-                    placeholder="e.g., Seattle, WA or Pacific Northwest"
-                    required
-                    label="Location"
-                    showLabel={false}
-                  />
-                </div>
-
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Title (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={addDateForm.title}
-                    onChange={(e) => setAddDateForm(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Leave blank to auto-generate"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {/* Submit Buttons */}
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddDateForm(false)}
-                    className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={addDateLoading}
-                    className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {addDateLoading ? 'Adding...' : 
-                     addDateForm.type === 'request' ? 'Create Show Request' :
-                     addDateForm.type === 'offer' ? 'Send Offer' :
-                     'Add to Calendar'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              }}
+              onCancel={() => setShowAddDateForm(false)}
+              loading={addDateLoading}
+            />
           )}
         </div>
       )}

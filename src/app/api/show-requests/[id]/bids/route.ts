@@ -268,10 +268,10 @@ export async function POST(
 // PUT /api/show-requests/[id]/bids - Update bid status (accept, hold, decline)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const showRequestId = params.id;
+    const { id: showRequestId } = await params;
     const body = await request.json();
     
     console.log('🎯 API: Updating bid status:', body);
@@ -361,10 +361,10 @@ export async function PUT(
 // DELETE /api/show-requests/[id]/bids - Cancel/delete a bid
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const showRequestId = params.id;
+    const { id: showRequestId } = await params;
     const body = await request.json();
     
     console.log('🎯 API: Cancelling bid:', body.bidId);
