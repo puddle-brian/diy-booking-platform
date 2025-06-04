@@ -1786,27 +1786,21 @@ export default function TabbedTourItinerary({
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-[8%]">
-                        {/* Document icon for tour requests - show for artist's own requests OR venues with bids on this request */}
-                        {((actualViewerType === 'artist' && artistId && request.artistId === artistId) ||
-                          (actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId))) && (
+                        {/* Document icon for tour requests - show ONLY for venues with bids on this request */}
+                        {(actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId)) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               // For venues, pass their specific bid to the document modal
-                              if (actualViewerType === 'venue') {
-                                const venueBid = requestBids.find(bid => bid.venueId === venueId);
-                                if (venueBid) {
-                                  handleBidDocumentModal(venueBid);
-                                } else {
-                                  handleTourRequestDocumentModal(request);
-                                }
+                              const venueBid = requestBids.find(bid => bid.venueId === venueId);
+                              if (venueBid) {
+                                handleBidDocumentModal(venueBid);
                               } else {
-                                // For artists, show the tour request document
                                 handleTourRequestDocumentModal(request);
                               }
                             }}
                             className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
-                            title={actualViewerType === 'venue' ? "View show document for your bid" : "View tour request details"}
+                            title="View show document for your bid"
                           >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -1814,8 +1808,7 @@ export default function TabbedTourItinerary({
                           </button>
                         )}
                         {/* Show empty space if viewer not involved in this request */}
-                        {!((actualViewerType === 'artist' && artistId && request.artistId === artistId) ||
-                          (actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId))) && (
+                        {!(actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId)) && (
                           <div className="w-5 h-5"></div>
                         )}
                       </td>
