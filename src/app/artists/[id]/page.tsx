@@ -403,7 +403,8 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     canEdit: (() => {
       if (!user) return false;
       if (user.role === 'admin') return true;
-      // Check if user has edit permissions
+      
+      // Check if user is a member of this artist
       const userMembership = members.find(member => member.id === user.id);
       return userMembership && (
         userMembership.role === 'Owner' || 

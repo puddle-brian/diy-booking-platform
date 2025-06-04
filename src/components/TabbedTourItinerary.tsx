@@ -207,6 +207,20 @@ export default function TabbedTourItinerary({
     (editable && venueId) ? 'venue' : 
     'public';
 
+  // 🎯 UX FIX: Determine venue offer permissions separately from general editing
+  const canMakeOffers = (() => {
+    // Artists can always make requests and manage their timeline
+    if (actualViewerType === 'artist' && editable) return true;
+    
+    // Venues can make offers on artist pages (even when editable=false)
+    if (actualViewerType === 'venue' && artistId && venueId && venueName) return true;
+    
+    // Venues can manage their own timeline when editable=true
+    if (actualViewerType === 'venue' && venueId && editable) return true;
+    
+    return false;
+  })();
+
   // 🎯 REFACTORED: Use custom hook for data fetching
   const {
     shows,
@@ -349,6 +363,8 @@ export default function TabbedTourItinerary({
   const [showUniversalOfferModal, setShowUniversalOfferModal] = useState(false);
   const [offerTargetArtist, setOfferTargetArtist] = useState<{ id: string; name: string } | null>(null);
   const [offerTourRequest, setOfferTourRequest] = useState<{ id: string; title: string; artistName: string } | null>(null);
+  const [offerPreSelectedDate, setOfferPreSelectedDate] = useState<string | null>(null);
+  const [offerExistingBid, setOfferExistingBid] = useState<any>(null);
 
   // 🎯 REFACTORED: Timeline creation using utility functions
   const filteredShows = shows.filter(show => !deletedShows.has(show.id));
@@ -365,6 +381,22 @@ export default function TabbedTourItinerary({
   });
   const timelineEntries = createTimelineEntries(filteredShows, filteredTourRequests, filteredVenueOffers, filteredVenueBids, artistId, venueId);
   const monthGroups = groupEntriesByMonth(timelineEntries);
+
+  // 🎯 UX IMPROVEMENT: Helper function to determine when venues should see offer buttons
+  const shouldShowOfferButton = (request: TourRequest & { isVenueInitiated?: boolean }) => {
+    // When viewing artist pages: show for all requests (maximum discoverability!)
+    if (artistId) {
+      return true;
+    }
+    
+    // When viewing venue's own timeline: only show for artist-initiated requests (preserves existing behavior)
+    if (venueId && !artistId) {
+      return !request.isVenueInitiated;
+    }
+    
+    // Fallback to existing behavior
+    return !request.isVenueInitiated;
+  };
 
   // Set active tab to first month with entries, or current month if no entries
   useEffect(() => {
@@ -1763,8 +1795,8 @@ export default function TabbedTourItinerary({
                         <div className="flex items-center space-x-2">
                           {/* 🎯 UX IMPROVEMENT: Consistent offer action placement */}
                           {actualViewerType === 'venue' && 
-                           !request.isVenueInitiated && 
-                           editable && (
+                           canMakeOffers && 
+                           shouldShowOfferButton(request) && (
                             <div onClick={(e) => e.stopPropagation()}>
                               <button
                                 onClick={() => {
@@ -1777,11 +1809,18 @@ export default function TabbedTourItinerary({
                                     title: request.title,
                                     artistName: request.artistName
                                   });
+                                  // 🎯 UX FIX: Set the preSelectedDate directly from the request's startDate
+                                  setOfferPreSelectedDate(request.startDate);
+                                  
+                                  // 🎯 UX FIX: Determine existing bid immediately - no async detection
+                                  const existingBid = requestBids.find(bid => bid.venueId === venueId);
+                                  setOfferExistingBid(existingBid || null);
+                                  
                                   setShowUniversalOfferModal(true);
                                 }}
                                 className="inline-flex items-center justify-center border rounded-lg font-medium transition-colors duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 px-3 py-1 text-xs bg-white text-blue-600 hover:bg-blue-50 border-blue-600 focus:ring-blue-500 whitespace-nowrap"
                               >
-                                {requestBids.length > 0 ? "Edit Offer" : "Make Offer"}
+                                {requestBids.find(bid => bid.venueId === venueId) ? "Edit Offer" : "Make Offer"}
                               </button>
                             </div>
                           )}
@@ -2249,6 +2288,8 @@ export default function TabbedTourItinerary({
             setShowUniversalOfferModal(false);
             setOfferTargetArtist(null);
             setOfferTourRequest(null);
+            setOfferPreSelectedDate(null);
+            setOfferExistingBid(null);
           }}
           onSuccess={(result) => {
             console.log('Offer/dismissal result:', result);
@@ -2261,11 +2302,9 @@ export default function TabbedTourItinerary({
             fetchData();
           }}
           preSelectedArtist={offerTargetArtist || undefined}
-          preSelectedDate={offerTourRequest ? 
-            tourRequests.find(req => req.id === offerTourRequest.id)?.startDate : 
-            undefined
-          }
+          preSelectedDate={offerPreSelectedDate || undefined}
           tourRequest={offerTourRequest || undefined}
+          existingBid={offerExistingBid || undefined}
         />
       )}
 

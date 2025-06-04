@@ -20,6 +20,8 @@ interface UniversalMakeOfferModalProps {
     title: string;
     artistName: string;
   };
+  // 🎯 UX IMPROVEMENT: Pass existing bid directly - no async detection
+  existingBid?: any;
 }
 
 interface Venue {
@@ -38,14 +40,14 @@ export default function UniversalMakeOfferModal({
   onSuccess,
   preSelectedArtist,
   preSelectedDate,
-  tourRequest
+  tourRequest,
+  existingBid
 }: UniversalMakeOfferModalProps) {
   const { user } = useAuth();
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [existingBid, setExistingBid] = useState<any>(null);
 
   // Load user's venues when modal opens
   useEffect(() => {
@@ -53,13 +55,6 @@ export default function UniversalMakeOfferModal({
       loadUserVenues();
     }
   }, [isOpen, user]);
-
-  // 🎯 CHECK FOR EXISTING BIDS when form is ready
-  useEffect(() => {
-    if (isOpen && selectedVenue && preSelectedArtist && preSelectedDate) {
-      checkForExistingBids();
-    }
-  }, [isOpen, selectedVenue, preSelectedArtist, preSelectedDate]);
 
   const loadUserVenues = async () => {
     try {
@@ -160,78 +155,8 @@ export default function UniversalMakeOfferModal({
     }
   };
 
-  const checkForExistingBids = async () => {
-    if (!selectedVenue || !preSelectedArtist || !preSelectedDate) return;
-
-    try {
-      console.log('🔍 Checking for existing bids...', {
-        venue: selectedVenue.name,
-        artist: preSelectedArtist.name,
-        date: preSelectedDate
-      });
-
-      // Check for existing show requests for this artist+date
-      const checkResponse = await fetch(`/api/show-requests?artistId=${preSelectedArtist.id}`);
-      if (checkResponse.ok) {
-        const existingRequests = await checkResponse.json();
-        console.log('📋 Found existing requests:', existingRequests.length);
-        
-        // Look for artist-initiated request on this date
-        const artistRequest = existingRequests.find((req: any) => 
-          req.initiatedBy === 'ARTIST' && 
-          req.requestedDate.split('T')[0] === preSelectedDate
-        );
-        
-        if (artistRequest) {
-          console.log('🎯 Found artist-initiated request:', artistRequest.id);
-          
-          // Check if we have a bid on this artist request
-          const bidCheckResponse = await fetch(`/api/show-requests/${artistRequest.id}/bids?venueId=${selectedVenue.id}`);
-          if (bidCheckResponse.ok) {
-            const venuesBids = await bidCheckResponse.json();
-            console.log('📊 Venue bids found:', venuesBids.length);
-            
-            if (venuesBids.length > 0) {
-              const foundBid = venuesBids[0];
-              console.log('✅ Found existing bid - setting in state:', foundBid);
-              setExistingBid(foundBid);
-              return;
-            }
-          }
-        }
-
-        // Look for venue-initiated request (direct offer)
-        const venueRequest = existingRequests.find((req: any) => 
-          req.initiatedBy === 'VENUE' && 
-          req.venueId === selectedVenue.id &&
-          req.requestedDate.split('T')[0] === preSelectedDate
-        );
-        
-        if (venueRequest) {
-          console.log('🏢 Found venue-initiated request:', venueRequest.id);
-          const foundBid = {
-            id: venueRequest.id,
-            amount: venueRequest.amount,
-            message: venueRequest.message,
-            status: venueRequest.status,
-            createdAt: venueRequest.createdAt,
-            updatedAt: venueRequest.updatedAt
-          };
-          console.log('✅ Found existing venue offer - setting in state:', foundBid);
-          setExistingBid(foundBid);
-        } else {
-          console.log('❌ No existing bids found for this combination');
-          setExistingBid(null);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error checking for existing bids:', error);
-    }
-  };
-
   const handleClose = () => {
     setSelectedVenue(null);
-    setExistingBid(null);
     setError('');
     onClose();
   };
@@ -273,7 +198,6 @@ export default function UniversalMakeOfferModal({
             const venuesBids = await bidCheckResponse.json();
             if (venuesBids.length > 0) {
               foundExistingBid = venuesBids[0];
-              setExistingBid(foundExistingBid);
               console.log('🔄 Found existing bid on artist request');
             }
           }
@@ -296,7 +220,6 @@ export default function UniversalMakeOfferModal({
               createdAt: venueInitiatedRequest.createdAt,
               updatedAt: venueInitiatedRequest.updatedAt
             };
-            setExistingBid(foundExistingBid);
             existingShowRequest = venueInitiatedRequest; // We'll update this request
           }
         }
@@ -524,7 +447,7 @@ export default function UniversalMakeOfferModal({
             onSubmit={handleSubmit}
             onCancel={handleClose}
             onDelete={existingBid ? handleDelete : undefined}
-            onDismissRequest={!existingBid && tourRequest ? handleDismissRequest : undefined}
+            onDismiss={!existingBid && tourRequest ? handleDismissRequest : undefined}
             loading={loading}
             error={error}
             preSelectedArtist={preSelectedArtist}
