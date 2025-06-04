@@ -378,6 +378,56 @@ export default function UniversalMakeOfferModal({
     handleClose();
   };
 
+  // 🎯 UX IMPROVEMENT: Delete offer functionality
+  const handleDelete = async () => {
+    if (!selectedVenue || !existingBid) {
+      throw new Error('Cannot delete - missing venue or bid information');
+    }
+
+    try {
+      console.log('🗑️ Deleting existing bid/offer:', existingBid.id);
+      
+      // Try deleting as a ShowRequest first (venue-initiated requests)
+      let response = await fetch(`/api/show-requests/${existingBid.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        console.log('✅ Successfully deleted ShowRequest');
+        onSuccess({ deleted: true });
+        handleClose();
+        return;
+      } else if (response.status === 404) {
+        // Not found as ShowRequest, try as VenueOffer
+        console.log('🔄 ShowRequest not found, trying VenueOffer API');
+        
+        response = await fetch(`/api/venues/${selectedVenue.id}/offers/${existingBid.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          console.log('✅ Successfully deleted VenueOffer');
+          onSuccess({ deleted: true });
+          handleClose();
+          return;
+        }
+      }
+
+      // If we get here, both APIs failed
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to delete offer');
+    } catch (error) {
+      console.error('❌ Error deleting offer:', error);
+      throw error;
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -445,6 +495,7 @@ export default function UniversalMakeOfferModal({
             venueName={selectedVenue.name}
             onSubmit={handleSubmit}
             onCancel={handleClose}
+            onDelete={existingBid ? handleDelete : undefined}
             loading={loading}
             error={error}
             preSelectedArtist={preSelectedArtist}

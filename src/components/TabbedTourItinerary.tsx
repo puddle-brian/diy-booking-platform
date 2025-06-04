@@ -1779,8 +1779,28 @@ export default function TabbedTourItinerary({
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          {/* 🎯 FIXED: Single unified delete button - no more duplicates */}
-                          {editable && (
+                          {/* 🎯 UX IMPROVEMENT: Show Edit Offer button instead of delete for venues with bids */}
+                          {actualViewerType === 'venue' && 
+                           requestBids.length > 0 && 
+                           editable && (
+                            <div onClick={(e) => e.stopPropagation()}>
+                              <MakeOfferButton
+                                targetArtist={{
+                                  id: request.artistId,
+                                  name: request.artistName
+                                }}
+                                preSelectedDate={request.startDate}
+                                variant="outline"
+                                size="xs"
+                                onSuccess={() => fetchData()}
+                              >
+                                Edit Offer
+                              </MakeOfferButton>
+                            </div>
+                          )}
+
+                          {/* 🎯 UX IMPROVEMENT: Keep delete button for all other cases */}
+                          {editable && !(actualViewerType === 'venue' && requestBids.length > 0) && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2094,23 +2114,7 @@ export default function TabbedTourItinerary({
                                                 </>
                                               )}
                                               
-                                              {/* 🎯 FIX: Only Edit Offer button for venues - no Withdraw button */}
-                                              {actualViewerType === 'venue' && bid.venueId === venueId && (
-                                                <div onClick={(e) => e.stopPropagation()}>
-                                                  <MakeOfferButton
-                                                    targetArtist={{
-                                                      id: request.artistId,
-                                                      name: request.artistName
-                                                    }}
-                                                    preSelectedDate={request.startDate}
-                                                    variant="outline"
-                                                    size="xs"
-                                                    onSuccess={() => fetchData()}
-                                                  >
-                                                    Edit Offer
-                                                  </MakeOfferButton>
-                                                </div>
-                                              )}
+                                              {/* Edit Offer button removed - now available in main actions column for better discoverability */}
                                             </div>
                                           </td>
                                         </tr>
