@@ -1465,18 +1465,27 @@ export default function TabbedTourItinerary({
                       />
                     </td>
                     <td className="px-4 py-1.5 w-[8%]">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleShowDocumentModal(show);
-                        }}
-                        className="inline-flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-800 hover:bg-green-200 rounded transition-colors"
-                        title="View detailed show information"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </button>
+                      {/* Document icon for confirmed shows - only show if viewer is involved in this show */}
+                      {((actualViewerType === 'artist' && artistId && show.artistId === artistId) ||
+                        (actualViewerType === 'venue' && venueId && show.venueId === venueId)) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleShowDocumentModal(show);
+                          }}
+                          className="inline-flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-800 hover:bg-green-200 rounded transition-colors"
+                          title="View detailed show information"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                      )}
+                      {/* Show empty space if viewer not involved in this show */}
+                      {!((actualViewerType === 'artist' && artistId && show.artistId === artistId) ||
+                        (actualViewerType === 'venue' && venueId && show.venueId === venueId)) && (
+                        <div className="w-5 h-5"></div>
+                      )}
                     </td>
                     <td className="px-4 py-1.5 w-[10%]">
                       <div className="flex items-center space-x-2">
@@ -1777,19 +1786,38 @@ export default function TabbedTourItinerary({
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-[8%]">
-                        {/* Document icon for viewing tour request details - always available */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleTourRequestDocumentModal(request);
-                          }}
-                          className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
-                          title="View tour request details"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </button>
+                        {/* Document icon for tour requests - show for artist's own requests OR venues with bids on this request */}
+                        {((actualViewerType === 'artist' && artistId && request.artistId === artistId) ||
+                          (actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId))) && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // For venues, pass their specific bid to the document modal
+                              if (actualViewerType === 'venue') {
+                                const venueBid = requestBids.find(bid => bid.venueId === venueId);
+                                if (venueBid) {
+                                  handleBidDocumentModal(venueBid);
+                                } else {
+                                  handleTourRequestDocumentModal(request);
+                                }
+                              } else {
+                                // For artists, show the tour request document
+                                handleTourRequestDocumentModal(request);
+                              }
+                            }}
+                            className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
+                            title={actualViewerType === 'venue' ? "View show document for your bid" : "View tour request details"}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </button>
+                        )}
+                        {/* Show empty space if viewer not involved in this request */}
+                        {!((actualViewerType === 'artist' && artistId && request.artistId === artistId) ||
+                          (actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId))) && (
+                          <div className="w-5 h-5"></div>
+                        )}
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
@@ -2017,18 +2045,22 @@ export default function TabbedTourItinerary({
                                             />
                                           </td>
                                           <td className="px-4 py-1.5 w-[8%]">
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleBidDocumentModal(bid);
-                                              }}
-                                              className="inline-flex items-center justify-center w-5 h-5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 rounded transition-colors"
-                                              title="View detailed bid information"
-                                            >
-                                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                              </svg>
-                                            </button>
+                                            {/* Document icon for individual bids - show for artists viewing their requests OR venues viewing their own bid */}
+                                            {((actualViewerType === 'artist' && artistId && request.artistId === artistId) ||
+                                              (actualViewerType === 'venue' && venueId && bid.venueId === venueId)) && (
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleBidDocumentModal(bid);
+                                                }}
+                                                className="inline-flex items-center justify-center w-5 h-5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 rounded transition-colors"
+                                                title="View detailed bid information"
+                                              >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                              </button>
+                                            )}
                                           </td>
                                           <td className="px-4 py-1.5 w-[10%]">
                                             <div className="flex items-center space-x-0.5 flex-wrap">
