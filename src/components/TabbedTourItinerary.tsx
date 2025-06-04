@@ -25,7 +25,11 @@ import { useAlert } from './UniversalAlertModal';
 // Import our new custom hooks and utilities
 import { useTourItineraryData } from '../hooks/useTourItineraryData';
 import { useVenueArtistSearch } from '../hooks/useVenueArtistSearch';
+import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
 import { createTimelineEntries, groupEntriesByMonth, getDefaultActiveMonth } from '../utils/timelineUtils';
+
+// Import action button components
+import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
 
 interface VenueBid {
   id: string;
@@ -201,25 +205,14 @@ export default function TabbedTourItinerary({
   // Initialize Universal Alert Modal system
   const { AlertModal, confirm, error: showError, success: showSuccess, info: showInfo, toast } = useAlert();
 
-  // Use editable prop to determine if user has permissions
-  const actualViewerType = viewerType !== 'public' ? viewerType : 
-    (editable && artistId) ? 'artist' : 
-    (editable && venueId) ? 'venue' : 
-    'public';
-
-  // 🎯 UX FIX: Determine venue offer permissions separately from general editing
-  const canMakeOffers = (() => {
-    // Artists can always make requests and manage their timeline
-    if (actualViewerType === 'artist' && editable) return true;
-    
-    // Venues can make offers on artist pages (even when editable=false)
-    if (actualViewerType === 'venue' && artistId && venueId && venueName) return true;
-    
-    // Venues can manage their own timeline when editable=true
-    if (actualViewerType === 'venue' && venueId && editable) return true;
-    
-    return false;
-  })();
+  // 🎯 REFACTORED: Use centralized permissions hook
+  const permissions = useItineraryPermissions({
+    viewerType,
+    editable,
+    artistId,
+    venueId,
+    venueName
+  });
 
   // 🎯 REFACTORED: Use custom hook for data fetching
   const {
@@ -480,7 +473,7 @@ export default function TabbedTourItinerary({
       return;
     }
     
-    if (actualViewerType === 'venue') {
+    if (permissions.canMakeOffers) {
       setOfferTargetArtist({
         id: tourRequest.artistId,
         name: tourRequest.artistName
@@ -1465,50 +1458,25 @@ export default function TabbedTourItinerary({
                       />
                     </td>
                     <td className="px-4 py-1.5 w-[8%]">
-                      {/* Document icon for confirmed shows - only show if viewer is involved in this show */}
-                      {((actualViewerType === 'artist' && artistId && show.artistId === artistId) ||
-                        (actualViewerType === 'venue' && venueId && show.venueId === venueId)) && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleShowDocumentModal(show);
-                          }}
-                          className="inline-flex items-center justify-center w-5 h-5 text-green-600 hover:text-green-800 hover:bg-green-200 rounded transition-colors"
-                          title="View detailed show information"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </button>
-                      )}
-                      {/* Show empty space if viewer not involved in this show */}
-                      {!((actualViewerType === 'artist' && artistId && show.artistId === artistId) ||
-                        (actualViewerType === 'venue' && venueId && show.venueId === venueId)) && (
-                        <div className="w-5 h-5"></div>
-                      )}
+                      <DocumentActionButton
+                        type="show"
+                        show={show}
+                        permissions={permissions}
+                        artistId={artistId}
+                        venueId={venueId}
+                        onShowDocument={handleShowDocumentModal}
+                      />
                     </td>
                     <td className="px-4 py-1.5 w-[10%]">
                       <div className="flex items-center space-x-2">
-                        {editable && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const showName = `${show.artistName || 'Show'} at ${show.venueName || show.city}`;
-                              handleDeleteShow(show.id, showName);
-                            }}
-                            disabled={deleteShowLoading === show.id}
-                            className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                            title="Delete show"
-                          >
-                            {deleteShowLoading === show.id ? (
-                              <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
-                            ) : (
-                              <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
-                              </svg>
-                            )}
-                          </button>
-                        )}
+                        <DeleteActionButton
+                          show={show}
+                          permissions={permissions}
+                          venueOffers={venueOffers}
+                          venueBids={venueBids}
+                          isLoading={deleteShowLoading === show.id}
+                          onDeleteShow={handleDeleteShow}
+                        />
                       </div>
                     </td>
                   </tr>
@@ -1782,158 +1750,52 @@ export default function TabbedTourItinerary({
                               {requestBids.length} bid{requestBids.length !== 1 ? 's' : ''}
                             </span>
                           </div>
-                          {/* 🎯 UX IMPROVEMENT: Removed Make Offer button - moved to Actions column for consistency */}
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-[8%]">
-                        {/* Document icon for tour requests - show ONLY for venues with bids on this request */}
-                        {(actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId)) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // For venues, pass their specific bid to the document modal
-                              const venueBid = requestBids.find(bid => bid.venueId === venueId);
-                              if (venueBid) {
-                                handleBidDocumentModal(venueBid);
-                              } else {
-                                handleTourRequestDocumentModal(request);
-                              }
-                            }}
-                            className="inline-flex items-center justify-center w-5 h-5 text-blue-600 hover:text-blue-800 hover:bg-blue-200 rounded transition-colors"
-                            title="View show document for your bid"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                          </button>
-                        )}
-                        {/* Show empty space if viewer not involved in this request */}
-                        {!(actualViewerType === 'venue' && requestBids.some(bid => bid.venueId === venueId)) && (
-                          <div className="w-5 h-5"></div>
-                        )}
+                        <DocumentActionButton
+                          type="request"
+                          request={request}
+                          permissions={permissions}
+                          venueId={venueId}
+                          requestBids={requestBids}
+                          onBidDocument={handleBidDocumentModal}
+                          onRequestDocument={handleTourRequestDocumentModal}
+                        />
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          {/* 🎯 UX IMPROVEMENT: Consistent offer action placement */}
-                          {actualViewerType === 'venue' && 
-                           canMakeOffers && 
-                           shouldShowOfferButton(request) && (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <button
-                                onClick={() => {
-                                  setOfferTargetArtist({
-                                    id: request.artistId,
-                                    name: request.artistName
-                                  });
-                                  setOfferTourRequest({
-                                    id: request.id,
-                                    title: request.title,
-                                    artistName: request.artistName
-                                  });
-                                  // 🎯 UX FIX: Set the preSelectedDate directly from the request's startDate
-                                  setOfferPreSelectedDate(request.startDate);
-                                  
-                                  // 🎯 UX FIX: Determine existing bid immediately - no async detection
-                                  const existingBid = requestBids.find(bid => bid.venueId === venueId);
-                                  // 🎯 BUG FIX: Map guarantee field to amount field for OfferFormCore compatibility
-                                  const mappedExistingBid = existingBid ? {
-                                    ...existingBid,
-                                    amount: existingBid.guarantee // Map guarantee to amount for OfferFormCore
-                                  } : null;
-                                  setOfferExistingBid(mappedExistingBid);
-                                  
-                                  setShowUniversalOfferModal(true);
-                                }}
-                                className="inline-flex items-center justify-center border rounded-lg font-medium transition-colors duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 px-3 py-1 text-xs bg-white text-blue-600 hover:bg-blue-50 border-blue-600 focus:ring-blue-500 whitespace-nowrap"
-                              >
-                                {requestBids.find(bid => bid.venueId === venueId) ? "Edit Offer" : "Make Offer"}
-                              </button>
-                            </div>
-                          )}
+                          <MakeOfferActionButton
+                            request={request}
+                            permissions={permissions}
+                            venueId={venueId}
+                            venueName={venueName}
+                            requestBids={requestBids}
+                            onMakeOffer={(request) => {
+                              setOfferTargetArtist({
+                                id: request.artistId,
+                                name: request.artistName
+                              });
+                              setOfferTourRequest({
+                                id: request.id,
+                                title: request.title,
+                                artistName: request.artistName
+                              });
+                              setShowUniversalOfferModal(true);
+                            }}
+                          />
 
-                          {/* 🎯 UX IMPROVEMENT: Keep delete button for all other cases */}
-                          {editable && !(actualViewerType === 'venue' && !request.isVenueInitiated) && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (actualViewerType === 'artist') {
-                                  // Artist: decline offer or delete request
-                                  if (request.isVenueInitiated && request.originalOfferId) {
-                                    const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                    if (originalOffer) {
-                                      handleOfferAction(originalOffer, 'decline');
-                                    }
-                                  } else {
-                                    handleDeleteShowRequest(request.id, request.title);
-                                  }
-                                } else if (actualViewerType === 'venue') {
-                                  // Venue: cancel offer, withdraw bid, or delete request
-                                  if (request.originalOfferId) {
-                                    // Cancel venue-initiated offer
-                                    const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                    if (originalOffer) {
-                                      handleOfferAction(originalOffer, 'decline');
-                                    }
-                                  } else if (requestWithVenueBid.isVenueBid && requestWithVenueBid.originalBidId) {
-                                    // Withdraw venue bid
-                                    const lostBagBid = venueBids.find(bid => 
-                                      bid.showRequestId === requestWithVenueBid.originalShowRequestId && 
-                                      bid.venueId === venueId
-                                    );
-                                    if (lostBagBid) {
-                                      confirm(
-                                        'Withdraw Bid',
-                                        `Withdraw your bid for ${request.artistName}? This will remove this request from your timeline.`,
-                                        async () => {
-                                          try {
-                                            setDeletedRequests(prev => new Set([...prev, request.id]));
-                                            const response = await fetch(`/api/show-requests/${lostBagBid.showRequestId}/bids`, {
-                                              method: 'DELETE',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({ bidId: lostBagBid.id }),
-                                            });
-                                            if (!response.ok) throw new Error('Failed to withdraw bid');
-                                            showSuccess('Bid Withdrawn', 'Your bid has been withdrawn and removed from your timeline.');
-                                          } catch (error) {
-                                            console.error('Error withdrawing bid:', error);
-                                            setDeletedRequests(prev => {
-                                              const newSet = new Set(prev);
-                                              newSet.delete(request.id);
-                                              return newSet;
-                                            });
-                                            showError('Withdrawal Failed', 'Failed to withdraw bid. Please try again.');
-                                          }
-                                        }
-                                      );
-                                    }
-                                  } else {
-                                    // Delete regular request
-                                    handleDeleteShowRequest(request.id, request.title);
-                                  }
-                                }
-                              }}
-                              disabled={deleteLoading === request.id}
-                              className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                              title={(() => {
-                                if (actualViewerType === 'artist') {
-                                  return request.isVenueInitiated ? "Decline venue offer" : "Delete tour request";
-                                } else if (actualViewerType === 'venue') {
-                                  if (request.originalOfferId) return "Cancel offer";
-                                  if (requestWithVenueBid.isVenueBid) return "Withdraw bid";
-                                  return "Delete request";
-                                }
-                                return "Delete";
-                              })()}
-                            >
-                              {deleteLoading === request.id ? (
-                                <div className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin"></div>
-                              ) : (
-                                <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
-                                </svg>
-                              )}
-                            </button>
-                          )}
+                          <DeleteActionButton
+                            request={requestWithVenueBid}
+                            permissions={permissions}
+                            venueId={venueId}
+                            venueOffers={venueOffers}
+                            venueBids={venueBids}
+                            isLoading={deleteLoading === request.id}
+                            onDeleteRequest={handleDeleteShowRequest}
+                            onOfferAction={handleOfferAction}
+                            onBidAction={handleBidAction}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -2038,139 +1900,26 @@ export default function TabbedTourItinerary({
                                             />
                                           </td>
                                           <td className="px-4 py-1.5 w-[8%]">
-                                            {/* Document icon for individual bids - show ONLY for artists viewing their requests */}
-                                            {(actualViewerType === 'artist' && artistId && request.artistId === artistId) && (
-                                              <button
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleBidDocumentModal(bid);
-                                                }}
-                                                className="inline-flex items-center justify-center w-5 h-5 text-yellow-600 hover:text-yellow-800 hover:bg-yellow-200 rounded transition-colors"
-                                                title="View detailed bid information"
-                                              >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                </svg>
-                                              </button>
-                                            )}
+                                            <DocumentActionButton
+                                              type="bid"
+                                              bid={bid}
+                                              request={request}
+                                              permissions={permissions}
+                                              artistId={artistId}
+                                              onBidDocument={handleBidDocumentModal}
+                                            />
                                           </td>
                                           <td className="px-4 py-1.5 w-[10%]">
-                                            <div className="flex items-center space-x-0.5 flex-wrap">
-                                              {actualViewerType === 'artist' && (
-                                                <>
-                                                  {getEffectiveBidStatus(bid) === 'pending' && (
-                                                    <>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (request.isVenueInitiated && request.originalOfferId) {
-                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                            if (originalOffer) {
-                                                              handleOfferAction(originalOffer, 'accept');
-                                                            }
-                                                          } else {
-                                                            handleBidAction(bid, 'accept');
-                                                          }
-                                                        }}
-                                                        disabled={bidActions[bid.id]}
-                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                                        title="Accept this bid"
-                                                      >
-                                                        ✓
-                                                      </button>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (!request.isVenueInitiated) {
-                                                            handleBidAction(bid, 'hold');
-                                                          }
-                                                        }}
-                                                        disabled={bidActions[bid.id] || request.isVenueInitiated}
-                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 transition-colors"
-                                                        title={request.isVenueInitiated ? "Hold not available for offers" : "Place on hold"}
-                                                        style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
-                                                      >
-                                                        ⏸
-                                                      </button>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (request.isVenueInitiated && request.originalOfferId) {
-                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                            if (originalOffer) {
-                                                              handleOfferAction(originalOffer, 'decline');
-                                                            }
-                                                          } else {
-                                                            handleBidAction(bid, 'decline');
-                                                          }
-                                                        }}
-                                                        disabled={bidActions[bid.id]}
-                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
-                                                        title="Decline this bid"
-                                                      >
-                                                        ✕
-                                                      </button>
-                                                    </>
-                                                  )}
-
-                                                  {getEffectiveBidStatus(bid) === 'hold' && (
-                                                    <>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (request.isVenueInitiated && request.originalOfferId) {
-                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                            if (originalOffer) {
-                                                              handleOfferAction(originalOffer, 'accept');
-                                                            }
-                                                          } else {
-                                                            handleBidAction(bid, 'accept');
-                                                          }
-                                                        }}
-                                                        disabled={bidActions[bid.id]}
-                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
-                                                        title="Accept this bid"
-                                                      >
-                                                        ✓
-                                                      </button>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (request.isVenueInitiated && request.originalOfferId) {
-                                                            const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                                                            if (originalOffer) {
-                                                              handleOfferAction(originalOffer, 'decline');
-                                                            }
-                                                          } else {
-                                                            handleBidAction(bid, 'decline');
-                                                          }
-                                                        }}
-                                                        disabled={bidActions[bid.id]}
-                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-colors"
-                                                        title="Decline this bid"
-                                                      >
-                                                        ✕
-                                                      </button>
-                                                    </>
-                                                  )}
-
-                                                  {getEffectiveBidStatus(bid) === 'accepted' && (
-                                                    <>
-                                                      <button
-                                                        onClick={() => {
-                                                          if (!request.isVenueInitiated) {
-                                                            handleBidAction(bid, 'undo-accept');
-                                                          }
-                                                        }}
-                                                        disabled={bidActions[bid.id] || request.isVenueInitiated}
-                                                        className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white bg-orange-600 hover:bg-orange-700 disabled:opacity-50 transition-colors"
-                                                        title={request.isVenueInitiated ? "Undo not available for offers" : "Undo acceptance - return to pending"}
-                                                        style={{ opacity: request.isVenueInitiated ? 0.3 : 1 }}
-                                                      >
-                                                        ↶
-                                                      </button>
-                                                    </>
-                                                  )}
-                                                </>
-                                              )}
-                                              
-                                              {/* Edit Offer button removed - now available in main actions column for better discoverability */}
-                                            </div>
+                                            <BidActionButtons
+                                              bid={bid}
+                                              request={request}
+                                              permissions={permissions}
+                                              bidStatus={getEffectiveBidStatus(bid)}
+                                              isLoading={bidActions[bid.id]}
+                                              venueOffers={venueOffers}
+                                              onBidAction={handleBidAction}
+                                              onOfferAction={handleOfferAction}
+                                            />
                                           </td>
                                         </tr>
                                       ))}
@@ -2267,7 +2016,7 @@ export default function TabbedTourItinerary({
             setShowDetailModal(false);
             setSelectedShowForDetail(null);
           }}
-          viewerType={actualViewerType}
+          viewerType={permissions.actualViewerType}
         />
       )}
 
@@ -2284,7 +2033,7 @@ export default function TabbedTourItinerary({
             setTourRequestDetailModal(false);
             setShowBidForm(true);
           }}
-          viewerType={actualViewerType}
+          viewerType={permissions.actualViewerType}
         />
       )}
 
@@ -2301,7 +2050,7 @@ export default function TabbedTourItinerary({
             setSelectedDocumentBid(null);
             setSelectedDocumentTourRequest(null);
           }}
-          viewerType={actualViewerType}
+          viewerType={permissions.actualViewerType}
           onUpdate={(data) => {
             console.log('Document updated:', data);
             fetchData();
