@@ -348,6 +348,7 @@ export default function TabbedTourItinerary({
   // Universal Make Offer Modal state
   const [showUniversalOfferModal, setShowUniversalOfferModal] = useState(false);
   const [offerTargetArtist, setOfferTargetArtist] = useState<{ id: string; name: string } | null>(null);
+  const [offerTourRequest, setOfferTourRequest] = useState<{ id: string; title: string; artistName: string } | null>(null);
 
   // 🎯 REFACTORED: Timeline creation using utility functions
   const filteredShows = shows.filter(show => !deletedShows.has(show.id));
@@ -1740,26 +1741,7 @@ export default function TabbedTourItinerary({
                               {requestBids.length} bid{requestBids.length !== 1 ? 's' : ''}
                             </span>
                           </div>
-                          {/* 🎯 NEW: Make Offer button in Offers column for venue-specific requests */}
-                          {actualViewerType === 'venue' && 
-                           !request.isVenueInitiated && 
-                           requestBids.length === 0 && 
-                           editable && (
-                            <div onClick={(e) => e.stopPropagation()}>
-                              <MakeOfferButton
-                                targetArtist={{
-                                  id: request.artistId,
-                                  name: request.artistName
-                                }}
-                                preSelectedDate={request.startDate}
-                                variant="outline"
-                                size="xs"
-                                onSuccess={() => fetchData()}
-                              >
-                                Make Offer
-                              </MakeOfferButton>
-                            </div>
-                          )}
+                          {/* 🎯 UX IMPROVEMENT: Removed Make Offer button - moved to Actions column for consistency */}
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-[8%]">
@@ -1779,28 +1761,33 @@ export default function TabbedTourItinerary({
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          {/* 🎯 UX IMPROVEMENT: Show Edit Offer button instead of delete for venues with bids */}
+                          {/* 🎯 UX IMPROVEMENT: Consistent offer action placement */}
                           {actualViewerType === 'venue' && 
-                           requestBids.length > 0 && 
+                           !request.isVenueInitiated && 
                            editable && (
                             <div onClick={(e) => e.stopPropagation()}>
-                              <MakeOfferButton
-                                targetArtist={{
-                                  id: request.artistId,
-                                  name: request.artistName
+                              <button
+                                onClick={() => {
+                                  setOfferTargetArtist({
+                                    id: request.artistId,
+                                    name: request.artistName
+                                  });
+                                  setOfferTourRequest({
+                                    id: request.id,
+                                    title: request.title,
+                                    artistName: request.artistName
+                                  });
+                                  setShowUniversalOfferModal(true);
                                 }}
-                                preSelectedDate={request.startDate}
-                                variant="outline"
-                                size="xs"
-                                onSuccess={() => fetchData()}
+                                className="inline-flex items-center justify-center border rounded-lg font-medium transition-colors duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 px-3 py-1 text-xs bg-white text-blue-600 hover:bg-blue-50 border-blue-600 focus:ring-blue-500 whitespace-nowrap"
                               >
-                                Edit Offer
-                              </MakeOfferButton>
+                                {requestBids.length > 0 ? "Edit Offer" : "Make Offer"}
+                              </button>
                             </div>
                           )}
 
                           {/* 🎯 UX IMPROVEMENT: Keep delete button for all other cases */}
-                          {editable && !(actualViewerType === 'venue' && requestBids.length > 0) && (
+                          {editable && !(actualViewerType === 'venue' && !request.isVenueInitiated) && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2261,12 +2248,24 @@ export default function TabbedTourItinerary({
           onClose={() => {
             setShowUniversalOfferModal(false);
             setOfferTargetArtist(null);
+            setOfferTourRequest(null);
           }}
-          onSuccess={(offer) => {
-            console.log('Offer created successfully:', offer);
+          onSuccess={(result) => {
+            console.log('Offer/dismissal result:', result);
+            
+            // Handle dismissal by removing from local state
+            if (result.dismissed && result.requestId) {
+              setDeletedRequests(prev => new Set([...prev, result.requestId]));
+            }
+            
             fetchData();
           }}
           preSelectedArtist={offerTargetArtist || undefined}
+          preSelectedDate={offerTourRequest ? 
+            tourRequests.find(req => req.id === offerTourRequest.id)?.startDate : 
+            undefined
+          }
+          tourRequest={offerTourRequest || undefined}
         />
       )}
 

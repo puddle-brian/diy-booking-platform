@@ -14,6 +14,12 @@ interface UniversalMakeOfferModalProps {
   };
   // Optional pre-selected date (when opened from tour request)
   preSelectedDate?: string;
+  // 🎯 UX IMPROVEMENT: Add request context for dismissal
+  tourRequest?: {
+    id: string;
+    title: string;
+    artistName: string;
+  };
 }
 
 interface Venue {
@@ -31,7 +37,8 @@ export default function UniversalMakeOfferModal({
   onClose,
   onSuccess,
   preSelectedArtist,
-  preSelectedDate
+  preSelectedDate,
+  tourRequest
 }: UniversalMakeOfferModalProps) {
   const { user } = useAuth();
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -428,6 +435,27 @@ export default function UniversalMakeOfferModal({
     }
   };
 
+  // 🎯 UX IMPROVEMENT: Dismiss request functionality for venues
+  const handleDismissRequest = async () => {
+    if (!tourRequest) {
+      throw new Error('Cannot dismiss - missing request information');
+    }
+
+    try {
+      console.log('🙈 Dismissing show request from venue timeline:', tourRequest.id);
+      
+      // For now, we'll implement this as a local dismissal
+      // In a full implementation, you might want to track this in the backend
+      // or allow venues to mark requests as "not interested"
+      
+      onSuccess({ dismissed: true, requestId: tourRequest.id });
+      handleClose();
+    } catch (error) {
+      console.error('❌ Error dismissing request:', error);
+      throw error;
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -496,6 +524,7 @@ export default function UniversalMakeOfferModal({
             onSubmit={handleSubmit}
             onCancel={handleClose}
             onDelete={existingBid ? handleDelete : undefined}
+            onDismissRequest={!existingBid && tourRequest ? handleDismissRequest : undefined}
             loading={loading}
             error={error}
             preSelectedArtist={preSelectedArtist}

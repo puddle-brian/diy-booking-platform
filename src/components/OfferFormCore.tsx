@@ -39,6 +39,9 @@ interface OfferFormCoreProps {
   // 🎯 UX IMPROVEMENT: Delete functionality for existing offers
   onDelete?: () => Promise<void>;
   
+  // 🎯 UX IMPROVEMENT: Dismiss request functionality for venues  
+  onDismissRequest?: () => Promise<void>;
+  
   // Customization
   title?: string;
   subtitle?: string;
@@ -58,6 +61,7 @@ export default function OfferFormCore({
   preSelectedDate,
   existingBid,
   onDelete,
+  onDismissRequest,
   title = "Make Offer to Artist",
   subtitle,
   submitButtonText = "Send Offer",
@@ -89,6 +93,9 @@ export default function OfferFormCore({
   
   // 🎯 UX IMPROVEMENT: Delete state management
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // 🎯 UX IMPROVEMENT: Dismiss state management
+  const [isDismissing, setIsDismissing] = useState(false);
 
   // 🎯 LOAD EXISTING BID DATA: Pre-populate form if editing existing bid (ONLY ONCE)
   useEffect(() => {
@@ -376,8 +383,19 @@ export default function OfferFormCore({
 
         {/* Submit Buttons */}
         <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-          {/* 🎯 UX IMPROVEMENT: Delete button for existing offers */}
+          {/* 🎯 UX IMPROVEMENT: Cancel on left - just backing out */}
           <div>
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+          
+          {/* 🎯 UX IMPROVEMENT: Resolution actions grouped together on right */}
+          <div className="flex space-x-3">
             {existingBid && onDelete && (
               <button
                 type="button"
@@ -393,8 +411,8 @@ export default function OfferFormCore({
                     }
                   }
                 }}
-                disabled={loading || isDeleting}
-                className="px-4 py-2 text-red-700 bg-red-100 hover:bg-red-200 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2"
+                disabled={loading || isDeleting || isDismissing}
+                className="px-4 py-2 text-red-700 bg-red-100 hover:bg-red-200 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2 font-medium"
               >
                 {isDeleting && (
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -405,20 +423,39 @@ export default function OfferFormCore({
                 {isDeleting ? 'Deleting...' : 'Delete Offer'}
               </button>
             )}
-          </div>
-          
-          <div className="flex space-x-3">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+            
+            {!existingBid && onDismissRequest && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (window.confirm('Remove this show request from your timeline? You can still find it in the general show requests if you change your mind.')) {
+                    setIsDismissing(true);
+                    try {
+                      await onDismissRequest();
+                    } catch (error) {
+                      console.error('Dismiss failed:', error);
+                    } finally {
+                      setIsDismissing(false);
+                    }
+                  }
+                }}
+                disabled={loading || isDeleting || isDismissing}
+                className="px-4 py-2 text-gray-800 bg-gray-200 hover:bg-gray-300 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2 font-medium"
+              >
+                {isDismissing && (
+                  <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                )}
+                {isDismissing ? 'Dismissing...' : 'Dismiss Request'}
+              </button>
+            )}
+            
             <button
               type="submit"
-              disabled={loading || isDeleting || (!preSelectedArtist && !formData.artistId) || !formData.proposedDate}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              disabled={loading || isDeleting || isDismissing || (!preSelectedArtist && !formData.artistId) || !formData.proposedDate}
+              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 font-medium"
             >
               {loading && (
                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
