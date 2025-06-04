@@ -42,6 +42,9 @@ interface OfferFormCoreProps {
   // 🎯 UX IMPROVEMENT: Universal dismiss functionality (replaces onDismissRequest)
   onDismiss?: () => Promise<void>;
   
+  // 🎯 UX IMPROVEMENT: Global alert system integration
+  confirm?: (title: string, message: string, onConfirm: () => void) => void;
+  
   // Customization
   title?: string;
   subtitle?: string;
@@ -62,6 +65,7 @@ export default function OfferFormCore({
   existingBid,
   onDelete,
   onDismiss,
+  confirm,
   title = "Make Offer to Artist",
   subtitle,
   submitButtonText = "Send Offer",

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import OfferFormCore from './OfferFormCore';
 import { parsedOfferToLegacyFormat } from './OfferInput';
+import { useAlert } from './UniversalAlertModal';
 
 interface UniversalMakeOfferModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export default function UniversalMakeOfferModal({
   existingBid
 }: UniversalMakeOfferModalProps) {
   const { user } = useAuth();
+  const { confirm } = useAlert();
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(false);
@@ -448,6 +450,7 @@ export default function UniversalMakeOfferModal({
             onCancel={handleClose}
             onDelete={existingBid ? handleDelete : undefined}
             onDismiss={!existingBid && tourRequest ? handleDismissRequest : undefined}
+            confirm={confirm}
             loading={loading}
             error={error}
             preSelectedArtist={preSelectedArtist}

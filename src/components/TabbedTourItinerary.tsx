@@ -1814,7 +1814,12 @@ export default function TabbedTourItinerary({
                                   
                                   // 🎯 UX FIX: Determine existing bid immediately - no async detection
                                   const existingBid = requestBids.find(bid => bid.venueId === venueId);
-                                  setOfferExistingBid(existingBid || null);
+                                  // 🎯 BUG FIX: Map guarantee field to amount field for OfferFormCore compatibility
+                                  const mappedExistingBid = existingBid ? {
+                                    ...existingBid,
+                                    amount: existingBid.guarantee // Map guarantee to amount for OfferFormCore
+                                  } : null;
+                                  setOfferExistingBid(mappedExistingBid);
                                   
                                   setShowUniversalOfferModal(true);
                                 }}
@@ -2363,6 +2368,7 @@ export default function TabbedTourItinerary({
                   }
                 }}
                 onCancel={() => setShowAddDateForm(false)}
+                confirm={confirm}
                 title="Make Offer to Artist"
                 subtitle="Invite a specific artist to play at your venue on this date"
                 submitButtonText="Send Offer"

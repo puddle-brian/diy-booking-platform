@@ -21,6 +21,8 @@ interface VenueOfferFormProps {
     id: string;
     name: string;
   };
+  // 🎯 UX IMPROVEMENT: Global alert system integration
+  confirm?: (title: string, message: string, onConfirm: () => void) => void;
 }
 
 export default function VenueOfferForm({ 
@@ -28,7 +30,8 @@ export default function VenueOfferForm({
   venueName, 
   onSuccess, 
   onCancel,
-  preSelectedArtist
+  preSelectedArtist,
+  confirm
 }: VenueOfferFormProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -83,6 +86,7 @@ export default function VenueOfferForm({
       title="Make Offer to Artist"
       subtitle={`Invite a specific artist to play at ${venueName}`}
       submitButtonText="Send Offer"
+      confirm={confirm}
     />
   );
 } 
