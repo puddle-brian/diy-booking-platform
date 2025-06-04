@@ -2038,9 +2038,8 @@ export default function TabbedTourItinerary({
                                             />
                                           </td>
                                           <td className="px-4 py-1.5 w-[8%]">
-                                            {/* Document icon for individual bids - show for artists viewing their requests OR venues viewing their own bid */}
-                                            {((actualViewerType === 'artist' && artistId && request.artistId === artistId) ||
-                                              (actualViewerType === 'venue' && venueId && bid.venueId === venueId)) && (
+                                            {/* Document icon for individual bids - show ONLY for artists viewing their requests */}
+                                            {(actualViewerType === 'artist' && artistId && request.artistId === artistId) && (
                                               <button
                                                 onClick={(e) => {
                                                   e.stopPropagation();
