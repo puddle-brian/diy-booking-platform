@@ -28,7 +28,21 @@ function ArtistRequirementsComponent({
   
   // 🎯 FIX: Local form state for immediate responsiveness
   const [localFormChanges, setLocalFormChanges] = useState<any>({});
+  const [preservedContext, setPreservedContext] = useState<any>(null);
   
+  // 🎯 PRESERVE: Save context when we have valid artistId  
+  useEffect(() => {
+    const artistId = data?.artistId || data?.artist?.id;
+    if (artistId && (!preservedContext || preservedContext.artistId !== artistId)) {
+      const context = {
+        artistId,
+        artist: data?.artist || { id: artistId, name: data?.artistName },
+      };
+      console.log('🎭 ArtistRequirementsModule: Preserving context:', context);
+      setPreservedContext(context);
+    }
+  }, [data?.artistId, data?.artist?.id, preservedContext]);
+
   // 🎯 NEW: Fetch artist's default template
   useEffect(() => {
     const fetchArtistTemplate = async () => {
@@ -36,11 +50,11 @@ function ArtistRequirementsComponent({
         setTemplateLoading(true);
         setTemplateError(null);
         
-        // Extract artistId from context data
-        const artistId = data?.artistId || data?.artist?.id;
+        // Extract artistId from context data OR preserved context
+        const artistId = data?.artistId || data?.artist?.id || preservedContext?.artistId;
         
         if (!artistId) {
-          console.warn('🎭 ArtistRequirementsModule: No artistId found, using fallback data');
+          console.warn('🎭 ArtistRequirementsModule: No artistId found (data:', data?.artistId, 'preserved:', preservedContext?.artistId, '), using fallback data');
           setArtistTemplate(null);
           setTemplateLoading(false);
           return;
@@ -74,7 +88,7 @@ function ArtistRequirementsComponent({
     };
 
     fetchArtistTemplate();
-  }, [data?.artistId, data?.artist?.id]);
+  }, [data?.artistId, data?.artist?.id, preservedContext?.artistId]);
 
   // 🎯 FIX: Clear local form changes when parent data updates (prevents conflicts)
   // But ONLY if we're not currently editing to prevent losing unsaved changes
@@ -133,6 +147,24 @@ function ArtistRequirementsComponent({
       hasLocalChanges: Object.keys(localFormChanges).length > 0,
       effectiveKeys: Object.keys(merged)
     });
+    
+    // 🔍 DEBUG: Track checkbox values in effective data specifically
+    console.log('🔍 EFFECTIVE DATA CHECKBOXES:', {
+      merchandising: merged.merchandising,
+      acceptsDoorDeals: merged.acceptsDoorDeals,
+      'from template': {
+        merchandising: artistTemplate?.merchandising,
+        acceptsDoorDeals: artistTemplate?.acceptsDoorDeals
+      },
+      'from data overrides': {
+        merchandising: data?.merchandising,
+        acceptsDoorDeals: data?.acceptsDoorDeals
+      },
+      'from local changes': {
+        merchandising: localFormChanges?.merchandising,
+        acceptsDoorDeals: localFormChanges?.acceptsDoorDeals
+      }
+    });
 
     return merged;
   }, [artistTemplate, data, localFormChanges]);
@@ -141,9 +173,30 @@ function ArtistRequirementsComponent({
   const handleTemplateFormChange = (field: string, value: any) => {
     // 🎯 IMMEDIATE: Update local form state for instant responsiveness
     console.log('🎭 ArtistRequirementsModule: Field changed:', field, '=', value);
+    
+    // 🔍 DEBUG: Special logging for checkbox fields to track the issue
+    if (field === 'merchandising' || field === 'acceptsDoorDeals') {
+      console.log('🔍 CHECKBOX DEBUG: Before change');
+      console.log('🔍 Current effective data:', {
+        merchandising: effectiveData.merchandising,
+        acceptsDoorDeals: effectiveData.acceptsDoorDeals
+      });
+      console.log('🔍 Current local changes:', localFormChanges);
+    }
+    
     setLocalFormChanges((prev: any) => {
       const newChanges = { ...prev, [field]: value };
       console.log('🎭 ArtistRequirementsModule: New local changes:', newChanges);
+      
+      // 🔍 DEBUG: More checkbox debugging
+      if (field === 'merchandising' || field === 'acceptsDoorDeals') {
+        console.log('🔍 CHECKBOX DEBUG: After local change update');
+        console.log('🔍 New local changes for checkboxes:', {
+          merchandising: newChanges.merchandising,
+          acceptsDoorDeals: newChanges.acceptsDoorDeals
+        });
+      }
+      
       return newChanges;
     });
     
@@ -278,14 +331,96 @@ function ArtistRequirementsComponent({
           </div>
         )}
 
-        {/* 🎯 TEMPLATE FORM CORE: Use exact same component as template system */}
-        <TemplateFormCore
-          formData={effectiveData}
-          onChange={handleTemplateFormChange}
-          template={artistTemplate || undefined}
-          mode="confirmed"
-          showTemplateSelector={false}
-        />
+        {/* 🎯 BUSINESS TERMS: Custom checkboxes that work correctly */}
+        <div className="space-y-4">
+          <h4 className="text-md font-semibold text-gray-900">Business Terms</h4>
+          
+          <div className="grid grid-cols-2 gap-4">
+                         {/* Door Deals Checkbox - Working directly with our state */}
+             <label className="flex items-center space-x-2 cursor-pointer">
+               <input
+                 type="checkbox"
+                 checked={(() => {
+                   const value = effectiveData.acceptsDoorDeals ?? true;
+                   console.log('🔍 RENDER: Door Deals checkbox value:', value, 'from effectiveData:', effectiveData.acceptsDoorDeals);
+                   return value;
+                 })()}
+                 onChange={(e) => {
+                   console.log('🔍 CHANGE: Door Deals clicked, new value:', e.target.checked);
+                   handleTemplateFormChange('acceptsDoorDeals', e.target.checked);
+                 }}
+                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+               />
+               <span className="text-sm text-gray-700">Accepts Door Deals</span>
+             </label>
+
+             {/* Merchandising Checkbox - Working directly with our state */}
+             <label className="flex items-center space-x-2 cursor-pointer">
+               <input
+                 type="checkbox"
+                 checked={(() => {
+                   const value = effectiveData.merchandising ?? true;
+                   console.log('🔍 RENDER: Merchandising checkbox value:', value, 'from effectiveData:', effectiveData.merchandising);
+                   return value;
+                 })()}
+                 onChange={(e) => {
+                   console.log('🔍 CHANGE: Merchandising clicked, new value:', e.target.checked);
+                   handleTemplateFormChange('merchandising', e.target.checked);
+                 }}
+                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+               />
+               <span className="text-sm text-gray-700">Merchandising Allowed</span>
+             </label>
+          </div>
+
+          {/* Age Restriction Dropdown */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Age Restriction
+            </label>
+            <select
+              value={effectiveData.ageRestriction || 'all-ages'}
+              onChange={(e) => handleTemplateFormChange('ageRestriction', e.target.value)}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            >
+              <option value="all-ages">All Ages</option>
+              <option value="18+">18+</option>
+              <option value="21+">21+</option>
+              <option value="flexible">Flexible</option>
+            </select>
+          </div>
+
+          {/* Guarantee Range */}
+          {effectiveData.guaranteeRange && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Minimum Guarantee
+              </label>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">$</span>
+                <input
+                  type="number"
+                  value={effectiveData.guaranteeRange.min || ''}
+                  onChange={(e) => handleTemplateFormChange('guaranteeRange', {
+                    ...effectiveData.guaranteeRange,
+                    min: parseInt(e.target.value) || 0
+                  })}
+                  className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* 🔍 DEBUG: Show current checkbox values */}
+        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
+          <strong>✅ CURRENT VALUES (should match checkboxes above):</strong>
+          <br />
+          Door Deals: {effectiveData.acceptsDoorDeals ? '✓ Checked' : '✗ Unchecked'}
+          <br />
+          Merchandising: {effectiveData.merchandising ? '✓ Checked' : '✗ Unchecked'}
+        </div>
 
         {/* Save/Cancel Buttons */}
         <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
@@ -310,8 +445,8 @@ function ArtistRequirementsComponent({
               try {
                 // 🎯 SIMPLE: Just prepare the data and let parent handle the API call
                 const contextData = {
-                  artistId: data?.artistId,
-                  artist: data?.artist,
+                  artistId: data?.artistId || preservedContext?.artistId,
+                  artist: data?.artist || preservedContext?.artist,
                 };
                 
                 const saveData = { ...contextData, ...localFormChanges };
