@@ -198,11 +198,10 @@ export default function TabbedTourItinerary({
   // Track declined bids locally to avoid flashing
   const [declinedBids, setDeclinedBids] = useState<Set<string>>(new Set());
   
-  // Track deleted tour requests locally to avoid flashing  
-  const [deletedRequests, setDeletedRequests] = useState<Set<string>>(new Set());
+  // Removed local deletedRequests state - now using hook's state.deletedRequests
   
   // Track deleted shows locally to avoid flashing
-  const [deletedShows, setDeletedShows] = useState<Set<string>>(new Set());
+  // Removed local deletedShows state - now using hook's state.deletedShows
   
   // Add optimistic bid status tracking to prevent blinking during switches
   const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, 'pending' | 'accepted' | 'hold' | 'declined'>>(new Map());
@@ -320,8 +319,36 @@ export default function TabbedTourItinerary({
       `Are you sure you want to delete "${showName}"?`,
       async () => {
         try {
+          // Check if this is the last item in the current month before deletion
+          const currentMonthEntries = activeMonthEntries;
+          const showToDelete = currentMonthEntries.find(entry => 
+            entry.type === 'show' && (entry.data as Show).id === showId
+          );
+          const isLastItemInMonth = currentMonthEntries.length === 1 && showToDelete;
+          
           // Optimistic update - immediately hide the show
-          setDeletedShows(prev => new Set([...prev, showId]));
+          actions.deleteShowOptimistic(showId);
+          
+          // If this was the last item in the month, switch to a valid month immediately
+          if (isLastItemInMonth && monthGroups.length > 1) {
+            // Find the next best month to switch to
+            const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
+            let newActiveMonth: string;
+            
+            if (currentMonthIndex < monthGroups.length - 1) {
+              // Switch to next month
+              newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
+            } else if (currentMonthIndex > 0) {
+              // Switch to previous month
+              newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
+            } else {
+              // Fallback to current month
+              const now = new Date();
+              newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            }
+            
+            actions.setActiveMonth(newActiveMonth);
+          }
           
           const response = await fetch(`/api/shows/${showId}`, {
             method: 'DELETE',
@@ -336,12 +363,8 @@ export default function TabbedTourItinerary({
         } catch (error) {
           console.error('Error deleting show:', error);
           
-          // Revert optimistic update on error
-          setDeletedShows(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(showId);
-            return newSet;
-          });
+          // Revert optimistic update on error by refreshing data
+          await fetchData();
           
           showError('Delete Failed', 'Failed to delete show. Please try again.');
         }
@@ -450,9 +473,37 @@ export default function TabbedTourItinerary({
     
     // Optimistic update for decline action to avoid flashing
     if (action === 'decline') {
-      // Find and hide the synthetic tour request for this offer
+      // Check if this is the last item in the current month before deletion
       const syntheticRequestId = `venue-offer-${offer.id}`;
-      setDeletedRequests(prev => new Set([...prev, syntheticRequestId]));
+      const currentMonthEntries = activeMonthEntries;
+      const offerToDelete = currentMonthEntries.find(entry => 
+        entry.type === 'tour-request' && (entry.data as any).id === syntheticRequestId
+      );
+      const isLastItemInMonth = currentMonthEntries.length === 1 && offerToDelete;
+      
+      // Find and hide the synthetic tour request for this offer
+      actions.deleteRequestOptimistic(syntheticRequestId);
+      
+      // If this was the last item in the month, switch to a valid month immediately
+      if (isLastItemInMonth && monthGroups.length > 1) {
+        // Find the next best month to switch to
+        const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
+        let newActiveMonth: string;
+        
+        if (currentMonthIndex < monthGroups.length - 1) {
+          // Switch to next month
+          newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
+        } else if (currentMonthIndex > 0) {
+          // Switch to previous month
+          newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
+        } else {
+          // Fallback to current month
+          const now = new Date();
+          newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+        
+        actions.setActiveMonth(newActiveMonth);
+      }
     } else if (action === 'accept') {
       // Optimistic update for accept action
       setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
@@ -541,11 +592,8 @@ export default function TabbedTourItinerary({
           return newMap;
         });
       } else if (action === 'decline') {
-        setDeletedRequests(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(`venue-offer-${offer.id}`);
-          return newSet;
-        });
+        // Revert optimistic update on error by refreshing data
+        await fetchData();
       }
       
       showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -732,9 +780,37 @@ export default function TabbedTourItinerary({
     
     // Optimistic update for decline action to avoid flashing
     if (action === 'decline') {
-      // Find and hide the synthetic tour request for this offer
+      // Check if this is the last item in the current month before deletion
       const syntheticRequestId = `venue-offer-${offer.id}`;
-      setDeletedRequests(prev => new Set([...prev, syntheticRequestId]));
+      const currentMonthEntries = activeMonthEntries;
+      const offerToDelete = currentMonthEntries.find(entry => 
+        entry.type === 'tour-request' && (entry.data as any).id === syntheticRequestId
+      );
+      const isLastItemInMonth = currentMonthEntries.length === 1 && offerToDelete;
+      
+      // Find and hide the synthetic tour request for this offer
+      actions.deleteRequestOptimistic(syntheticRequestId);
+      
+      // If this was the last item in the month, switch to a valid month immediately
+      if (isLastItemInMonth && monthGroups.length > 1) {
+        // Find the next best month to switch to
+        const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
+        let newActiveMonth: string;
+        
+        if (currentMonthIndex < monthGroups.length - 1) {
+          // Switch to next month
+          newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
+        } else if (currentMonthIndex > 0) {
+          // Switch to previous month
+          newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
+        } else {
+          // Fallback to current month
+          const now = new Date();
+          newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+        
+        actions.setActiveMonth(newActiveMonth);
+      }
     } else if (action === 'accept') {
       // Optimistic update for accept action
       setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
@@ -823,11 +899,8 @@ export default function TabbedTourItinerary({
           return newMap;
         });
       } else if (action === 'decline') {
-        setDeletedRequests(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(`venue-offer-${offer.id}`);
-          return newSet;
-        });
+        // Revert optimistic update on error by refreshing data
+        await fetchData();
       }
       
       showError(`${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Failed`, `Failed to ${actionText} offer: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -985,8 +1058,36 @@ export default function TabbedTourItinerary({
       async () => {
         actions.setDeleteLoading(requestId);
         
+        // Check if this is the last item in the current month before deletion
+        const currentMonthEntries = activeMonthEntries;
+        const requestToDelete = currentMonthEntries.find(entry => 
+          entry.type === 'tour-request' && (entry.data as TourRequest).id === requestId
+        );
+        const isLastItemInMonth = currentMonthEntries.length === 1 && requestToDelete;
+        
         // Optimistic update - immediately hide the request
         actions.deleteRequestOptimistic(requestId);
+        
+        // If this was the last item in the month, switch to a valid month immediately
+        if (isLastItemInMonth && monthGroups.length > 1) {
+          // Find the next best month to switch to
+          const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
+          let newActiveMonth: string;
+          
+          if (currentMonthIndex < monthGroups.length - 1) {
+            // Switch to next month
+            newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
+          } else if (currentMonthIndex > 0) {
+            // Switch to previous month
+            newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
+          } else {
+            // Fallback to current month
+            const now = new Date();
+            newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+          }
+          
+          actions.setActiveMonth(newActiveMonth);
+        }
         
         try {
           const response = await fetch(`/api/show-requests/${requestId}`, {

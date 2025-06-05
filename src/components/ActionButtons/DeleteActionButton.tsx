@@ -84,14 +84,14 @@ export function DeleteActionButton({
   onBidAction
 }: DeleteActionButtonProps) {
   // Show delete button logic
-  if (show && permissions.isOwner) {
+  if (show && onDeleteShow) {
     const showName = `${show.artistName || 'Show'} at ${show.venueName || show.city}`;
     
     return (
       <button
         onClick={(e) => {
           e.stopPropagation();
-          onDeleteShow?.(show.id, showName);
+          onDeleteShow(show.id, showName);
         }}
         disabled={isLoading}
         className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
@@ -109,7 +109,7 @@ export function DeleteActionButton({
   }
 
   // Request delete button logic
-  if (request && permissions.isOwner) {
+  if (request && (onDeleteRequest || onOfferAction || onBidAction)) {
     // Check if this should be shown based on viewer type and request type
     const shouldShow = !(permissions.actualViewerType === 'venue' && !request.isVenueInitiated);
     
