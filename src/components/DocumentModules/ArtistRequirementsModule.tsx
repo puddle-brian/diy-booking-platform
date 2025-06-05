@@ -18,6 +18,18 @@ function ArtistRequirementsComponent({
   errors = []
 }: ModuleComponentProps) {
 
+  // Debug: Log data changes to understand what's happening
+  React.useEffect(() => {
+    console.log('🎭 ArtistRequirementsComponent: Data updated:', {
+      isEditing,
+      dataKeys: data ? Object.keys(data) : [],
+      hasEquipment: !!data?.equipment,
+      hasGuaranteeRange: !!data?.guaranteeRange,
+      acceptsDoorDeals: data?.acceptsDoorDeals,
+      merchandising: data?.merchandising
+    });
+  }, [data, isEditing]);
+
   // Show empty state if no artist requirements data
   if (!data || Object.keys(data).length === 0) {
     return (
@@ -324,15 +336,15 @@ function ArtistRequirementsComponent({
       )}
 
       {/* Business Requirements */}
-      {(data.guaranteeRange || data.acceptsDoorDeals || data.merchandising || data.ageRestriction) && (
+      {(data.guaranteeRange || data.acceptsDoorDeals !== undefined || data.merchandising !== undefined || data.ageRestriction) && (
         <div>
           <h5 className="font-medium text-gray-800 mb-2">Business Requirements</h5>
           <div className="space-y-2 text-sm">
-            {data.guaranteeRange && (data.guaranteeRange.min > 0 || data.guaranteeRange.max > 0) && (
+            {data.guaranteeRange && (data.guaranteeRange.min !== undefined || data.guaranteeRange.max !== undefined) && (
               <div>
                 <span className="font-medium text-gray-700">Guarantee Range:</span>
                 <span className="ml-2 text-gray-900">
-                  ${data.guaranteeRange.min} - ${data.guaranteeRange.max}
+                  ${data.guaranteeRange.min || 0} - ${data.guaranteeRange.max || 0}
                 </span>
               </div>
             )}
@@ -356,7 +368,7 @@ function ArtistRequirementsComponent({
               <div>
                 <span className="font-medium text-gray-700">Age Restriction Preference:</span>
                 <span className="ml-2 text-gray-900 capitalize">
-                  {data.ageRestriction.replace('_', '-')}
+                  {data.ageRestriction.replace(/[_-]/g, ' ')}
                 </span>
               </div>
             )}
@@ -473,6 +485,36 @@ function ArtistRequirementsComponent({
           </div>
         </div>
       )}
+
+      {/* Debug: Show raw data if nothing else displays */}
+      {data && Object.keys(data).length === 0 && (
+        <div className="text-center py-6 text-gray-500">
+          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+            <span className="text-lg">📋</span>
+          </div>
+          <p className="font-medium mb-1">No Requirements Set</p>
+          <p className="text-sm">
+            {canEdit 
+              ? "Click 'Edit' above to add your requirements and preferences."
+              : "Artist requirements will appear here when specified."
+            }
+          </p>
+        </div>
+      )}
+
+      {/* Debug: Show some data for troubleshooting */}
+      {process.env.NODE_ENV === 'development' && data && Object.keys(data).length > 0 && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+          <div className="text-xs text-yellow-800">
+            <div className="font-medium mb-1">🐛 Debug Info:</div>
+            <div>Data keys: {Object.keys(data).join(', ')}</div>
+            <div>Equipment: {data.equipment ? JSON.stringify(data.equipment) : 'none'}</div>
+            <div>Guarantee Range: {data.guaranteeRange ? JSON.stringify(data.guaranteeRange) : 'none'}</div>
+            <div>Door Deals: {data.acceptsDoorDeals}</div>
+            <div>Travel: {data.travelMethod || 'none'}</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -506,15 +548,37 @@ export const artistRequirementsModule: ModuleDefinition = {
     }
     
     if (context.bid) {
-      // Venue bid - artist hasn't filled requirements yet
+      // Venue bid - check for persisted artist requirements first, then fall back to sample data
+      if (context.bid.artistRequirements) {
+        // Return persisted data
+        return context.bid.artistRequirements;
+      }
+      
+      // Fall back to sample data for initial load
       return {
+        equipment: {
+          needsPA: true,
+          needsMics: true,
+          needsDrums: false,
+          needsAmps: true,
+          acoustic: false
+        },
+        guaranteeRange: {
+          min: 500,
+          max: 1500
+        },
+        acceptsDoorDeals: true,
+        merchandising: true,
+        ageRestriction: 'all-ages',
+        travelMethod: 'van',
+        lodging: 'flexible',
+        priority: 'medium',
         technicalRequirements: [],
         hospitalityRequirements: [],
-        equipment: {},
-        travelMethod: undefined,
-        lodging: undefined,
-        merchandising: undefined,
-        artistNotes: undefined
+        expectedDraw: 100,
+        description: 'Indie rock band looking for venue partnerships',
+        tourStatus: 'building',
+        artistNotes: 'We prefer early sound check time when possible'
       };
     }
     

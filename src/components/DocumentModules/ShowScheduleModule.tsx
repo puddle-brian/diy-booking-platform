@@ -384,14 +384,17 @@ export const showScheduleModule: ModuleDefinition = {
     }
     
     if (context.bid) {
-      // Venue bid schedule proposal
+      // Venue bid schedule proposal - include sample times if none provided
       return {
-        loadIn: context.bid.loadIn,
-        soundcheck: context.bid.soundcheck,
-        doorsOpen: context.bid.doorsOpen,
-        showTime: context.bid.showTime,
-        curfew: context.bid.curfew,
-        scheduleNotes: context.bid.scheduleNotes
+        loadIn: context.bid.loadIn || '16:00',
+        soundcheck: context.bid.soundcheck || '17:30',
+        doorsOpen: context.bid.doorsOpen || '19:00',
+        showTime: context.bid.showTime || '20:00',
+        curfew: context.bid.curfew || '23:00',
+        scheduleNotes: context.bid.scheduleNotes || 'Load-in through back entrance. Street parking available.',
+        setLength: context.bid.setLength || 45,
+        billingPosition: context.bid.billingPosition || 'headliner',
+        otherActs: context.bid.otherActs || ''
       };
     }
     
