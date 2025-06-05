@@ -58,20 +58,13 @@ export function HoldRequestPanel({
   const fetchHoldRequest = async () => {
     try {
       setLoading(true);
-      
-      // Skip API call for synthetic IDs - they don't exist in the database
-      if (isSyntheticId(showId) || isSyntheticId(showRequestId)) {
-        console.log('🔒 HoldRequestPanel: Skipping API call for synthetic ID:', { showId, showRequestId });
-        setHoldRequest(null);
-        // Don't call onHoldChange here to prevent infinite loops
-        setLoading(false);
-        return;
-      }
 
       const params = new URLSearchParams();
       if (showId) params.set('showId', showId);
       if (showRequestId) params.set('showRequestId', showRequestId);
       params.set('status', 'PENDING,ACTIVE'); // Only fetch active/pending holds
+
+      console.log('🔒 HoldRequestPanel: Fetching holds for:', { showId, showRequestId });
 
       const response = await fetch(`/api/hold-requests?${params}`);
       if (response.ok) {
@@ -81,6 +74,9 @@ export function HoldRequestPanel({
         );
         setHoldRequest(activeHold || null);
         onHoldChange?.(activeHold || null);
+        console.log('🔒 HoldRequestPanel: Found holds:', holds.length, 'Active hold:', !!activeHold);
+      } else {
+        console.error('🔒 HoldRequestPanel: API error:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Error fetching hold request:', error);
@@ -91,14 +87,6 @@ export function HoldRequestPanel({
   };
 
   useEffect(() => {
-    // For synthetic IDs, just set state without calling onHoldChange to prevent infinite loops
-    if (isSyntheticId(showId) || isSyntheticId(showRequestId)) {
-      console.log('🔒 HoldRequestPanel: Synthetic ID detected, setting null state:', { showId, showRequestId });
-      setHoldRequest(null);
-      setLoading(false);
-      return;
-    }
-
     fetchHoldRequest();
   }, [showId, showRequestId]);
 
@@ -199,10 +187,14 @@ export function HoldRequestPanel({
     
     // TEMPORARY FIX: For now, allow hold creation if either artistId or venueId is present
     // TODO: Implement proper venue ownership checking
-    const hasArtistAccess = currentUserId === artistId;
-    const hasVenueAccess = venueId && (currentUserId === venueId || currentUserId === 'debug-lidz-bierenday'); // Debug user access
+    const hasArtistAccess = artistId && currentUserId === artistId;
+    const hasVenueAccess = venueId && currentUserId === 'debug-lidz-bierenday'; // Debug user can access any venue
     
-    return !holdRequest && (hasArtistAccess || hasVenueAccess);
+    const canCreate = !holdRequest && (hasArtistAccess || hasVenueAccess);
+    
+    console.log('🔒 HoldRequestPanel: canCreate result:', canCreate, { hasArtistAccess, hasVenueAccess });
+    
+    return canCreate;
   };
 
   const canRespondToHold = () => {

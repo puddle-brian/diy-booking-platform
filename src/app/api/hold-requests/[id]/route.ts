@@ -31,7 +31,7 @@ async function authenticateUser(request: NextRequest) {
 // PUT /api/hold-requests/[id] - Respond to a hold request
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await authenticateUser(request);
@@ -40,7 +40,7 @@ export async function PUT(
     }
 
     const { action, message } = await request.json();
-    const holdId = params.id;
+    const { id: holdId } = await params;
 
     // Validate action
     if (!['approve', 'decline', 'cancel'].includes(action)) {
@@ -63,6 +63,13 @@ export async function PUT(
 
     // Check permissions
     let canRespond = false;
+    
+    // 🧪 TESTING: Allow debug user to operate on standalone holds
+    if (authResult.user!.id === 'debug-lidz-bierenday' && !hold.showId && !hold.showRequestId) {
+      canRespond = true;
+      console.log('🧪 Debug user access granted for standalone hold');
+    }
+    
     if (hold.showId) {
       const show = await prisma.show.findUnique({
         where: { id: hold.showId },
@@ -81,8 +88,8 @@ export async function PUT(
                    showRequest?.venue?.submittedById === authResult.user!.id;
     }
 
-    // Can't respond to your own hold request
-    if (hold.requestedById === authResult.user!.id) {
+    // Can't respond to your own hold request (unless testing standalone)
+    if (hold.requestedById === authResult.user!.id && (hold.showId || hold.showRequestId)) {
       canRespond = action === 'cancel';
     }
 
@@ -119,13 +126,16 @@ export async function PUT(
         updateData.status = newStatus;
         updateData.respondedById = hold.requestedById; // Cancelled by requester
         break;
+      default:
+        newStatus = 'PENDING';
+        break;
     }
 
     // Use raw query to update until Prisma types are ready
     await prisma.$executeRaw`
       UPDATE "hold_requests" 
       SET 
-        status = ${newStatus}::hold_status,
+        status = CAST(${newStatus} AS "HoldStatus"),
         "respondedById" = ${updateData.respondedById},
         "respondedAt" = ${updateData.respondedAt},
         "startsAt" = ${updateData.startsAt || null},
@@ -140,8 +150,8 @@ export async function PUT(
              u1.username as requester_name,
              u2.username as responder_name
       FROM "hold_requests" hr
-      LEFT JOIN users u1 ON hr."requestedById" = u1.id
-      LEFT JOIN users u2 ON hr."respondedById" = u2.id
+      LEFT JOIN "User" u1 ON hr."requestedById" = u1.id
+      LEFT JOIN "User" u2 ON hr."respondedById" = u2.id
       WHERE hr.id = ${holdId}
     ` as any[];
 
@@ -159,7 +169,7 @@ export async function PUT(
 // GET /api/hold-requests/[id] - Get a specific hold request
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const authResult = await authenticateUser(request);
@@ -167,7 +177,7 @@ export async function GET(
       return NextResponse.json({ error: authResult.error }, { status: 401 });
     }
 
-    const holdId = params.id;
+    const { id: holdId } = await params;
 
     // Get hold request with related data
     const holdRequest = await prisma.$queryRaw`
@@ -179,8 +189,8 @@ export async function GET(
              sr.title as show_request_title,
              sr."requestedDate" as show_request_date
       FROM "hold_requests" hr
-      LEFT JOIN users u1 ON hr."requestedById" = u1.id
-      LEFT JOIN users u2 ON hr."respondedById" = u2.id
+      LEFT JOIN "User" u1 ON hr."requestedById" = u1.id
+      LEFT JOIN "User" u2 ON hr."respondedById" = u2.id
       LEFT JOIN shows s ON hr."showId" = s.id
       LEFT JOIN "show_requests" sr ON hr."showRequestId" = sr.id
       WHERE hr.id = ${holdId}

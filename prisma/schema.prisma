@@ -631,9 +631,10 @@ model VenueOffer {
   updatedAt       DateTime    @updatedAt
   
   // Relations
-  venue           Venue       @relation(fields: [venueId], references: [id])
-  artist          Artist      @relation(fields: [artistId], references: [id])
-  createdBy       User        @relation(fields: [createdById], references: [id])
+  venue           Venue        @relation(fields: [venueId], references: [id])
+  artist          Artist       @relation(fields: [artistId], references: [id])
+  createdBy       User         @relation(fields: [createdById], references: [id])
+  holdRequests    HoldRequest[] // Holds placed on this venue offer
 
   @@index([venueId])
   @@index([artistId])
@@ -850,6 +851,7 @@ model HoldRequest {
   // WHAT: What document is being held
   showId            String?       // For confirmed shows
   showRequestId     String?       // For show requests being negotiated
+  venueOfferId      String?       // For venue offers to artists
   
   // WHO: Hold request parties
   requestedById     String        // Who requested the hold
@@ -876,11 +878,13 @@ model HoldRequest {
   respondedBy       User?         @relation("RespondedHolds", fields: [respondedById], references: [id])
   show              Show?         @relation(fields: [showId], references: [id])
   showRequest       ShowRequest?  @relation(fields: [showRequestId], references: [id])
+  venueOffer        VenueOffer?   @relation(fields: [venueOfferId], references: [id])
   
-  // NOTE: Application-level validation ensures exactly one of showId or showRequestId is set
+  // NOTE: Application-level validation ensures exactly one of showId, showRequestId, or venueOfferId is set
   
   @@index([showId])
   @@index([showRequestId])
+  @@index([venueOfferId])
   @@index([requestedById])
   @@index([status])
   @@index([expiresAt])
