@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ModuleDefinition, ModuleComponentProps } from './ModuleRegistry';
+import { ArtistTemplate } from '../../../types/templates';
+import TemplateFormCore from '../TemplateFormCore';
 
 /**
  * Artist Requirements & Rider Module Component
+ * 🎯 NOW WITH TEMPLATE INTEGRATION - Template is source of truth, using TemplateFormRenderer directly
  */
 function ArtistRequirementsComponent({
   data,
@@ -18,20 +21,190 @@ function ArtistRequirementsComponent({
   errors = []
 }: ModuleComponentProps) {
 
+  // 🎯 NEW: Template integration state
+  const [artistTemplate, setArtistTemplate] = useState<ArtistTemplate | null>(null);
+  const [templateLoading, setTemplateLoading] = useState(true);
+  const [templateError, setTemplateError] = useState<string | null>(null);
+  
+  // 🎯 NEW: Computed effective data (template + overrides)
+  const [effectiveData, setEffectiveData] = useState<any>({});
+
+  // 🎯 NEW: Fetch artist's default template
+  useEffect(() => {
+    const fetchArtistTemplate = async () => {
+      try {
+        setTemplateLoading(true);
+        setTemplateError(null);
+        
+        // Extract artistId from context data
+        const artistId = data?.artistId || data?.artist?.id;
+        
+        if (!artistId) {
+          console.warn('🎭 ArtistRequirementsModule: No artistId found, using fallback data');
+          setArtistTemplate(null);
+          setTemplateLoading(false);
+          return;
+        }
+
+        console.log('🎭 ArtistRequirementsModule: Fetching template for artist:', artistId);
+        
+        const response = await fetch(`/api/artists/${artistId}/templates`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch templates: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        // Find the default template, or use the first COMPLETE template, or fall back to first template
+        const defaultTemplate = result.templates?.find((t: ArtistTemplate) => t.isDefault) ||
+                               result.templates?.find((t: ArtistTemplate) => t.type === 'COMPLETE') ||
+                               result.templates?.[0];
+
+        console.log('🎭 ArtistRequirementsModule: Found template:', defaultTemplate?.name);
+        setArtistTemplate(defaultTemplate || null);
+        
+      } catch (error) {
+        console.error('🎭 ArtistRequirementsModule: Template fetch error:', error);
+        setTemplateError(error instanceof Error ? error.message : 'Failed to load template');
+        setArtistTemplate(null);
+      } finally {
+        setTemplateLoading(false);
+      }
+    };
+
+    fetchArtistTemplate();
+  }, [data?.artistId, data?.artist?.id]);
+
+  // 🎯 NEW: Compute effective data (template base + document overrides)
+  useEffect(() => {
+    if (!artistTemplate) {
+      // No template - use document data as-is (fallback behavior)
+      setEffectiveData(data || {});
+      return;
+    }
+
+    // Merge template data with document overrides
+    const merged = {
+      // Start with template as base
+      equipment: artistTemplate.equipment || {},
+      guaranteeRange: artistTemplate.guaranteeRange || { min: 0, max: 0 },
+      acceptsDoorDeals: artistTemplate.acceptsDoorDeals ?? true,
+      merchandising: artistTemplate.merchandising ?? true,
+      ageRestriction: artistTemplate.ageRestriction || 'all-ages',
+      travelMethod: artistTemplate.travelMethod || 'van',
+      lodging: artistTemplate.lodging || 'flexible',
+      priority: artistTemplate.priority || 'medium',
+      technicalRequirements: artistTemplate.technicalRequirements || [],
+      hospitalityRequirements: artistTemplate.hospitalityRequirements || [],
+      expectedDraw: artistTemplate.expectedDraw || null,
+      description: artistTemplate.description || '',
+      tourStatus: artistTemplate.tourStatus || '',
+      notes: artistTemplate.notes || '',
+      
+      // 🎯 CRITICAL: Apply document-specific overrides on top
+      ...data,
+      
+      // 🎯 META: Include template info for display
+      _templateSource: {
+        templateId: artistTemplate.id,
+        templateName: artistTemplate.name,
+        templateType: artistTemplate.type
+      }
+    };
+
+    console.log('🎭 ArtistRequirementsModule: Computed effective data:', {
+      hasTemplate: !!artistTemplate,
+      templateName: artistTemplate.name,
+      hasOverrides: !!data && Object.keys(data).length > 0,
+      effectiveKeys: Object.keys(merged)
+    });
+
+    setEffectiveData(merged);
+  }, [artistTemplate, data]);
+
+  // 🎯 NEW: Handle template form changes with override tracking
+  const handleTemplateFormChange = (field: string, value: any) => {
+    const newEffectiveData = { ...effectiveData, [field]: value };
+    setEffectiveData(newEffectiveData);
+    
+    // 🎯 SMART: Only store fields that differ from template
+    const overrides: any = {};
+    
+    if (artistTemplate) {
+      // Compare each field with template and only store differences
+      Object.keys(newEffectiveData).forEach(key => {
+        if (key.startsWith('_')) return; // Skip meta fields
+        
+        const templateValue = (artistTemplate as any)[key];
+        const newValue = newEffectiveData[key];
+        
+        // Deep comparison for objects, simple comparison for primitives
+        if (JSON.stringify(templateValue) !== JSON.stringify(newValue)) {
+          overrides[key] = newValue;
+        }
+      });
+      
+      console.log('🎭 ArtistRequirementsModule: Storing overrides:', overrides);
+    } else {
+      // No template - store all data
+      Object.assign(overrides, newEffectiveData);
+    }
+
+    // Pass overrides to parent (this is what gets saved to the document)
+    onDataChange(overrides);
+  };
+
   // Debug: Log data changes to understand what's happening
   React.useEffect(() => {
     console.log('🎭 ArtistRequirementsComponent: Data updated:', {
       isEditing,
+      templateLoading,
+      hasTemplate: !!artistTemplate,
+      templateName: artistTemplate?.name,
       dataKeys: data ? Object.keys(data) : [],
-      hasEquipment: !!data?.equipment,
-      hasGuaranteeRange: !!data?.guaranteeRange,
-      acceptsDoorDeals: data?.acceptsDoorDeals,
-      merchandising: data?.merchandising
+      effectiveDataKeys: Object.keys(effectiveData),
+      hasEquipment: !!effectiveData?.equipment,
+      hasGuaranteeRange: !!effectiveData?.guaranteeRange,
+      acceptsDoorDeals: effectiveData?.acceptsDoorDeals,
+      merchandising: effectiveData?.merchandising
     });
-  }, [data, isEditing]);
+  }, [data, isEditing, artistTemplate, effectiveData, templateLoading]);
 
-  // Show empty state if no artist requirements data
-  if (!data || Object.keys(data).length === 0) {
+  // 🎯 ENHANCED: Show template loading state
+  if (templateLoading) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+          <span className="text-2xl">🎸</span>
+        </div>
+        <p className="font-medium mb-2">Loading Artist Template...</p>
+        <p className="text-sm">Fetching requirements and rider information</p>
+      </div>
+    );
+  }
+
+  // 🎯 ENHANCED: Show template error state
+  if (templateError) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl">⚠️</span>
+        </div>
+        <p className="font-medium mb-2 text-red-600">Template Load Error</p>
+        <p className="text-sm text-red-500">{templateError}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="mt-3 px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  // 🎯 ENHANCED: Show empty state with template guidance
+  if (!effectiveData || Object.keys(effectiveData).length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -39,336 +212,144 @@ function ArtistRequirementsComponent({
         </div>
         <p className="font-medium mb-2">No Artist Requirements Set</p>
         <p className="text-sm">
-          {viewerType === 'artist' 
-            ? "Set your technical and hospitality requirements here."
-            : "Artist requirements will appear here when specified."
+          {artistTemplate 
+            ? `Using template: ${artistTemplate.name}` 
+            : viewerType === 'artist' 
+              ? "Set your technical and hospitality requirements in your artist template."
+              : "Artist requirements will appear here when specified."
           }
         </p>
-        {viewerType === 'artist' && (
+        {viewerType === 'artist' && !artistTemplate && (
           <button className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
-            Add Requirements
+            Create Template
           </button>
         )}
       </div>
     );
   }
 
+  // 🎯 EDITING MODE: Use TemplateFormRenderer directly (same as template system)
   if (isEditing) {
     return (
       <div className="space-y-6">
-        {/* Equipment Needs Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Equipment Needs</h5>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries({
-              needsPA: 'PA System Required',
-              needsMics: 'Microphones Required',
-              needsDrums: 'Drum Kit Required', 
-              needsAmps: 'Amplifiers Required',
-              acoustic: 'Acoustic Performance'
-            }).map(([key, label]) => (
-              <label key={key} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={!!(data.equipment && data.equipment[key])}
-                  onChange={(e) => onDataChange({ 
-                    ...data, 
-                    equipment: { 
-                      ...data.equipment, 
-                      [key]: e.target.checked 
-                    } 
-                  })}
-                  className="rounded"
-                />
-                <span className="text-sm text-gray-700">{label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Business Requirements Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Business Requirements</h5>
-          <div className="space-y-4">
-            {/* Guarantee Range */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Guarantee Range ($)
-              </label>
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="number"
-                  value={data.guaranteeRange?.min || ''}
-                  onChange={(e) => onDataChange({ 
-                    ...data, 
-                    guaranteeRange: { 
-                      ...data.guaranteeRange, 
-                      min: parseInt(e.target.value) || 0 
-                    } 
-                  })}
-                  placeholder="Minimum"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <input
-                  type="number"
-                  value={data.guaranteeRange?.max || ''}
-                  onChange={(e) => onDataChange({ 
-                    ...data, 
-                    guaranteeRange: { 
-                      ...data.guaranteeRange, 
-                      max: parseInt(e.target.value) || 0 
-                    } 
-                  })}
-                  placeholder="Maximum"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+        {/* 🎯 NEW: Template source indicator */}
+        {effectiveData._templateSource && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-blue-600">🎨</span>
+              <div className="text-sm">
+                <span className="font-medium text-blue-800">
+                  Based on template: {effectiveData._templateSource.templateName}
+                </span>
+                <span className="text-blue-600 ml-2">
+                  ({effectiveData._templateSource.templateType})
+                </span>
               </div>
             </div>
-
-            {/* Door Deals & Merchandising */}
-            <div className="grid grid-cols-2 gap-4">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={!!data.acceptsDoorDeals}
-                  onChange={(e) => onDataChange({ ...data, acceptsDoorDeals: e.target.checked })}
-                  className="rounded"
-                />
-                <span className="text-sm text-gray-700">Accept Door Deals</span>
-              </label>
-              
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={!!data.merchandising}
-                  onChange={(e) => onDataChange({ ...data, merchandising: e.target.checked })}
-                  className="rounded"
-                />
-                <span className="text-sm text-gray-700">Merchandising Required</span>
-              </label>
-            </div>
-
-            {/* Age Restriction Preference */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Age Restriction Preference
-              </label>
-              <select
-                value={data.ageRestriction || ''}
-                onChange={(e) => onDataChange({ ...data, ageRestriction: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">No preference</option>
-                <option value="all-ages">All Ages</option>
-                <option value="18+">18+</option>
-                <option value="21+">21+</option>
-              </select>
-            </div>
+            <p className="text-xs text-blue-600 mt-1">
+              Changes made here will override your template for this show only
+            </p>
           </div>
-        </div>
+        )}
 
-        {/* Travel & Logistics Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Travel & Logistics</h5>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Travel Method
-              </label>
-              <select
-                value={data.travelMethod || ''}
-                onChange={(e) => onDataChange({ ...data, travelMethod: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Not specified</option>
-                <option value="van">Van/Drive</option>
-                <option value="flying">Flying</option>
-                <option value="train">Train</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Lodging Preference
-              </label>
-              <select
-                value={data.lodging || ''}
-                onChange={(e) => onDataChange({ ...data, lodging: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Flexible</option>
-                <option value="floor-space">Floor Space</option>
-                <option value="hotel">Hotel</option>
-                <option value="flexible">Flexible</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Priority Level
-              </label>
-              <select
-                value={data.priority || ''}
-                onChange={(e) => onDataChange({ ...data, priority: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Not specified</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Tour Information Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Tour Information</h5>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Expected Draw (people)
-                </label>
-                <input
-                  type="number"
-                  value={data.expectedDraw || ''}
-                  onChange={(e) => onDataChange({ ...data, expectedDraw: parseInt(e.target.value) || undefined })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tour Status
-                </label>
-                <select
-                  value={data.tourStatus || ''}
-                  onChange={(e) => onDataChange({ ...data, tourStatus: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Not specified</option>
-                  <option value="active">Active Tour</option>
-                  <option value="building">Building Tour</option>
-                  <option value="single-show">Single Show</option>
-                </select>
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                value={data.description || ''}
-                onChange={(e) => onDataChange({ ...data, description: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Describe your music, tour, or special requirements..."
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Technical Requirements Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Technical Requirements</h5>
-          <div className="text-sm text-gray-600 mb-2">
-            Advanced technical requirements and hospitality rider editing will be implemented with template integration.
-          </div>
-          <div className="bg-blue-50 border border-blue-200 rounded p-3">
-            <div className="text-sm text-blue-800">
-              🔧 Template integration coming soon - this will pull from your saved technical and hospitality templates
-            </div>
-          </div>
-        </div>
-
-        {/* Additional Notes */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Additional Notes
-          </label>
-          <textarea
-            value={data.artistNotes || ''}
-            onChange={(e) => onDataChange({ ...data, artistNotes: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Any special requests or additional information..."
-          />
-        </div>
+        {/* 🎯 TEMPLATE FORM CORE: Use exact same component as template system */}
+        <TemplateFormCore
+          formData={effectiveData}
+          onChange={handleTemplateFormChange}
+          template={artistTemplate || undefined}
+          mode="confirmed"
+          showTemplateSelector={false}
+        />
 
         {/* Save/Cancel Buttons */}
-        <div className="flex space-x-2 pt-4 border-t">
+        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            onClick={onCancel}
+            disabled={isSaving}
+            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50"
+          >
+            Cancel
+          </button>
           <button
             onClick={onSave}
             disabled={isSaving}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors disabled:opacity-50"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center"
           >
-            {isSaving ? 'Saving...' : '✓ Save Requirements'}
-          </button>
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            ✕ Cancel
+            {isSaving && (
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth={4}></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+              </svg>
+            )}
+            Save Changes
           </button>
         </div>
       </div>
     );
   }
 
-  // Regular view mode
+  // 🎯 DISPLAY MODE: Mirror the exact structure of TemplateFormRenderer
   return (
-    <div className="space-y-4">
-      {/* Equipment Needs */}
-      {data.equipment && Object.values(data.equipment).some(Boolean) && (
-        <div>
-          <h5 className="font-medium text-gray-800 mb-2">Equipment Needs</h5>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            {data.equipment.needsPA && <div className="text-gray-900">• PA System Required</div>}
-            {data.equipment.needsMics && <div className="text-gray-900">• Microphones Required</div>}
-            {data.equipment.needsDrums && <div className="text-gray-900">• Drum Kit Required</div>}
-            {data.equipment.needsAmps && <div className="text-gray-900">• Amplifiers Required</div>}
-            {data.equipment.acoustic && <div className="text-gray-900">• Acoustic Performance</div>}
+    <div className="space-y-6">
+      {/* 🎯 NEW: Template source indicator */}
+      {effectiveData._templateSource && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <span className="text-blue-600">🎨</span>
+              <div className="text-sm">
+                <span className="font-medium text-blue-800">
+                  From template: {effectiveData._templateSource.templateName}
+                </span>
+                <span className="text-blue-600 ml-2">
+                  ({effectiveData._templateSource.templateType})
+                </span>
+              </div>
+            </div>
+            {canEdit && (
+              <button
+                onClick={onStartEdit}
+                className="text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded transition-colors"
+              >
+                Override
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      {/* Business Requirements */}
-      {(data.guaranteeRange || data.acceptsDoorDeals !== undefined || data.merchandising !== undefined || data.ageRestriction) && (
+      {/* 🎯 BUSINESS TERMS: Mirror TemplateFormRenderer structure */}
+      {(effectiveData.guaranteeRange || effectiveData.ageRestriction || effectiveData.acceptsDoorDeals !== undefined || effectiveData.merchandising !== undefined) && (
         <div>
-          <h5 className="font-medium text-gray-800 mb-2">Business Requirements</h5>
+          <h4 className="text-md font-semibold text-gray-900 mb-3">Business Terms</h4>
           <div className="space-y-2 text-sm">
-            {data.guaranteeRange && (data.guaranteeRange.min !== undefined || data.guaranteeRange.max !== undefined) && (
+            {effectiveData.guaranteeRange && effectiveData.guaranteeRange.min > 0 && (
               <div>
-                <span className="font-medium text-gray-700">Guarantee Range:</span>
-                <span className="ml-2 text-gray-900">
-                  ${data.guaranteeRange.min || 0} - ${data.guaranteeRange.max || 0}
+                <span className="font-medium text-gray-700">Minimum Guarantee:</span>
+                <span className="ml-2 text-gray-900">${effectiveData.guaranteeRange.min}</span>
+              </div>
+            )}
+            {effectiveData.ageRestriction && (
+              <div>
+                <span className="font-medium text-gray-700">Age Restriction:</span>
+                <span className="ml-2 text-gray-900 capitalize">
+                  {effectiveData.ageRestriction.replace(/[_-]/g, ' ')}
                 </span>
               </div>
             )}
-            {data.acceptsDoorDeals !== undefined && (
+            {effectiveData.acceptsDoorDeals !== undefined && (
               <div>
                 <span className="font-medium text-gray-700">Door Deals:</span>
-                <span className="ml-2 text-gray-900">
-                  {data.acceptsDoorDeals ? 'Accepted' : 'Not Accepted'}
+                <span className={`ml-2 ${effectiveData.acceptsDoorDeals ? 'text-green-600' : 'text-red-600'}`}>
+                  {effectiveData.acceptsDoorDeals ? 'Accepted' : 'Not Accepted'}
                 </span>
               </div>
             )}
-            {data.merchandising !== undefined && (
+            {effectiveData.merchandising !== undefined && (
               <div>
                 <span className="font-medium text-gray-700">Merchandising:</span>
-                <span className="ml-2 text-gray-900">
-                  {data.merchandising ? 'Required' : 'Not Required'}
-                </span>
-              </div>
-            )}
-            {data.ageRestriction && (
-              <div>
-                <span className="font-medium text-gray-700">Age Restriction Preference:</span>
-                <span className="ml-2 text-gray-900 capitalize">
-                  {data.ageRestriction.replace(/[_-]/g, ' ')}
+                <span className={`ml-2 ${effectiveData.merchandising ? 'text-green-600' : 'text-red-600'}`}>
+                  {effectiveData.merchandising ? 'Allowed' : 'Not Allowed'}
                 </span>
               </div>
             )}
@@ -376,41 +357,35 @@ function ArtistRequirementsComponent({
         </div>
       )}
 
-      {/* Travel & Logistics */}
-      {(data.travelMethod || data.lodging || data.priority) && (
+      {/* 🎯 TRAVEL & LOGISTICS: Mirror TemplateFormRenderer structure */}
+      {(effectiveData.travelMethod || effectiveData.lodging) && (
         <div>
-          <h5 className="font-medium text-gray-800 mb-2">Travel & Logistics</h5>
+          <h4 className="text-md font-semibold text-gray-900 mb-3">Travel & Logistics</h4>
           <div className="space-y-2 text-sm">
-            {data.travelMethod && (
+            {effectiveData.travelMethod && (
               <div>
                 <span className="font-medium text-gray-700">Travel Method:</span>
-                <span className="ml-2 text-gray-900 capitalize">{data.travelMethod}</span>
+                <span className="ml-2 text-gray-900 capitalize">{effectiveData.travelMethod}</span>
               </div>
             )}
-            {data.lodging && (
+            {effectiveData.lodging && (
               <div>
                 <span className="font-medium text-gray-700">Lodging Preference:</span>
                 <span className="ml-2 text-gray-900 capitalize">
-                  {data.lodging.replace('-', ' ')}
+                  {effectiveData.lodging.replace('-', ' ')}
                 </span>
-              </div>
-            )}
-            {data.priority && (
-              <div>
-                <span className="font-medium text-gray-700">Priority Level:</span>
-                <span className="ml-2 text-gray-900 capitalize">{data.priority}</span>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Technical Requirements */}
-      {data.technicalRequirements && data.technicalRequirements.length > 0 && (
+      {/* 🎯 TECHNICAL REQUIREMENTS: Same as TemplateFormRenderer */}
+      {effectiveData.technicalRequirements && effectiveData.technicalRequirements.length > 0 && (
         <div>
           <h5 className="font-medium text-gray-800 mb-2">Technical Requirements</h5>
           <div className="space-y-2">
-            {data.technicalRequirements.map((req: any, index: number) => (
+            {effectiveData.technicalRequirements.map((req: any, index: number) => (
               <div key={index} className="text-sm bg-gray-50 p-2 rounded">
                 <div className="font-medium text-gray-700">{req.category}</div>
                 <div className="text-gray-900">{req.description}</div>
@@ -423,12 +398,12 @@ function ArtistRequirementsComponent({
         </div>
       )}
 
-      {/* Hospitality Requirements */}
-      {data.hospitalityRequirements && data.hospitalityRequirements.length > 0 && (
+      {/* 🎯 HOSPITALITY REQUIREMENTS: Same as TemplateFormRenderer */}
+      {effectiveData.hospitalityRequirements && effectiveData.hospitalityRequirements.length > 0 && (
         <div>
           <h5 className="font-medium text-gray-800 mb-2">Hospitality Rider</h5>
           <div className="space-y-2">
-            {data.hospitalityRequirements.map((req: any, index: number) => (
+            {effectiveData.hospitalityRequirements.map((req: any, index: number) => (
               <div key={index} className="text-sm bg-gray-50 p-2 rounded">
                 <div className="font-medium text-gray-700">{req.category}</div>
                 <div className="text-gray-900">{req.description}</div>
@@ -441,78 +416,28 @@ function ArtistRequirementsComponent({
         </div>
       )}
 
-      {/* Tour Details */}
-      {(data.expectedDraw || data.description || data.tourStatus || data.flexibility) && (
+      {/* 🎯 NOTES: Same as TemplateFormRenderer */}
+      {effectiveData.notes && (
         <div>
-          <h5 className="font-medium text-gray-800 mb-2">Tour Information</h5>
-          <div className="space-y-2 text-sm">
-            {data.expectedDraw && (
-              <div>
-                <span className="font-medium text-gray-700">Expected Draw:</span>
-                <span className="ml-2 text-gray-900">{data.expectedDraw} people</span>
-              </div>
-            )}
-            {data.tourStatus && (
-              <div>
-                <span className="font-medium text-gray-700">Tour Status:</span>
-                <span className="ml-2 text-gray-900 capitalize">{data.tourStatus}</span>
-              </div>
-            )}
-            {data.flexibility && (
-              <div>
-                <span className="font-medium text-gray-700">Flexibility:</span>
-                <span className="ml-2 text-gray-900 capitalize">{data.flexibility}</span>
-              </div>
-            )}
-            {data.description && (
-              <div>
-                <span className="font-medium text-gray-700">Description:</span>
-                <div className="ml-2 text-gray-900 bg-gray-50 p-2 rounded mt-1">
-                  {data.description}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Artist Notes */}
-      {data.artistNotes && (
-        <div>
-          <h5 className="font-medium text-gray-800 mb-2">Additional Notes</h5>
-          <div className="text-sm">
-            <div className="text-gray-900 bg-gray-50 p-2 rounded">{data.artistNotes}</div>
-          </div>
-        </div>
-      )}
-
-      {/* Debug: Show raw data if nothing else displays */}
-      {data && Object.keys(data).length === 0 && (
-        <div className="text-center py-6 text-gray-500">
-          <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-            <span className="text-lg">📋</span>
-          </div>
-          <p className="font-medium mb-1">No Requirements Set</p>
-          <p className="text-sm">
-            {canEdit 
-              ? "Click 'Edit' above to add your requirements and preferences."
-              : "Artist requirements will appear here when specified."
-            }
+          <h5 className="font-medium text-gray-800 mb-2">Additional Notes & Requirements</h5>
+          <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
+            {effectiveData.notes}
           </p>
         </div>
       )}
 
-      {/* Debug: Show some data for troubleshooting */}
-      {process.env.NODE_ENV === 'development' && data && Object.keys(data).length > 0 && (
-        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
-          <div className="text-xs text-yellow-800">
-            <div className="font-medium mb-1">🐛 Debug Info:</div>
-            <div>Data keys: {Object.keys(data).join(', ')}</div>
-            <div>Equipment: {data.equipment ? JSON.stringify(data.equipment) : 'none'}</div>
-            <div>Guarantee Range: {data.guaranteeRange ? JSON.stringify(data.guaranteeRange) : 'none'}</div>
-            <div>Door Deals: {data.acceptsDoorDeals}</div>
-            <div>Travel: {data.travelMethod || 'none'}</div>
-          </div>
+      {/* Edit Button */}
+      {canEdit && !isEditing && (
+        <div className="pt-4 border-t border-gray-200">
+          <button
+            onClick={onStartEdit}
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit Requirements
+          </button>
         </div>
       )}
     </div>
@@ -521,6 +446,7 @@ function ArtistRequirementsComponent({
 
 /**
  * Artist Requirements Module Definition
+ * 🎯 ENHANCED: Now with template integration and context-aware data extraction
  */
 export const artistRequirementsModule: ModuleDefinition = {
   id: 'artist-requirements',
@@ -538,53 +464,48 @@ export const artistRequirementsModule: ModuleDefinition = {
   },
   
   extractData: (context: any) => {
+    // 🎯 ENHANCED: Context-aware data extraction with artistId preservation
+    
     if (context.show) {
-      // Confirmed show - minimal artist requirements for now
+      // Confirmed show - extract artist ID for template lookup
       return {
-        technicalRequirements: [],
-        hospitalityRequirements: [],
-        equipment: {}
+        artistId: context.show.artistId,
+        artist: { id: context.show.artistId, name: context.show.artistName },
+        // Include any existing override data
+        technicalRequirements: context.show.technicalRequirements || [],
+        hospitalityRequirements: context.show.hospitalityRequirements || [],
+        equipment: context.show.equipment || {},
+        artistNotes: context.show.artistNotes
       };
     }
     
     if (context.bid) {
-      // Venue bid - check for persisted artist requirements first, then fall back to sample data
+      // Venue bid - check for persisted overrides first, include artist context
+      const baseData = {
+        artistId: context.bid.artistId || (context.bid.tourRequest && context.bid.tourRequest.artistId),
+        artist: context.bid.artist || (context.bid.tourRequest && { 
+          id: context.bid.tourRequest.artistId, 
+          name: context.bid.tourRequest.artistName 
+        })
+      };
+      
       if (context.bid.artistRequirements) {
-        // Return persisted data
-        return context.bid.artistRequirements;
+        // Return persisted override data with artist context
+        return {
+          ...baseData,
+          ...context.bid.artistRequirements
+        };
       }
       
-      // Fall back to sample data for initial load
-      return {
-        equipment: {
-          needsPA: true,
-          needsMics: true,
-          needsDrums: false,
-          needsAmps: true,
-          acoustic: false
-        },
-        guaranteeRange: {
-          min: 500,
-          max: 1500
-        },
-        acceptsDoorDeals: true,
-        merchandising: true,
-        ageRestriction: 'all-ages',
-        travelMethod: 'van',
-        lodging: 'flexible',
-        priority: 'medium',
-        technicalRequirements: [],
-        hospitalityRequirements: [],
-        expectedDraw: 100,
-        description: 'Indie rock band looking for venue partnerships',
-        tourStatus: 'building',
-        artistNotes: 'We prefer early sound check time when possible'
-      };
+      // No overrides - template will be used as base (artist context provided)
+      return baseData;
     }
     
     if (context.tourRequest) {
       // Tour request - artist has specified their requirements
       return {
+        artistId: context.tourRequest.artistId,
+        artist: { id: context.tourRequest.artistId, name: context.tourRequest.artistName },
         equipment: context.tourRequest.equipment,
         guaranteeRange: context.tourRequest.guaranteeRange,
         acceptsDoorDeals: context.tourRequest.acceptsDoorDeals,
@@ -602,6 +523,7 @@ export const artistRequirementsModule: ModuleDefinition = {
       };
     }
     
+    // No context - return empty (template will provide base data if available)
     return {};
   },
   

@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ArtistTemplate, TechnicalRequirement, HospitalityRequirement } from '../../types/templates';
-import TechnicalRequirementsTable from './TechnicalRequirementsTable';
-import HospitalityRiderTable from './HospitalityRiderTable';
+import TemplateFormCore from './TemplateFormCore';
 
 interface TemplateManagerProps {
   artistId: string;
@@ -379,152 +378,12 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                     {editingTemplate ? 'Edit Template' : 'Create New Template'}
                   </h4>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Template Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={templateForm.name}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, name: e.target.value }))}
-                        placeholder="e.g., Full Band Setup"
-                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Description
-                      </label>
-                      <input
-                        type="text"
-                        value={templateForm.description}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="Brief description"
-                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Guarantee Range */}
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Minimum Guarantee ($)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={templateForm.guaranteeRange.min}
-                      onChange={(e) => setTemplateForm(prev => ({
-                        ...prev,
-                        guaranteeRange: { ...prev.guaranteeRange, min: parseInt(e.target.value) || 0 }
-                      }))}
-                      placeholder="e.g., 500"
-                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Minimum amount needed to cover costs (travel, accommodation, etc.)
-                    </p>
-                  </div>
-
-                  {/* Travel & Logistics */}
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Travel Method
-                      </label>
-                      <select
-                        value={templateForm.travelMethod}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, travelMethod: e.target.value as any }))}
-                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="van">Van</option>
-                        <option value="flying">Flying</option>
-                        <option value="train">Train</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Lodging Preference
-                      </label>
-                      <select
-                        value={templateForm.lodging}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, lodging: e.target.value as any }))}
-                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                      >
-                        <option value="flexible">Flexible</option>
-                        <option value="floor-space">Floor Space</option>
-                        <option value="hotel">Hotel</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Dynamic Technical Requirements Table */}
-                  <div className="mt-6">
-                    <TechnicalRequirementsTable
-                      requirements={templateForm.technicalRequirements}
-                      onChange={(requirements) => setTemplateForm(prev => ({ ...prev, technicalRequirements: requirements }))}
-                    />
-                  </div>
-
-                  {/* Dynamic Hospitality Rider Table */}
-                  <div className="mt-6">
-                    <HospitalityRiderTable
-                      requirements={templateForm.hospitalityRequirements}
-                      onChange={(requirements) => setTemplateForm(prev => ({ ...prev, hospitalityRequirements: requirements }))}
-                    />
-                  </div>
-
-                  {/* Miscellaneous Details Section - Future-ready for stage plots, etc. */}
-                  <div className="mt-8 border-t border-gray-200 pt-6">
-                    <div className="mb-4">
-                      <h5 className="text-md font-semibold text-gray-900 mb-2">Miscellaneous Details</h5>
-                      <p className="text-sm text-gray-600">
-                        Additional requirements, special notes, or details that don't fit in the categories above. 
-                        This section will expand in the future to include stage plots and other specialized forms.
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Additional Notes & Requirements
-                      </label>
-                      <textarea
-                        value={templateForm.notes}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, notes: e.target.value }))}
-                        placeholder="Special setup requirements, accessibility needs, unique equipment, stage plot details, or any other important information for venues..."
-                        rows={4}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                      <p className="text-xs text-gray-500 mt-2">
-                        Examples: "Need 20ft ceiling clearance for light show", "Drummer uses double kick setup", 
-                        "Requires specific stage dimensions", "Has pyrotechnics that need approval"
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Default Template */}
-                  <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <label className="flex items-start space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={templateForm.isDefault}
-                        onChange={(e) => setTemplateForm(prev => ({ ...prev, isDefault: e.target.checked }))}
-                        className="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <div>
-                        <span className="text-sm font-medium text-gray-900">Set as default template</span>
-                        <p className="text-xs text-gray-600 mt-1">
-                          The default template will automatically fill new show request forms, saving you time. 
-                          Only one template can be default at a time.
-                        </p>
-                      </div>
-                    </label>
-                  </div>
+                  {/* 🎯 USE SHARED TEMPLATE FORM CORE - Single Source of Truth */}
+                  <TemplateFormCore
+                    formData={templateForm}
+                    onChange={(field, value) => setTemplateForm(prev => ({ ...prev, [field]: value }))}
+                    mode="template"
+                  />
 
                   {/* Form Actions */}
                   <div className="mt-6 flex items-center gap-3">
