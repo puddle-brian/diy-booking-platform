@@ -578,8 +578,7 @@ export default function TabbedTourItinerary({
         showSuccess('Offer Declined', 'The venue offer has been removed from your itinerary.');
       } else if (action === 'accept') {
         showSuccess('Offer Accepted', 'The venue offer has been accepted and added to your confirmed shows!');
-        // Refresh data to show the new confirmed show
-        await fetchData();
+
       }
     } catch (error) {
       console.error(`Error ${actionText}ing offer:`, error);
@@ -878,8 +877,6 @@ export default function TabbedTourItinerary({
         showSuccess('Offer Declined', 'The venue offer has been removed from your itinerary.');
       } else if (action === 'accept') {
         showSuccess('Offer Accepted', 'The venue offer has been accepted and added to your confirmed shows!');
-        // Refresh data to show the new confirmed show
-        await fetchData();
       }
     } catch (error) {
       console.error(`Error ${actionText}ing offer:`, error);
