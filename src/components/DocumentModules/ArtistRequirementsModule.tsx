@@ -307,7 +307,7 @@ function ArtistRequirementsComponent({
     );
   }
 
-  // 🎯 EDITING MODE: Use TemplateFormRenderer directly (same as template system)
+  // 🎯 EDITING MODE: Use TemplateFormCore directly (same as template system)
   if (isEditing) {
     return (
       <div className="space-y-6">
@@ -331,95 +331,263 @@ function ArtistRequirementsComponent({
           </div>
         )}
 
-        {/* 🎯 BUSINESS TERMS: Custom checkboxes that work correctly */}
-        <div className="space-y-4">
-          <h4 className="text-md font-semibold text-gray-900">Business Terms</h4>
+        {/* 🎯 SELECTIVE FORM: Only show fields that have actual values in template/document */}
+        <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-6">
           
-          <div className="grid grid-cols-2 gap-4">
-                         {/* Door Deals Checkbox - Working directly with our state */}
-             <label className="flex items-center space-x-2 cursor-pointer">
-               <input
-                 type="checkbox"
-                 checked={(() => {
-                   const value = effectiveData.acceptsDoorDeals ?? true;
-                   console.log('🔍 RENDER: Door Deals checkbox value:', value, 'from effectiveData:', effectiveData.acceptsDoorDeals);
-                   return value;
-                 })()}
-                 onChange={(e) => {
-                   console.log('🔍 CHANGE: Door Deals clicked, new value:', e.target.checked);
-                   handleTemplateFormChange('acceptsDoorDeals', e.target.checked);
-                 }}
-                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-               />
-               <span className="text-sm text-gray-700">Accepts Door Deals</span>
-             </label>
-
-             {/* Merchandising Checkbox - Working directly with our state */}
-             <label className="flex items-center space-x-2 cursor-pointer">
-               <input
-                 type="checkbox"
-                 checked={(() => {
-                   const value = effectiveData.merchandising ?? true;
-                   console.log('🔍 RENDER: Merchandising checkbox value:', value, 'from effectiveData:', effectiveData.merchandising);
-                   return value;
-                 })()}
-                 onChange={(e) => {
-                   console.log('🔍 CHANGE: Merchandising clicked, new value:', e.target.checked);
-                   handleTemplateFormChange('merchandising', e.target.checked);
-                 }}
-                 className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
-               />
-               <span className="text-sm text-gray-700">Merchandising Allowed</span>
-             </label>
-          </div>
-
-          {/* Age Restriction Dropdown */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Age Restriction
-            </label>
-            <select
-              value={effectiveData.ageRestriction || 'all-ages'}
-              onChange={(e) => handleTemplateFormChange('ageRestriction', e.target.value)}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-            >
-              <option value="all-ages">All Ages</option>
-              <option value="18+">18+</option>
-              <option value="21+">21+</option>
-              <option value="flexible">Flexible</option>
-            </select>
-          </div>
-
-          {/* Guarantee Range */}
-          {effectiveData.guaranteeRange && (
+          {/* Business Terms - Only if template/data has these fields */}
+          {(effectiveData.guaranteeRange || effectiveData.ageRestriction || effectiveData.acceptsDoorDeals !== undefined || effectiveData.merchandising !== undefined || effectiveData.priority) && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Minimum Guarantee
-              </label>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-500">$</span>
-                <input
-                  type="number"
-                  value={effectiveData.guaranteeRange.min || ''}
-                  onChange={(e) => handleTemplateFormChange('guaranteeRange', {
-                    ...effectiveData.guaranteeRange,
-                    min: parseInt(e.target.value) || 0
-                  })}
-                  className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  placeholder="0"
-                />
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Business Terms</h4>
+              <div className="space-y-4">
+                
+                {/* Guarantee Range - Only if set in template */}
+                {effectiveData.guaranteeRange && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Minimum Guarantee ($)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={effectiveData.guaranteeRange?.min || ''}
+                        onChange={(e) => handleTemplateFormChange('guaranteeRange', {
+                          ...effectiveData.guaranteeRange,
+                          min: parseInt(e.target.value) || 0
+                        })}
+                        placeholder="e.g., 500"
+                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    {effectiveData.guaranteeRange?.max !== undefined && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Maximum Guarantee ($)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={effectiveData.guaranteeRange?.max || ''}
+                          onChange={(e) => handleTemplateFormChange('guaranteeRange', {
+                            ...effectiveData.guaranteeRange,
+                            max: parseInt(e.target.value) || 0
+                          })}
+                          placeholder="e.g., 1500"
+                          className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Age Restriction - Only if set in template */}
+                {effectiveData.ageRestriction && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Age Restriction
+                    </label>
+                    <select
+                      value={effectiveData.ageRestriction || 'flexible'}
+                      onChange={(e) => handleTemplateFormChange('ageRestriction', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="flexible">Flexible</option>
+                      <option value="all-ages">All Ages</option>
+                      <option value="18+">18+</option>
+                      <option value="21+">21+</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Priority - Only if set in template */}
+                {effectiveData.priority && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Priority
+                    </label>
+                    <select
+                      value={effectiveData.priority || 'medium'}
+                      onChange={(e) => handleTemplateFormChange('priority', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+                )}
+
+                {/* Checkboxes - Only if explicitly set in template/data */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {effectiveData.acceptsDoorDeals !== undefined && (
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={effectiveData.acceptsDoorDeals || false}
+                        onChange={(e) => handleTemplateFormChange('acceptsDoorDeals', e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Accepts Door Deals</span>
+                    </label>
+                  )}
+                  {effectiveData.merchandising !== undefined && (
+                    <label className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={effectiveData.merchandising || false}
+                        onChange={(e) => handleTemplateFormChange('merchandising', e.target.checked)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">Merchandising</span>
+                    </label>
+                  )}
+                </div>
+              </div>
+            </div>
+                    )}
+
+          {/* Equipment - Only show if template actually defines specific equipment */}
+          {effectiveData.equipment && Object.keys(effectiveData.equipment).some(key => effectiveData.equipment[key] === true) && (
+            <div>
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Equipment Requirements</h4>
+              <div className="space-y-2 text-sm">
+                {effectiveData.equipment.needsPA && (
+                  <div>
+                    <span className="font-medium text-gray-700">PA System:</span>
+                    <span className="ml-2 text-green-600">Required</span>
+                  </div>
+                )}
+                {effectiveData.equipment.needsMics && (
+                  <div>
+                    <span className="font-medium text-gray-700">Microphones:</span>
+                    <span className="ml-2 text-green-600">Required</span>
+                  </div>
+                )}
+                {effectiveData.equipment.needsDrums && (
+                  <div>
+                    <span className="font-medium text-gray-700">Drum Kit:</span>
+                    <span className="ml-2 text-green-600">Required</span>
+                  </div>
+                )}
+                {effectiveData.equipment.needsAmps && (
+                  <div>
+                    <span className="font-medium text-gray-700">Amplifiers:</span>
+                    <span className="ml-2 text-green-600">Required</span>
+                  </div>
+                )}
+                {effectiveData.equipment.acoustic && (
+                  <div>
+                    <span className="font-medium text-gray-700">Acoustic Setup:</span>
+                    <span className="ml-2 text-green-600">Required</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Equipment requirements are set in your artist template and cannot be changed per show.
+              </p>
+            </div>
+          )}
+
+          {/* Travel & Logistics - Only if set in template */}
+          {(effectiveData.travelMethod || effectiveData.lodging) && (
+            <div>
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Travel & Logistics</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {effectiveData.travelMethod && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Travel Method
+                    </label>
+                    <select
+                      value={effectiveData.travelMethod || 'van'}
+                      onChange={(e) => handleTemplateFormChange('travelMethod', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="van">Van/Vehicle</option>
+                      <option value="flying">Flying</option>
+                      <option value="train">Train</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                )}
+                {effectiveData.lodging && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Lodging Preference
+                    </label>
+                    <select
+                      value={effectiveData.lodging || 'flexible'}
+                      onChange={(e) => handleTemplateFormChange('lodging', e.target.value)}
+                      className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="flexible">Flexible</option>
+                      <option value="floor-space">Floor Space</option>
+                      <option value="hotel">Hotel</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
           )}
-        </div>
-        
-        {/* 🔍 DEBUG: Show current checkbox values */}
-        <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-xs">
-          <strong>✅ CURRENT VALUES (should match checkboxes above):</strong>
-          <br />
-          Door Deals: {effectiveData.acceptsDoorDeals ? '✓ Checked' : '✗ Unchecked'}
-          <br />
-          Merchandising: {effectiveData.merchandising ? '✓ Checked' : '✗ Unchecked'}
+
+          {/* Technical Requirements - Only if set in template */}
+          {effectiveData.technicalRequirements && effectiveData.technicalRequirements.length > 0 && (
+            <div>
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Technical Requirements</h4>
+              <div className="space-y-2">
+                {effectiveData.technicalRequirements.map((req: any, index: number) => (
+                  <div key={index} className="bg-gray-50 p-3 rounded border">
+                    <div className="font-medium text-gray-700">{req.category}</div>
+                    <div className="text-gray-900 mt-1">{req.description}</div>
+                    {req.critical && (
+                      <div className="text-red-600 text-xs mt-1">⚠ Critical Requirement</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                To modify technical requirements, edit your artist template.
+              </p>
+            </div>
+          )}
+
+          {/* Hospitality Requirements - Only if set in template */}
+          {effectiveData.hospitalityRequirements && effectiveData.hospitalityRequirements.length > 0 && (
+            <div>
+              <h4 className="text-md font-semibold text-gray-900 mb-3">Hospitality Rider</h4>
+              <div className="space-y-2">
+                {effectiveData.hospitalityRequirements.map((req: any, index: number) => (
+                  <div key={index} className="bg-gray-50 p-3 rounded border">
+                    <div className="font-medium text-gray-700">{req.category}</div>
+                    <div className="text-gray-900 mt-1">{req.description}</div>
+                    {req.quantity && (
+                      <div className="text-gray-600 text-xs mt-1">Quantity: {req.quantity}</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                To modify hospitality requirements, edit your artist template.
+              </p>
+            </div>
+          )}
+
+          {/* Notes - Only if set in template */}
+          {effectiveData.notes && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Additional Notes & Requirements
+              </label>
+              <textarea
+                value={effectiveData.notes || ''}
+                onChange={(e) => handleTemplateFormChange('notes', e.target.value)}
+                placeholder="Special setup requirements, accessibility needs, unique equipment, stage plot details..."
+                rows={4}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          )}
+
         </div>
 
         {/* Save/Cancel Buttons */}
@@ -431,13 +599,13 @@ function ArtistRequirementsComponent({
           >
             Cancel
           </button>
-                    <button
+          <button
             onClick={async () => {
-              console.log('🎭 SIMPLE SAVE: Starting save process');
-              console.log('🎭 SIMPLE SAVE: Local changes:', localFormChanges);
+              console.log('🎭 ArtistRequirements SAVE: Starting save process');
+              console.log('🎭 ArtistRequirements SAVE: Local changes:', localFormChanges);
               
               if (Object.keys(localFormChanges).length === 0) {
-                console.log('🎭 SIMPLE SAVE: No changes to save, just closing');
+                console.log('🎭 ArtistRequirements SAVE: No changes to save, just closing');
                 onCancel();
                 return;
               }
@@ -450,7 +618,7 @@ function ArtistRequirementsComponent({
                 };
                 
                 const saveData = { ...contextData, ...localFormChanges };
-                console.log('🎭 SIMPLE SAVE: Sending to parent for API call:', saveData);
+                console.log('🎭 ArtistRequirements SAVE: Sending to parent for API call:', saveData);
                 
                 // Let parent component handle the save
                 onDataChange(saveData);
@@ -460,10 +628,10 @@ function ArtistRequirementsComponent({
                 setLocalFormChanges({});
                 onCancel();
                 
-                console.log('🎭 SIMPLE SAVE: Success!');
+                console.log('🎭 ArtistRequirements SAVE: Success!');
                 
               } catch (error) {
-                console.error('🎭 SIMPLE SAVE: Error:', error);
+                console.error('🎭 ArtistRequirements SAVE: Error:', error);
                 alert(`Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
               }
             }}

@@ -92,7 +92,7 @@ export const TemplateFormCore: React.FC<TemplateFormCoreProps> = ({
       {/* Business Terms Module */}
       <div>
         <h4 className="text-md font-semibold text-gray-900 mb-3">Business Terms</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Minimum Guarantee ($)
@@ -107,10 +107,49 @@ export const TemplateFormCore: React.FC<TemplateFormCoreProps> = ({
             />
             {mode === 'template' && (
               <p className="text-xs text-gray-500 mt-1">
-                Minimum amount needed to cover costs (travel, accommodation, etc.)
+                Minimum amount needed to cover costs
               </p>
             )}
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Maximum Guarantee ($)
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={formData.guaranteeRange?.max || ''}
+              onChange={(e) => updateNestedField('guaranteeRange', 'max', parseInt(e.target.value) || 0)}
+              placeholder="e.g., 1500"
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+            />
+            {mode === 'template' && (
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum reasonable guarantee
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Priority
+            </label>
+            <select
+              value={formData.priority || 'medium'}
+              onChange={(e) => updateFormField('priority', e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+            </select>
+            {mode === 'template' && (
+              <p className="text-xs text-gray-500 mt-1">
+                Booking priority level
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Age Restriction
@@ -147,6 +186,63 @@ export const TemplateFormCore: React.FC<TemplateFormCoreProps> = ({
             <span className="text-sm text-gray-700">Merchandising</span>
           </label>
         </div>
+      </div>
+
+      {/* Equipment Module */}
+      <div>
+        <h4 className="text-md font-semibold text-gray-900 mb-3">Equipment Requirements</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.equipment?.needsPA || false}
+              onChange={(e) => updateNestedField('equipment', 'needsPA', e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">PA System</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.equipment?.needsMics || false}
+              onChange={(e) => updateNestedField('equipment', 'needsMics', e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Microphones</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.equipment?.needsDrums || false}
+              onChange={(e) => updateNestedField('equipment', 'needsDrums', e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Drum Kit</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.equipment?.needsAmps || false}
+              onChange={(e) => updateNestedField('equipment', 'needsAmps', e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Amplifiers</span>
+          </label>
+          <label className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              checked={formData.equipment?.acoustic || false}
+              onChange={(e) => updateNestedField('equipment', 'acoustic', e.target.checked)}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span className="text-sm text-gray-700">Acoustic Setup</span>
+          </label>
+        </div>
+        {mode === 'template' && (
+          <p className="text-xs text-gray-500 mt-2">
+            Check the equipment you need venues to provide. This helps venues understand your technical requirements.
+          </p>
+        )}
       </div>
 
       {/* Travel & Logistics Module */}

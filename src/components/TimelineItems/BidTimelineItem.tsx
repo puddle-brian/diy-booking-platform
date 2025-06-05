@@ -20,7 +20,6 @@ interface BidTimelineItemProps {
   onShowDocument: (bid: VenueBid) => void;
   onShowDetail: (bid: VenueBid) => void;
   onAcceptBid?: (bid: VenueBid) => void;
-  onHoldBid?: (bid: VenueBid) => void;
   onDeclineBid?: (bid: VenueBid) => void;
   onOfferAction?: (offer: VenueOffer, action: string) => Promise<void>;
   onBidAction?: (bid: VenueBid, action: string, reason?: string) => Promise<void>;
@@ -42,7 +41,6 @@ export function BidTimelineItem({
   onShowDocument,
   onShowDetail,
   onAcceptBid,
-  onHoldBid,
   onDeclineBid,
   onOfferAction,
   onBidAction
@@ -54,11 +52,6 @@ export function BidTimelineItem({
         return {
           className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800',
           text: 'Accepted'
-        };
-      case 'hold':
-        return {
-          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800',
-          text: 'On Hold'
         };
       case 'declined':
         return {
@@ -188,66 +181,14 @@ export function BidTimelineItem({
             permissions={permissions}
             onBidDocument={() => onShowDocument(bid)}
           />
-          
-          
         </div>
       </td>
 
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Accept/Hold/Decline buttons for pending bids */}
+          {/* Accept/Decline buttons for pending bids */}
           {currentStatus === 'pending' && (
-            <>
-              {/* Accept Button */}
-              {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAcceptBid(bid);
-                  }}
-                  className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                  disabled={isDeleting}
-                  title="Accept bid"
-                >
-                  ✓
-                </button>
-              )}
-              
-              {/* Hold Button */}
-              {permissions.canHoldBid && permissions.canHoldBid(bid, request) && onHoldBid && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onHoldBid(bid);
-                  }}
-                  className="px-2 py-1 bg-yellow-600 text-white text-xs rounded hover:bg-yellow-700 transition-colors"
-                  disabled={isDeleting}
-                  title="Put on hold"
-                >
-                  ⏸
-                </button>
-              )}
-              
-              {/* Decline Button */}
-              {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onDeclineBid && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeclineBid(bid);
-                  }}
-                  className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                  disabled={isDeleting}
-                  title="Decline bid"
-                >
-                  ✕
-                </button>
-              )}
-            </>
-          )}
-
-          {/* Accept/Decline buttons for hold bids */}
-          {currentStatus === 'hold' && (
             <>
               {/* Accept Button */}
               {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (

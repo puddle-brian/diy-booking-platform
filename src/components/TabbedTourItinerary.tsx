@@ -180,9 +180,7 @@ export default function TabbedTourItinerary({
   // const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
   // const [showBidForm, setShowBidForm] = useState(false);
   // const [selectedTourRequest, setSelectedTourRequest] = useState<TourRequest | null>(null);
-  const [holdActions, setHoldActions] = useState<Record<string, boolean>>({});
   const [bidActions, setBidActions] = useState<Record<string, boolean>>({});
-  const [holdNotes, setHoldNotes] = useState<{[bidId: string]: string}>({});
   // const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
   const [selectedBid, setSelectedBid] = useState<VenueBid | null>(null);
   const [showBidDetailsModal, setShowBidDetailsModal] = useState(false);
@@ -204,7 +202,7 @@ export default function TabbedTourItinerary({
   // Removed local deletedShows state - now using hook's state.deletedShows
   
   // Add optimistic bid status tracking to prevent blinking during switches
-  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, 'pending' | 'accepted' | 'hold' | 'declined'>>(new Map());
+  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, 'pending' | 'accepted' | 'declined'>>(new Map());
   
   // Track recent undo actions to prevent race conditions
   const [recentUndoActions, setRecentUndoActions] = useState<Set<string>>(new Set());
@@ -396,10 +394,14 @@ export default function TabbedTourItinerary({
   };
 
   // Helper function to get effective bid status (with optimistic overrides)
-  const getEffectiveBidStatus = (bid: VenueBid): 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled' => {
+  const getEffectiveBidStatus = (bid: VenueBid) => {
     const override = bidStatusOverrides.get(bid.id);
     if (override) {
       return override;
+    }
+    // Convert legacy 'hold' status to 'pending' since we removed hold functionality
+    if (bid.status === 'hold') {
+      return 'pending';
     }
     return bid.status;
   };
@@ -423,8 +425,7 @@ export default function TabbedTourItinerary({
         body: JSON.stringify({
           bidId: bid.id,
           action,
-          reason,
-          notes: holdNotes[bid.id] || ''
+          reason
         }),
       });
 
@@ -440,7 +441,6 @@ export default function TabbedTourItinerary({
       
       const actionMessages = {
         accept: 'Bid accepted! You can now coordinate with the venue to finalize details.',
-        hold: 'Bid placed on hold. You have time to consider other options.',
         decline: 'Bid declined and removed from your itinerary.'
       };
       
@@ -654,8 +654,7 @@ export default function TabbedTourItinerary({
                 body: JSON.stringify({
                   bidId: bid.id,
                   action: 'accept',
-                  reason,
-                  notes: holdNotes[bid.id] || ''
+                  reason
                 }),
               });
               
@@ -693,8 +692,6 @@ export default function TabbedTourItinerary({
       setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'accepted'));
     } else if (action === 'undo-accept') {
       setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'pending'));
-    } else if (action === 'hold') {
-      setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'hold'));
     } else if (action === 'decline') {
       setDeclinedBids(prev => new Set([...prev, bid.id]));
     }
@@ -708,8 +705,7 @@ export default function TabbedTourItinerary({
         body: JSON.stringify({
           bidId: bid.id,
           action,
-          reason,
-          notes: holdNotes[bid.id] || ''
+          reason
         }),
       });
 
@@ -987,11 +983,7 @@ export default function TabbedTourItinerary({
           className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800',
           text: 'Pending'
         };
-      case 'hold':
-        return {
-          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800',
-          text: bid.holdPosition === 1 ? 'First Hold' : bid.holdPosition === 2 ? 'Second Hold' : bid.holdPosition === 3 ? 'Third Hold' : 'On Hold'
-        };
+
       case 'accepted':
         return {
           className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800',
@@ -1345,7 +1337,7 @@ export default function TabbedTourItinerary({
                         pressCoverage: false
                       },
                       message: originalOffer.message || '',
-                      status: originalOffer.status.toLowerCase() as 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled',
+                      status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
                       readByArtist: true,
                       createdAt: originalOffer.createdAt,
                       updatedAt: originalOffer.updatedAt,
@@ -1634,7 +1626,6 @@ export default function TabbedTourItinerary({
                                       onShowDocument={handleBidDocumentModal}
                                       onShowDetail={handleBidDocumentModal}
                                       onAcceptBid={(bid) => handleBidAction(bid, 'accept')}
-                                      onHoldBid={(bid) => handleBidAction(bid, 'hold')}
                                       onDeclineBid={(bid) => handleBidAction(bid, 'decline')}
                                       onOfferAction={handleOfferAction}
                                       onBidAction={handleBidAction}
