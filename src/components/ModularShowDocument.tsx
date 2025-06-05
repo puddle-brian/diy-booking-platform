@@ -734,17 +734,45 @@ export default function ModularShowDocument({
               {modules.filter(m => m.status === 'committed').length} of {modules.length} modules committed
             </div>
             <div className="flex space-x-3">
+              {/* Always show a way to close without saving */}
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 rounded-lg transition-colors"
               >
                 Close
               </button>
-              {viewerType !== 'public' && (
-                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                  Save Document
-                </button>
-              )}
+              
+              {viewerType !== 'public' && (() => {
+                const modulesBeingEdited = modules.filter(m => m.isEditing);
+                
+                if (modulesBeingEdited.length > 0) {
+                  // There are unsaved changes - show save all button
+                  return (
+                    <button 
+                      onClick={async () => {
+                        // Save all modules that are being edited
+                        for (const module of modulesBeingEdited) {
+                          await handleSave(module.id);
+                        }
+                        onClose(); // Close after saving all
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      Save All & Close ({modulesBeingEdited.length})
+                    </button>
+                  );
+                } else {
+                  // No unsaved changes - show different styling
+                  return (
+                    <div className="px-4 py-2 text-green-600 text-sm flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      All changes saved
+                    </div>
+                  );
+                }
+              })()}
             </div>
           </div>
         </div>
