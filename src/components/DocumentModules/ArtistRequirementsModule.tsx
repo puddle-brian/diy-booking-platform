@@ -77,9 +77,15 @@ function ArtistRequirementsComponent({
   }, [data?.artistId, data?.artist?.id]);
 
   // 🎯 FIX: Clear local form changes when parent data updates (prevents conflicts)
+  // But ONLY if we're not currently editing to prevent losing unsaved changes
   React.useEffect(() => {
-    setLocalFormChanges({});
-  }, [data]);
+    if (!isEditing) {
+      console.log('🎭 ArtistRequirementsModule: Clearing local changes (not editing)');
+      setLocalFormChanges({});
+    } else {
+      console.log('🎭 ArtistRequirementsModule: Preserving local changes (currently editing)');
+    }
+  }, [data, isEditing]);
 
   // 🎯 FIXED: Compute effective data using useMemo to prevent double renders
   const effectiveData = React.useMemo(() => {
@@ -134,7 +140,12 @@ function ArtistRequirementsComponent({
   // 🎯 FIXED: Handle template form changes with immediate feedback + persistence
   const handleTemplateFormChange = (field: string, value: any) => {
     // 🎯 IMMEDIATE: Update local form state for instant responsiveness
-    setLocalFormChanges((prev: any) => ({ ...prev, [field]: value }));
+    console.log('🎭 ArtistRequirementsModule: Field changed:', field, '=', value);
+    setLocalFormChanges((prev: any) => {
+      const newChanges = { ...prev, [field]: value };
+      console.log('🎭 ArtistRequirementsModule: New local changes:', newChanges);
+      return newChanges;
+    });
     
     // 🎯 PERSISTENCE: Calculate what the new effective data would be for saving
     const newEffectiveData = { ...effectiveData, [field]: value };
@@ -285,8 +296,42 @@ function ArtistRequirementsComponent({
           >
             Cancel
           </button>
-          <button
-            onClick={onSave}
+                    <button
+            onClick={async () => {
+              console.log('🎭 SIMPLE SAVE: Starting save process');
+              console.log('🎭 SIMPLE SAVE: Local changes:', localFormChanges);
+              
+              if (Object.keys(localFormChanges).length === 0) {
+                console.log('🎭 SIMPLE SAVE: No changes to save, just closing');
+                onCancel();
+                return;
+              }
+              
+              try {
+                // 🎯 SIMPLE: Just prepare the data and let parent handle the API call
+                const contextData = {
+                  artistId: data?.artistId,
+                  artist: data?.artist,
+                };
+                
+                const saveData = { ...contextData, ...localFormChanges };
+                console.log('🎭 SIMPLE SAVE: Sending to parent for API call:', saveData);
+                
+                // Let parent component handle the save
+                onDataChange(saveData);
+                await onSave(); // This should trigger the parent's save logic
+                
+                // Clear local changes and close edit mode
+                setLocalFormChanges({});
+                onCancel();
+                
+                console.log('🎭 SIMPLE SAVE: Success!');
+                
+              } catch (error) {
+                console.error('🎭 SIMPLE SAVE: Error:', error);
+                alert(`Save failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+              }
+            }}
             disabled={isSaving}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center"
           >
