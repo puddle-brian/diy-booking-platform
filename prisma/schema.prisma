@@ -31,6 +31,8 @@ model User {
   venueOffers             VenueOffer[]
   showRequests            ShowRequest[]             // 🎯 NEW: Unified show requests
   showRequestBids         ShowRequestBid[]          // 🎯 NEW: Bids on show requests
+  requestedHolds          HoldRequest[]             @relation("RequestedHolds")
+  respondedHolds          HoldRequest[]             @relation("RespondedHolds")
 
   @@index([email])
   @@index([role])
@@ -265,6 +267,7 @@ model ShowRequest {
   venue           Venue?      @relation(fields: [venueId], references: [id])
   createdBy       User        @relation(fields: [createdById], references: [id])
   bids            ShowRequestBid[] // New bid model
+  holdRequests    HoldRequest[]
   
   // PREVENT DUPLICATES: Same venue can't make multiple offers to same artist on same date
   @@unique([artistId, venueId, requestedDate], name: "unique_artist_venue_date")
@@ -368,6 +371,7 @@ model Show {
   artist         Artist          @relation(fields: [artistId], references: [id])
   createdBy      User            @relation(fields: [createdById], references: [id])
   venue          Venue           @relation(fields: [venueId], references: [id])
+  holdRequests   HoldRequest[]
 
   @@index([venueId])
   @@index([artistId])
@@ -824,10 +828,62 @@ enum RequestInitiator {
 }
 
 enum ShowRequestStatus {
-  OPEN        // Artist-initiated, accepting bids
-  PENDING     // Venue-initiated, awaiting artist response
-  CONFIRMED   // Accepted, becomes a Show
-  DECLINED    // Artist declined venue offer
-  CANCELLED   // Cancelled by creator
+  OPEN        // Open for bids
+  PENDING     // Waiting for response
+  CONFIRMED   // Accepted and show confirmed
+  DECLINED    // Rejected
+  CANCELLED   // Cancelled by requester
   EXPIRED     // Expired without response
+}
+
+enum HoldStatus {
+  PENDING     // Waiting for other party to approve
+  ACTIVE      // Hold is active, timer running
+  EXPIRED     // Hold time ran out
+  CANCELLED   // Manually ended early
+  DECLINED    // Other party rejected the hold
+}
+
+model HoldRequest {
+  id                String        @id @default(cuid())
+  
+  // WHAT: What document is being held
+  showId            String?       // For confirmed shows
+  showRequestId     String?       // For show requests being negotiated
+  
+  // WHO: Hold request parties
+  requestedById     String        // Who requested the hold
+  respondedById     String?       // Who responded to the hold
+  
+  // TERMS: Hold details
+  duration          Int           // Duration in hours
+  reason            String        // Why the hold is needed
+  customMessage     String?       // Optional additional context
+  
+  // STATUS: Hold lifecycle
+  status            HoldStatus    @default(PENDING)
+  requestedAt       DateTime      @default(now())
+  respondedAt       DateTime?     // When other party responded
+  startsAt          DateTime?     // When hold actually begins (after approval)
+  expiresAt         DateTime?     // When hold expires
+  
+  // SYSTEM
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  
+  // RELATIONS
+  requestedBy       User          @relation("RequestedHolds", fields: [requestedById], references: [id])
+  respondedBy       User?         @relation("RespondedHolds", fields: [respondedById], references: [id])
+  show              Show?         @relation(fields: [showId], references: [id])
+  showRequest       ShowRequest?  @relation(fields: [showRequestId], references: [id])
+  
+  // NOTE: Application-level validation ensures exactly one of showId or showRequestId is set
+  
+  @@index([showId])
+  @@index([showRequestId])
+  @@index([requestedById])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("hold_requests")
 }

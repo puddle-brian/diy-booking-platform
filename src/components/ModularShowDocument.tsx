@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { moduleRegistry, initializeModules } from './DocumentModules';
+import { HoldRequestPanel } from './HoldRequestPanel';
 
 /**
  * ✅ MODULAR SHOW DOCUMENT SYSTEM - FULLY FUNCTIONAL
@@ -638,6 +639,26 @@ export default function ModularShowDocument({
               </svg>
             </button>
           </div>
+        </div>
+
+        {/* Hold Request Panel - Prominently positioned at top of document */}
+        <div className="px-6 py-4 border-b border-gray-100">
+          <HoldRequestPanel
+            showId={show?.id || undefined}
+            showRequestId={tourRequest?.id || bid?.showRequestId || undefined}
+            currentUserId="debug-lidz-bierenday" // TODO: Get from auth context
+            artistId={show?.artistId || tourRequest?.artistId || bid?.artistId || undefined}
+            venueId={show?.venueId || bid?.venueId || tourRequest?.venueId || undefined}
+            artistName={show?.artistName || tourRequest?.artistName || documentData.artistName || 'Artist'}
+            venueName={show?.venueName || bid?.venueName || tourRequest?.venueName || documentData.venueName || 'Venue'}
+            onHoldChange={(holdRequest) => {
+              console.log('Hold request changed:', holdRequest);
+              // TODO: Integrate with document state management
+              if (onUpdate) {
+                onUpdate({ type: 'hold', data: holdRequest });
+              }
+            }}
+          />
         </div>
 
         {/* Document Modules */}
