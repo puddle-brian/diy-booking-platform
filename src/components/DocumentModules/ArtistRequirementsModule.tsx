@@ -26,9 +26,9 @@ function ArtistRequirementsComponent({
   const [templateLoading, setTemplateLoading] = useState(true);
   const [templateError, setTemplateError] = useState<string | null>(null);
   
-  // 🎯 NEW: Computed effective data (template + overrides)
-  const [effectiveData, setEffectiveData] = useState<any>({});
-
+  // 🎯 FIX: Local form state for immediate responsiveness
+  const [localFormChanges, setLocalFormChanges] = useState<any>({});
+  
   // 🎯 NEW: Fetch artist's default template
   useEffect(() => {
     const fetchArtistTemplate = async () => {
@@ -76,15 +76,19 @@ function ArtistRequirementsComponent({
     fetchArtistTemplate();
   }, [data?.artistId, data?.artist?.id]);
 
-  // 🎯 NEW: Compute effective data (template base + document overrides)
-  useEffect(() => {
+  // 🎯 FIX: Clear local form changes when parent data updates (prevents conflicts)
+  React.useEffect(() => {
+    setLocalFormChanges({});
+  }, [data]);
+
+  // 🎯 FIXED: Compute effective data using useMemo to prevent double renders
+  const effectiveData = React.useMemo(() => {
     if (!artistTemplate) {
-      // No template - use document data as-is (fallback behavior)
-      setEffectiveData(data || {});
-      return;
+      // No template - use document data as-is (fallback behavior) + local changes
+      return { ...(data || {}), ...localFormChanges };
     }
 
-    // Merge template data with document overrides
+    // Merge template data with document overrides and local form changes
     const merged = {
       // Start with template as base
       equipment: artistTemplate.equipment || {},
@@ -105,6 +109,9 @@ function ArtistRequirementsComponent({
       // 🎯 CRITICAL: Apply document-specific overrides on top
       ...data,
       
+      // 🎯 NEW: Apply local form changes for immediate responsiveness
+      ...localFormChanges,
+      
       // 🎯 META: Include template info for display
       _templateSource: {
         templateId: artistTemplate.id,
@@ -117,16 +124,20 @@ function ArtistRequirementsComponent({
       hasTemplate: !!artistTemplate,
       templateName: artistTemplate.name,
       hasOverrides: !!data && Object.keys(data).length > 0,
+      hasLocalChanges: Object.keys(localFormChanges).length > 0,
       effectiveKeys: Object.keys(merged)
     });
 
-    setEffectiveData(merged);
-  }, [artistTemplate, data]);
+    return merged;
+  }, [artistTemplate, data, localFormChanges]);
 
-  // 🎯 NEW: Handle template form changes with override tracking
+  // 🎯 FIXED: Handle template form changes with immediate feedback + persistence
   const handleTemplateFormChange = (field: string, value: any) => {
+    // 🎯 IMMEDIATE: Update local form state for instant responsiveness
+    setLocalFormChanges((prev: any) => ({ ...prev, [field]: value }));
+    
+    // 🎯 PERSISTENCE: Calculate what the new effective data would be for saving
     const newEffectiveData = { ...effectiveData, [field]: value };
-    setEffectiveData(newEffectiveData);
     
     // 🎯 SMART: Only store fields that differ from template
     const overrides: any = {};
@@ -147,11 +158,15 @@ function ArtistRequirementsComponent({
       
       console.log('🎭 ArtistRequirementsModule: Storing overrides:', overrides);
     } else {
-      // No template - store all data
-      Object.assign(overrides, newEffectiveData);
+      // No template - store all data (excluding meta fields)
+      Object.keys(newEffectiveData).forEach(key => {
+        if (!key.startsWith('_')) {
+          overrides[key] = newEffectiveData[key];
+        }
+      });
     }
 
-    // Pass overrides to parent (this is what gets saved to the document)
+    // Pass overrides to parent (this will trigger re-render with new data)
     onDataChange(overrides);
   };
 

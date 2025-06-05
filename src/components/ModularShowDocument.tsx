@@ -61,7 +61,7 @@ export default function ModularShowDocument({
   const [modules, setModules] = useState<ModuleState[]>([]);
   const [documentData, setDocumentData] = useState<any>({});
 
-  // Initialize modules when props change
+  // Initialize modules when props change (using stable IDs to prevent re-initialization on data mutations)
   useEffect(() => {
     if (!isOpen) return;
 
@@ -104,7 +104,14 @@ export default function ModularShowDocument({
         location: tourRequest.location
       });
     }
-  }, [show, bid, tourRequest, viewerType, isOpen]);
+  }, [
+    // 🎯 FIX: Use stable IDs instead of mutable objects to prevent re-initialization
+    show?.id, 
+    bid?.id, 
+    tourRequest?.id, 
+    viewerType, 
+    isOpen
+  ]);
 
   // Handle starting edit mode for a module
   const handleStartEdit = (moduleId: string) => {
