@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Show, TourRequest } from '../../types';
+import { Show, TourRequest, VenueBid, VenueOffer } from '../../types';
 import { TechnicalRequirement, HospitalityRequirement } from '../../types/templates';
 import VenueBidForm from './VenueBidForm';
 import ShowDetailModal from './ShowDetailModal';
@@ -26,145 +26,11 @@ import { useAlert } from './UniversalAlertModal';
 import { useTourItineraryData } from '../hooks/useTourItineraryData';
 import { useVenueArtistSearch } from '../hooks/useVenueArtistSearch';
 import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
+import { useItineraryState } from '../hooks/useItineraryState';
 import { createTimelineEntries, groupEntriesByMonth, getDefaultActiveMonth } from '../utils/timelineUtils';
 
 // Import action button components
 import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
-
-interface VenueBid {
-  id: string;
-  showRequestId: string;
-  venueId: string;
-  venueName: string;
-  proposedDate: string;
-  guarantee?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-  };
-  ticketPrice: {
-    advance?: number;
-    door?: number;
-  };
-  capacity: number;
-  ageRestriction: string;
-  equipmentProvided: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn: string;
-  soundcheck: string;
-  doorsOpen: string;
-  showTime: string;
-  curfew: string;
-  promotion: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  message: string;
-  status: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
-  readByArtist: boolean;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string;
-  location?: string;
-  holdPosition?: 1 | 2 | 3;
-  heldAt?: string;
-  heldUntil?: string;
-  acceptedAt?: string;
-  declinedAt?: string;
-  declinedReason?: string;
-  cancelledAt?: string;
-  cancelledReason?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  // 🎯 NEW: Artist information for proper display in venue timelines
-  artistId?: string;
-  artistName?: string;
-}
-
-interface VenueOffer {
-  id: string;
-  venueId: string;
-  venueName: string;
-  artistId: string;
-  artistName: string;
-  title: string;
-  description?: string;
-  proposedDate: string;
-  alternativeDates?: string[];
-  message?: string;
-  amount?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-    afterExpenses?: boolean;
-  };
-  ticketPrice?: {
-    advance?: number;
-    door?: number;
-  };
-  merchandiseSplit?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  capacity?: number;
-  ageRestriction?: string;
-  equipmentProvided?: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn?: string;
-  soundcheck?: string;
-  doorsOpen?: string;
-  showTime?: string;
-  curfew?: string;
-  promotion?: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  lodging?: {
-    offered: boolean;
-    type: 'floor-space' | 'couch' | 'private-room';
-    details?: string;
-  };
-  additionalTerms?: string;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-  venue?: {
-    id: string;
-    name: string;
-    venueType?: string;
-    capacity?: number;
-    location?: {
-      city: string;
-      stateProvince: string;
-      country: string;
-    };
-  };
-  artist?: {
-    id: string;
-    name: string;
-    genres?: string[];
-  };
-}
 
 interface TabbedTourItineraryProps {
   artistId?: string;
@@ -205,6 +71,9 @@ export default function TabbedTourItinerary({
   // Initialize Universal Alert Modal system
   const { AlertModal, confirm, error: showError, success: showSuccess, info: showInfo, toast } = useAlert();
 
+  // 🎯 REFACTORED: Use centralized state management
+  const { state, actions } = useItineraryState();
+
   // 🎯 REFACTORED: Use centralized permissions hook
   const permissions = useItineraryPermissions({
     viewerType,
@@ -225,85 +94,7 @@ export default function TabbedTourItinerary({
     fetchData
   } = useTourItineraryData({ artistId, venueId, venueName });
 
-  // 🎯 REFACTORED: Use custom hook for venue/artist search
-  const {
-    venues,
-    artists,
-    venueSearchResults,
-    artistSearchResults,
-    showVenueDropdown,
-    showArtistDropdown,
-    handleVenueSearch,
-    handleArtistSearch,
-    selectVenue: selectVenueFromSearch,
-    selectArtist: selectArtistFromSearch,
-    setShowVenueDropdown,
-    setShowArtistDropdown
-  } = useVenueArtistSearch({
-    onVenueSelect: (venue) => {
-      setAddDateForm(prev => ({
-        ...prev,
-        venueId: venue.id,
-        venueName: venue.name,
-        location: `${venue.city}, ${venue.state}`,
-        capacity: venue.capacity?.toString() || ''
-      }));
-    },
-    onArtistSelect: (artist) => {
-      setAddDateForm(prev => ({
-        ...prev,
-        artistId: artist.id,
-        artistName: artist.name
-      }));
-    }
-  });
-
-  // Remaining state management
-  const [expandedBids, setExpandedBids] = useState<Set<string>>(new Set());
-  const [expandedShows, setExpandedShows] = useState<Set<string>>(new Set());
-  const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
-  const [showBidForm, setShowBidForm] = useState(false);
-  const [selectedTourRequest, setSelectedTourRequest] = useState<TourRequest | null>(null);
-  const [holdActions, setHoldActions] = useState<Record<string, boolean>>({});
-  const [bidActions, setBidActions] = useState<Record<string, boolean>>({});
-  const [holdNotes, setHoldNotes] = useState<{[bidId: string]: string}>({});
-  const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-  const [selectedBid, setSelectedBid] = useState<VenueBid | null>(null);
-  const [showBidDetailsModal, setShowBidDetailsModal] = useState(false);
-  const [showTourRequestForm, setShowTourRequestForm] = useState(false);
-  const [showAddDateForm, setShowAddDateForm] = useState(false);
-  const [activeMonthTab, setActiveMonthTab] = useState<string>('');
-  const [addDateLoading, setAddDateLoading] = useState(false);
-  const [deleteShowLoading, setDeleteShowLoading] = useState<string | null>(null);
-  const [selectedShowForDetail, setSelectedShowForDetail] = useState<Show | null>(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
-  const [tourRequestDetailModal, setTourRequestDetailModal] = useState(false);
-  
-  // Track declined bids locally to avoid flashing
-  const [declinedBids, setDeclinedBids] = useState<Set<string>>(new Set());
-  
-  // Track deleted tour requests locally to avoid flashing  
-  const [deletedRequests, setDeletedRequests] = useState<Set<string>>(new Set());
-  
-  // Track deleted shows locally to avoid flashing
-  const [deletedShows, setDeletedShows] = useState<Set<string>>(new Set());
-  
-  // Add optimistic bid status tracking to prevent blinking during switches
-  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, 'pending' | 'accepted' | 'hold' | 'declined'>>(new Map());
-  
-  // Track recent undo actions to prevent race conditions
-  const [recentUndoActions, setRecentUndoActions] = useState<Set<string>>(new Set());
-  
-  // Add venue offer form state
-  const [showVenueOfferForm, setShowVenueOfferForm] = useState(false);
-  
-  // Show Document Modal state
-  const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [selectedDocumentShow, setSelectedDocumentShow] = useState<Show | null>(null);
-  const [selectedDocumentBid, setSelectedDocumentBid] = useState<VenueBid | null>(null);
-  const [selectedDocumentTourRequest, setSelectedDocumentTourRequest] = useState<TourRequest | null>(null);
-  
-  // All the form states from original component
+  // Keep addDateForm as separate state for now (will refactor later)
   const [addDateForm, setAddDateForm] = useState({
     type: 'offer' as 'request' | 'confirmed' | 'offer',
     date: '',
@@ -351,26 +142,99 @@ export default function TabbedTourItinerary({
     lodging: 'flexible' as 'floor-space' | 'hotel' | 'flexible',
     priority: 'medium' as 'high' | 'medium' | 'low'
   });
+
+  // 🎯 REFACTORED: Use custom hook for venue/artist search
+  const {
+    venues,
+    artists,
+    venueSearchResults,
+    artistSearchResults,
+    showVenueDropdown,
+    showArtistDropdown,
+    handleVenueSearch,
+    handleArtistSearch,
+    selectVenue: selectVenueFromSearch,
+    selectArtist: selectArtistFromSearch,
+    setShowVenueDropdown,
+    setShowArtistDropdown
+  } = useVenueArtistSearch({
+    onVenueSelect: (venue) => {
+      setAddDateForm(prev => ({
+        ...prev,
+        venueId: venue.id,
+        venueName: venue.name,
+        location: `${venue.city}, ${venue.state}`,
+        capacity: venue.capacity?.toString() || ''
+      }));
+    },
+    onArtistSelect: (artist) => {
+      setAddDateForm(prev => ({
+        ...prev,
+        artistId: artist.id,
+        artistName: artist.name
+      }));
+    }
+  });
+
+  // Remaining state management - REMOVE these old useState calls and use centralized state
+  // const [expandedBids, setExpandedBids] = useState<Set<string>>(new Set());
+  // const [expandedShows, setExpandedShows] = useState<Set<string>>(new Set());
+  // const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
+  // const [showBidForm, setShowBidForm] = useState(false);
+  // const [selectedTourRequest, setSelectedTourRequest] = useState<TourRequest | null>(null);
+  const [holdActions, setHoldActions] = useState<Record<string, boolean>>({});
+  const [bidActions, setBidActions] = useState<Record<string, boolean>>({});
+  const [holdNotes, setHoldNotes] = useState<{[bidId: string]: string}>({});
+  // const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
+  const [selectedBid, setSelectedBid] = useState<VenueBid | null>(null);
+  const [showBidDetailsModal, setShowBidDetailsModal] = useState(false);
+  const [showTourRequestForm, setShowTourRequestForm] = useState(false);
+  const [showAddDateForm, setShowAddDateForm] = useState(false);
+  const [addDateLoading, setAddDateLoading] = useState(false);
+  const [deleteShowLoading, setDeleteShowLoading] = useState<string | null>(null);
+  const [selectedShowForDetail, setSelectedShowForDetail] = useState<Show | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [tourRequestDetailModal, setTourRequestDetailModal] = useState(false);
+  const [selectedTourRequest, setSelectedTourRequest] = useState<TourRequest | null>(null);
   
-  // Universal Make Offer Modal state
-  const [showUniversalOfferModal, setShowUniversalOfferModal] = useState(false);
-  const [offerTargetArtist, setOfferTargetArtist] = useState<{ id: string; name: string } | null>(null);
-  const [offerTourRequest, setOfferTourRequest] = useState<{ id: string; title: string; artistName: string } | null>(null);
-  const [offerPreSelectedDate, setOfferPreSelectedDate] = useState<string | null>(null);
-  const [offerExistingBid, setOfferExistingBid] = useState<any>(null);
+  // Track declined bids locally to avoid flashing
+  const [declinedBids, setDeclinedBids] = useState<Set<string>>(new Set());
+  
+  // Track deleted tour requests locally to avoid flashing  
+  const [deletedRequests, setDeletedRequests] = useState<Set<string>>(new Set());
+  
+  // Track deleted shows locally to avoid flashing
+  const [deletedShows, setDeletedShows] = useState<Set<string>>(new Set());
+  
+  // Add optimistic bid status tracking to prevent blinking during switches
+  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, 'pending' | 'accepted' | 'hold' | 'declined'>>(new Map());
+  
+  // Track recent undo actions to prevent race conditions
+  const [recentUndoActions, setRecentUndoActions] = useState<Set<string>>(new Set());
+  
+  // Add venue offer form state
+  const [showVenueOfferForm, setShowVenueOfferForm] = useState(false);
+  
+  // Show Document Modal state
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const [selectedDocumentShow, setSelectedDocumentShow] = useState<Show | null>(null);
+  const [selectedDocumentBid, setSelectedDocumentBid] = useState<VenueBid | null>(null);
+  const [selectedDocumentTourRequest, setSelectedDocumentTourRequest] = useState<TourRequest | null>(null);
+  
+  // Universal Make Offer Modal state - now managed by centralized state
 
   // 🎯 REFACTORED: Timeline creation using utility functions
-  const filteredShows = shows.filter(show => !deletedShows.has(show.id));
-  const filteredTourRequests = tourRequests.filter(request => !deletedRequests.has(request.id));
+  const filteredShows = shows.filter(show => !state.deletedShows.has(show.id));
+  const filteredTourRequests = tourRequests.filter(request => !state.deletedRequests.has(request.id));
   // Filter venue offers - exclude offers whose synthetic request IDs are in deletedRequests
   const filteredVenueOffers = venueOffers.filter(offer => {
     const syntheticRequestId = `venue-offer-${offer.id}`;
-    return !deletedRequests.has(syntheticRequestId);
+    return !state.deletedRequests.has(syntheticRequestId);
   });
   // 🎯 NEW: Filter venue bids - exclude bids whose synthetic request IDs are in deletedRequests
   const filteredVenueBids = venueBids.filter(bid => {
     const syntheticRequestId = `venue-bid-${bid.id}`;
-    return !deletedRequests.has(syntheticRequestId);
+    return !state.deletedRequests.has(syntheticRequestId);
   });
   const timelineEntries = createTimelineEntries(filteredShows, filteredTourRequests, filteredVenueOffers, filteredVenueBids, artistId, venueId);
   const monthGroups = groupEntriesByMonth(timelineEntries);
@@ -394,91 +258,58 @@ export default function TabbedTourItinerary({
   // Set active tab to first month with entries, or current month if no entries
   useEffect(() => {
     if (monthGroups.length > 0) {
-      const currentTabExists = monthGroups.some(group => group.monthKey === activeMonthTab);
+      const currentTabExists = monthGroups.some(group => group.monthKey === state.activeMonthTab);
       
-      if (!activeMonthTab || !currentTabExists) {
+      if (!state.activeMonthTab || !currentTabExists) {
         const defaultMonth = getDefaultActiveMonth(monthGroups);
-        setActiveMonthTab(defaultMonth);
+        actions.setActiveMonth(defaultMonth);
       }
     } else if (monthGroups.length === 0) {
       const now = new Date();
       const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      setActiveMonthTab(currentMonth);
+      actions.setActiveMonth(currentMonth);
     }
-  }, [monthGroups.length, activeMonthTab]);
+  }, [monthGroups.length, state.activeMonthTab, actions]);
 
   // 🎯 FIX: Reset optimistic state when switching between venues/artists
   useEffect(() => {
     // Clear all optimistic state when artistId or venueId changes
-    setBidStatusOverrides(new Map());
-    setDeclinedBids(new Set());
-    setDeletedRequests(new Set());
-    setDeletedShows(new Set());
-    setBidActions({});
-    setHoldActions({});
-    setHoldNotes({});
-    setRecentUndoActions(new Set());
-  }, [artistId, venueId]);
+    actions.resetOptimisticState();
+  }, [artistId, venueId, actions.resetOptimisticState]);
 
-  const activeMonthEntries = monthGroups.find(group => group.monthKey === activeMonthTab)?.entries || [];
+  const activeMonthEntries = monthGroups.find(group => group.monthKey === state.activeMonthTab)?.entries || [];
 
   // Handler functions that are still needed in the component
   const toggleBidExpansion = (requestId: string) => {
-    setExpandedBids(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(requestId)) {
-        newSet.delete(requestId);
-      } else {
-        newSet.add(requestId);
-      }
-      return newSet;
-    });
+    actions.toggleBidExpansion(requestId);
   };
 
   const toggleShowExpansion = (showId: string) => {
-    setExpandedShows(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(showId)) {
-        newSet.delete(showId);
-      } else {
-        newSet.add(showId);
-      }
-      return newSet;
-    });
+    actions.toggleShowExpansion(showId);
   };
 
   const toggleRequestExpansion = (requestId: string) => {
-    setExpandedRequests(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(requestId)) {
-        newSet.delete(requestId);
-      } else {
-        newSet.add(requestId);
-      }
-      return newSet;
-    });
+    actions.toggleRequestExpansion(requestId);
   };
 
   const handleBidSuccess = (bid: any) => {
-    setShowBidForm(false);
-    setSelectedTourRequest(null);
+    actions.closeBidForm();
     fetchData();
   };
 
   // Additional handler functions
   const handlePlaceBid = (tourRequest: TourRequest) => {
     if (venueId && venueName) {
-      setSelectedTourRequest(tourRequest);
-      setShowBidForm(true);
+      actions.openBidForm(tourRequest);
       return;
     }
     
     if (permissions.canMakeOffers) {
-      setOfferTargetArtist({
+      // Fix the artist parameter to match the expected signature
+      actions.openUniversalOffer({
         id: tourRequest.artistId,
         name: tourRequest.artistName
       });
-      setShowUniversalOfferModal(true);
       return;
     }
     
@@ -491,8 +322,6 @@ export default function TabbedTourItinerary({
       `Are you sure you want to delete "${showName}"?`,
       async () => {
         try {
-          setDeleteShowLoading(showId);
-          
           // Optimistic update - immediately hide the show
           setDeletedShows(prev => new Set([...prev, showId]));
           
@@ -517,8 +346,6 @@ export default function TabbedTourItinerary({
           });
           
           showError('Delete Failed', 'Failed to delete show. Please try again.');
-        } finally {
-          setDeleteShowLoading(null);
         }
       }
     );
@@ -1158,10 +985,10 @@ export default function TabbedTourItinerary({
       'Delete Show Request',
       `Delete "${requestName}"? This will also delete all associated bids and cannot be undone.`,
       async () => {
-        setDeleteLoading(requestId);
+        actions.setDeleteLoading(requestId);
         
         // Optimistic update - immediately hide the request
-        setDeletedRequests(prev => new Set([...prev, requestId]));
+        actions.deleteRequestOptimistic(requestId);
         
         try {
           const response = await fetch(`/api/show-requests/${requestId}`, {
@@ -1178,16 +1005,13 @@ export default function TabbedTourItinerary({
         } catch (error) {
           console.error('Error deleting tour request:', error);
           
-          // Revert optimistic update on error
-          setDeletedRequests(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(requestId);
-            return newSet;
-          });
+          // Revert optimistic update on error - we'll need to add this to the state
+          // For now just refetch data
+          await fetchData();
           
           showError('Deletion Failed', `Failed to delete tour request: ${error instanceof Error ? error.message : 'Unknown error'}`);
         } finally {
-          setDeleteLoading(null);
+          actions.setDeleteLoading(null);
         }
       }
     );
@@ -1300,9 +1124,9 @@ export default function TabbedTourItinerary({
               {monthGroups.map((group) => (
                 <button
                   key={group.monthKey}
-                  onClick={() => setActiveMonthTab(group.monthKey)}
+                  onClick={() => actions.setActiveMonth(group.monthKey)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                    activeMonthTab === group.monthKey
+                    state.activeMonthTab === group.monthKey
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
@@ -1374,7 +1198,7 @@ export default function TabbedTourItinerary({
                       <div className="flex items-center justify-center text-gray-400">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                            d={expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                            d={state.expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
                         </svg>
                       </div>
                     </td>
@@ -1474,7 +1298,7 @@ export default function TabbedTourItinerary({
                           permissions={permissions}
                           venueOffers={venueOffers}
                           venueBids={venueBids}
-                          isLoading={deleteShowLoading === show.id}
+                          isLoading={state.deleteShowLoading === show.id}
                           onDeleteShow={handleDeleteShow}
                         />
                       </div>
@@ -1580,13 +1404,13 @@ export default function TabbedTourItinerary({
                     <tr 
                       className="bg-blue-50 cursor-pointer transition-colors duration-150 hover:bg-blue-100 hover:shadow-sm border-l-4 border-blue-400 hover:border-blue-500"
                       onClick={() => toggleRequestExpansion(request.id)}
-                      title={`Click to ${expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
+                      title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
                     >
                       <td className="px-2 py-1.5 w-[3%]">
                         <div className="flex items-center justify-center text-gray-400">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                              d={expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
+                              d={state.expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
                           </svg>
                         </div>
                       </td>
@@ -1772,16 +1596,23 @@ export default function TabbedTourItinerary({
                             venueName={venueName}
                             requestBids={requestBids}
                             onMakeOffer={(request) => {
-                              setOfferTargetArtist({
-                                id: request.artistId,
-                                name: request.artistName
-                              });
-                              setOfferTourRequest({
-                                id: request.id,
-                                title: request.title,
-                                artistName: request.artistName
-                              });
-                              setShowUniversalOfferModal(true);
+                              // Extract the appropriate date from the request
+                              // Note: Using type assertion due to TourRequest interface mismatch
+                              const requestWithDates = request as any;
+                              const preSelectedDate = requestWithDates.requestDate || requestWithDates.startDate || null;
+                              
+                              actions.openUniversalOffer(
+                                {
+                                  id: request.artistId,
+                                  name: request.artistName
+                                },
+                                {
+                                  id: request.id,
+                                  title: request.title,
+                                  artistName: request.artistName
+                                },
+                                preSelectedDate
+                              );
                             }}
                           />
 
@@ -1791,7 +1622,7 @@ export default function TabbedTourItinerary({
                             venueId={venueId}
                             venueOffers={venueOffers}
                             venueBids={venueBids}
-                            isLoading={deleteLoading === request.id}
+                            isLoading={state.deleteLoading === request.id}
                             onDeleteRequest={handleDeleteShowRequest}
                             onOfferAction={handleOfferAction}
                             onBidAction={handleBidAction}
@@ -1801,7 +1632,7 @@ export default function TabbedTourItinerary({
                     </tr>
 
                     {/* Expanded Bids Section */}
-                    {expandedRequests.has(request.id) && (
+                    {state.expandedRequests.has(request.id) && (
                       <>
                         {requestBids.length > 0 && (
                           <tr>
@@ -1990,17 +1821,16 @@ export default function TabbedTourItinerary({
       {/* All the modals from original component */}
       
       {/* Venue Bid Form Modal */}
-      {showBidForm && selectedTourRequest && (
+      {state.showBidForm && state.selectedTourRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <VenueBidForm
-              tourRequest={selectedTourRequest}
+              tourRequest={state.selectedTourRequest}
               venueId={venueId || 'unknown'}
               venueName={venueName || 'Unknown Venue'}
               onSuccess={handleBidSuccess}
               onCancel={() => {
-                setShowBidForm(false);
-                setSelectedTourRequest(null);
+                actions.closeBidForm();
               }}
             />
           </div>
@@ -2031,7 +1861,7 @@ export default function TabbedTourItinerary({
           }}
           onPlaceBid={() => {
             setTourRequestDetailModal(false);
-            setShowBidForm(true);
+            actions.openBidForm(selectedTourRequest);
           }}
           viewerType={permissions.actualViewerType}
         />
@@ -2059,30 +1889,26 @@ export default function TabbedTourItinerary({
       )}
 
       {/* Universal Make Offer Modal */}
-      {showUniversalOfferModal && (
+      {state.showUniversalOfferModal && (
         <UniversalMakeOfferModal
-          isOpen={showUniversalOfferModal}
+          isOpen={state.showUniversalOfferModal}
           onClose={() => {
-            setShowUniversalOfferModal(false);
-            setOfferTargetArtist(null);
-            setOfferTourRequest(null);
-            setOfferPreSelectedDate(null);
-            setOfferExistingBid(null);
+            actions.closeUniversalOffer();
           }}
           onSuccess={(result) => {
             console.log('Offer/dismissal result:', result);
             
             // Handle dismissal by removing from local state
             if (result.dismissed && result.requestId) {
-              setDeletedRequests(prev => new Set([...prev, result.requestId]));
+              actions.deleteRequestOptimistic(result.requestId);
             }
             
             fetchData();
           }}
-          preSelectedArtist={offerTargetArtist || undefined}
-          preSelectedDate={offerPreSelectedDate || undefined}
-          tourRequest={offerTourRequest || undefined}
-          existingBid={offerExistingBid || undefined}
+          preSelectedArtist={state.offerTargetArtist || undefined}
+          preSelectedDate={state.offerPreSelectedDate || undefined}
+          tourRequest={state.offerTourRequest || undefined}
+          existingBid={state.offerExistingBid || undefined}
         />
       )}
 
