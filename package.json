@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "clean-start": "powershell -ExecutionPolicy Bypass -File clean-cache.ps1 && next dev",
+    "clean-cache": "powershell -ExecutionPolicy Bypass -File clean-cache.ps1",
     "build": "prisma generate --no-engine && next build",
     "start": "next start",
     "lint": "next lint",

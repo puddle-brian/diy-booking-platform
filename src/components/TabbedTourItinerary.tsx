@@ -27,10 +27,15 @@ import { useTourItineraryData } from '../hooks/useTourItineraryData';
 import { useVenueArtistSearch } from '../hooks/useVenueArtistSearch';
 import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
 import { useItineraryState } from '../hooks/useItineraryState';
-import { createTimelineEntries, groupEntriesByMonth, getDefaultActiveMonth } from '../utils/timelineUtils';
+import {
+  createTimelineEntries,
+  groupEntriesByMonth,
+  getDefaultActiveMonth
+} from '../utils/timelineUtils';
 
 // Import action button components
 import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
+import { ShowTimelineItem, TourRequestTimelineItem, BidTimelineItem } from './TimelineItems';
 
 interface TabbedTourItineraryProps {
   artistId?: string;
@@ -49,13 +54,6 @@ interface TimelineEntry {
   endDate?: string;
   data: Show | TourRequest | VenueBid;
   parentTourRequest?: TourRequest;
-}
-
-interface MonthGroup {
-  monthKey: string;
-  monthLabel: string;
-  entries: TimelineEntry[];
-  count: number;
 }
 
 export default function TabbedTourItinerary({ 
@@ -1185,138 +1183,25 @@ export default function TabbedTourItinerary({
             )}
             
             {/* Render entries for active month */}
-            {activeMonthEntries.map((entry) => {
+            {activeMonthEntries.map((entry, index) => {
               if (entry.type === 'show') {
                 const show = entry.data as Show;
+                
                 return (
-                  <tr 
+                  <ShowTimelineItem
                     key={`show-${show.id}`}
-                    className="hover:bg-green-50 transition-colors duration-150 cursor-pointer"
-                    onClick={() => toggleShowExpansion(show.id)}
-                  >
-                    <td className="px-2 py-1.5 w-[3%]">
-                      <div className="flex items-center justify-center text-gray-400">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                            d={state.expandedShows.has(show.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-                        </svg>
-                      </div>
-                    </td>
-                    <td className="px-4 py-1.5 w-[12%]">
-                      <ItineraryDate date={show.date} className="text-sm font-medium text-gray-900" />
-                    </td>
-                    <td className="px-4 py-1.5 w-[14%]">
-                      <div className="text-sm text-gray-900 truncate">{show.city}, {show.state}</div>
-                    </td>
-                    <td className="px-4 py-1.5 w-[19%]">
-                      <div className="text-sm font-medium text-gray-900 truncate">
-                        {(() => {
-                          if (artistId) {
-                            // For artist pages, show venue as clickable link
-                            if (show.venueId && show.venueId !== 'external-venue') {
-                              return (
-                                <a 
-                                  href={`/venues/${show.venueId}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View venue page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {show.venueName}
-                                </a>
-                              );
-                            } else {
-                              return show.venueName;
-                            }
-                          } else if (venueId) {
-                            // For venue pages, show artist as clickable link
-                            if (show.artistId && show.artistId !== 'external-artist') {
-                              return (
-                                <a 
-                                  href={`/artists/${show.artistId}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View artist page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {show.artistName}
-                                </a>
-                              );
-                            } else {
-                              return show.artistName;
-                            }
-                          } else {
-                            // For public/general view, show artist name
-                            if (show.artistId && show.artistId !== 'external-artist') {
-                              return (
-                                <a 
-                                  href={`/artists/${show.artistId}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View artist page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {show.artistName}
-                                </a>
-                              );
-                            } else {
-                              return show.artistName;
-                            }
-                          }
-                        })()}
-                      </div>
-                    </td>
-                    <td className="px-4 py-1.5 w-[10%]">
-                      <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                        Confirmed
-                      </span>
-                    </td>
-                    <td className="px-4 py-1.5 w-[7%]">
-                      <div className="text-xs text-gray-600">{show.capacity}</div>
-                    </td>
-                    <td className="px-4 py-1.5 w-[7%]">
-                      <div className="text-xs text-gray-600">{show.ageRestriction}</div>
-                    </td>
-                    <td className="px-4 py-1.5 w-[10%]">
-                      <InlineOfferDisplay 
-                        amount={show.guarantee}
-                        doorDeal={show.doorDeal}
-                        className="text-xs text-gray-600"
-                      />
-                    </td>
-                    <td className="px-4 py-1.5 w-[8%]">
-                      <DocumentActionButton
-                        type="show"
-                        show={show}
-                        permissions={permissions}
-                        artistId={artistId}
-                        venueId={venueId}
-                        onShowDocument={handleShowDocumentModal}
-                      />
-                    </td>
-                    <td className="px-4 py-1.5 w-[10%]">
-                      <div className="flex items-center space-x-2">
-                        <DeleteActionButton
-                          show={show}
-                          permissions={permissions}
-                          venueOffers={venueOffers}
-                          venueBids={venueBids}
-                          isLoading={state.deleteShowLoading === show.id}
-                          onDeleteShow={handleDeleteShow}
-                        />
-                      </div>
-                    </td>
-                  </tr>
+                    show={show}
+                    permissions={permissions}
+                    isExpanded={state.expandedShows.has(show.id)}
+                    isDeleting={state.deleteShowLoading === show.id}
+                    onToggleExpansion={toggleShowExpansion}
+                    onDeleteShow={handleDeleteShow}
+                    onShowDocument={handleShowDocumentModal}
+                    onShowDetail={handleShowDetailModal}
+                  />
                 );
               } else if (entry.type === 'tour-request') {
                 const request = entry.data as TourRequest & { 
-                  isVenueInitiated?: boolean; 
-                  originalOfferId?: string; 
-                  venueInitiatedBy?: string;
-                };
-                
-                // Get bids for this request
-                let requestBids: VenueBid[] = [];
-                
-                // 🎯 ADD TYPE EXTENSION for venue bid properties
-                const requestWithVenueBid = request as TourRequest & { 
                   isVenueInitiated?: boolean; 
                   originalOfferId?: string; 
                   venueInitiatedBy?: string;
@@ -1327,9 +1212,12 @@ export default function TabbedTourItinerary({
                   bidAmount?: number;
                 };
                 
-                if (requestWithVenueBid.isVenueInitiated && requestWithVenueBid.originalOfferId) {
+                // Get bids for this request
+                let requestBids: VenueBid[] = [];
+                
+                if (request.isVenueInitiated && request.originalOfferId) {
                   // For synthetic requests from venue offers, convert the venue offer to a bid format
-                  const originalOffer = venueOffers.find(offer => offer.id === requestWithVenueBid.originalOfferId);
+                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
                   if (originalOffer) {
                     const bidDate = originalOffer.proposedDate.split('T')[0];
                     
@@ -1371,25 +1259,19 @@ export default function TabbedTourItinerary({
                       createdAt: originalOffer.createdAt,
                       updatedAt: originalOffer.updatedAt,
                       expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                      location: originalOffer.venue?.location ? 
-                        `${originalOffer.venue.location.city}, ${originalOffer.venue.location.stateProvince}` : 
-                        undefined,
                       billingPosition: originalOffer.billingPosition,
                       lineupPosition: originalOffer.lineupPosition,
                       setLength: originalOffer.setLength,
                       otherActs: originalOffer.otherActs,
                       billingNotes: originalOffer.billingNotes,
-                      artistId: originalOffer.artist?.id,
-                      artistName: originalOffer.artist?.name
                     };
                     
                     requestBids = [syntheticBid];
                   }
-                } else if (requestWithVenueBid.isVenueBid && requestWithVenueBid.originalShowRequestId) {
-                  // 🎯 UPDATED: For synthetic requests from venue bids, use originalShowRequestId to find ALL competing bids
-                  // 🎯 COMPETITIVE INTELLIGENCE: Show ALL bids on the original artist request
+                } else if (request.isVenueBid && request.originalShowRequestId) {
+                  // For synthetic requests from venue bids, use originalShowRequestId to find ALL competing bids
                   const allBidsOnRequest = venueBids.filter(bid => 
-                    bid.showRequestId === requestWithVenueBid.originalShowRequestId && 
+                    bid.showRequestId === request.originalShowRequestId && 
                     !declinedBids.has(bid.id)
                   );
                   
@@ -1449,7 +1331,6 @@ export default function TabbedTourItinerary({
                                 }
                               } else {
                                 // For artist-initiated requests, show bid count or venue-specific info
-                                // 🎯 NEW: Check if this is a venue-specific request first
                                 const requestAsVenueSpecific = request as TourRequest & { 
                                   isVenueSpecific?: boolean; 
                                   venueSpecificId?: string; 
@@ -1559,16 +1440,12 @@ export default function TabbedTourItinerary({
                               </span>
                             );
                           })()}
-
                         </div>
                       </td>
-                      <td className="px-4 py-1.5 w-[7%]">
-                      </td>
-                      <td className="px-4 py-1.5 w-[7%]">
-                      </td>
+                      <td className="px-4 py-1.5 w-[7%]"></td>
+                      <td className="px-4 py-1.5 w-[7%]"></td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          {/* Show bid count as "what's on offer" in terms of interest/competition */}
                           <div className="text-xs">
                             <span className={requestBids.length > 0 ? "text-blue-600 font-medium" : "text-gray-400"}>
                               {requestBids.length} bid{requestBids.length !== 1 ? 's' : ''}
@@ -1577,15 +1454,7 @@ export default function TabbedTourItinerary({
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-[8%]">
-                        <DocumentActionButton
-                          type="request"
-                          request={request}
-                          permissions={permissions}
-                          venueId={venueId}
-                          requestBids={requestBids}
-                          onBidDocument={handleBidDocumentModal}
-                          onRequestDocument={handleTourRequestDocumentModal}
-                        />
+
                       </td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
@@ -1597,7 +1466,6 @@ export default function TabbedTourItinerary({
                             requestBids={requestBids}
                             onMakeOffer={(request) => {
                               // Extract the appropriate date from the request
-                              // Note: Using type assertion due to TourRequest interface mismatch
                               const requestWithDates = request as any;
                               const preSelectedDate = requestWithDates.requestDate || requestWithDates.startDate || null;
                               
@@ -1617,151 +1485,75 @@ export default function TabbedTourItinerary({
                           />
 
                           <DeleteActionButton
-                            request={requestWithVenueBid}
+                            request={request}
                             permissions={permissions}
                             venueId={venueId}
-                            venueOffers={venueOffers}
+                            venueOffers={venueOffers as any}
                             venueBids={venueBids}
                             isLoading={state.deleteLoading === request.id}
                             onDeleteRequest={handleDeleteShowRequest}
-                            onOfferAction={handleOfferAction}
-                            onBidAction={handleBidAction}
+                            onOfferAction={(offer, action) => handleOfferAction(offer as any, action)}
+                            onBidAction={(bid, action, reason) => handleBidAction(bid as any, action, reason)}
                           />
                         </div>
                       </td>
                     </tr>
 
                     {/* Expanded Bids Section */}
-                    {state.expandedRequests.has(request.id) && (
-                      <>
-                        {requestBids.length > 0 && (
-                          <tr>
-                            <td colSpan={10} className="px-0 py-0">
-                              <div className="bg-yellow-50 border-l-4 border-yellow-400">
-                                <div className="overflow-x-auto">
-                                  <table className="w-full min-w-[1000px] table-fixed">
-                                    <thead className="bg-yellow-100">
-                                      <tr className="text-left text-xs font-medium text-yellow-700">
-                                        <th className="px-2 py-1.5 w-[3%]"></th>
-                                        <th className="px-4 py-1.5 w-[12%]">Date</th>
-                                        <th className="px-4 py-1.5 w-[14%]">Location</th>
-                                        <th className="px-4 py-1.5 w-[19%]">Venue</th>
-                                        <th className="px-4 py-1.5 w-[10%]">Status</th>
-                                        <th className="px-4 py-1.5 w-[7%]">Capacity</th>
-                                        <th className="px-4 py-1.5 w-[7%]">Age</th>
-                                        <th className="px-4 py-1.5 w-[10%]">Offers</th>
-                                        <th className="px-4 py-1.5 w-[8%]">Details</th>
-                                        <th className="px-4 py-1.5 w-[10%]">Actions</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-yellow-200">
-                                      {requestBids
-                                        .filter((bid: VenueBid) => {
-                                          return !['expired', 'declined', 'rejected'].includes(bid.status) && !declinedBids.has(bid.id);
-                                        })
-                                        .map((bid: VenueBid) => (
-                                        <tr key={`bid-${bid.id}`} className="bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150">
-                                          <td className="px-2 py-1.5 w-[3%]"></td>
-                                          <td className="px-4 py-1.5 w-[12%]">
-                                            <ItineraryDate
-                                              date={bid.proposedDate}
-                                              className="text-sm font-medium text-yellow-900"
-                                            />
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[14%]">
-                                            <div className="text-sm text-yellow-900 truncate">
-                                              {bid.location || '-'}
-                                            </div>
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[19%]">
-                                            <div className="flex items-center space-x-2">
-                                              <div className="text-sm font-medium text-yellow-900 truncate">
-                                                {bid.venueId && bid.venueId !== 'external-venue' ? (
-                                                  <a 
-                                                    href={`/venues/${bid.venueId}`}
-                                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                                    title="View venue page"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                  >
-                                                    {bid.venueName}
-                                                  </a>
-                                                ) : (
-                                                  bid.venueName
-                                                )}
-                                              </div>
-                                              {bid.message && (
-                                                <button
-                                                  onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    alert(bid.message);
-                                                  }}
-                                                  className="inline-flex items-center justify-center w-5 h-5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full transition-colors"
-                                                  title={bid.message}
-                                                >
-                                                  <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                                  </svg>
-                                                </button>
-                                              )}
-                                            </div>
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[10%]">
-                                            <span className={getBidStatusBadge(bid).className}>
-                                              {getBidStatusBadge(bid).text}
-                                            </span>
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[7%]">
-                                            <div className="text-xs text-gray-600">{bid.capacity}</div>
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[7%]">
-                                            <div className="text-xs text-gray-600">
-                                              {bid.ageRestriction === 'ALL_AGES' ? 'all-ages' : 
-                                               bid.ageRestriction === 'EIGHTEEN_PLUS' ? '18+' : 
-                                               bid.ageRestriction === 'TWENTY_ONE_PLUS' ? '21+' : 
-                                               bid.ageRestriction === '18_PLUS' ? '18+' : 
-                                               bid.ageRestriction === '21_PLUS' ? '21+' : 
-                                               bid.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
-                                            </div>
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[10%]">
-                                            <InlineOfferDisplay 
-                                              amount={bid.guarantee}
-                                              doorDeal={bid.doorDeal}
-                                              className="text-xs text-gray-600"
-                                            />
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[8%]">                                 
-                                            {/* Document button removed - documents only shown in parent request row */}
-                                          </td>
-                                          <td className="px-4 py-1.5 w-[10%]">
-                                            {/* Only show bid action buttons to artists who have permission to manage bids */}
-                                            {permissions.canAcceptBid(bid, request) ? (
-                                              <BidActionButtons
-                                                bid={bid}
-                                                request={request}
-                                                permissions={permissions}
-                                                bidStatus={getEffectiveBidStatus(bid)}
-                                                isLoading={bidActions[bid.id]}
-                                                venueOffers={venueOffers}
-                                                onBidAction={handleBidAction}
-                                                onOfferAction={handleOfferAction}
-                                              />
-                                            ) : (
-                                              <div className="text-xs text-gray-400">
-                                                {/* Read-only view for non-authorized users */}
-                                              </div>
-                                            )}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </>
+                    {state.expandedRequests.has(request.id) && requestBids.length > 0 && (
+                      <tr>
+                        <td colSpan={10} className="px-0 py-0">
+                          <div className="bg-yellow-50 border-l-4 border-yellow-400">
+                            <div className="overflow-x-auto">
+                              <table className="w-full min-w-[1000px] table-fixed">
+                                <thead className="bg-yellow-100">
+                                  <tr className="text-left text-xs font-medium text-yellow-700">
+                                    <th className="px-2 py-1.5 w-[3%]"></th>
+                                    <th className="px-4 py-1.5 w-[12%]">Date</th>
+                                    <th className="px-4 py-1.5 w-[14%]">Location</th>
+                                    <th className="px-4 py-1.5 w-[19%]">Venue</th>
+                                    <th className="px-4 py-1.5 w-[10%]">Status</th>
+                                    <th className="px-4 py-1.5 w-[7%]">Capacity</th>
+                                    <th className="px-4 py-1.5 w-[7%]">Age</th>
+                                    <th className="px-4 py-1.5 w-[10%]">Offers</th>
+                                    <th className="px-4 py-1.5 w-[8%]">Details</th>
+                                    <th className="px-4 py-1.5 w-[10%]">Actions</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-yellow-200">
+                                  {requestBids
+                                    .filter((bid: VenueBid) => {
+                                      return !['expired', 'declined', 'rejected'].includes(bid.status) && !declinedBids.has(bid.id);
+                                    })
+                                    .map((bid: VenueBid) => (
+                                    <BidTimelineItem
+                                      key={`bid-${bid.id}`}
+                                      bid={bid}
+                                      request={request}
+                                      permissions={permissions}
+                                      isExpanded={false}
+                                      isDeleting={false}
+                                      venueOffers={venueOffers as any}
+                                      venueBids={venueBids}
+                                      venueId={venueId}
+                                      venues={venues}
+                                      onToggleExpansion={() => {}}
+                                      onDeleteBid={() => {}}
+                                      onShowDocument={handleBidDocumentModal}
+                                      onShowDetail={handleBidDocumentModal}
+                                      onAcceptBid={(bid) => handleBidAction(bid, 'accept')}
+                                      onHoldBid={(bid) => handleBidAction(bid, 'hold')}
+                                      onDeclineBid={(bid) => handleBidAction(bid, 'decline')}
+                                      onOfferAction={handleOfferAction}
+                                      onBidAction={handleBidAction}
+                                    />
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
                     )}
                   </React.Fragment>
                 );

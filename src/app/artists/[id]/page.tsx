@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -375,8 +375,8 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     }
   } : null;
 
-  // Determine user context and permissions
-  const context: ProfileContext = {
+  // Determine user context and permissions - REACTIVE to members loading
+  const context: ProfileContext = useMemo(() => ({
     viewerType: (() => {
       if (!user) return 'public';
       if (user.role === 'admin') return 'admin';
@@ -395,7 +395,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
       
       return 'public';
     })(),
-    entityType: 'artist',
+    entityType: 'artist' as const,
     isOwner: (() => {
       if (!user) return false;
       return members.some(member => member.id === user.id);
@@ -412,7 +412,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
         userMembership.role === 'Admin'
       );
     })()
-  };
+  }), [user, members, venue]); // Dependencies: user, members, venue
 
   if (loading) {
     return (
