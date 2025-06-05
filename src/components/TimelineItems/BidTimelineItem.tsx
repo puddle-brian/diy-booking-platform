@@ -14,6 +14,7 @@ interface BidTimelineItemProps {
   venueBids: VenueBid[];
   venueId?: string;
   venues?: Array<{ id: string; name: string; city: string; state: string; }>;
+  effectiveStatus?: string; // Override bid.status for optimistic updates
   onToggleExpansion: (bidId: string) => void;
   onDeleteBid: (bidId: string, bidName: string) => void;
   onShowDocument: (bid: VenueBid) => void;
@@ -35,6 +36,7 @@ export function BidTimelineItem({
   venueBids,
   venueId,
   venues,
+  effectiveStatus,
   onToggleExpansion,
   onDeleteBid,
   onShowDocument,
@@ -71,7 +73,8 @@ export function BidTimelineItem({
     }
   };
 
-  const statusBadge = getStatusBadge(bid.status);
+  const currentStatus = effectiveStatus || bid.status;
+  const statusBadge = getStatusBadge(currentStatus);
 
   return (
     <tr className="bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150">
@@ -194,7 +197,7 @@ export function BidTimelineItem({
       <td className="px-4 py-1.5 w-[10%]">
         <div className="flex items-center space-x-1">
           {/* Accept/Hold/Decline buttons for pending bids */}
-          {bid.status === 'pending' && (
+          {currentStatus === 'pending' && (
             <>
               {/* Accept Button */}
               {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
@@ -244,7 +247,7 @@ export function BidTimelineItem({
           )}
 
           {/* Accept/Decline buttons for hold bids */}
-          {bid.status === 'hold' && (
+          {currentStatus === 'hold' && (
             <>
               {/* Accept Button */}
               {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
@@ -279,7 +282,7 @@ export function BidTimelineItem({
           )}
 
           {/* Undo Accept button for accepted bids */}
-          {bid.status === 'accepted' && (
+          {currentStatus === 'accepted' && (
             <>
               {/* Undo Accept Button */}
               {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onBidAction && (

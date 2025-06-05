@@ -565,8 +565,8 @@ export default function TabbedTourItinerary({
       }
 
       // Clear optimistic override since backend is now in sync  
-      // Don't clear for decline (uses different state) or undo-accept (needs to persist until backend syncs)
-      if (action !== 'decline' && action !== 'undo-accept') {
+      // Don't clear for decline (uses different state)
+      if (action !== 'decline') {
         setBidStatusOverrides(prev => {
           const newMap = new Map(prev);
           newMap.delete(offer.id);
@@ -719,15 +719,8 @@ export default function TabbedTourItinerary({
         throw new Error(errorData.error || `Failed to ${action} bid`);
       }
 
-      // Clear optimistic override since backend is now in sync  
-      // Don't clear for decline (uses different state) or undo-accept (needs to persist until backend syncs)
-      if (action !== 'decline' && action !== 'undo-accept') {
-        setBidStatusOverrides(prev => {
-          const newMap = new Map(prev);
-          newMap.delete(bid.id);
-          return newMap;
-        });
-      }
+      // Keep optimistic state until next refresh - don't clear immediately
+      // This prevents stale data from overriding our optimistic updates
       
       const actionMessages = {
         accept: 'Bid accepted! You can now coordinate with the venue to finalize details.',
@@ -872,8 +865,8 @@ export default function TabbedTourItinerary({
       }
 
       // Clear optimistic override since backend is now in sync  
-      // Don't clear for decline (uses different state) or undo-accept (needs to persist until backend syncs)
-      if (action !== 'decline' && action !== 'undo-accept') {
+      // Don't clear for decline (uses different state)
+      if (action !== 'decline') {
         setBidStatusOverrides(prev => {
           const newMap = new Map(prev);
           newMap.delete(offer.id);
@@ -1638,6 +1631,7 @@ export default function TabbedTourItinerary({
                                       venueBids={venueBids}
                                       venueId={venueId}
                                       venues={venues}
+                                      effectiveStatus={getEffectiveBidStatus(bid)}
                                       onToggleExpansion={() => {}}
                                       onDeleteBid={() => {}}
                                       onShowDocument={handleBidDocumentModal}
