@@ -1538,15 +1538,18 @@ export default function TabbedTourItinerary({
                                         </td>
                   <td className="px-4 py-1.5 w-[8%]">
                     <div className="flex items-center space-x-1">
-                      <DocumentActionButton
-                        type="request"
-                        request={request}
-                        permissions={permissions}
-                        venueId={venueId}
-                        requestBids={requestBids}
-                        onRequestDocument={handleTourRequestDocumentModal}
-                        onBidDocument={handleBidDocumentModal}
-                      />
+                      {/* Only show document icon at parent level for venues */}
+                      {venueId && (
+                        <DocumentActionButton
+                          type="request"
+                          request={request}
+                          permissions={permissions}
+                          venueId={venueId}
+                          requestBids={requestBids}
+                          onRequestDocument={handleTourRequestDocumentModal}
+                          onBidDocument={handleBidDocumentModal}
+                        />
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-1.5 w-[10%]">
@@ -1629,6 +1632,7 @@ export default function TabbedTourItinerary({
                                       venueOffers={venueOffers as any}
                                       venueBids={venueBids}
                                       venueId={venueId}
+                                      artistId={artistId}
                                       venues={venues}
                                       effectiveStatus={getEffectiveBidStatus(bid)}
                                       onToggleExpansion={() => {}}

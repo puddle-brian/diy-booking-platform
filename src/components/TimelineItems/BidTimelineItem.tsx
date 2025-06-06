@@ -2,7 +2,7 @@ import React from 'react';
 import { VenueBid, TourRequest, VenueOffer } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
-import { DeleteActionButton } from '../ActionButtons';
+import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
 
 interface BidTimelineItemProps {
   bid: VenueBid;
@@ -13,6 +13,7 @@ interface BidTimelineItemProps {
   venueOffers: VenueOffer[];
   venueBids: VenueBid[];
   venueId?: string;
+  artistId?: string;  // Add artistId to determine viewer type
   venues?: Array<{ id: string; name: string; city: string; state: string; }>;
   effectiveStatus?: string; // Override bid.status for optimistic updates
   onToggleExpansion: (bidId: string) => void;
@@ -34,6 +35,7 @@ export function BidTimelineItem({
   venueOffers,
   venueBids,
   venueId,
+  artistId,
   venues,
   effectiveStatus,
   onToggleExpansion,
@@ -173,7 +175,18 @@ export function BidTimelineItem({
 
       {/* Details column - w-[8%] */}
       <td className="px-4 py-1.5 w-[8%]">
-        {/* Document access now available at parent request level */}
+        <div className="flex items-center space-x-1">
+          {/* Only show document icon in bid rows for artists */}
+          {artistId && (
+            <DocumentActionButton
+              type="bid"
+              bid={bid}
+              request={request}
+              permissions={permissions}
+              onBidDocument={() => onShowDocument(bid)}
+            />
+          )}
+        </div>
       </td>
 
       {/* Actions column - w-[10%] */}
