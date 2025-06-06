@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { moduleRegistry, initializeModules } from './DocumentModules';
 import { HoldRequestPanel } from './HoldRequestPanel';
 
@@ -61,6 +61,7 @@ export default function ModularShowDocument({
 }: ModularShowDocumentProps) {
   const [modules, setModules] = useState<ModuleState[]>([]);
   const [documentData, setDocumentData] = useState<any>({});
+  const lastHoldRequestRef = useRef<any>(undefined);
 
   // Initialize modules when props change (using stable IDs to prevent re-initialization on data mutations)
   useEffect(() => {
@@ -641,8 +642,38 @@ export default function ModularShowDocument({
           </div>
         </div>
 
-        {/* Hold Request Panel - Temporarily disabled while we build standalone feature */}
-        {/* TODO: Re-enable after hold system is stable as standalone feature */}
+        {/* Hold Request Panel - Now fully functional with real data */}
+        {(show || bid || tourRequest) && (
+          <div className="px-6 py-4 border-b border-gray-100">
+            <HoldRequestPanel
+              showId={show?.id || undefined}
+              showRequestId={tourRequest?.id || bid?.showRequestId || undefined}
+              currentUserId="debug-lidz-bierenday" // TODO: Get from auth context
+              artistId={show?.artistId || tourRequest?.artistId || bid?.artistId || undefined}
+              venueId={show?.venueId || bid?.venueId || tourRequest?.venueId || undefined}
+              artistName={show?.artistName || tourRequest?.artistName || documentData.artistName || 'Artist'}
+              venueName={show?.venueName || bid?.venueName || tourRequest?.venueName || documentData.venueName || 'Venue'}
+              onHoldChange={(holdRequest) => {
+                const previousHoldId = lastHoldRequestRef.current?.id || null;
+                const newHoldId = holdRequest?.id || null;
+                
+                // Only call onUpdate if the hold ID actually changed
+                if (previousHoldId !== newHoldId) {
+                  console.log('🔒 Hold request changed in document:', previousHoldId, '->', newHoldId);
+                  lastHoldRequestRef.current = holdRequest;
+                  
+                  if (typeof onUpdate === 'function') {
+                    onUpdate({ 
+                      type: 'hold_changed', 
+                      holdRequest, 
+                      timestamp: new Date().toISOString() 
+                    });
+                  }
+                }
+              }}
+            />
+          </div>
+        )}
 
         {/* Document Modules */}
         <div className="px-6 py-4 space-y-6">

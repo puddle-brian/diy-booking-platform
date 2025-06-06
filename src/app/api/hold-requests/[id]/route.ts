@@ -64,10 +64,10 @@ export async function PUT(
     // Check permissions
     let canRespond = false;
     
-    // 🧪 TESTING: Allow debug user to operate on standalone holds
-    if (authResult.user!.id === 'debug-lidz-bierenday' && !hold.showId && !hold.showRequestId) {
+    // 🧪 TESTING: Allow debug user to operate on any hold for testing
+    if (authResult.user!.id === 'debug-lidz-bierenday') {
       canRespond = true;
-      console.log('🧪 Debug user access granted for standalone hold');
+      console.log('🧪 Debug user access granted for hold management');
     }
     
     if (hold.showId) {
@@ -88,8 +88,8 @@ export async function PUT(
                    showRequest?.venue?.submittedById === authResult.user!.id;
     }
 
-    // Can't respond to your own hold request (unless testing standalone)
-    if (hold.requestedById === authResult.user!.id && (hold.showId || hold.showRequestId)) {
+    // Can't respond to your own hold request (unless debug user testing)
+    if (hold.requestedById === authResult.user!.id && authResult.user!.id !== 'debug-lidz-bierenday') {
       canRespond = action === 'cancel';
     }
 
@@ -204,27 +204,33 @@ export async function GET(
 
     // Check if user has permission to view this hold
     let canView = false;
-    if (hold.requestedById === authResult.user!.id || hold.respondedById === authResult.user!.id) {
+    
+    // 🧪 TESTING: Allow debug user to view any hold
+    if (authResult.user!.id === 'debug-lidz-bierenday') {
+      canView = true;
+    } else if (hold.requestedById === authResult.user!.id || hold.respondedById === authResult.user!.id) {
       canView = true;
     }
 
-    // Also check if user is involved in the document
-    if (hold.showId) {
-      const show = await prisma.show.findUnique({
-        where: { id: hold.showId },
-        include: { venue: true }
-      });
-      canView = canView || show?.artistId === authResult.user!.id || 
-                show?.venue?.submittedById === authResult.user!.id;
-    }
+    // Also check if user is involved in the document (skip for debug user)
+    if (!canView && authResult.user!.id !== 'debug-lidz-bierenday') {
+      if (hold.showId) {
+        const show = await prisma.show.findUnique({
+          where: { id: hold.showId },
+          include: { venue: true }
+        });
+        canView = canView || show?.artistId === authResult.user!.id || 
+                  show?.venue?.submittedById === authResult.user!.id;
+      }
 
-    if (hold.showRequestId) {
-      const showRequest = await prisma.showRequest.findUnique({
-        where: { id: hold.showRequestId },
-        include: { venue: true }
-      });
-      canView = canView || showRequest?.artistId === authResult.user!.id || 
-                showRequest?.venue?.submittedById === authResult.user!.id;
+      if (hold.showRequestId) {
+        const showRequest = await prisma.showRequest.findUnique({
+          where: { id: hold.showRequestId },
+          include: { venue: true }
+        });
+        canView = canView || showRequest?.artistId === authResult.user!.id || 
+                  showRequest?.venue?.submittedById === authResult.user!.id;
+      }
     }
 
     if (!canView) {

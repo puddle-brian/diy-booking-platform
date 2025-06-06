@@ -48,6 +48,7 @@ export function HoldRequestPanel({
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Check if this is a synthetic ID (venue offers/bids that don't exist in database)
   const isSyntheticId = (id?: string) => {
@@ -72,8 +73,24 @@ export function HoldRequestPanel({
         const activeHold = holds.find((h: HoldRequest) => 
           h.status === 'ACTIVE' || h.status === 'PENDING'
         );
-        setHoldRequest(activeHold || null);
-        onHoldChange?.(activeHold || null);
+        
+        // Only update state and call onHoldChange if the hold actually changed
+        const newHoldId = activeHold?.id || null;
+        const currentHoldId = holdRequest?.id || null;
+        
+        if (newHoldId !== currentHoldId) {
+          console.log('🔒 HoldRequestPanel: Hold changed from', currentHoldId, 'to', newHoldId);
+          setHoldRequest(activeHold || null);
+          
+          // Only trigger onHoldChange if this is NOT the initial load
+          // During initial load, we're just discovering existing holds, not creating new changes
+          if (!isInitialLoad) {
+            onHoldChange?.(activeHold || null);
+          } else {
+            console.log('🔒 HoldRequestPanel: Skipping onHoldChange during initial load');
+          }
+        }
+        
         console.log('🔒 HoldRequestPanel: Found holds:', holds.length, 'Active hold:', !!activeHold);
       } else {
         console.error('🔒 HoldRequestPanel: API error:', response.status, response.statusText);
@@ -83,10 +100,12 @@ export function HoldRequestPanel({
       setError('Failed to load hold status');
     } finally {
       setLoading(false);
+      setIsInitialLoad(false); // Mark initial load as complete
     }
   };
 
   useEffect(() => {
+    setIsInitialLoad(true); // Reset for new document
     fetchHoldRequest();
   }, [showId, showRequestId]);
 
@@ -112,6 +131,7 @@ export function HoldRequestPanel({
         const newHold = await response.json();
         setHoldRequest(newHold);
         setShowForm(false);
+        // This is a user-initiated action, always trigger change
         onHoldChange?.(newHold);
       } else {
         const errorData = await response.json();
@@ -138,12 +158,14 @@ export function HoldRequestPanel({
       if (response.ok) {
         const updatedHold = await response.json();
         setHoldRequest(updatedHold);
+        // This is a user-initiated action, always trigger change
         onHoldChange?.(updatedHold);
         
         // If declined or cancelled, clear after a moment
         if (action === 'decline' || action === 'cancel') {
           setTimeout(() => {
             setHoldRequest(null);
+            // This is also a user-initiated state change
             onHoldChange?.(null);
           }, 3000);
         }
@@ -253,6 +275,7 @@ export function HoldRequestPanel({
         onEndEarly={() => handleRespondToHold('cancel')}
         onExpired={() => {
           setHoldRequest(null);
+          // This is an automatic expiration, always trigger change
           onHoldChange?.(null);
         }}
       />

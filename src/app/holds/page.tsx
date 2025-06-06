@@ -19,6 +19,23 @@ interface HoldRequest {
   expiresAt?: string;
   requester_name?: string;
   responder_name?: string;
+  // Joined data from API
+  show_title?: string;
+  show_date?: string;
+  show_request_title?: string;
+  show_request_date?: string;
+  venue_offer_title?: string;
+  venue_offer_date?: string;
+}
+
+interface ShowRequest {
+  id: string;
+  title: string;
+  artistName: string;
+  venueName: string;
+  requestedDate: string;
+  status: string;
+  initiatedBy: 'ARTIST' | 'VENUE';
 }
 
 export default function HoldsPage() {
@@ -28,9 +45,13 @@ export default function HoldsPage() {
   const [newHold, setNewHold] = useState({
     showRequestId: '',
     duration: 48,
-    reason: '',
-    customMessage: ''
+    message: ''
   });
+  
+  // Real data integration
+  const [showRequests, setShowRequests] = useState<ShowRequest[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [useRealData, setUseRealData] = useState(false);
   
   // Filtering and sorting state
   const [filters, setFilters] = useState({
@@ -57,6 +78,46 @@ export default function HoldsPage() {
     }
   };
 
+  // Fetch real show requests
+  const fetchShowRequests = async () => {
+    try {
+      setLoadingRequests(true);
+      // Fetch both artist-initiated and venue-initiated requests
+      const [artistResponse, venueResponse] = await Promise.all([
+        fetch('/api/show-requests?initiatedBy=ARTIST'),
+        fetch('/api/show-requests?initiatedBy=VENUE')
+      ]);
+      
+      let allRequests: ShowRequest[] = [];
+      
+      if (artistResponse.ok) {
+        const artistData = await artistResponse.json();
+        allRequests.push(...artistData.map((req: any) => ({
+          ...req,
+          initiatedBy: 'ARTIST' as const
+        })));
+      }
+      
+      if (venueResponse.ok) {
+        const venueData = await venueResponse.json();
+        allRequests.push(...venueData.map((req: any) => ({
+          ...req,
+          initiatedBy: 'VENUE' as const
+        })));
+      }
+      
+      // Sort by most recent first
+      allRequests.sort((a, b) => new Date(b.requestedDate).getTime() - new Date(a.requestedDate).getTime());
+      
+      setShowRequests(allRequests);
+      console.log(`🎯 Loaded ${allRequests.length} real show requests for holds`);
+    } catch (error) {
+      console.error('Error fetching show requests:', error);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
   // Create new hold
   const createHold = async () => {
     try {
@@ -66,7 +127,11 @@ export default function HoldsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newHold),
+        body: JSON.stringify({
+          ...newHold,
+          reason: newHold.message, // Map to existing API field
+          customMessage: undefined // Clear this field
+        }),
       });
 
       if (response.ok) {
@@ -75,9 +140,14 @@ export default function HoldsPage() {
         setNewHold({
           showRequestId: '',
           duration: 48,
-          reason: '',
-          customMessage: ''
+          message: ''
         });
+      } else if (response.status === 409) {
+        // Handle duplicate hold conflict
+        const error = await response.json();
+        const selectedRequest = showRequests.find(req => req.id === newHold.showRequestId);
+        const showTitle = selectedRequest ? selectedRequest.title : 'this show request';
+        alert(`⚠️ Hold Already Exists\n\nThere's already an active or pending hold on "${showTitle}".\n\nOnly one hold per show request is allowed at a time. Check the list below to manage existing holds.`);
       } else {
         const error = await response.json();
         alert(`Failed to create hold: ${error.error}`);
@@ -132,6 +202,13 @@ export default function HoldsPage() {
       clearInterval(timerInterval);
     };
   }, []);
+
+  // Load show requests when real data mode is enabled
+  useEffect(() => {
+    if (useRealData) {
+      fetchShowRequests();
+    }
+  }, [useRealData]);
 
   const getTimeRemaining = (expiresAt: string) => {
     const now = new Date().getTime();
@@ -303,17 +380,105 @@ export default function HoldsPage() {
 
           {/* Create New Hold Form */}
           <div className="border-b border-gray-200 px-6 py-4">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Create New Hold</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Create New Hold</h2>
+              <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Data Source:
+                </label>
+                <button
+                  onClick={() => setUseRealData(!useRealData)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    useRealData 
+                      ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                      : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                  }`}
+                >
+                  {useRealData ? '🎯 Real Data' : '🧪 Test Mode'}
+                </button>
+                {useRealData && loadingRequests && (
+                  <span className="text-xs text-gray-500">Loading...</span>
+                )}
+              </div>
+            </div>
+            
+            {useRealData && showRequests.length > 0 && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-md">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-green-800 font-medium">🎯 Real Data Mode Active</span>
+                    <span className="text-green-700">
+                      Loaded {showRequests.length} show requests ({showRequests.filter(r => r.initiatedBy === 'ARTIST').length} artist-initiated, {showRequests.filter(r => r.initiatedBy === 'VENUE').length} venue-initiated)
+                    </span>
+                  </div>
+                  <div className="flex space-x-3 text-xs">
+                    {(() => {
+                      const withHolds = showRequests.filter(req => 
+                        holds.some(hold => 
+                          hold.showRequestId === req.id && 
+                          ['PENDING', 'ACTIVE'].includes(hold.status)
+                        )
+                      ).length;
+                      const available = showRequests.length - withHolds;
+                      return (
+                        <>
+                          <span className="px-2 py-1 bg-green-200 text-green-800 rounded-full">
+                            ✅ {available} Available
+                          </span>
+                          <span className="px-2 py-1 bg-yellow-200 text-yellow-800 rounded-full">
+                            🔒 {withHolds} With Holds
+                          </span>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {useRealData && showRequests.length === 0 && !loadingRequests && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                <div className="text-sm text-yellow-800">
+                  ⚠️ No show requests found. Try refreshing or switch back to test mode.
+                </div>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Show Request ID</label>
-                <input
-                  type="text"
-                  value={newHold.showRequestId}
-                  onChange={(e) => setNewHold(prev => ({ ...prev, showRequestId: e.target.value }))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="Enter show request ID"
-                />
+                <label className="block text-sm font-medium text-gray-700">
+                  {useRealData ? 'Show Request' : 'Show Request ID'}
+                </label>
+                {useRealData ? (
+                  <select
+                    value={newHold.showRequestId}
+                    onChange={(e) => setNewHold(prev => ({ ...prev, showRequestId: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    disabled={loadingRequests}
+                  >
+                    <option value="">Select a show request...</option>
+                    {showRequests.map((request) => {
+                      const hasHold = holds.some(hold => 
+                        hold.showRequestId === request.id && 
+                        ['PENDING', 'ACTIVE'].includes(hold.status)
+                      );
+                      return (
+                        <option key={request.id} value={request.id} disabled={hasHold}>
+                          {request.initiatedBy === 'ARTIST' ? '🎵' : '🏢'} {request.title} - {request.artistName} @ {request.venueName}
+                          {hasHold ? ' 🔒 (Hold Active)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={newHold.showRequestId}
+                    onChange={(e) => setNewHold(prev => ({ ...prev, showRequestId: e.target.value }))}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Enter test show request ID"
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Duration (hours)</label>
@@ -329,54 +494,54 @@ export default function HoldsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Reason</label>
-                <input
-                  type="text"
-                  value={newHold.reason}
-                  onChange={(e) => setNewHold(prev => ({ ...prev, reason: e.target.value }))}
+                <label className="block text-sm font-medium text-gray-700">Message</label>
+                <textarea
+                  value={newHold.message}
+                  onChange={(e) => setNewHold(prev => ({ ...prev, message: e.target.value }))}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="Negotiation time needed"
+                  rows={2}
+                  placeholder="Reason for hold request or additional context..."
                 />
               </div>
               <div className="flex items-end">
                 <button
                   onClick={createHold}
-                  disabled={creating || !newHold.showRequestId || !newHold.reason}
+                  disabled={creating || !newHold.showRequestId || !newHold.message}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-md font-medium"
                 >
                   {creating ? 'Creating...' : 'Create Hold'}
                 </button>
               </div>
             </div>
-            {newHold.customMessage !== undefined && (
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700">Custom Message (Optional)</label>
-                <textarea
-                  value={newHold.customMessage}
-                  onChange={(e) => setNewHold(prev => ({ ...prev, customMessage: e.target.value }))}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  rows={2}
-                  placeholder="Additional context..."
-                />
-              </div>
-            )}
           </div>
 
           {/* Holds List */}
           <div className="px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">
-                Hold Requests
-              </h2>
-              <div className="text-sm text-gray-600">
-                Showing {getFilteredAndSortedHolds().length} of {holds.length} holds
-                {filters.status !== 'ALL' && (
-                  <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                    {filters.status} filter active
-                  </span>
-                )}
-              </div>
-            </div>
+                              <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium text-gray-900">
+                      Hold Requests
+                    </h2>
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <div>
+                        Showing {getFilteredAndSortedHolds().length} of {holds.length} holds
+                        {filters.status !== 'ALL' && (
+                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                            {filters.status} filter active
+                          </span>
+                        )}
+                      </div>
+                      {holds.length > 0 && (
+                        <div className="flex space-x-2">
+                          <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                            🎯 {holds.filter(h => h.show_request_title || h.show_title || h.venue_offer_title).length} Real
+                          </span>
+                          <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs">
+                            🧪 {holds.filter(h => !h.show_request_title && !h.show_title && !h.venue_offer_title).length} Test
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
             
             {getFilteredAndSortedHolds().length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -428,9 +593,21 @@ export default function HoldsPage() {
                       <div>
                         <span className="font-medium text-gray-700">Document:</span>
                         <span className="ml-1 text-gray-600">
-                          {hold.showId ? `Show ${hold.showId.slice(-8)}` : 
-                           hold.showRequestId ? `Request ${hold.showRequestId.slice(-8)}` :
-                           hold.venueOfferId ? `Offer ${hold.venueOfferId.slice(-8)}` : 'Unknown'}
+                          {hold.show_request_title ? (
+                            `${hold.show_request_title} (${hold.showRequestId?.slice(-8)})`
+                          ) : hold.show_title ? (
+                            `${hold.show_title} (${hold.showId?.slice(-8)})`
+                          ) : hold.venue_offer_title ? (
+                            `${hold.venue_offer_title} (${hold.venueOfferId?.slice(-8)})`
+                          ) : hold.showRequestId ? (
+                            `Request ${hold.showRequestId.slice(-8)}`
+                          ) : hold.showId ? (
+                            `Show ${hold.showId.slice(-8)}`
+                          ) : hold.venueOfferId ? (
+                            `Offer ${hold.venueOfferId.slice(-8)}`
+                          ) : (
+                            'Standalone Test'
+                          )}
                         </span>
                       </div>
                       <div>
@@ -450,16 +627,9 @@ export default function HoldsPage() {
                     </div>
                     
                     <div className="mt-3">
-                      <span className="font-medium text-gray-700">Reason:</span>
+                      <span className="font-medium text-gray-700">Message:</span>
                       <span className="ml-1 text-gray-600">{hold.reason}</span>
                     </div>
-                    
-                    {hold.customMessage && (
-                      <div className="mt-2">
-                        <span className="font-medium text-gray-700">Message:</span>
-                        <span className="ml-1 text-gray-600">{hold.customMessage}</span>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
