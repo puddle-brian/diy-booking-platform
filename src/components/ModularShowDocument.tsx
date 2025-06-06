@@ -591,49 +591,69 @@ export default function ModularShowDocument({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
       <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">
-                📋 Show Document (Modular)
-              </h2>
-              <h3 className="text-lg font-semibold text-gray-800">
-                {documentData.title || `${documentData.artistName || 'Artist'} at ${documentData.venueName || 'Venue'}`}
-              </h3>
-              <p className="text-sm text-gray-600">
+        <div className="px-6 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex justify-between items-center">
+            <div className="flex-1 flex items-center justify-between">
+              <div className="text-left text-sm text-gray-600">
+                {/* Venue Address/Location */}
+                {(show?.address || bid?.address || show?.city || bid?.city || tourRequest?.location || documentData.location) && (
+                  <div>
+                    {show?.address || bid?.address || (
+                      (show?.city || bid?.city) && (show?.state || bid?.state) && 
+                      `${show?.city || bid?.city}, ${show?.state || bid?.state}`
+                    ) || tourRequest?.location || documentData.location}
+                  </div>
+                )}
+                
+                {/* Contact Information */}
+                {(show?.contactPhone || bid?.contactPhone || show?.contactEmail || bid?.contactEmail) && (
+                  <div>
+                    {show?.contactPhone || bid?.contactPhone}
+                    {(show?.contactEmail || bid?.contactEmail) && (
+                      <div className="text-xs">
+                        {show?.contactEmail || bid?.contactEmail}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              <div className="text-center">
+                <h2 className="text-xl font-bold text-gray-900 leading-tight">
+                  {documentData.artistName || 'Artist'}
+                </h2>
+                <div className="text-lg text-gray-700">
+                  at {documentData.venueName || 'Venue'}
+                </div>
+              </div>
+              
+              <div className="text-right text-sm text-gray-700 font-medium">
                 {documentData.date && new Date(documentData.date).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric'
                 })}
                 {documentData.startDate && documentData.endDate && (
                   <>
                     {new Date(documentData.startDate).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
+                      month: 'short',
                       day: 'numeric'
                     })}
                     {' - '}
                     {new Date(documentData.endDate).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric'
                     })}
-                    {' • '}
-                    {documentData.location}
                   </>
                 )}
-              </p>
-              <div className="mt-2 text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                🚀 Modular System: {modules.length} modules loaded
               </div>
             </div>
+            
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors ml-6"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ModuleDefinition, ModuleComponentProps } from './ModuleRegistry';
 import { InlineOfferDisplay } from '../OfferDisplay';
+import OfferFormCore from '../OfferFormCore';
 
 /**
  * Venue Offer & Terms Module Component
@@ -43,277 +44,40 @@ function VenueOfferComponent({
   }
 
   if (isEditing) {
+    // Use the actual existing offer form component
     return (
-      <div className="space-y-6">
-        {/* Basic Info Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Basic Information</h5>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Venue Name
-              </label>
-              <input
-                type="text"
-                value={data.venueName || ''}
-                onChange={(e) => onDataChange({ ...data, venueName: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Location
-              </label>
-              <input
-                type="text"
-                value={data.location || ''}
-                onChange={(e) => onDataChange({ ...data, location: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Capacity
-              </label>
-              <input
-                type="number"
-                value={data.capacity || ''}
-                onChange={(e) => onDataChange({ ...data, capacity: parseInt(e.target.value) || 0 })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Age Restriction
-              </label>
-              <select
-                value={data.ageRestriction || 'all-ages'}
-                onChange={(e) => onDataChange({ ...data, ageRestriction: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all-ages">All Ages</option>
-                <option value="18+">18+</option>
-                <option value="21+">21+</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Financial Terms Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Financial Terms</h5>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Guarantee ($)
-              </label>
-              <input
-                type="number"
-                value={data.guarantee || ''}
-                onChange={(e) => onDataChange({ ...data, guarantee: parseInt(e.target.value) || undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Leave empty for door deal only"
-              />
-            </div>
-            
-            {/* Door Deal Section */}
-            <div>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={!!data.doorDeal}
-                  onChange={(e) => onDataChange({ 
-                    ...data, 
-                    doorDeal: e.target.checked ? { split: '70/30', minimumGuarantee: 0 } : undefined 
-                  })}
-                  className="rounded"
-                />
-                <span className="text-sm font-medium text-gray-700">Offer Door Deal</span>
-              </label>
-              
-              {data.doorDeal && (
-                <div className="mt-2 grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Split (Artist/Venue)</label>
-                    <select
-                      value={data.doorDeal.split || '70/30'}
-                      onChange={(e) => onDataChange({ 
-                        ...data, 
-                        doorDeal: { ...data.doorDeal, split: e.target.value } 
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                    >
-                      <option value="50/50">50/50</option>
-                      <option value="60/40">60/40</option>
-                      <option value="70/30">70/30</option>
-                      <option value="80/20">80/20</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Minimum Guarantee</label>
-                    <input
-                      type="number"
-                      value={data.doorDeal.minimumGuarantee || ''}
-                      onChange={(e) => onDataChange({ 
-                        ...data, 
-                        doorDeal: { ...data.doorDeal, minimumGuarantee: parseInt(e.target.value) || 0 } 
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Equipment Provided Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Equipment We Provide</h5>
-          <div className="grid grid-cols-2 gap-2">
-            {Object.entries({
-              pa: 'PA System',
-              mics: 'Microphones', 
-              drums: 'Drum Kit',
-              amps: 'Amplifiers',
-              piano: 'Piano/Keyboard'
-            }).map(([key, label]) => (
-              <label key={key} className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={!!(data.equipmentProvided && data.equipmentProvided[key])}
-                  onChange={(e) => onDataChange({ 
-                    ...data, 
-                    equipmentProvided: { 
-                      ...data.equipmentProvided, 
-                      [key]: e.target.checked 
-                    } 
-                  })}
-                  className="rounded"
-                />
-                <span className="text-sm text-gray-700">{label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Billing & Performance Section */}
-        <div>
-          <h5 className="font-medium text-gray-800 mb-3">Billing & Performance</h5>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Billing Position
-              </label>
-              <select
-                value={data.billingPosition || ''}
-                onChange={(e) => onDataChange({ ...data, billingPosition: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Not specified</option>
-                <option value="headliner">Headliner</option>
-                <option value="co-headliner">Co-Headliner</option>
-                <option value="direct-support">Direct Support</option>
-                <option value="opener">Opener</option>
-                <option value="local-opener">Local Opener</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Set Length (minutes)
-              </label>
-              <input
-                type="number"
-                value={data.setLength || ''}
-                onChange={(e) => onDataChange({ ...data, setLength: parseInt(e.target.value) || undefined })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-          
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Other Acts on Bill
-            </label>
-            <input
-              type="text"
-              value={data.otherActs || ''}
-              onChange={(e) => onDataChange({ ...data, otherActs: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="List other bands performing"
-            />
-          </div>
-        </div>
-
-        {/* Message Section */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Message to Artist
-          </label>
-          <textarea
-            value={data.message || ''}
-            onChange={(e) => onDataChange({ ...data, message: e.target.value })}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Additional message or terms..."
-          />
-        </div>
-
-        {/* Save/Cancel Buttons */}
-        <div className="flex space-x-2 pt-4 border-t">
-          <button
-            onClick={onSave}
-            disabled={isSaving}
-            className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors disabled:opacity-50"
-          >
-            {isSaving ? 'Saving...' : '✓ Save Changes'}
-          </button>
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            ✕ Cancel
-          </button>
-        </div>
-      </div>
+      <OfferFormCore
+        venueId={data.venueId || ''}
+        venueName={data.venueName || 'Venue'}
+        onSubmit={async (formData) => {
+          // Transform form data to match our data structure
+          onDataChange(formData);
+          onSave();
+        }}
+        onCancel={onCancel}
+        loading={isSaving}
+        title="Edit Offer Terms"
+        submitButtonText="Save Changes"
+        preSelectedArtist={data.artistId ? {
+          id: data.artistId,
+          name: data.artistName || 'Artist'
+        } : undefined}
+        preSelectedDate={data.date}
+        existingBid={data.guarantee ? {
+          id: data.id || '',
+          amount: data.guarantee,
+          message: data.message || '',
+          status: status,
+          createdAt: data.createdAt || new Date().toISOString(),
+          updatedAt: data.updatedAt || new Date().toISOString()
+        } : undefined}
+      />
     );
   }
 
-  // Regular view mode
+  // Regular view mode - focused on offer terms only
   return (
     <div className="space-y-4">
-      {/* Basic Venue Info */}
-      <div>
-        <h5 className="font-medium text-gray-800 mb-2">
-          {data.message ? 'Venue & Show Details' : 'Show Information'}
-        </h5>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="font-medium text-gray-700">Date:</span>
-            <span className="ml-2 text-gray-900">
-              {data.date && new Date(data.date).toLocaleDateString()}
-            </span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Venue:</span>
-            <span className="ml-2 text-gray-900">{data.venueName}</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Location:</span>
-            <span className="ml-2 text-gray-900">{data.location}</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Capacity:</span>
-            <span className="ml-2 text-gray-900">{data.capacity}</span>
-          </div>
-          <div>
-            <span className="font-medium text-gray-700">Age Restriction:</span>
-            <span className="ml-2 text-gray-900">{data.ageRestriction}</span>
-          </div>
-        </div>
-      </div>
-
       {/* Financial Terms - Only show if there are any */}
       {(data.guarantee || data.doorDeal || data.ticketPrice || data.merchandiseSplit) && (
         <div>
@@ -350,20 +114,45 @@ function VenueOfferComponent({
       )}
 
       {/* What Venue Provides - Only for bids */}
-      {data.equipmentProvided && (
+      {data.equipmentProvided && Object.values(data.equipmentProvided).some(Boolean) && (
         <div>
           <h5 className="font-medium text-gray-800 mb-2">What We Provide</h5>
           <div className="space-y-3 text-sm">
-            {Object.values(data.equipmentProvided).some(Boolean) && (
+            <div>
+              <span className="font-medium text-gray-700">Equipment:</span>
+              <div className="ml-4 mt-1 grid grid-cols-2 gap-1">
+                {data.equipmentProvided.pa && <div className="text-gray-900">• PA System</div>}
+                {data.equipmentProvided.mics && <div className="text-gray-900">• Microphones</div>}
+                {data.equipmentProvided.drums && <div className="text-gray-900">• Drum Kit</div>}
+                {data.equipmentProvided.amps && <div className="text-gray-900">• Amplifiers</div>}
+                {data.equipmentProvided.piano && <div className="text-gray-900">• Piano/Keyboard</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Show Timing */}
+      {(data.loadIn || data.doorsOpen || data.showTime) && (
+        <div>
+          <h5 className="font-medium text-gray-800 mb-2">Show Schedule</h5>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            {data.loadIn && (
               <div>
-                <span className="font-medium text-gray-700">Equipment:</span>
-                <div className="ml-4 mt-1 grid grid-cols-2 gap-1">
-                  {data.equipmentProvided.pa && <div className="text-gray-900">• PA System</div>}
-                  {data.equipmentProvided.mics && <div className="text-gray-900">• Microphones</div>}
-                  {data.equipmentProvided.drums && <div className="text-gray-900">• Drum Kit</div>}
-                  {data.equipmentProvided.amps && <div className="text-gray-900">• Amplifiers</div>}
-                  {data.equipmentProvided.piano && <div className="text-gray-900">• Piano/Keyboard</div>}
-                </div>
+                <span className="font-medium text-gray-700">Load-in:</span>
+                <span className="ml-2 text-gray-900">{data.loadIn}</span>
+              </div>
+            )}
+            {data.doorsOpen && (
+              <div>
+                <span className="font-medium text-gray-700">Doors:</span>
+                <span className="ml-2 text-gray-900">{data.doorsOpen}</span>
+              </div>
+            )}
+            {data.showTime && (
+              <div>
+                <span className="font-medium text-gray-700">Show:</span>
+                <span className="ml-2 text-gray-900">{data.showTime}</span>
               </div>
             )}
           </div>
@@ -371,7 +160,7 @@ function VenueOfferComponent({
       )}
 
       {/* Billing & Performance */}
-      {(data.billingPosition || data.setLength || data.otherActs || data.billingOrder) && (
+      {(data.billingPosition || data.setLength || data.otherActs) && (
         <div>
           <h5 className="font-medium text-gray-800 mb-2">Billing & Performance</h5>
           <div className="space-y-2 text-sm">
@@ -474,7 +263,10 @@ export const venueOfferModule: ModuleDefinition = {
     if (context.bid) {
       // Venue bid data
       return {
+        venueId: context.bid.venueId,
         venueName: context.bid.venueName,
+        artistId: context.bid.artistId,
+        artistName: context.bid.artistName,
         location: context.bid.venueName, // Use venue name as location fallback
         capacity: context.bid.capacity,
         ageRestriction: context.bid.ageRestriction,
@@ -492,7 +284,13 @@ export const venueOfferModule: ModuleDefinition = {
         otherActs: context.bid.otherActs,
         billingNotes: context.bid.billingNotes,
         message: context.bid.message,
-        additionalTerms: context.bid.additionalTerms
+        additionalTerms: context.bid.additionalTerms,
+        loadIn: context.bid.loadIn,
+        doorsOpen: context.bid.doorsOpen,
+        showTime: context.bid.showTime,
+        id: context.bid.id,
+        createdAt: context.bid.createdAt,
+        updatedAt: context.bid.updatedAt
       };
     }
     
