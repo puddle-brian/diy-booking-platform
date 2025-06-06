@@ -271,6 +271,12 @@ export function useItineraryPermissions({
     return (request: TourRequest, requestBids?: VenueBid[]) => {
       // ✅ SIMPLIFIED LOGIC: Venues can make offers when they can logically engage
       if (actualViewerType === 'venue' && venueId && venueName) {
+        // ✅ ELEGANT CONTEXT FIX: When viewing an artist page, venues can engage with ALL requests
+        // This covers the "Make Offer" buttons on artist requests where venue has no bid yet
+        if (artistId && request.artistId === artistId) {
+          return true; // Artist page context = can make offers on all of this artist's requests
+        }
+        
         // ✅ CORE IMPROVEMENT: Can make offers on artist-initiated requests
         if (!Boolean(request.isVenueInitiated)) {
           return true;
@@ -290,7 +296,7 @@ export function useItineraryPermissions({
       }
       return false;
     };
-  }, [actualViewerType, venueId, venueName]);
+  }, [actualViewerType, venueId, venueName, artistId]);
 
   const canWithdrawBid = useMemo(() => {
     return (request: TourRequest) => {
