@@ -68,29 +68,30 @@ export async function PUT(
     if (authResult.user!.id === 'debug-lidz-bierenday') {
       canRespond = true;
       console.log('🧪 Debug user access granted for hold management');
-    }
-    
-    if (hold.showId) {
-      const show = await prisma.show.findUnique({
-        where: { id: hold.showId },
-        include: { venue: true }
-      });
-      canRespond = show?.artistId === authResult.user!.id || 
-                   show?.venue?.submittedById === authResult.user!.id;
-    }
+    } else {
+      // Regular permission checks (only if not debug user)
+      if (hold.showId) {
+        const show = await prisma.show.findUnique({
+          where: { id: hold.showId },
+          include: { venue: true }
+        });
+        canRespond = show?.artistId === authResult.user!.id || 
+                     show?.venue?.submittedById === authResult.user!.id;
+      }
 
-    if (hold.showRequestId) {
-      const showRequest = await prisma.showRequest.findUnique({
-        where: { id: hold.showRequestId },
-        include: { venue: true }
-      });
-      canRespond = showRequest?.artistId === authResult.user!.id || 
-                   showRequest?.venue?.submittedById === authResult.user!.id;
-    }
+      if (hold.showRequestId) {
+        const showRequest = await prisma.showRequest.findUnique({
+          where: { id: hold.showRequestId },
+          include: { venue: true }
+        });
+        canRespond = showRequest?.artistId === authResult.user!.id || 
+                     showRequest?.venue?.submittedById === authResult.user!.id;
+      }
 
-    // Can't respond to your own hold request (unless debug user testing)
-    if (hold.requestedById === authResult.user!.id && authResult.user!.id !== 'debug-lidz-bierenday') {
-      canRespond = action === 'cancel';
+      // Can't respond to your own hold request (only allow cancel)
+      if (hold.requestedById === authResult.user!.id) {
+        canRespond = action === 'cancel';
+      }
     }
 
     if (!canRespond) {
