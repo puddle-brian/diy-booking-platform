@@ -176,8 +176,8 @@ export function BidTimelineItem({
       {/* Details column - w-[8%] */}
       <td className="px-4 py-1.5 w-[8%]">
         <div className="flex items-center space-x-1">
-          {/* Only show document icon in bid rows for artists */}
-          {artistId && (
+          {/* ✅ FIX: Only show document icon in bid rows when viewer is an artist */}
+          {permissions.actualViewerType === 'artist' && (
             <DocumentActionButton
               type="bid"
               bid={bid}
