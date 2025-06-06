@@ -116,9 +116,9 @@ export function useItineraryPermissions({
       }
       // Venues can expand requests where they have bids or venue-initiated offers
       if (actualViewerType === 'venue' && venueId) {
-        // Can expand if this is a venue-initiated offer from their venue
-        if (request.isVenueInitiated && request.originalOfferId) {
-          return true; // We'll check venue ownership in the component
+        // Can expand if this is a venue-initiated offer from THEIR venue
+        if (request.isVenueInitiated) {
+          return (request as any).venueInitiatedBy === venueId;
         }
         // For regular requests, they can expand if they have a bid (checked in component)
         return true; // Component will filter to only show their bids
@@ -230,11 +230,11 @@ export function useItineraryPermissions({
         return editable && request.artistId === artistId;
       } else if (actualViewerType === 'venue') {
         // Venues can only cancel their own venue-initiated offers, not artist requests
-        return editable && Boolean(request.isVenueInitiated);
+        return editable && Boolean(request.isVenueInitiated) && (request as any).venueInitiatedBy === venueId;
       }
       return false;
     };
-  }, [actualViewerType, editable, artistId]);
+  }, [actualViewerType, editable, artistId, venueId]);
 
   const canViewRequestDocument = useMemo(() => {
     return (request: TourRequest, venueBids: VenueBid[]) => {
