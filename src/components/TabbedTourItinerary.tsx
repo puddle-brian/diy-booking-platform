@@ -1277,6 +1277,8 @@ export default function TabbedTourItinerary({
                     permissions={permissions}
                     isExpanded={state.expandedShows.has(show.id)}
                     isDeleting={state.deleteShowLoading === show.id}
+                    artistId={artistId}
+                    venueId={venueId}
                     onToggleExpansion={toggleShowExpansion}
                     onDeleteShow={handleDeleteShow}
                     onShowDocument={handleShowDocumentModal}

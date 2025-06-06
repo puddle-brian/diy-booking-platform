@@ -9,6 +9,8 @@ interface ShowTimelineItemProps {
   permissions: ItineraryPermissions;
   isExpanded: boolean;
   isDeleting: boolean;
+  artistId?: string; // Page context: if present, we're on an artist page
+  venueId?: string;  // Page context: if present, we're on a venue page
   onToggleExpansion: (showId: string) => void;
   onDeleteShow: (showId: string, showName: string) => void;
   onShowDocument: (show: Show) => void;
@@ -20,6 +22,8 @@ export function ShowTimelineItem({
   permissions,
   isExpanded,
   isDeleting,
+  artistId,
+  venueId,
   onToggleExpansion,
   onDeleteShow,
   onShowDocument,
@@ -62,7 +66,28 @@ export function ShowTimelineItem({
       <td className="px-4 py-3 w-[19%]">
         <div className="text-sm font-medium text-gray-900 truncate">
           {(() => {
-            if (permissions.actualViewerType === 'venue') {
+            // Determine what to show based on PAGE CONTEXT, not viewer type
+            const showVenueInfo = artistId; // If we're on an artist page, show venue info
+            const showArtistInfo = venueId;  // If we're on a venue page, show artist info
+            
+            if (showVenueInfo) {
+              // Show venue information (we're on an artist page)
+              if (show.venueId && show.venueId !== 'external-venue') {
+                return (
+                  <a 
+                    href={`/venues/${show.venueId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                    title="View venue page"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {show.venueName || 'TBA'}
+                  </a>
+                );
+              } else {
+                return show.venueName || 'TBA';
+              }
+            } else if (showArtistInfo) {
+              // Show artist information (we're on a venue page)
               if (show.artistId && show.artistId !== 'external-artist') {
                 return (
                   <a 
@@ -78,17 +103,9 @@ export function ShowTimelineItem({
                 return show.artistName || 'Unknown Artist';
               }
             } else {
-              if (show.venueId && show.venueId !== 'external-venue') {
-                return (
-                  <a 
-                    href={`/venues/${show.venueId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                    title="View venue page"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {show.venueName || 'TBA'}
-                  </a>
-                );
+              // Fallback: general pages, use viewer type logic
+              if (permissions.actualViewerType === 'venue') {
+                return show.artistName || 'Unknown Artist';
               } else {
                 return show.venueName || 'TBA';
               }
