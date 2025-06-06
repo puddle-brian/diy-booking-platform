@@ -169,7 +169,7 @@ export function BidTimelineItem({
       {/* Offers column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <div className="text-xs text-gray-600">
-          {bid.guarantee ? `$${bid.guarantee}` : 'Door deal'}
+          {permissions.canSeeFinancialDetails(undefined, bid) ? (bid.guarantee ? `$${bid.guarantee}` : 'Door deal') : '-'}
         </div>
       </td>
 

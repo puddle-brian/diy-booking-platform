@@ -34,6 +34,10 @@ export interface ItineraryPermissions {
   actualViewerType: 'artist' | 'venue' | 'public';
   isOwner: boolean;
   
+  // Privacy controls
+  canExpandRequest: (request: TourRequest) => boolean;
+  canSeeFinancialDetails: (show?: Show, bid?: VenueBid, request?: TourRequest) => boolean;
+  
   // Main actions
   canMakeOffers: boolean;
   canCreateRequests: boolean;
@@ -102,6 +106,42 @@ export function useItineraryPermissions({
   const canEditProfile = useMemo(() => {
     return isOwner;
   }, [isOwner]);
+
+  // Privacy control functions
+  const canExpandRequest = useMemo(() => {
+    return (request: TourRequest) => {
+      // Artists can expand their own requests
+      if (actualViewerType === 'artist' && artistId && request.artistId === artistId) {
+        return true;
+      }
+      // Venues can expand requests where they have bids or venue-initiated offers
+      if (actualViewerType === 'venue' && venueId) {
+        // Can expand if this is a venue-initiated offer from their venue
+        if (request.isVenueInitiated && request.originalOfferId) {
+          return true; // We'll check venue ownership in the component
+        }
+        // For regular requests, they can expand if they have a bid (checked in component)
+        return true; // Component will filter to only show their bids
+      }
+      return false;
+    };
+  }, [actualViewerType, artistId, venueId]);
+
+  const canSeeFinancialDetails = useMemo(() => {
+    return (show?: Show, bid?: VenueBid, request?: TourRequest) => {
+      // Artists can see financial details for their own content
+      if (actualViewerType === 'artist' && artistId) {
+        if (show?.artistId === artistId) return true;
+        if (request?.artistId === artistId) return true;
+      }
+      // Venues can see financial details for their own content
+      if (actualViewerType === 'venue' && venueId) {
+        if (show?.venueId === venueId) return true;
+        if (bid?.venueId === venueId) return true;
+      }
+      return false;
+    };
+  }, [actualViewerType, artistId, venueId]);
 
   // Show-related permissions
   const canViewShowDocument = useMemo(() => {
@@ -187,14 +227,14 @@ export function useItineraryPermissions({
     return (request: TourRequest) => {
       if (actualViewerType === 'artist') {
         // Artists can delete their own requests or decline venue offers
-        return editable;
+        return editable && request.artistId === artistId;
       } else if (actualViewerType === 'venue') {
-        // Venues can cancel their own offers or withdraw bids
-        return editable;
+        // Venues can only cancel their own venue-initiated offers, not artist requests
+        return editable && Boolean(request.isVenueInitiated);
       }
       return false;
     };
-  }, [actualViewerType, editable]);
+  }, [actualViewerType, editable, artistId]);
 
   const canViewRequestDocument = useMemo(() => {
     return (request: TourRequest, venueBids: VenueBid[]) => {
@@ -242,6 +282,8 @@ export function useItineraryPermissions({
   return {
     actualViewerType,
     isOwner,
+    canExpandRequest,
+    canSeeFinancialDetails,
     canMakeOffers,
     canCreateRequests,
     canEditProfile,

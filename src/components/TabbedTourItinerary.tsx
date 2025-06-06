@@ -1597,7 +1597,7 @@ export default function TabbedTourItinerary({
                     </tr>
 
                     {/* Expanded Bids Section */}
-                    {state.expandedRequests.has(request.id) && requestBids.length > 0 && (
+                    {state.expandedRequests.has(request.id) && requestBids.length > 0 && permissions.canExpandRequest(request) && (
                       <tr>
                         <td colSpan={10} className="px-0 py-0">
                           <div className="bg-yellow-50 border-l-4 border-yellow-400">
@@ -1618,9 +1618,15 @@ export default function TabbedTourItinerary({
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-yellow-200">
-                                  {requestBids
+                                                                    {requestBids
                                     .filter((bid: VenueBid) => {
-                                      return !['expired', 'declined', 'rejected'].includes(bid.status) && !declinedBids.has(bid.id);
+                                      // Apply status filtering
+                                      if (['expired', 'declined', 'rejected'].includes(bid.status) || declinedBids.has(bid.id)) {
+                                        return false;
+                                      }
+                                      
+                                      // Apply privacy filtering - only show bids user can see financial details for
+                                      return permissions.canSeeFinancialDetails(undefined, bid, request);
                                     })
                                     .map((bid: VenueBid) => (
                                     <BidTimelineItem

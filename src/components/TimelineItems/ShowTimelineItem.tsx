@@ -115,7 +115,7 @@ export function ShowTimelineItem({
 
       <td className="px-4 py-3 w-[10%]">
         <div className="text-xs text-gray-600">
-          {show.guarantee ? `$${show.guarantee}` : '-'}
+          {permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : '-') : '-'}
         </div>
       </td>
 
