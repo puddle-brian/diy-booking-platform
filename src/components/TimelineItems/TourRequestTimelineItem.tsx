@@ -139,8 +139,8 @@ export function TourRequestTimelineItem({
 
       <td className="px-4 py-3 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Make Offer Button - Only for venues on artist requests */}
-          {permissions.canMakeOfferOnRequest(request) && (
+          {/* Make Offer Button - For venues on requests where they can engage */}
+          {permissions.canMakeOfferOnRequest(request, venueBids) && (
             <MakeOfferActionButton
               request={request}
               permissions={permissions}
@@ -150,8 +150,8 @@ export function TourRequestTimelineItem({
             />
           )}
 
-          {/* Delete/Cancel Button */}
-          {permissions.canDeleteRequest(request) && (
+          {/* Delete/Cancel Button - Only show when edit button is not available */}
+          {permissions.canDeleteRequest(request, venueBids) && (
             <DeleteActionButton
               request={request}
               permissions={permissions}

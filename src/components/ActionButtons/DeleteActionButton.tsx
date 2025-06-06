@@ -23,6 +23,7 @@ interface VenueBid {
   showRequestId: string;
   venueId: string;
   venueName: string;
+  status: string;
 }
 
 interface Show {
@@ -110,10 +111,10 @@ export function DeleteActionButton({
 
   // Request delete button logic
   if (request && (onDeleteRequest || onOfferAction || onBidAction)) {
-    // Check if this should be shown based on viewer type and request type
-    const shouldShow = !(permissions.actualViewerType === 'venue' && !request.isVenueInitiated);
-    
-    if (!shouldShow) return null;
+    // ✅ SIMPLIFIED: Use consistent permission logic instead of custom shouldShow
+    if (!permissions.canDeleteRequest(request, venueBids)) {
+      return null;
+    }
 
     const handleClick = (e: React.MouseEvent) => {
       e.stopPropagation();

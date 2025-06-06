@@ -7,6 +7,8 @@ interface VenueBid {
   id: string;
   venueId: string;
   venueName: string;
+  status: string;
+  showRequestId: string;
 }
 
 interface TourRequest {
@@ -35,7 +37,7 @@ export function MakeOfferActionButton({
   onMakeOffer
 }: MakeOfferActionButtonProps) {
   // Only show for venues that can make offers on this request
-  if (!permissions.canMakeOffers || !permissions.canMakeOfferOnRequest(request)) {
+  if (!permissions.canMakeOffers || !permissions.canMakeOfferOnRequest(request, requestBids)) {
     return null;
   }
 

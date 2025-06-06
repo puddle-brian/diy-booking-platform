@@ -55,9 +55,9 @@ export interface ItineraryPermissions {
   canViewBidDocument: (bid: VenueBid, request?: TourRequest) => boolean;
   
   // Request actions
-  canDeleteRequest: (request: TourRequest) => boolean;
+  canDeleteRequest: (request: TourRequest, requestBids?: VenueBid[]) => boolean;
   canViewRequestDocument: (request: TourRequest, venueBids: VenueBid[]) => boolean;
-  canMakeOfferOnRequest: (request: TourRequest) => boolean;
+  canMakeOfferOnRequest: (request: TourRequest, requestBids?: VenueBid[]) => boolean;
   
   // Venue-specific permissions
   canWithdrawBid: (request: TourRequest) => boolean;
@@ -224,13 +224,26 @@ export function useItineraryPermissions({
 
   // Request-related permissions
   const canDeleteRequest = useMemo(() => {
-    return (request: TourRequest) => {
+    return (request: TourRequest, requestBids?: VenueBid[]) => {
       if (actualViewerType === 'artist') {
-        // Artists can delete their own requests or decline venue offers
+        // Artists can always manage their own requests (delete own requests, decline venue offers)
         return editable && request.artistId === artistId;
       } else if (actualViewerType === 'venue') {
-        // Venues can only cancel their own venue-initiated offers, not artist requests
-        return editable && Boolean(request.isVenueInitiated) && (request as any).venueInitiatedBy === venueId;
+        // ✅ UX IMPROVEMENT: Venues should only see delete when they CAN'T edit
+        // If they have an existing bid (can edit), don't show delete button to avoid clutter
+        if (requestBids) {
+          const hasExistingBid = requestBids.some(bid => bid.venueId === venueId);
+          if (hasExistingBid) {
+            return false; // Show "Edit Offer" instead, not delete
+          }
+        }
+        
+        // ✅ SIMPLIFIED LOGIC: Venues can delete requests where they have ownership but can't edit
+        return editable && (
+          // Can delete their own venue-initiated offers (when they don't have a bid to edit)
+          (Boolean(request.isVenueInitiated) && (request as any).venueInitiatedBy === venueId)
+          // Removed isVenueBid condition since those should show "Edit Offer" instead
+        );
       }
       return false;
     };
@@ -255,11 +268,25 @@ export function useItineraryPermissions({
   }, [actualViewerType, artistId, venueId, editable]);
 
   const canMakeOfferOnRequest = useMemo(() => {
-    return (request: TourRequest) => {
-      // Venues can make offers on artist requests
+    return (request: TourRequest, requestBids?: VenueBid[]) => {
+      // ✅ SIMPLIFIED LOGIC: Venues can make offers when they can logically engage
       if (actualViewerType === 'venue' && venueId && venueName) {
-        // Can make offers on artist-initiated requests (but not their own offers)
-        return !Boolean(request.isVenueInitiated);
+        // ✅ CORE IMPROVEMENT: Can make offers on artist-initiated requests
+        if (!Boolean(request.isVenueInitiated)) {
+          return true;
+        }
+        
+        // ✅ NEW: Can also edit their existing bids on ANY request (including venue-initiated ones)
+        // This handles the case where a venue has a bid on a request they didn't initiate
+        if (requestBids) {
+          const hasExistingBid = requestBids.some(bid => bid.venueId === venueId);
+          if (hasExistingBid) {
+            return true;
+          }
+        }
+        
+        // Can't make new offers on other venues' offers
+        return false;
       }
       return false;
     };
