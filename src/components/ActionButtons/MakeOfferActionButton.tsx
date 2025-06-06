@@ -1,22 +1,14 @@
 'use client';
 
 import React from 'react';
+import { VenueBid } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
-
-interface VenueBid {
-  id: string;
-  venueId: string;
-  venueName: string;
-  status: string;
-  showRequestId: string;
-}
 
 interface TourRequest {
   id: string;
   artistId: string;
   artistName: string;
   title: string;
-  isVenueInitiated?: boolean;
 }
 
 interface MakeOfferActionButtonProps {

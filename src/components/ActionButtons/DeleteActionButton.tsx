@@ -1,12 +1,17 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
+import { VenueBid } from '../../../types';
 
 interface VenueOffer {
   id: string;
   venueId: string;
   venueName: string;
+  artistId: string;
+  artistName: string;
+  message?: string;
+  status: string;
 }
 
 interface TourRequest {
@@ -16,14 +21,6 @@ interface TourRequest {
   title: string;
   isVenueInitiated?: boolean;
   originalOfferId?: string;
-}
-
-interface VenueBid {
-  id: string;
-  showRequestId: string;
-  venueId: string;
-  venueName: string;
-  status: string;
 }
 
 interface Show {
@@ -48,7 +45,7 @@ interface Show {
   doorsOpen?: string;
   showTime?: string;
   curfew?: string;
-  status?: string;
+  status: string;
   createdBy?: string;
 }
 

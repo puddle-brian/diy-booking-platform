@@ -34,6 +34,7 @@ interface OfferFormCoreProps {
     status: string;
     createdAt: string;
     updatedAt: string;
+    guarantee?: number;
   };
   
   // 🎯 UX IMPROVEMENT: Delete functionality for existing offers
@@ -104,12 +105,14 @@ export default function OfferFormCore({
       console.log('🔄 Pre-filling form with existing bid (first time only):', existingBid);
       
       // Pre-populate form with existing bid data
-      if (existingBid.amount) {
+      // ✅ FIX: Check both guarantee and amount properties
+      const bidAmount = existingBid.guarantee || existingBid.amount;
+      if (bidAmount) {
         const parsedOffer = {
           type: 'guarantee' as const,
-          displayText: `$${existingBid.amount} guarantee`,
-          guarantee: existingBid.amount,
-          rawInput: `$${existingBid.amount} guarantee`
+          displayText: `$${bidAmount} guarantee`,
+          guarantee: bidAmount,
+          rawInput: `$${bidAmount} guarantee`
         };
         setOfferData(parsedOffer);
         console.log('✅ Set offer data:', parsedOffer);
@@ -232,7 +235,7 @@ export default function OfferFormCore({
                 <div className="flex items-center gap-2">
                   <span className="text-amber-700">Current bid:</span>
                   <span className="px-2 py-1 bg-amber-100 text-amber-900 font-semibold rounded">
-                    ${existingBid.amount || 'No amount'}
+                    ${existingBid.guarantee || existingBid.amount || 'No amount'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
