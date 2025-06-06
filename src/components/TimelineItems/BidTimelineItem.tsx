@@ -2,7 +2,7 @@ import React from 'react';
 import { VenueBid, TourRequest, VenueOffer } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
-import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
+import { DeleteActionButton } from '../ActionButtons';
 
 interface BidTimelineItemProps {
   bid: VenueBid;
@@ -173,15 +173,7 @@ export function BidTimelineItem({
 
       {/* Details column - w-[8%] */}
       <td className="px-4 py-1.5 w-[8%]">
-        <div className="flex items-center space-x-1">
-          <DocumentActionButton
-            type="bid"
-            bid={bid}
-            request={request}
-            permissions={permissions}
-            onBidDocument={() => onShowDocument(bid)}
-          />
-        </div>
+        {/* Document access now available at parent request level */}
       </td>
 
       {/* Actions column - w-[10%] */}

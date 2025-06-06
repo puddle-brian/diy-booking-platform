@@ -1535,11 +1535,21 @@ export default function TabbedTourItinerary({
                             </span>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-4 py-1.5 w-[8%]">
-
-                      </td>
-                      <td className="px-4 py-1.5 w-[10%]">
+                                        </td>
+                  <td className="px-4 py-1.5 w-[8%]">
+                    <div className="flex items-center space-x-1">
+                      <DocumentActionButton
+                        type="request"
+                        request={request}
+                        permissions={permissions}
+                        venueId={venueId}
+                        requestBids={requestBids}
+                        onRequestDocument={handleTourRequestDocumentModal}
+                        onBidDocument={handleBidDocumentModal}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
                           <MakeOfferActionButton
                             request={request}
