@@ -16,7 +16,7 @@ interface TourRequestTimelineItemProps {
   onDeleteRequest: (requestId: string, requestName: string) => void;
   onRequestDocument: (request: TourRequest) => void;
   onBidDocument?: (bid: any) => void;
-  onMakeOffer: (request: TourRequest) => void;
+  onMakeOffer: (request: TourRequest, existingBid?: any) => void;
   onOfferAction: (offer: any, action: string) => void;
   onBidAction: (bid: any, action: string, reason?: string) => void;
 }

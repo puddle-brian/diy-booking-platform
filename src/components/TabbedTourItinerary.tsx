@@ -1563,7 +1563,7 @@ export default function TabbedTourItinerary({
                             venueId={venueId}
                             venueName={venueName}
                             requestBids={requestBids}
-                            onMakeOffer={(request) => {
+                            onMakeOffer={(request, existingBid) => {
                               // Extract the appropriate date from the request
                               const requestWithDates = request as any;
                               const preSelectedDate = requestWithDates.requestDate || requestWithDates.startDate || null;
@@ -1578,7 +1578,8 @@ export default function TabbedTourItinerary({
                                   title: request.title,
                                   artistName: request.artistName
                                 },
-                                preSelectedDate
+                                preSelectedDate,
+                                existingBid
                               );
                             }}
                           />

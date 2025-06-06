@@ -25,7 +25,7 @@ interface MakeOfferActionButtonProps {
   venueId?: string;
   venueName?: string;
   requestBids: VenueBid[];
-  onMakeOffer: (request: TourRequest) => void;
+  onMakeOffer: (request: TourRequest, existingBid?: VenueBid) => void;
 }
 
 export function MakeOfferActionButton({
@@ -52,7 +52,7 @@ export function MakeOfferActionButton({
   return (
     <div onClick={(e) => e.stopPropagation()}>
       <button
-        onClick={() => onMakeOffer(request)}
+        onClick={() => onMakeOffer(request, existingBid || undefined)}
         className={buttonStyles}
       >
         {buttonText}

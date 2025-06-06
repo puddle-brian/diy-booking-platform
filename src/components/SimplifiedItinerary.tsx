@@ -200,7 +200,12 @@ export default function SimplifiedItinerary({
                     onDeleteRequest={handleDeleteRequest}
                     onRequestDocument={(request) => actions.openDocumentModal({ request })}
                     onBidDocument={(bid: any) => actions.openDocumentModal({ bid })}
-                    onMakeOffer={(request) => actions.openUniversalOffer({ id: request.artistId, name: request.artistName })}
+                    onMakeOffer={(request, existingBid) => actions.openUniversalOffer(
+                      { id: request.artistId, name: request.artistName }, 
+                      undefined, 
+                      undefined, 
+                      existingBid
+                    )}
                     onOfferAction={(offer, action) => {/* Handle offer action */}}
                     onBidAction={(bid, action, reason) => {/* Handle bid action */}}
                   />
