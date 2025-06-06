@@ -202,13 +202,17 @@ export function useItineraryPermissions({
       if (actualViewerType === 'artist' && artistId && request.artistId === artistId) {
         return true;
       }
-      // Venues can view documents if they have a bid on the request
+      // Venues can view documents if they have a bid on the request OR if viewing their own venue's itinerary
       if (actualViewerType === 'venue' && venueId) {
-        return venueBids.some(bid => bid.venueId === venueId);
+        // Can view if they have a bid on the request
+        const hasBid = venueBids.some(bid => bid.venueId === venueId);
+        // Can also view if this is their own venue's itinerary (requests are specifically for their venue)
+        const isOwnVenueItinerary = editable;
+        return hasBid || isOwnVenueItinerary;
       }
       return false;
     };
-  }, [actualViewerType, artistId, venueId]);
+  }, [actualViewerType, artistId, venueId, editable]);
 
   const canMakeOfferOnRequest = useMemo(() => {
     return (request: TourRequest) => {

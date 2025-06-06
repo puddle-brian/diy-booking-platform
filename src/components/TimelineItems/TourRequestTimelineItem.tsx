@@ -15,6 +15,7 @@ interface TourRequestTimelineItemProps {
   onToggleExpansion: (requestId: string) => void;
   onDeleteRequest: (requestId: string, requestName: string) => void;
   onRequestDocument: (request: TourRequest) => void;
+  onBidDocument?: (bid: any) => void;
   onMakeOffer: (request: TourRequest) => void;
   onOfferAction: (offer: any, action: string) => void;
   onBidAction: (bid: any, action: string, reason?: string) => void;
@@ -31,6 +32,7 @@ export function TourRequestTimelineItem({
   onToggleExpansion,
   onDeleteRequest,
   onRequestDocument,
+  onBidDocument,
   onMakeOffer,
   onOfferAction,
   onBidAction
@@ -126,8 +128,11 @@ export function TourRequestTimelineItem({
             type="request"
             request={request}
             permissions={permissions}
+            artistId={request.artistId}
+            venueId={venueId}
             requestBids={venueBids}
             onRequestDocument={() => onRequestDocument(request)}
+            onBidDocument={onBidDocument}
           />
         </div>
       </td>

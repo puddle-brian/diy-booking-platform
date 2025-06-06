@@ -81,7 +81,7 @@ export function DocumentActionButton({
   }
 
   // Request document button (for tour requests)
-  if (type === 'request' && request && onRequestDocument && onBidDocument) {
+  if (type === 'request' && request && (onRequestDocument || onBidDocument)) {
     const canView = permissions.canViewRequestDocument(request, requestBids);
     
     if (!canView) {
@@ -95,12 +95,12 @@ export function DocumentActionButton({
           // For venues, pass their specific bid to the document modal if they have one
           if (permissions.actualViewerType === 'venue' && venueId) {
             const venueBid = requestBids.find(bid => bid.venueId === venueId);
-            if (venueBid) {
+            if (venueBid && onBidDocument) {
               onBidDocument(venueBid);
-            } else {
+            } else if (onRequestDocument) {
               onRequestDocument(request);
             }
-          } else {
+          } else if (onRequestDocument) {
             onRequestDocument(request);
           }
         }}

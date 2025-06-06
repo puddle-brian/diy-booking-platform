@@ -1538,12 +1538,13 @@ export default function TabbedTourItinerary({
                                         </td>
                   <td className="px-4 py-1.5 w-[8%]">
                     <div className="flex items-center space-x-1">
-                      {/* Only show document icon at parent level for venues */}
-                      {venueId && (
+                      {/* Show document icon for venues and artists (only when 0 bids) */}
+                      {(venueId || (artistId && requestBids.length === 0 && permissions.canViewRequestDocument(request, requestBids))) && (
                         <DocumentActionButton
                           type="request"
                           request={request}
                           permissions={permissions}
+                          artistId={artistId}
                           venueId={venueId}
                           requestBids={requestBids}
                           onRequestDocument={handleTourRequestDocumentModal}
