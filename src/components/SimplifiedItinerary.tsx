@@ -197,7 +197,7 @@ export default function SimplifiedItinerary({
                     onToggleExpansion={actions.toggleRequestExpansion}
                     onDeleteRequest={handleDeleteRequest}
                     onRequestDocument={(request) => actions.openDocumentModal({ request })}
-                    onMakeOffer={(request) => actions.openUniversalOffer({ artist: { id: request.artistId, name: request.artistName } })}
+                    onMakeOffer={(request) => actions.openUniversalOffer({ id: request.artistId, name: request.artistName })}
                     onOfferAction={(offer, action) => {/* Handle offer action */}}
                     onBidAction={(bid, action, reason) => {/* Handle bid action */}}
                   />

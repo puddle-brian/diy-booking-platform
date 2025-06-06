@@ -130,7 +130,7 @@ export async function PUT(
             // Transfer offer details to show
             capacity: offer.capacity,
             guarantee: offer.amount,
-            doorDeal: offer.doorDeal,
+            doorDeal: offer.doorDeal ? (offer.doorDeal as any) : undefined,
             loadIn: offer.loadIn,
             soundcheck: offer.soundcheck,
             doorsOpen: offer.doorsOpen,

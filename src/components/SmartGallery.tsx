@@ -293,7 +293,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
         // 1. Touring artists of matching genre looking for shows near me
         if (userVenue.genres && userVenue.genres.length > 0) {
           const touringArtists = artists
-            .filter(artist => artist.tourStatus === 'active')
+            .filter(artist => artist.status === 'seeking-shows')
             .filter(artist => calculateDistance(userVenue.city, userVenue.state, artist.city, artist.state) > 50) // Not local
             .filter(artist => hasMatchingGenres(userVenue.genres, artist.genres))
             .slice(0, 12);
@@ -313,7 +313,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
         if (userVenue.genres && userVenue.genres.length > 0) {
           const localArtists = artists
             .filter(artist => calculateDistance(userVenue.city, userVenue.state, artist.city, artist.state) <= 50)
-            .filter(artist => artist.tourStatus !== 'hiatus')
+            .filter(artist => artist.status === 'seeking-shows')
             .filter(artist => hasMatchingGenres(userVenue.genres, artist.genres))
             .slice(0, 12);
 
@@ -330,7 +330,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
 
         // 3. All touring artists near me (no genre filter)
         const allTouringArtists = artists
-          .filter(artist => artist.tourStatus === 'active')
+          .filter(artist => artist.status === 'seeking-shows')
           .filter(artist => calculateDistance(userVenue.city, userVenue.state, artist.city, artist.state) > 50)
           .slice(0, 12);
 
@@ -346,7 +346,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
         // 4. All local artists (no genre filter)
         const allLocalArtists = artists
           .filter(artist => calculateDistance(userVenue.city, userVenue.state, artist.city, artist.state) <= 50)
-          .filter(artist => artist.tourStatus !== 'hiatus')
+          .filter(artist => artist.status === 'seeking-shows')
           .slice(0, 12);
 
         if (allLocalArtists.length > 0) {
@@ -362,7 +362,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
         const stateArtists = artists
           .filter(artist => artist.state === userVenue.state)
           .filter(artist => calculateDistance(userVenue.city, userVenue.state, artist.city, artist.state) > 50)
-          .filter(artist => artist.tourStatus !== 'hiatus')
+          .filter(artist => artist.status === 'seeking-shows')
           .slice(0, 12);
 
         if (stateArtists.length > 0) {
@@ -377,7 +377,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
         // 6. Popular artists (different states)
         const popularArtists = artists
           .filter(artist => artist.state !== userVenue.state)
-          .filter(artist => artist.tourStatus !== 'hiatus')
+          .filter(artist => artist.status === 'seeking-shows')
           .sort((a, b) => (b.rating || 0) - (a.rating || 0))
           .slice(0, 12);
 
@@ -393,7 +393,7 @@ export default function SmartGallery({ venues, artists, activeTab, loading }: Sm
         // 7. Final fallback: Show any active artists (ensure gallery is never empty)
         if (sections.length === 0) {
           const allActiveArtists = artists
-            .filter(artist => artist.tourStatus !== 'hiatus')
+            .filter(artist => artist.status === 'seeking-shows')
             .slice(0, 12);
           
           if (allActiveArtists.length > 0) {

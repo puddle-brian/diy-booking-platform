@@ -14,6 +14,7 @@ const defaultVenues: Venue[] = [
     country: 'USA',
     venueType: 'house-show',
     genres: ['punk', 'hardcore', 'folk'],
+    artistTypesWelcome: [], // Welcomes all artist types
     capacity: 35,
     ageRestriction: 'all-ages',
     equipment: {
@@ -66,6 +67,7 @@ const defaultVenues: Venue[] = [
     country: 'USA',
     venueType: 'record-store',
     genres: ['indie', 'alternative', 'electronic'],
+    artistTypesWelcome: [], // Welcomes all artist types
     capacity: 50,
     ageRestriction: 'all-ages',
     equipment: {
@@ -125,6 +127,7 @@ const defaultVenues: Venue[] = [
     country: 'USA',
     venueType: 'record-store',
     genres: ['indie', 'folk', 'jazz'],
+    artistTypesWelcome: [], // Welcomes all artist types
     capacity: 30,
     ageRestriction: 'all-ages',
     equipment: {
@@ -177,6 +180,7 @@ const defaultVenues: Venue[] = [
     country: 'USA',
     venueType: 'house-show',
     genres: ['punk', 'hardcore', 'metal'],
+    artistTypesWelcome: [], // Welcomes all artist types
     capacity: 50,
     ageRestriction: 'all-ages',
     equipment: {
@@ -236,6 +240,7 @@ const defaultVenues: Venue[] = [
     country: 'USA',
     venueType: 'vfw-hall',
     genres: ['punk', 'hardcore', 'metal', 'indie'],
+    artistTypesWelcome: [], // Welcomes all artist types
     capacity: 150,
     ageRestriction: 'all-ages',
     equipment: {

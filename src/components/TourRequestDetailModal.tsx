@@ -37,11 +37,11 @@ export default function TourRequestDetailModal({
                     month: 'long',
                     day: 'numeric',
                     year: 'numeric'
-                  })} - {new Date(tourRequest.endDate).toLocaleDateString('en-US', {
+                  })}{tourRequest.endDate ? ` - ${new Date(tourRequest.endDate).toLocaleDateString('en-US', {
                     month: 'long',
                     day: 'numeric',
                     year: 'numeric'
-                  })}
+                  })}` : ''}
                 </div>
                 <div className="flex items-center">
                   <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
