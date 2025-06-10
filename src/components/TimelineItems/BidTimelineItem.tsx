@@ -3,6 +3,7 @@ import { VenueBid, TourRequest, VenueOffer } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
+import { InlineOfferDisplay } from '../OfferDisplay';
 
 interface BidTimelineItemProps {
   bid: VenueBid;
@@ -169,7 +170,13 @@ export function BidTimelineItem({
       {/* Offers column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <div className="text-xs text-gray-600">
-          {permissions.canSeeFinancialDetails(undefined, bid) ? (bid.guarantee ? `$${bid.guarantee}` : 'Door deal') : '-'}
+          {permissions.canSeeFinancialDetails(undefined, bid, request) ? (
+            <InlineOfferDisplay 
+              amount={bid.guarantee || (bid as any).amount}
+              doorDeal={bid.doorDeal}
+              className="text-xs"
+            />
+          ) : '-'}
         </div>
       </td>
 
