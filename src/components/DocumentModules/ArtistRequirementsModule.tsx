@@ -815,7 +815,7 @@ export const artistRequirementsModule: ModuleDefinition = {
   id: 'artist-requirements',
   title: 'Artist Requirements & Rider',
   owner: 'artist',
-  order: 2,
+  order: 3, // After messaging and venue offer
   defaultStatus: 'draft',
   
   canEdit: (viewerType: string, status: string) => {

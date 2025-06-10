@@ -359,7 +359,7 @@ export const showScheduleModule: ModuleDefinition = {
   id: 'show-schedule',
   title: 'Show Day Schedule',
   owner: 'shared',
-  order: 3,
+  order: 4, // After messaging, venue offer, and artist requirements
   defaultStatus: 'draft',
   
   canEdit: (viewerType: string, status: string) => {

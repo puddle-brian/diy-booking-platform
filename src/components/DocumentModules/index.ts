@@ -2,6 +2,7 @@
 import { venueOfferModule } from './VenueOfferModule';
 import { artistRequirementsModule } from './ArtistRequirementsModule';
 import { showScheduleModule } from './ShowScheduleModule';
+import { showDocumentMessagingModule } from './ShowDocumentMessagingModule';
 
 // Import registry
 import { moduleRegistry } from './ModuleRegistry';
@@ -21,10 +22,11 @@ import { moduleRegistry } from './ModuleRegistry';
  * - Apply status workflow
  */
 
-// Register the existing 3 modules
+// Register all 4 modules
 moduleRegistry.register(venueOfferModule);
 moduleRegistry.register(artistRequirementsModule);
 moduleRegistry.register(showScheduleModule);
+moduleRegistry.register(showDocumentMessagingModule);
 
 // Example of how easy it would be to add "Opening Bands" module:
 // moduleRegistry.register(openingBandsModule);

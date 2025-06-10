@@ -764,17 +764,11 @@ export default function ModularShowDocument({
                       ? 'bg-green-50 border border-green-200' 
                       : 'bg-red-50 border border-red-200'
                   }`}>
-                    <div className={`text-sm ${
-                      module.errors[0].startsWith('✅') 
-                        ? 'text-green-800' 
-                        : 'text-red-800'
-                    }`}>
-                      {module.errors.map((error, index) => (
-                        <div key={index}>
-                          {module.errors[0].startsWith('✅') ? error : `⚠️ ${error}`}
-                        </div>
-                      ))}
-                    </div>
+                    {module.errors.map((error, index) => (
+                      <div key={index}>
+                        {module.errors[0].startsWith('✅') ? error : `⚠️ ${error}`}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -834,4 +828,4 @@ export default function ModularShowDocument({
       </div>
     </div>
   );
-} 
+}

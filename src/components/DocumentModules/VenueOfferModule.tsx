@@ -233,7 +233,7 @@ export const venueOfferModule: ModuleDefinition = {
   id: 'venue-offer',
   title: 'Venue Offer & Terms',
   owner: 'venue',
-  order: 1,
+  order: 2, // After messaging
   defaultStatus: 'draft',
   
   canEdit: (viewerType: string, status: string) => {
