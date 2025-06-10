@@ -25,6 +25,14 @@ interface BidTimelineItemProps {
   onDeclineBid?: (bid: VenueBid) => void;
   onOfferAction?: (offer: VenueOffer, action: string) => Promise<void>;
   onBidAction?: (bid: VenueBid, action: string, reason?: string) => Promise<void>;
+  // NEW: Hold state management
+  isFrozenByHold?: boolean;
+  activeHoldInfo?: {
+    id: string;
+    expiresAt: string;
+    requesterName: string;
+    reason: string;
+  };
 }
 
 export function BidTimelineItem({
@@ -46,7 +54,9 @@ export function BidTimelineItem({
   onAcceptBid,
   onDeclineBid,
   onOfferAction,
-  onBidAction
+  onBidAction,
+  isFrozenByHold = false,
+  activeHoldInfo
 }: BidTimelineItemProps) {
   
   const getStatusBadge = (status: string) => {
@@ -199,57 +209,72 @@ export function BidTimelineItem({
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Accept/Decline buttons for pending bids */}
-          {currentStatus === 'pending' && (
+          {/* 🔒 CRITICAL: Show frozen state instead of action buttons when bid is locked by hold */}
+          {isFrozenByHold ? (
+            <div className="flex items-center space-x-1 px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+              <span>🔒</span>
+              <span className="font-medium">Locked</span>
+              {activeHoldInfo && (
+                <span className="text-orange-600 truncate max-w-[60px]" title={`Hold by ${activeHoldInfo.requesterName}`}>
+                  ({activeHoldInfo.requesterName.split(' ')[0]})
+                </span>
+              )}
+            </div>
+          ) : (
             <>
-              {/* Accept Button */}
-              {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAcceptBid(bid);
-                  }}
-                  className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                  disabled={isDeleting}
-                  title="Accept bid"
-                >
-                  ✓
-                </button>
+              {/* Accept/Decline buttons for pending bids */}
+              {currentStatus === 'pending' && (
+                <>
+                  {/* Accept Button */}
+                  {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAcceptBid(bid);
+                      }}
+                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                      disabled={isDeleting}
+                      title="Accept bid"
+                    >
+                      ✓
+                    </button>
+                  )}
+                  
+                  {/* Decline Button */}
+                  {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onDeclineBid && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeclineBid(bid);
+                      }}
+                      className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                      disabled={isDeleting}
+                      title="Decline bid"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </>
               )}
-              
-              {/* Decline Button */}
-              {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onDeclineBid && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDeclineBid(bid);
-                  }}
-                  className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                  disabled={isDeleting}
-                  title="Decline bid"
-                >
-                  ✕
-                </button>
-              )}
-            </>
-          )}
 
-          {/* Undo Accept button for accepted bids */}
-          {currentStatus === 'accepted' && (
-            <>
-              {/* Undo Accept Button */}
-              {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onBidAction && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onBidAction(bid, 'undo-accept');
-                  }}
-                  className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
-                  disabled={isDeleting}
-                  title="Undo acceptance"
-                >
-                  ↶
-                </button>
+              {/* Undo Accept button for accepted bids */}
+              {currentStatus === 'accepted' && (
+                <>
+                  {/* Undo Accept Button */}
+                  {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onBidAction && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onBidAction(bid, 'undo-accept');
+                      }}
+                      className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
+                      disabled={isDeleting}
+                      title="Undo acceptance"
+                    >
+                      ↶
+                    </button>
+                  )}
+                </>
               )}
             </>
           )}

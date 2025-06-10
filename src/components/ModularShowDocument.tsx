@@ -667,7 +667,7 @@ export default function ModularShowDocument({
           <div className="px-6 py-4 border-b border-gray-100">
             <HoldRequestPanel
               showId={show?.id || undefined}
-              showRequestId={tourRequest?.id || bid?.showRequestId || undefined}
+              showRequestId={bid?.showRequestId || tourRequest?.id || undefined}
               currentUserId="debug-lidz-bierenday" // TODO: Get from auth context
               artistId={show?.artistId || tourRequest?.artistId || bid?.artistId || undefined}
               venueId={show?.venueId || bid?.venueId || tourRequest?.venueId || undefined}

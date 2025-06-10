@@ -153,6 +153,14 @@ interface BidActionButtonsProps {
   venueOffers: VenueOffer[];
   onBidAction: (bid: VenueBid, action: string, reason?: string) => Promise<void>;
   onOfferAction: (offer: VenueOffer, action: string) => Promise<void>;
+  // NEW: Hold state management
+  isFrozenByHold?: boolean;
+  activeHoldInfo?: {
+    id: string;
+    expiresAt: string;
+    requesterName: string;
+    reason: string;
+  };
 }
 
 export function BidActionButtons({
@@ -163,11 +171,28 @@ export function BidActionButtons({
   isLoading = false,
   venueOffers,
   onBidAction,
-  onOfferAction
+  onOfferAction,
+  isFrozenByHold = false,
+  activeHoldInfo
 }: BidActionButtonsProps) {
   // Only show action buttons for artists
   if (permissions.actualViewerType !== 'artist') {
     return null;
+  }
+
+  // 🔒 CRITICAL: No action buttons when bid is frozen by an active hold
+  if (isFrozenByHold) {
+    return (
+      <div className="flex items-center space-x-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+        <span>🔒</span>
+        <span className="font-medium">Locked by Hold</span>
+        {activeHoldInfo && (
+          <span className="text-orange-600">
+            ({activeHoldInfo.requesterName})
+          </span>
+        )}
+      </div>
+    );
   }
 
   const handleAction = (action: string) => {

@@ -408,6 +408,15 @@ model Bid {
   bidder          User        @relation(fields: [bidderId], references: [id])
   tourRequest     TourRequest @relation(fields: [tourRequestId], references: [id])
   venue           Venue       @relation(fields: [venueId], references: [id])
+  
+  // NEW: Hold state management
+  holdState         BidHoldState  @default(AVAILABLE)
+  frozenByHoldId    String?       // Reference to hold that froze this bid
+  frozenAt          DateTime?     // When this bid was frozen
+  unfrozenAt        DateTime?     // When this bid was unfrozen
+  
+  // NEW: Enhanced status tracking
+  statusHistory     Json          @default("[]") // Array of status changes with timestamps
 
   @@index([tourRequestId])
   @@index([venueId])
@@ -625,6 +634,15 @@ model VenueOffer {
   cancelledAt     DateTime?
   cancelledReason String?
   expiresAt       DateTime?   // Auto-expire offers
+  
+  // NEW: Hold state management (same as Bid)
+  holdState         BidHoldState  @default(AVAILABLE)
+  frozenByHoldId    String?       // Reference to hold that froze this offer
+  frozenAt          DateTime?     // When this offer was frozen
+  unfrozenAt        DateTime?     // When this offer was unfrozen
+  
+  // NEW: Enhanced status tracking
+  statusHistory     Json          @default("[]") // Array of status changes with timestamps
   
   // System fields
   createdAt       DateTime    @default(now())
@@ -845,6 +863,13 @@ enum HoldStatus {
   DECLINED    // Other party rejected the hold
 }
 
+// NEW: Bid states for hold management
+enum BidHoldState {
+  AVAILABLE   // Normal bidding state
+  FROZEN      // Locked due to competing hold
+  HELD        // This bid has the active hold
+}
+
 model HoldRequest {
   id                String        @id @default(cuid())
   
@@ -869,6 +894,11 @@ model HoldRequest {
   startsAt          DateTime?     // When hold actually begins (after approval)
   expiresAt         DateTime?     // When hold expires
   
+  // NEW: Competing bid management
+  frozenBidIds      String[]      // IDs of bids frozen by this hold
+  frozenOfferIds    String[]      // IDs of offers frozen by this hold
+  notifiedParties   String[]      // User IDs who have been notified
+  
   // SYSTEM
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
@@ -882,12 +912,6 @@ model HoldRequest {
   
   // NOTE: Application-level validation ensures exactly one of showId, showRequestId, or venueOfferId is set
   
-  @@index([showId])
-  @@index([showRequestId])
-  @@index([venueOfferId])
-  @@index([requestedById])
-  @@index([status])
-  @@index([expiresAt])
-  @@index([createdAt])
-  @@map("hold_requests")
+  @@index([showRequestId, status])
+  @@index([status, expiresAt])
 }
