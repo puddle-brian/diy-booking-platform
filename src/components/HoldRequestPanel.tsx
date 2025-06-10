@@ -210,7 +210,7 @@ export function HoldRequestPanel({
     // TEMPORARY FIX: For now, allow hold creation if either artistId or venueId is present
     // TODO: Implement proper venue ownership checking
     const hasArtistAccess = artistId && currentUserId === artistId;
-    const hasVenueAccess = venueId && currentUserId === 'debug-lidz-bierenday'; // Debug user can access any venue
+    const hasVenueAccess = venueId && currentUserId.startsWith('debug-'); // Any debug user can access any venue
     
     const canCreate = !holdRequest && (hasArtistAccess || hasVenueAccess);
     

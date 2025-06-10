@@ -65,9 +65,9 @@ export async function PUT(
     let canRespond = false;
     
     // 🧪 TESTING: Allow debug user to operate on any hold for testing
-    if (authResult.user!.id === 'debug-lidz-bierenday') {
+    if (authResult.user!.id.startsWith('debug-')) {
       canRespond = true;
-      console.log('🧪 Debug user access granted for hold management');
+      console.log('🧪 Debug user access granted for hold management:', authResult.user!.id);
     } else {
       // Regular permission checks (only if not debug user)
       if (hold.showId) {
@@ -206,15 +206,16 @@ export async function GET(
     // Check if user has permission to view this hold
     let canView = false;
     
-    // 🧪 TESTING: Allow debug user to view any hold
-    if (authResult.user!.id === 'debug-lidz-bierenday') {
+    // TEMPORARY: Debug user can always view holds
+    if (authResult.user!.id.startsWith('debug-')) {
+      console.log('🔒 HoldRequest API: Debug user access granted for view:', authResult.user!.id);
       canView = true;
     } else if (hold.requestedById === authResult.user!.id || hold.respondedById === authResult.user!.id) {
       canView = true;
     }
 
-    // Also check if user is involved in the document (skip for debug user)
-    if (!canView && authResult.user!.id !== 'debug-lidz-bierenday') {
+    // Also check if user is involved in the document (skip for debug users)
+    if (!canView && !authResult.user!.id.startsWith('debug-')) {
       if (hold.showId) {
         const show = await prisma.show.findUnique({
           where: { id: hold.showId },

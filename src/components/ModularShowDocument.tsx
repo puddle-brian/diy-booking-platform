@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { moduleRegistry, initializeModules } from './DocumentModules';
 import { HoldRequestPanel } from './HoldRequestPanel';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * ✅ MODULAR SHOW DOCUMENT SYSTEM - FULLY FUNCTIONAL
@@ -59,6 +60,7 @@ export default function ModularShowDocument({
   viewerType,
   onUpdate
 }: ModularShowDocumentProps) {
+  const { user } = useAuth();
   const [modules, setModules] = useState<ModuleState[]>([]);
   const [documentData, setDocumentData] = useState<any>({});
   const lastHoldRequestRef = useRef<any>(undefined);
@@ -668,7 +670,7 @@ export default function ModularShowDocument({
             <HoldRequestPanel
               showId={show?.id || undefined}
               showRequestId={bid?.showRequestId || tourRequest?.id || undefined}
-              currentUserId="debug-lidz-bierenday" // TODO: Get from auth context
+              currentUserId={user?.id || 'anonymous'}
               artistId={show?.artistId || tourRequest?.artistId || bid?.artistId || undefined}
               venueId={show?.venueId || bid?.venueId || tourRequest?.venueId || undefined}
               artistName={show?.artistName || tourRequest?.artistName || documentData.artistName || 'Artist'}

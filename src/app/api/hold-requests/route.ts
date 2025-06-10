@@ -87,9 +87,9 @@ export async function POST(request: NextRequest) {
     // Check if document exists and user has permission
     let canRequestHold = false;
 
-    // TEMPORARY: Debug user can request holds on anything
-    if (authResult.user!.id === 'debug-lidz-bierenday') {
-      console.log('🔒 HoldRequest API: Debug user access granted');
+    // TEMPORARY: Debug users can request holds on anything
+    if (authResult.user!.id.startsWith('debug-')) {
+      console.log('🔒 HoldRequest API: Debug user access granted for:', authResult.user!.id);
       canRequestHold = true;
     } else {
       if (showId) {

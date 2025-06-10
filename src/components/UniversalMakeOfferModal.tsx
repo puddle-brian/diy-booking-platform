@@ -109,7 +109,7 @@ export default function UniversalMakeOfferModal({
         }
         
         // 🎯 TEMPORARY: For testing, show Lost Bag venue if user is lidz bierenday
-        if (user?.id === 'debug-lidz-bierenday') {
+        if (user?.id?.startsWith('debug-')) {
           const lostBagVenue = allVenues.find((v: any) => 
             v.name?.toLowerCase().includes('lost bag') || 
             v.name?.toLowerCase().includes('lostbag')
