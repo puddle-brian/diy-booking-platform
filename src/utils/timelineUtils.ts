@@ -250,6 +250,92 @@ export function createTimelineEntries(
     }
   });
   
+  // 🎯 NEW: Promote held bids to parent level on artist pages
+  // This makes the active hold the main focus, similar to accepted bids
+  if (artistId && venueBids.length > 0) {
+    console.log(`🎯 Processing ${venueBids.length} venue bids for artist timeline`);
+    
+    // Find held bids (holdState === 'HELD') and promote them to parent level
+    const heldBids = venueBids.filter(bid => 
+      (bid as any).holdState === 'HELD' && 
+      !['cancelled', 'declined', 'rejected', 'expired'].includes(bid.status.toLowerCase())
+    );
+    
+    console.log(`🎯 Found ${heldBids.length} held bids to promote to parent level`);
+    
+    heldBids.forEach(bid => {
+      console.log(`🎯 Promoting held bid to parent level: ${bid.venueName} on ${bid.proposedDate.split('T')[0]}`);
+      
+      const bidDate = bid.proposedDate.split('T')[0];
+      
+      // Create synthetic tour request from held bid
+      const syntheticHeldRequest: TourRequest = {
+        id: `held-bid-${bid.id}`, // Prefix to distinguish held bid promotions
+        artistId: artistId,
+        artistName: (bid as any).artistName || 'Unknown Artist',
+        title: `Hold: ${bid.venueName}`,
+        description: bid.message || `Hold placed with ${bid.venueName}`,
+        startDate: bidDate,
+        endDate: bidDate,
+        isSingleDate: true,
+        location: bid.location || bid.venueName || 'Unknown Location',
+        radius: 0,
+        flexibility: 'exact-cities' as const,
+        genres: [],
+        expectedDraw: {
+          min: 0,
+          max: bid.capacity || 0,
+          description: `Venue capacity: ${bid.capacity || 'Unknown'}`
+        },
+        tourStatus: 'exploring-interest' as const,
+        ageRestriction: 'all-ages' as const,
+        equipment: {
+          needsPA: false,
+          needsMics: false,
+          needsDrums: false,
+          needsAmps: false,
+          acoustic: false
+        },
+        guaranteeRange: {
+          min: bid.guarantee || 0,
+          max: bid.guarantee || 0
+        },
+        acceptsDoorDeals: !!bid.doorDeal,
+        merchandising: true,
+        travelMethod: 'van' as const,
+        lodging: 'flexible' as const,
+        priority: 'high' as const, // High priority since it's an active hold
+        status: 'active' as const,
+        responses: 1,
+        createdAt: bid.createdAt,
+        updatedAt: bid.updatedAt,
+        expiresAt: bid.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        
+        // 🎯 HELD BID FLAGS: Mark as held bid promotion for proper handling
+        isHeldBid: true,
+        originalBidId: bid.id,
+        originalShowRequestId: bid.showRequestId,
+        heldBidStatus: bid.status,
+        heldBidAmount: bid.guarantee,
+        // Store the original show request ID to find frozen bids for child rows
+        frozenBidsShowRequestId: bid.showRequestId
+      } as TourRequest & { 
+        isHeldBid: boolean; 
+        originalBidId: string; 
+        originalShowRequestId: string;
+        heldBidStatus: string; 
+        heldBidAmount?: number;
+        frozenBidsShowRequestId?: string;
+      };
+      
+      entries.push({
+        type: 'tour-request',
+        date: bidDate,
+        data: syntheticHeldRequest
+      });
+    });
+  }
+  
   // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view ONLY
   // 🎯 FIX: Only create synthetic venue bid requests when viewing venue pages, not when venue users view artist pages
   if (venueId && !artistId && venueBids.length > 0) {
@@ -345,14 +431,26 @@ export function createTimelineEntries(
   
   if (artistId) {
     // Add regular artist-initiated tour requests
+    // 🎯 NEW: Filter out requests that have held bids which were promoted to parent level
+    const promotedHeldBids = venueBids.filter(bid => 
+      (bid as any).holdState === 'HELD' && 
+      !['cancelled', 'declined', 'rejected', 'expired'].includes(bid.status.toLowerCase())
+    );
+    const promotedShowRequestIds = new Set(promotedHeldBids.map(bid => bid.showRequestId));
+    
     tourRequests.forEach(request => {
       if (request.status === 'active') {
-        entries.push({
-          type: 'tour-request',
-          date: request.startDate,
-          endDate: request.endDate,
-          data: request
-        });
+        // Skip this request if it has held bids that were promoted to parent level
+        if (!promotedShowRequestIds.has(request.id)) {
+          entries.push({
+            type: 'tour-request',
+            date: request.startDate,
+            endDate: request.endDate,
+            data: request
+          });
+        } else {
+          console.log(`🎯 Filtering out original request ${request.id} because its held bid was promoted to parent level`);
+        }
       }
     });
   }
