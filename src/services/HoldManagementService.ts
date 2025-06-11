@@ -33,221 +33,102 @@ export interface CompetingItem {
 export class HoldManagementService {
   
   /**
-   * Grant a hold request - ENHANCED with competing bid freezing
+   * Grant a hold request - SINGLE HOLD SYSTEM
+   * Only one active hold allowed per show request at a time
    */
-  static async grantHold(holdId: string, userId: string): Promise<{
-    success: boolean;
-    hold?: HoldRequest;
-    frozenItems?: CompetingItem[];
-    error?: string;
-  }> {
+  async grantHold(holdRequestId: string, grantedByUserId: string): Promise<void> {
+    console.log('🔒 HoldManagementService: Granting hold request', holdRequestId);
+    
     try {
-      const hold = await prisma.holdRequest.findUnique({
-        where: { id: holdId },
-        include: {
+      // Get the hold request details
+      const holdRequest = await prisma.holdRequest.findUnique({
+        where: { id: holdRequestId },
+        include: { 
           showRequest: true,
-          venueOffer: true
-        }
-      });
-
-      if (!hold || hold.status !== 'PENDING') {
-        return { success: false, error: 'Hold request not found or not pending' };
-      }
-
-      const now = new Date();
-      const expiresAt = new Date(now.getTime() + hold.duration * 60 * 60 * 1000);
-
-      // Find all competing items to freeze
-      const competingItems: CompetingItem[] = [];
-      const frozenBidIds: string[] = [];
-      const frozenOfferIds: string[] = [];
-
-      if (hold.showRequestId) {
-        // Find competing bids for this show request
-        const competingBids = await prisma.bid.findMany({
-          where: {
-            tourRequestId: hold.showRequestId,
-            status: 'PENDING',
-            // TODO: Add holdState filter when migration is complete
-            NOT: { bidderId: hold.requestedById } // Don't freeze the requester's own bid
-          },
-          include: {
-            venue: { select: { id: true, name: true } }
-          }
-        });
-
-        // Find competing bids in the ShowRequestBid table (current system)
-        const competingShowRequestBids = await prisma.showRequestBid.findMany({
-          where: {
-            showRequestId: hold.showRequestId,
-            status: 'PENDING',
-            // holdState: 'AVAILABLE', // TODO: Re-enable when types are fixed
-            NOT: { bidderId: hold.requestedById }
-          },
-          include: {
-            venue: { select: { id: true, name: true } }
-          }
-        });
-
-        // Also check unified ShowRequestBid table
-        const unifiedBids = await prisma.showRequestBid.findMany({
-          where: {
-            showRequestId: hold.showRequestId,
-            status: 'PENDING',
-            NOT: { bidderId: hold.requestedById }
-          },
-          include: {
-            venue: { select: { id: true, name: true } }
-          }
-        });
-
-        // Combine all bids
-        const allBids = [...competingBids, ...competingShowRequestBids];
-        frozenBidIds.push(...allBids.map(bid => bid.id));
-
-        for (const bid of allBids) {
-          competingItems.push({
-            id: bid.id,
-            type: competingBids.includes(bid) ? 'bid' : 'showRequestBid',
-            venueId: bid.venueId,
-            venueName: bid.venue?.name || 'Unknown Venue',
-            submittedById: bid.bidderId || '',
-            currentStatus: 'PENDING'
-          });
-        }
-      }
-
-      if (hold.venueOfferId) {
-        // Find competing venue offers for same artist/date
-        const venueOffer = hold.venueOffer;
-        if (venueOffer) {
-          const competingOffers = await prisma.venueOffer.findMany({
-            where: {
-              artistId: venueOffer.artistId,
-              proposedDate: venueOffer.proposedDate,
-              status: 'PENDING',
-              // TODO: Add holdState filter when migration is complete
-              NOT: { id: hold.venueOfferId }
-            },
+          requestedBy: {
             include: {
-              venue: { select: { id: true, name: true } }
+              memberships: {
+                where: { entityType: 'VENUE' }
+              }
             }
-          });
-
-          frozenOfferIds.push(...competingOffers.map(offer => offer.id));
-
-          for (const offer of competingOffers) {
-            competingItems.push({
-              id: offer.id,
-              type: 'offer',
-              venueId: offer.venueId,
-              venueName: offer.venue?.name || 'Unknown Venue',
-              submittedById: offer.createdById,
-              currentStatus: 'PENDING'
-            });
           }
         }
-      }
-
-      // Execute the hold grant in a transaction - NOW WITH REAL FREEZING!
-      const result = await prisma.$transaction(async (tx) => {
-        // 1. Update the hold to ACTIVE
-        const updatedHold = await tx.holdRequest.update({
-          where: { id: holdId },
-          data: {
-            status: 'ACTIVE',
-            respondedById: userId,
-            respondedAt: now,
-            startsAt: now,
-            expiresAt: expiresAt,
-            frozenBidIds: frozenBidIds,
-            frozenOfferIds: frozenOfferIds
-          }
-        });
-
-        // 2. 🔒 FREEZE all competing bids 
-        const legacyBidIds = frozenBidIds.filter(id => 
-          competingItems.find(item => item.id === id && item.type === 'bid')
-        );
-        if (legacyBidIds.length > 0) {
-          await tx.bid.updateMany({
-            where: { id: { in: legacyBidIds } },
-            data: {
-              holdState: 'FROZEN',
-              frozenByHoldId: holdId,
-              frozenAt: now,
-              statusHistory: {
-                set: [{
-                  status: 'FROZEN',
-                  timestamp: now.toISOString(),
-                  reason: `Frozen by hold ${holdId}`,
-                  holdId: holdId
-                }]
-              }
-            }
-          });
-        }
-
-        // 2b. 🔒 FREEZE all competing ShowRequestBids
-        const showRequestBidIds = frozenBidIds.filter(id => 
-          competingItems.find(item => item.id === id && item.type === 'showRequestBid')
-        );
-        if (showRequestBidIds.length > 0) {
-          await tx.showRequestBid.updateMany({
-            where: { id: { in: showRequestBidIds } },
-            data: {
-              holdState: 'FROZEN',
-              frozenByHoldId: holdId,
-              frozenAt: now,
-              statusHistory: {
-                set: [{
-                  status: 'FROZEN',
-                  timestamp: now.toISOString(),
-                  reason: `Frozen by hold ${holdId}`,
-                  holdId: holdId
-                }]
-              }
-            }
-          });
-        }
-
-        // 3. 🔒 FREEZE all competing venue offers
-        if (frozenOfferIds.length > 0) {
-          await tx.venueOffer.updateMany({
-            where: { id: { in: frozenOfferIds } },
-            data: {
-              holdState: 'FROZEN',
-              frozenByHoldId: holdId,
-              frozenAt: now,
-              statusHistory: {
-                set: [{
-                  status: 'FROZEN',
-                  timestamp: now.toISOString(),
-                  reason: `Frozen by hold ${holdId}`,
-                  holdId: holdId
-                }]
-              }
-            }
-          });
-        }
-
-        return updatedHold;
       });
 
-      console.log(`🔒 Hold ${holdId} granted: Froze ${frozenBidIds.length} bids and ${frozenOfferIds.length} offers`);
+      if (!holdRequest) {
+        throw new Error('Hold request not found');
+      }
 
-      // 3. Send notifications to affected parties
-      await this.notifyAffectedParties(holdId, competingItems, 'hold_granted');
+      // Find which venue the requester owns (for determining which bid gets the hold)
+      const venueOwnership = holdRequest.requestedBy.memberships.find(m => m.entityType === 'VENUE');
+      
+      if (!venueOwnership?.entityId) {
+        throw new Error('Cannot determine which venue requested the hold - no venue ownership found');
+      }
 
-      return {
-        success: true,
-        hold: result as HoldRequest,
-        frozenItems: competingItems
-      };
+      const heldVenueId = venueOwnership.entityId;
 
+      // 🚨 SINGLE HOLD ENFORCEMENT: Check if there's already an active hold for this show
+      const existingActiveHold = await prisma.holdRequest.findFirst({
+        where: {
+          showRequestId: holdRequest.showRequestId,
+          status: 'ACTIVE',
+          id: { not: holdRequestId } // Exclude current hold request
+        }
+      });
+
+      if (existingActiveHold) {
+        throw new Error(`Cannot grant hold: There is already an active hold for this show (Hold ID: ${existingActiveHold.id}). Only one active hold is allowed per show.`);
+      }
+
+      // Grant the hold
+      await prisma.holdRequest.update({
+        where: { id: holdRequestId },
+        data: {
+          status: 'ACTIVE',
+          respondedById: grantedByUserId,
+          respondedAt: new Date(),
+          startsAt: new Date(),
+          expiresAt: new Date(Date.now() + holdRequest.duration * 60 * 60 * 1000), // duration in hours
+        }
+      });
+
+      // 🔒 FREEZE competing bids for this show request
+      console.log('🔒 Freezing competing bids for show request:', holdRequest.showRequestId);
+      console.log('🏢 Held venue ID:', heldVenueId);
+      
+      // Update ShowRequestBids to frozen state (all except the one getting the hold)
+      const updateResult = await prisma.showRequestBid.updateMany({
+        where: {
+          showRequestId: holdRequest.showRequestId || '',
+          // Don't freeze the bid that got the hold
+          venueId: { not: heldVenueId }
+        },
+        data: {
+          holdState: 'FROZEN',
+          frozenByHoldId: holdRequestId,
+          frozenAt: new Date()
+        }
+      });
+
+      // Update the held venue's bid to HELD status
+      await prisma.showRequestBid.updateMany({
+        where: {
+          showRequestId: holdRequest.showRequestId || '',
+          venueId: heldVenueId
+        },
+        data: {
+          holdState: 'HELD',
+          frozenByHoldId: holdRequestId,
+          frozenAt: new Date()
+        }
+      });
+
+      console.log(`✅ Hold granted successfully. Frozen ${updateResult.count} competing bids.`);
+      
     } catch (error) {
-      console.error('Error granting hold:', error);
-      return { success: false, error: 'Failed to grant hold: ' + (error instanceof Error ? error.message : 'Unknown error') };
+      console.error('❌ Error granting hold:', error);
+      throw error;
     }
   }
 
