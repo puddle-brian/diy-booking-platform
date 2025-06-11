@@ -250,8 +250,8 @@ export function BidTimelineItem({
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* ❄️ FROZEN: Show just snowflake icon when bid is frozen by hold */}
-          {isFrozenByHold ? (
+          {/* ❄️ FROZEN: Show just snowflake icon when bid is frozen by hold (but NOT when it's held) */}
+          {isFrozenByHold && (bid as any).holdState === 'FROZEN' ? (
             <div className="flex items-center justify-center">
               <span 
                 className="text-lg text-slate-500 cursor-help filter drop-shadow-none"
@@ -262,7 +262,7 @@ export function BidTimelineItem({
             </div>
           ) : (
             <>
-              {/* Accept/Decline buttons for pending bids */}
+              {/* Accept/Decline buttons for pending bids (including HELD bids) */}
               {currentStatus === 'pending' && (
                 <>
                   {/* Accept Button */}

@@ -1526,7 +1526,7 @@ export default function TabbedTourItinerary({
                             
                             if (hasActiveHold) {
                               return (
-                                <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                                <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700">
                                   Hold
                                 </span>
                               );
