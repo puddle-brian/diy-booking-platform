@@ -1408,8 +1408,19 @@ export default function TabbedTourItinerary({
 
                           {/* Venue/Artist column - w-[19%] - Show "Venue Name +N" */}
                           <td className="px-4 py-1.5 w-[19%]">
-                            <div className="text-sm font-medium text-violet-700 truncate">
-                              {heldBid.venueName}
+                            <div className="text-sm font-medium truncate">
+                              {heldBid.venueId && heldBid.venueId !== 'external-venue' ? (
+                                <a 
+                                  href={`/venues/${heldBid.venueId}`}
+                                  className="text-violet-600 hover:text-violet-800 hover:underline"
+                                  title="View venue page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {heldBid.venueName}
+                                </a>
+                              ) : (
+                                <span className="text-violet-700">{heldBid.venueName}</span>
+                              )}
                               {frozenBids.length > 0 && (
                                 <span className="text-violet-500 ml-1">+{frozenBids.length}</span>
                               )}
