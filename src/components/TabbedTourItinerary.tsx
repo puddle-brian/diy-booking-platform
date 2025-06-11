@@ -1519,6 +1519,19 @@ export default function TabbedTourItinerary({
                             }
                             
                             // Default logic for artists and venues without bids
+                            // Check if this request has any active holds
+                            const hasActiveHold = requestBids.some((bid: VenueBid) => 
+                              (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
+                            );
+                            
+                            if (hasActiveHold) {
+                              return (
+                                <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                                  Hold
+                                </span>
+                              );
+                            }
+                            
                             return (
                               <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                 {requestBids.length > 0 ? 'Bidding' : 'Requested'}
@@ -1633,7 +1646,7 @@ export default function TabbedTourItinerary({
                                     })
                                     .map((bid: VenueBid) => {
                                       // 🔒 CRITICAL: Check if bid is frozen by an active hold
-                                      const isFrozenByHold = (bid as any).holdState === 'FROZEN';
+                                      const isFrozenByHold = (bid as any).holdState === 'FROZEN' || (bid as any).holdState === 'HELD';
                                       
                                       return (
                                         <BidTimelineItem

@@ -59,7 +59,22 @@ export function BidTimelineItem({
   activeHoldInfo
 }: BidTimelineItemProps) {
   
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, isFrozen = false, holdState?: string) => {
+    // ❄️ FROZEN/HELD states take priority over normal status
+    if (isFrozen && holdState === 'FROZEN') {
+      return {
+        className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-slate-100 text-slate-700',
+        text: 'Frozen'
+      };
+    }
+    if (isFrozen && holdState === 'HELD') {
+      return {
+        className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700',
+        text: 'On Hold'
+      };
+    }
+
+    // Normal status badges
     switch (status) {
       case 'accepted':
         return {
@@ -80,10 +95,21 @@ export function BidTimelineItem({
   };
 
   const currentStatus = effectiveStatus || bid.status;
-  const statusBadge = getStatusBadge(currentStatus);
+  const statusBadge = getStatusBadge(currentStatus, isFrozenByHold, (bid as any).holdState);
+
+  // 🎨 Dynamic row styling based on hold state
+  const getRowStyling = () => {
+    if (isFrozenByHold && (bid as any).holdState === 'FROZEN') {
+      return "bg-slate-100 hover:bg-slate-200 transition-colors duration-150"; // Frozen state - distinct gray
+    }
+    if (isFrozenByHold && (bid as any).holdState === 'HELD') {
+      return "bg-violet-100 hover:bg-violet-200 transition-colors duration-150"; // Held state - distinct purple
+    }
+    return "bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150"; // Normal state
+  };
 
   return (
-    <tr className="bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150">
+    <tr className={getRowStyling()}>
       {/* Expansion toggle column - w-[3%] */}
       <td className="px-2 py-1.5 w-[3%]">
         <div className="flex items-center justify-center text-gray-400">
@@ -97,13 +123,21 @@ export function BidTimelineItem({
       <td className="px-4 py-1.5 w-[12%]">
         <ItineraryDate
           date={bid.proposedDate}
-          className="text-sm font-medium text-yellow-900"
+          className={`text-sm font-medium ${
+            isFrozenByHold && (bid as any).holdState === 'FROZEN' ? 'text-slate-700' :
+            isFrozenByHold && (bid as any).holdState === 'HELD' ? 'text-violet-700' :
+            'text-yellow-900'
+          }`}
         />
       </td>
 
       {/* Location column - w-[14%] */}
       <td className="px-4 py-1.5 w-[14%]">
-        <div className="text-sm text-yellow-900 truncate">
+        <div className={`text-sm truncate ${
+          isFrozenByHold && (bid as any).holdState === 'FROZEN' ? 'text-slate-700' :
+          isFrozenByHold && (bid as any).holdState === 'HELD' ? 'text-violet-700' :
+          'text-yellow-900'
+        }`}>
           {(() => {
             // Look up venue location from venues array
             if (venues && bid.venueId) {
@@ -209,16 +243,15 @@ export function BidTimelineItem({
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* 🔒 CRITICAL: Show frozen state instead of action buttons when bid is locked by hold */}
+          {/* ❄️ FROZEN: Show just snowflake icon when bid is frozen by hold */}
           {isFrozenByHold ? (
-            <div className="flex items-center space-x-1 px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
-              <span>🔒</span>
-              <span className="font-medium">Locked</span>
-              {activeHoldInfo && (
-                <span className="text-orange-600 truncate max-w-[60px]" title={`Hold by ${activeHoldInfo.requesterName}`}>
-                  ({activeHoldInfo.requesterName.split(' ')[0]})
-                </span>
-              )}
+            <div className="flex items-center justify-center">
+              <span 
+                className="text-lg text-slate-500 cursor-help filter drop-shadow-none"
+                title={`Frozen by active hold${activeHoldInfo ? ` (${activeHoldInfo.requesterName})` : ''}`}
+              >
+                ❄️
+              </span>
             </div>
           ) : (
             <>

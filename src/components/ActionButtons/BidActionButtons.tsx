@@ -183,17 +183,16 @@ export function BidActionButtons({
     return null;
   }
 
-  // 🔒 CRITICAL: No action buttons when bid is frozen by an active hold
+  // ❄️ FROZEN: Show just snowflake icon when bid is frozen by an active hold
   if (isFrozenByHold) {
     return (
-      <div className="flex items-center space-x-2 px-2 py-1 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
-        <span>🔒</span>
-        <span className="font-medium">Locked by Hold</span>
-        {activeHoldInfo && (
-          <span className="text-orange-600">
-            ({activeHoldInfo.requesterName})
-          </span>
-        )}
+      <div className="flex items-center justify-center">
+        <span 
+          className="text-xl text-blue-400 cursor-help"
+          title={`Frozen by active hold${activeHoldInfo ? ` (${activeHoldInfo.requesterName})` : ''}`}
+        >
+          ❄️
+        </span>
       </div>
     );
   }
