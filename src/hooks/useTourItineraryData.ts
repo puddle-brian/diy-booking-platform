@@ -58,6 +58,13 @@ interface VenueBid {
   billingNotes?: string;
   artistId?: string;
   artistName?: string;
+  // 🔒 HOLD STATE MANAGEMENT FIELDS
+  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
+  frozenByHoldId?: string;
+  frozenAt?: string;
+  unfrozenAt?: string;
+  isFrozen?: boolean;
+  venue?: any; // Include venue object for proper name display
 }
 
 interface VenueOffer {

@@ -560,6 +560,22 @@ export default function AdminPage() {
                     Manage test data for show requests, bids, and shows. Use these tools to reset the system to a known state for testing.
                   </p>
                   
+                  {/* Hold System Testing */}
+                  <div className="mb-6">
+                    <div className="p-4 bg-violet-50 border border-violet-200 rounded-lg">
+                      <h4 className="font-medium text-violet-900 mb-2">🔒 Hold System Testing</h4>
+                      <p className="text-sm text-violet-800 mb-3">
+                        Create and manage hold scenarios for testing the timeline UI. Test HELD and FROZEN bid states.
+                      </p>
+                      <a
+                        href="/admin/holds"
+                        className="inline-block px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 transition-colors"
+                      >
+                        Manage Holds
+                      </a>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Reset Bids Button */}
                     <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">

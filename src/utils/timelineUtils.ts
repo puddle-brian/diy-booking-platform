@@ -55,6 +55,15 @@ interface VenueBid {
   setLength?: number;
   otherActs?: string;
   billingNotes?: string;
+  // 🔒 HOLD STATE MANAGEMENT FIELDS
+  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
+  frozenByHoldId?: string;
+  frozenAt?: string;
+  unfrozenAt?: string;
+  isFrozen?: boolean;
+  venue?: any;
+  artistId?: string;
+  artistName?: string;
 }
 
 interface VenueOffer {
@@ -257,7 +266,7 @@ export function createTimelineEntries(
     
     // Find held bids (holdState === 'HELD') and promote them to parent level
     const heldBids = venueBids.filter(bid => 
-      (bid as any).holdState === 'HELD' && 
+      bid.holdState === 'HELD' && 
       !['cancelled', 'declined', 'rejected', 'expired'].includes(bid.status.toLowerCase())
     );
     
@@ -272,7 +281,7 @@ export function createTimelineEntries(
       const syntheticHeldRequest: TourRequest = {
         id: `held-bid-${bid.id}`, // Prefix to distinguish held bid promotions
         artistId: artistId,
-        artistName: (bid as any).artistName || 'Unknown Artist',
+        artistName: bid.artistName || 'Unknown Artist',
         title: `Hold: ${bid.venueName}`,
         description: bid.message || `Hold placed with ${bid.venueName}`,
         startDate: bidDate,
@@ -357,11 +366,11 @@ export function createTimelineEntries(
           
           const bidDate = bid.proposedDate.split('T')[0];
           
-          // Create synthetic tour request from venue bid to show in venue timeline
-          const syntheticBidRequest: TourRequest = {
-            id: `venue-bid-${bid.id}`, // Use first bid ID for this request
-            artistId: (bid as any).artistId || 'unknown', // 🎯 FIX: Use stored artist ID
-            artistName: (bid as any).artistName || bid.location || 'Unknown Artist', // 🎯 FIX: Use stored artist name
+                      // Create synthetic tour request from venue bid to show in venue timeline
+            const syntheticBidRequest: TourRequest = {
+              id: `venue-bid-${bid.id}`, // Use first bid ID for this request
+              artistId: bid.artistId || 'unknown', // 🎯 FIX: Use stored artist ID
+              artistName: bid.artistName || bid.location || 'Unknown Artist', // 🎯 FIX: Use stored artist name
             title: `Bid on Artist Request`, // Generic title since we don't have full request info
             description: bid.message || `Bid placed by ${bid.venueName}`,
             startDate: bidDate,
