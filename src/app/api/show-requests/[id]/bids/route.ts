@@ -341,9 +341,109 @@ export async function PUT(
           declinedReason: body.reason || 'No reason provided'
         };
         break;
+      
+      // 🔒 NEW HOLD-SPECIFIC ACTIONS
+      case 'accept-held':
+        // Accept a held bid - normal acceptance but also releases hold and cancels competing bids
+        console.log('🔒 Accepting held bid (normal workflow)');
+        
+        updateData = {
+          status: BidStatus.ACCEPTED,
+          acceptedAt: new Date(),
+          holdState: 'AVAILABLE', // Clear hold state
+          frozenByHoldId: null,
+          frozenAt: null,
+          unfrozenAt: new Date()
+        };
+        
+        // Find and release the associated hold
+        const activeHold = await prisma.holdRequest.findFirst({
+          where: {
+            showRequestId: showRequestId,
+            status: 'ACTIVE'
+          }
+        });
+        
+        if (activeHold) {
+          // Release the hold 
+          await prisma.holdRequest.update({
+            where: { id: activeHold.id },
+            data: {
+              status: 'CANCELLED',
+              respondedAt: new Date()
+            }
+          });
+          
+          // Cancel all competing bids (they lost the competition)
+          await prisma.showRequestBid.updateMany({
+            where: {
+              showRequestId: showRequestId,
+              holdState: 'FROZEN',
+              frozenByHoldId: activeHold.id
+            },
+            data: {
+              status: BidStatus.REJECTED, // Cancel competing bids
+              holdState: 'AVAILABLE',
+              frozenByHoldId: null,
+              unfrozenAt: new Date(),
+              declinedAt: new Date(),
+              declinedReason: 'Artist accepted competing bid'
+            }
+          });
+        }
+        break;
+        
+      case 'decline-held':
+        // Decline a held bid - normal decline but also releases hold and unfreezes competing bids
+        console.log('🔒 Declining held bid - releasing hold and unfreezing competitors');
+        
+        updateData = {
+          status: BidStatus.REJECTED,
+          declinedAt: new Date(),
+          declinedReason: body.reason || 'Artist declined held bid',
+          holdState: 'AVAILABLE',
+          frozenByHoldId: null,
+          frozenAt: null,
+          unfrozenAt: new Date()
+        };
+        
+        // Find and release the associated hold
+        const holdToRelease = await prisma.holdRequest.findFirst({
+          where: {
+            showRequestId: showRequestId,
+            status: 'ACTIVE'
+          }
+        });
+        
+        if (holdToRelease) {
+          // Release the hold
+          await prisma.holdRequest.update({
+            where: { id: holdToRelease.id },
+            data: {
+              status: 'DECLINED',
+              respondedAt: new Date()
+            }
+          });
+          
+          // Unfreeze all competing bids (they can compete again)
+          await prisma.showRequestBid.updateMany({
+            where: {
+              showRequestId: showRequestId,
+              holdState: 'FROZEN',
+              frozenByHoldId: holdToRelease.id
+            },
+            data: {
+              holdState: 'AVAILABLE',
+              frozenByHoldId: null,
+              unfrozenAt: new Date()
+            }
+          });
+        }
+        break;
+        
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Must be accept, undo-accept, hold, or decline' },
+          { error: 'Invalid action. Must be accept, undo-accept, hold, decline, accept-held, or decline-held' },
           { status: 400 }
         );
     }

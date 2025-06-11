@@ -260,9 +260,42 @@ export function BidTimelineItem({
                 ❄️
               </span>
             </div>
+          ) : (bid as any).holdState === 'HELD' ? (
+            /* 🔒 HELD BID: Show normal actions with hold context */
+            <div className="flex items-center space-x-1">
+              {/* Accept Button (with hold context) */}
+              {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onBidAction && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBidAction(bid, 'accept-held');
+                  }}
+                  className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                  disabled={isDeleting}
+                  title="Accept this held bid - will cancel competing bids and release hold"
+                >
+                  ✓
+                </button>
+              )}
+              
+              {/* Decline Button (with hold context) */}
+              {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onBidAction && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBidAction(bid, 'decline-held');
+                  }}
+                  className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                  disabled={isDeleting}
+                  title="Decline this held bid - will release hold and unfreeze other bids"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           ) : (
             <>
-              {/* Accept/Decline buttons for pending bids (including HELD bids) */}
+              {/* Normal bid actions for non-held bids */}
               {currentStatus === 'pending' && (
                 <>
                   {/* Accept Button */}

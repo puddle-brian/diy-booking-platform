@@ -53,13 +53,13 @@ export async function POST(request: NextRequest) {
       console.log(`  ${i + 1}. "${req.title}" - ${req.bids.length} bids`);
     });
 
-    // Find a show request with at least 4 bids (1 to hold + 3 to freeze)
-    const suitableRequest = showRequests.find(req => req.bids.length >= 4);
+    // Find a show request with at least 2 bids (1 to hold + at least 1 to freeze)
+    const suitableRequest = showRequests.find(req => req.bids.length >= 2);
     
     if (!suitableRequest) {
       console.log('❌ No suitable show request found');
       return NextResponse.json({ 
-        error: `No show request found for ${preset.artistName} with enough bids (need at least 4 bids). Found ${showRequests.length} show requests.` 
+        error: `No show request found for ${preset.artistName} with enough bids (need at least 2 bids). Found ${showRequests.length} show requests.` 
       }, { status: 400 });
     }
 
@@ -72,7 +72,11 @@ export async function POST(request: NextRequest) {
         entityId: preset.artistId,
         role: 'owner'
       },
-      select: { userId: true }
+      include: {
+        user: {
+          select: { id: true, username: true }
+        }
+      }
     });
 
     if (!artistMembership) {
@@ -82,7 +86,22 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`👥 Found artist owner: ${artistMembership.userId}`);
+    if (!artistMembership.userId) {
+      console.log('❌ Artist membership has null userId');
+      return NextResponse.json({ 
+        error: `Artist membership has invalid userId for ${preset.artistName}` 
+      }, { status: 400 });
+    }
+
+    // Verify the user actually exists (prevent P2003 foreign key errors)
+    if (!artistMembership.user) {
+      console.log('❌ Owner user not found in database:', artistMembership.userId);
+      return NextResponse.json({ 
+        error: `Owner user not found for artist ${preset.artistName} (userId: ${artistMembership.userId})` 
+      }, { status: 400 });
+    }
+
+    console.log(`👥 Found artist owner: ${artistMembership.user.username} (${artistMembership.user.id})`);
 
     // Clear any existing holds for this show request
     await prisma.showRequestBid.updateMany({
@@ -95,25 +114,36 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // Create the hold request
-    const holdRequest = await prisma.holdRequest.create({
-      data: {
-        showRequestId: suitableRequest.id,
-        requestedById: artistMembership.userId, // Use USER ID, not artist ID
-        duration: preset.holdDuration,
-        reason: preset.holdReason,
-        status: 'ACTIVE', // Auto-approve for testing
-        startsAt: new Date(),
-        expiresAt: new Date(Date.now() + preset.holdDuration * 60 * 60 * 1000), // duration in hours
-        respondedAt: new Date(),
-        customMessage: `Admin test scenario: ${preset.name}`
+    // Create the hold request with additional P2003 error handling
+    let holdRequest;
+    try {
+      holdRequest = await prisma.holdRequest.create({
+        data: {
+          showRequestId: suitableRequest.id,
+          requestedById: artistMembership.userId, // Use USER ID, not artist ID
+          duration: preset.holdDuration,
+          reason: preset.holdReason,
+          status: 'ACTIVE', // Auto-approve for testing
+          startsAt: new Date(),
+          expiresAt: new Date(Date.now() + preset.holdDuration * 60 * 60 * 1000), // duration in hours
+          respondedAt: new Date(),
+          customMessage: `Admin test scenario: ${preset.name}`
+        }
+      });
+    } catch (error: any) {
+      if (error.code === 'P2003') {
+        console.log('❌ Foreign key constraint failed:', error.meta);
+        return NextResponse.json({ 
+          error: `Database constraint error: ${error.meta?.field_name || 'foreign key'} reference is invalid. User ID: ${artistMembership.userId}` 
+        }, { status: 400 });
       }
-    });
+      throw error; // Re-throw other errors
+    }
 
     // Get the bids to modify
     const bids = suitableRequest.bids;
     const heldBid = bids[0]; // First bid becomes HELD
-    const frozenBids = bids.slice(1, 4); // Next 3 become FROZEN
+    const frozenBids = bids.slice(1); // ALL other bids become FROZEN
 
     // Set the held bid
     await prisma.showRequestBid.update({

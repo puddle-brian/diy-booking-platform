@@ -601,8 +601,19 @@ export default function TabbedTourItinerary({
   };
 
   const handleBidAction = async (bid: VenueBid, action: string, reason?: string) => {
+    // 🔒 HOLD-AWARE: Check if this bid is involved in a hold system
+    const isHeldBid = (bid as any).holdState === 'HELD';
+    const isFrozenBid = (bid as any).holdState === 'FROZEN';
+    
+    // Map regular actions to hold-aware actions when appropriate
+    let actualAction = action;
+    if (isHeldBid && (action === 'accept' || action === 'decline')) {
+      actualAction = action === 'accept' ? 'accept-held' : 'decline-held';
+      console.log(`🔒 Converting ${action} to ${actualAction} for held bid ${bid.id}`);
+    }
+    
     // Add conflict validation for accept action
-    if (action === 'accept') {
+    if (action === 'accept' || action === 'accept-held') {
       const { acceptedBid, acceptedOffer } = checkDateConflict(bid.proposedDate, bid.id);
       
       if (acceptedBid || acceptedOffer) {
@@ -648,13 +659,13 @@ export default function TabbedTourItinerary({
                 });
               }
               
-              // Accept the new bid
+              // Accept the new bid (using actualAction for hold-awareness)
               await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                   bidId: bid.id,
-                  action: 'accept',
+                  action: actualAction === 'accept-held' ? 'accept-held' : 'accept',
                   reason
                 }),
               });
@@ -680,8 +691,8 @@ export default function TabbedTourItinerary({
       }
     }
     
-    // No conflict or not an accept action, proceed with optimistic update
-    return proceedWithBidActionOptimistic(bid, action, reason);
+    // No conflict or not an accept action, proceed with optimistic update (using actualAction for hold-awareness)
+    return proceedWithBidActionOptimistic(bid, actualAction, reason);
   };
 
   // Optimistic version of proceedWithBidAction
@@ -689,11 +700,11 @@ export default function TabbedTourItinerary({
     setBidActions(prev => ({ ...prev, [bid.id]: true }));
     
     // Immediate optimistic update
-    if (action === 'accept') {
+    if (action === 'accept' || action === 'accept-held') {
       setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'accepted'));
     } else if (action === 'undo-accept') {
       setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'pending'));
-    } else if (action === 'decline') {
+    } else if (action === 'decline' || action === 'decline-held') {
       setDeclinedBids(prev => new Set([...prev, bid.id]));
     }
     
@@ -1354,172 +1365,7 @@ export default function TabbedTourItinerary({
                     
                     requestBids = [syntheticBid];
                   }
-                } else if ((request as any).isHeldBid && (request as any).originalBidId) {
-                  // For synthetic requests from held bids, find the original held bid
-                  const originalBid = venueBids.find(bid => bid.id === (request as any).originalBidId);
-                  if (originalBid) {
-                    // Set the holdState to 'HELD' for proper styling
-                                          const heldBid = {
-                        ...originalBid,
-                        holdState: 'HELD' as const
-                      } as VenueBid;
-                    
-                    // Find all frozen bids from the same show request (for child rows)
-                    const frozenBids = venueBids.filter(bid => 
-                      bid.showRequestId === (request as any).frozenBidsShowRequestId &&
-                      (bid as any).holdState === 'FROZEN' &&
-                      bid.id !== originalBid.id
-                    ).map(bid => ({
-                      ...bid,
-                      holdState: 'FROZEN' as const
-                    } as VenueBid));
-                    
-                    console.log(`🎯 Held bid synthetic: ${originalBid.venueName} with ${frozenBids.length} frozen bids`);
-                    
-                    // Create parent row that shows held venue details directly
-                    return (
-                      <React.Fragment key={request.id}>
-                        {/* 🚀 PARENT ROW: Show held venue details directly with +N notation */}
-                        <tr className="bg-violet-100 hover:bg-violet-200 transition-colors duration-150 cursor-pointer border-l-4 border-violet-400 hover:border-violet-500"
-                            onClick={() => toggleRequestExpansion(request.id)}
-                            title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} frozen bids`}>
-                          
-                          {/* Expand/collapse button column - w-[3%] */}
-                          <td className="px-2 py-1.5 w-[3%]">
-                            <div className="flex items-center justify-center text-violet-400">
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-                                  d={state.expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-                              </svg>
-                            </div>
-                          </td>
-
-                          {/* Date column - w-[12%] */}
-                          <td className="px-4 py-1.5 w-[12%]">
-                            <ItineraryDate
-                              date={heldBid.proposedDate}
-                              className="text-sm font-medium text-violet-700"
-                            />
-                          </td>
-
-                          {/* Location column - w-[14%] */}
-                          <td className="px-4 py-1.5 w-[14%]">
-                            <div className="text-sm text-violet-700 truncate">{request.location}</div>
-                          </td>
-
-                          {/* Venue/Artist column - w-[19%] - Show "Venue Name +N" */}
-                          <td className="px-4 py-1.5 w-[19%]">
-                            <div className="text-sm font-medium truncate">
-                              {heldBid.venueId && heldBid.venueId !== 'external-venue' ? (
-                                <a 
-                                  href={`/venues/${heldBid.venueId}`}
-                                  className="text-violet-600 hover:text-violet-800 hover:underline"
-                                  title="View venue page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {heldBid.venueName}
-                                </a>
-                              ) : (
-                                <span className="text-violet-700">{heldBid.venueName}</span>
-                              )}
-                              {frozenBids.length > 0 && (
-                                <span className="text-violet-500 ml-1">+{frozenBids.length}</span>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Status column - w-[10%] */}
-                          <td className="px-4 py-1.5 w-[10%]">
-                            <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700">
-                              Hold
-                            </span>
-                          </td>
-
-                          {/* Capacity column - w-[7%] */}
-                          <td className="px-4 py-1.5 w-[7%]">
-                            <div className="text-sm text-violet-700">
-                              {heldBid.capacity || 'TBD'}
-                            </div>
-                          </td>
-
-                          {/* Age column - w-[7%] */}
-                          <td className="px-4 py-1.5 w-[7%]">
-                            <div className="text-sm text-violet-700">
-                              {heldBid.ageRestriction || 'All Ages'}
-                            </div>
-                          </td>
-
-                          {/* Offers column - w-[10%] - Show bid amount */}
-                          <td className="px-4 py-1.5 w-[10%]">
-                            <div className="text-sm text-violet-700">
-                              {heldBid.guarantee ? `$${heldBid.guarantee}` : 'TBD'}
-                            </div>
-                          </td>
-
-                          {/* Details column - w-[8%] - Purple document button for held venue */}
-                          <td className="px-4 py-1.5 w-[8%]">
-                            <div className="flex items-center space-x-1" onClick={(e) => e.stopPropagation()}>
-                              {permissions.actualViewerType === 'artist' && permissions.canViewBidDocument(heldBid, request) && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleBidDocumentModal(heldBid);
-                                  }}
-                                  className="inline-flex items-center justify-center w-8 h-8 text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 border border-violet-200 hover:border-violet-300 rounded-lg transition-colors duration-150"
-                                  title="View detailed bid information"
-                                >
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                  </svg>
-                                </button>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Actions column - w-[10%] - Accept/Decline for held venue */}
-                          <td className="px-4 py-1.5 w-[10%]">
-                            <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
-                              <BidActionButtons
-                                bid={heldBid}
-                                request={request}
-                                permissions={permissions}
-                                bidStatus="hold"
-                                venueOffers={venueOffers}
-                                onBidAction={(bid, action, reason) => handleBidAction(bid, action, reason)}
-                                onOfferAction={(offer, action) => handleOfferAction(offer, action)}
-                                isFrozenByHold={false} // Parent row shows normal actions
-                              />
-                            </div>
-                          </td>
-                        </tr>
-
-                        {/* 🎯 CHILD ROWS: Show only frozen bids when expanded */}
-                        {state.expandedRequests.has(request.id) && frozenBids.length > 0 && 
-                          frozenBids.map((frozenBid: VenueBid) => {
-                            const isFrozenByHold = frozenBid.holdState === 'FROZEN';
-                            
-                            return (
-                              <BidTimelineItem
-                                key={`frozen-bid-${frozenBid.id}`}
-                                bid={frozenBid}
-                                request={request}
-                                permissions={permissions}
-                                isExpanded={false}
-                                isDeleting={false}
-                                onShowDocument={handleBidDocumentModal}
-                                onAcceptBid={(bid) => handleBidAction(bid, 'accept')}
-                                onDeclineBid={(bid) => handleBidAction(bid, 'decline')}
-                                onEditBid={(bid) => handleBidAction(bid, 'edit')}
-                                onDeleteBid={(bid) => handleBidAction(bid, 'delete')}
-                                onBidAction={handleBidAction}
-                                isFrozenByHold={isFrozenByHold}
-                              />
-                            );
-                          })
-                        }
-                      </React.Fragment>
-                    );
-                  }
+                // ✅ No special synthetic held bid handling - all bids show in their natural request rows
                 } else if (request.isVenueBid && request.originalShowRequestId) {
                   // For synthetic requests from venue bids, use originalShowRequestId to find ALL competing bids
                   const allBidsOnRequest = venueBids.filter(bid => 
