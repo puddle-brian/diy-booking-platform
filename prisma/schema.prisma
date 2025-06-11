@@ -29,8 +29,8 @@ model User {
   tourRequests            TourRequest[]
   submittedVenues         Venue[]
   venueOffers             VenueOffer[]
-  showRequests            ShowRequest[]             // 🎯 NEW: Unified show requests
-  showRequestBids         ShowRequestBid[]          // 🎯 NEW: Bids on show requests
+  showRequests            ShowRequest[] // 🎯 NEW: Unified show requests
+  showRequestBids         ShowRequestBid[] // 🎯 NEW: Bids on show requests
   requestedHolds          HoldRequest[]             @relation("RequestedHolds")
   respondedHolds          HoldRequest[]             @relation("RespondedHolds")
 
@@ -62,39 +62,39 @@ model Location {
 }
 
 model Venue {
-  id             String          @id @default(cuid())
-  name           String
-  locationId     String
-  venueType      VenueType
-  capacity       Int?
-  ageRestriction AgeRestriction?
-  artistTypesWelcome String[]     // Artist types this venue welcomes (empty array means all types welcome)
-  contactEmail   String?
-  contactPhone   String?
-  website        String?
-  socialHandles  Json?
-  equipment      Json?
-  features       String[]
-  pricing        Json?
-  description    String?
-  images         String[]
-  verified       Boolean         @default(false)
-  submittedById  String?
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  addressLine2   String?
-  neighborhood   String?
-  postalCode     String?
-  streetAddress  String?
-  bids           Bid[]
-  sceneReports   SceneReport[]
-  shows          Show[]
-  venueOffers    VenueOffer[]
-  offerTemplates VenueOfferTemplate[]
-  showRequests   ShowRequest[]   // 🎯 NEW: Unified show requests
-  showRequestBids ShowRequestBid[] // 🎯 NEW: Bids on show requests
-  location       Location        @relation(fields: [locationId], references: [id])
-  submittedBy    User?           @relation(fields: [submittedById], references: [id])
+  id                 String               @id @default(cuid())
+  name               String
+  locationId         String
+  venueType          VenueType
+  capacity           Int?
+  ageRestriction     AgeRestriction?
+  artistTypesWelcome String[] // Artist types this venue welcomes (empty array means all types welcome)
+  contactEmail       String?
+  contactPhone       String?
+  website            String?
+  socialHandles      Json?
+  equipment          Json?
+  features           String[]
+  pricing            Json?
+  description        String?
+  images             String[]
+  verified           Boolean              @default(false)
+  submittedById      String?
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  addressLine2       String?
+  neighborhood       String?
+  postalCode         String?
+  streetAddress      String?
+  bids               Bid[]
+  sceneReports       SceneReport[]
+  shows              Show[]
+  venueOffers        VenueOffer[]
+  offerTemplates     VenueOfferTemplate[]
+  showRequests       ShowRequest[] // 🎯 NEW: Unified show requests
+  showRequestBids    ShowRequestBid[] // 🎯 NEW: Bids on show requests
+  location           Location             @relation(fields: [locationId], references: [id])
+  submittedBy        User?                @relation(fields: [submittedById], references: [id])
 
   @@index([locationId])
   @@index([venueType])
@@ -131,7 +131,7 @@ model Artist {
   shows          Show[]
   tourRequests   TourRequest[]
   venueOffers    VenueOffer[]
-  showRequests   ShowRequest[]    // 🎯 NEW: Unified show requests
+  showRequests   ShowRequest[] // 🎯 NEW: Unified show requests
 
   @@index([locationId])
   @@index([artistType])
@@ -165,20 +165,20 @@ model SceneInfrastructure {
 }
 
 model TourRequest {
-  id              String        @id @default(cuid())
-  artistId        String
-  createdById     String
-  title           String
-  description     String?
-  
+  id          String  @id @default(cuid())
+  artistId    String
+  createdById String
+  title       String
+  description String?
+
   // Legacy date range fields (keep for backward compatibility)
-  startDate       DateTime?     // Made optional
-  endDate         DateTime?     // Made optional
-  
+  startDate DateTime? // Made optional
+  endDate   DateTime? // Made optional
+
   // New single date field
-  requestDate     DateTime?     // Single date for new requests
-  isLegacyRange   Boolean       @default(false) // Flag to track old vs new format
-  
+  requestDate   DateTime? // Single date for new requests
+  isLegacyRange Boolean   @default(false) // Flag to track old vs new format
+
   targetLocations String[]
   genres          String[]
   status          RequestStatus @default(ACTIVE)
@@ -192,8 +192,8 @@ model TourRequest {
   @@index([createdById])
   @@index([status])
   @@index([startDate, endDate])
-  @@index([requestDate])        // New index for single dates
-  @@index([isLegacyRange])      // Index for filtering old vs new
+  @@index([requestDate]) // New index for single dates
+  @@index([isLegacyRange]) // Index for filtering old vs new
   @@index([targetLocations])
   @@index([genres])
   @@index([createdAt])
@@ -202,78 +202,77 @@ model TourRequest {
 
 // 🎯 NEW UNIFIED MODEL: ShowRequest replaces both TourRequest and VenueOffer
 model ShowRequest {
-  id              String      @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // WHO: Core entities
-  artistId        String
-  venueId         String?     // null = open to any venue (artist-initiated)
-  
+  artistId String
+  venueId  String? // null = open to any venue (artist-initiated)
+
   // WHAT: Request details
-  title           String
-  description     String?
-  requestedDate   DateTime    // Single date (no more ranges)
-  
+  title         String
+  description   String?
+  requestedDate DateTime // Single date (no more ranges)
+
   // WHO INITIATED: Request source
-  initiatedBy     RequestInitiator  // 'ARTIST' | 'VENUE'
-  createdById     String
-  
+  initiatedBy RequestInitiator // 'ARTIST' | 'VENUE'
+  createdById String
+
   // STATUS: Unified workflow  
-  status          ShowRequestStatus @default(OPEN)
-  
+  status ShowRequestStatus @default(OPEN)
+
   // FINANCIAL TERMS (from VenueOffer)
-  amount          Float?      // Guarantee amount
-  doorDeal        Json?       // Door split terms
-  ticketPrice     Json?       // Advance/door pricing
-  merchandiseSplit String?    // e.g., "90/10"
-  
+  amount           Float? // Guarantee amount
+  doorDeal         Json? // Door split terms
+  ticketPrice      Json? // Advance/door pricing
+  merchandiseSplit String? // e.g., "90/10"
+
   // SHOW DETAILS (from VenueOffer)
-  billingPosition String?     // headliner, support, opener
-  lineupPosition  Int?        // 1 = headliner, 2 = support, etc.
-  setLength       Int?        // Minutes
-  otherActs       String?     // Other acts on the bill
-  billingNotes    String?     // Additional billing context
-  
+  billingPosition String? // headliner, support, opener
+  lineupPosition  Int? // 1 = headliner, 2 = support, etc.
+  setLength       Int? // Minutes
+  otherActs       String? // Other acts on the bill
+  billingNotes    String? // Additional billing context
+
   // VENUE DETAILS (from VenueOffer)
-  capacity        Int?
-  ageRestriction  String?
-  
+  capacity       Int?
+  ageRestriction String?
+
   // EQUIPMENT & LOGISTICS (from VenueOffer)
-  equipmentProvided Json?     // PA, mics, drums, etc.
-  loadIn          String?
-  soundcheck      String?
-  doorsOpen       String?
-  showTime        String?
-  curfew          String?
-  
+  equipmentProvided Json? // PA, mics, drums, etc.
+  loadIn            String?
+  soundcheck        String?
+  doorsOpen         String?
+  showTime          String?
+  curfew            String?
+
   // ADDITIONAL VALUE (from VenueOffer)
-  promotion       Json?       // Social, flyers, radio, etc.
-  lodging         Json?       // Floor space, couch, private room
+  promotion       Json? // Social, flyers, radio, etc.
+  lodging         Json? // Floor space, couch, private room
   additionalTerms String?
-  message         String?     // Personal pitch
-  
+  message         String? // Personal pitch
+
   // TOUR CONTEXT (from TourRequest)
-  targetLocations String[]    // For artist-initiated requests
-  genres          String[]    // For filtering
-  
+  targetLocations String[] // For artist-initiated requests
+  genres          String[] // For filtering
+
   // EXPIRATION
-  expiresAt       DateTime?   // Auto-expire requests
-  
+  expiresAt DateTime? // Auto-expire requests
+
   // SYSTEM FIELDS
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // RELATIONS
-  artist          Artist      @relation(fields: [artistId], references: [id])
-  venue           Venue?      @relation(fields: [venueId], references: [id])
-  createdBy       User        @relation(fields: [createdById], references: [id])
-  bids            ShowRequestBid[] // New bid model
-  holdRequests    HoldRequest[]
-  
+  artist       Artist           @relation(fields: [artistId], references: [id])
+  venue        Venue?           @relation(fields: [venueId], references: [id])
+  createdBy    User             @relation(fields: [createdById], references: [id])
+  bids         ShowRequestBid[] // New bid model
+  holdRequests HoldRequest[]
+
   // PREVENT DUPLICATES: Same venue can't make multiple offers to same artist on same date
   @@unique([artistId, venueId, requestedDate], name: "unique_artist_venue_date")
-  
   @@index([artistId])
-  @@index([venueId])  
+  @@index([venueId])
   @@index([requestedDate])
   @@index([status])
   @@index([initiatedBy])
@@ -283,35 +282,44 @@ model ShowRequest {
 
 // 🎯 NEW BID MODEL: ShowRequestBid replaces Bid with clearer naming
 model ShowRequestBid {
-  id               String           @id @default(cuid())
-  showRequestId    String
-  venueId          String
-  bidderId         String
-  proposedDate     DateTime?
-  message          String?
-  amount           Float?
-  status           BidStatus        @default(PENDING)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  acceptedAt       DateTime?
-  billingNotes     String?
-  billingPosition  String?
-  cancelledAt      DateTime?
-  cancelledReason  String?
-  declinedAt       DateTime?
-  declinedReason   String?
-  heldAt           DateTime?
-  heldUntil        DateTime?
-  holdPosition     Int?
-  lineupPosition   Int?
-  otherActs        String?
-  setLength        Int?
-  
+  id              String    @id @default(cuid())
+  showRequestId   String
+  venueId         String
+  bidderId        String
+  proposedDate    DateTime?
+  message         String?
+  amount          Float?
+  status          BidStatus @default(PENDING)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  acceptedAt      DateTime?
+  billingNotes    String?
+  billingPosition String?
+  cancelledAt     DateTime?
+  cancelledReason String?
+  declinedAt      DateTime?
+  declinedReason  String?
+  heldAt          DateTime?
+  heldUntil       DateTime?
+  holdPosition    Int?
+  lineupPosition  Int?
+  otherActs       String?
+  setLength       Int?
+
   // RELATIONS
-  showRequest      ShowRequest      @relation(fields: [showRequestId], references: [id])
-  venue            Venue            @relation(fields: [venueId], references: [id])
-  bidder           User             @relation(fields: [bidderId], references: [id])
-  
+  showRequest ShowRequest @relation(fields: [showRequestId], references: [id])
+  venue       Venue       @relation(fields: [venueId], references: [id])
+  bidder      User        @relation(fields: [bidderId], references: [id])
+
+  // NEW: Hold state management (same as Bid model)
+  holdState      BidHoldState @default(AVAILABLE)
+  frozenByHoldId String?      // Reference to hold that froze this bid
+  frozenAt       DateTime?    // When this bid was frozen
+  unfrozenAt     DateTime?    // When this bid was unfrozen
+
+  // NEW: Enhanced status tracking
+  statusHistory Json @default("[]") // Array of status changes with timestamps
+
   @@index([showRequestId])
   @@index([venueId])
   @@index([bidderId])
@@ -408,15 +416,15 @@ model Bid {
   bidder          User        @relation(fields: [bidderId], references: [id])
   tourRequest     TourRequest @relation(fields: [tourRequestId], references: [id])
   venue           Venue       @relation(fields: [venueId], references: [id])
-  
+
   // NEW: Hold state management
-  holdState         BidHoldState  @default(AVAILABLE)
-  frozenByHoldId    String?       // Reference to hold that froze this bid
-  frozenAt          DateTime?     // When this bid was frozen
-  unfrozenAt        DateTime?     // When this bid was unfrozen
-  
+  holdState      BidHoldState @default(AVAILABLE)
+  frozenByHoldId String? // Reference to hold that froze this bid
+  frozenAt       DateTime? // When this bid was frozen
+  unfrozenAt     DateTime? // When this bid was unfrozen
+
   // NEW: Enhanced status tracking
-  statusHistory     Json          @default("[]") // Array of status changes with timestamps
+  statusHistory Json @default("[]") // Array of status changes with timestamps
 
   @@index([tourRequestId])
   @@index([venueId])
@@ -550,32 +558,32 @@ model Favorite {
 }
 
 model ArtistTemplate {
-  id                     String       @id @default(cuid())
-  artistId               String
-  name                   String
-  type                   TemplateType
-  isDefault              Boolean      @default(false)
-  equipment              Json?
-  technicalRequirements  Json?
+  id                      String       @id @default(cuid())
+  artistId                String
+  name                    String
+  type                    TemplateType
+  isDefault               Boolean      @default(false)
+  equipment               Json?
+  technicalRequirements   Json?
   hospitalityRequirements Json?
-  stageRequirements      String?
-  soundCheckTime         Int?
-  setLength              Int?
-  guaranteeRange         Json?
-  acceptsDoorDeals       Boolean?
-  merchandising          Boolean?
-  travelMethod           String?
-  lodging                String?
-  dietaryRestrictions    String[]
-  expectedDraw           Json?
-  ageRestriction         String?
-  tourStatus             String?
-  priority               String?
-  description            String?
-  notes                  String?
-  createdAt              DateTime     @default(now())
-  updatedAt              DateTime     @updatedAt
-  artist                 Artist       @relation(fields: [artistId], references: [id])
+  stageRequirements       String?
+  soundCheckTime          Int?
+  setLength               Int?
+  guaranteeRange          Json?
+  acceptsDoorDeals        Boolean?
+  merchandising           Boolean?
+  travelMethod            String?
+  lodging                 String?
+  dietaryRestrictions     String[]
+  expectedDraw            Json?
+  ageRestriction          String?
+  tourStatus              String?
+  priority                String?
+  description             String?
+  notes                   String?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  artist                  Artist       @relation(fields: [artistId], references: [id])
 
   @@index([artistId])
   @@index([type])
@@ -586,46 +594,46 @@ model ArtistTemplate {
 }
 
 model VenueOffer {
-  id              String      @id @default(cuid())
-  venueId         String
-  artistId        String      // Target artist for this offer
-  createdById     String
-  title           String      // e.g., "Headlining Slot - June 15th"
-  description     String?
-  proposedDate    DateTime
-  alternativeDates DateTime[]  // Optional backup dates
-  message         String?     // Personal pitch to the artist
-  
+  id               String     @id @default(cuid())
+  venueId          String
+  artistId         String // Target artist for this offer
+  createdById      String
+  title            String // e.g., "Headlining Slot - June 15th"
+  description      String?
+  proposedDate     DateTime
+  alternativeDates DateTime[] // Optional backup dates
+  message          String? // Personal pitch to the artist
+
   // Financial Terms (consistent with Bid model)
-  amount          Float?      // Guarantee amount
-  doorDeal        Json?       // Door split terms
-  ticketPrice     Json?       // Advance/door pricing
-  merchandiseSplit String?    // e.g., "90/10"
-  
+  amount           Float? // Guarantee amount
+  doorDeal         Json? // Door split terms
+  ticketPrice      Json? // Advance/door pricing
+  merchandiseSplit String? // e.g., "90/10"
+
   // Show Details (consistent with Bid model)
-  billingPosition String?     // headliner, support, opener
-  lineupPosition  Int?        // 1 = headliner, 2 = support, etc.
-  setLength       Int?        // Minutes
-  otherActs       String?     // Other acts on the bill
-  billingNotes    String?     // Additional billing context
-  
+  billingPosition String? // headliner, support, opener
+  lineupPosition  Int? // 1 = headliner, 2 = support, etc.
+  setLength       Int? // Minutes
+  otherActs       String? // Other acts on the bill
+  billingNotes    String? // Additional billing context
+
   // Venue Details
-  capacity        Int?
-  ageRestriction  String?
-  
+  capacity       Int?
+  ageRestriction String?
+
   // Equipment & Logistics (consistent with VenueBidForm)
-  equipmentProvided Json?     // PA, mics, drums, etc.
-  loadIn          String?
-  soundcheck      String?
-  doorsOpen       String?
-  showTime        String?
-  curfew          String?
-  
+  equipmentProvided Json? // PA, mics, drums, etc.
+  loadIn            String?
+  soundcheck        String?
+  doorsOpen         String?
+  showTime          String?
+  curfew            String?
+
   // Additional Value
-  promotion       Json?       // Social, flyers, radio, etc.
-  lodging         Json?       // Floor space, couch, private room
+  promotion       Json? // Social, flyers, radio, etc.
+  lodging         Json? // Floor space, couch, private room
   additionalTerms String?
-  
+
   // Status Management (consistent with Bid model)
   status          OfferStatus @default(PENDING)
   acceptedAt      DateTime?
@@ -633,26 +641,26 @@ model VenueOffer {
   declinedReason  String?
   cancelledAt     DateTime?
   cancelledReason String?
-  expiresAt       DateTime?   // Auto-expire offers
-  
+  expiresAt       DateTime? // Auto-expire offers
+
   // NEW: Hold state management (same as Bid)
-  holdState         BidHoldState  @default(AVAILABLE)
-  frozenByHoldId    String?       // Reference to hold that froze this offer
-  frozenAt          DateTime?     // When this offer was frozen
-  unfrozenAt        DateTime?     // When this offer was unfrozen
-  
+  holdState      BidHoldState @default(AVAILABLE)
+  frozenByHoldId String? // Reference to hold that froze this offer
+  frozenAt       DateTime? // When this offer was frozen
+  unfrozenAt     DateTime? // When this offer was unfrozen
+
   // NEW: Enhanced status tracking
-  statusHistory     Json          @default("[]") // Array of status changes with timestamps
-  
+  statusHistory Json @default("[]") // Array of status changes with timestamps
+
   // System fields
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  venue           Venue        @relation(fields: [venueId], references: [id])
-  artist          Artist       @relation(fields: [artistId], references: [id])
-  createdBy       User         @relation(fields: [createdById], references: [id])
-  holdRequests    HoldRequest[] // Holds placed on this venue offer
+  venue        Venue         @relation(fields: [venueId], references: [id])
+  artist       Artist        @relation(fields: [artistId], references: [id])
+  createdBy    User          @relation(fields: [createdById], references: [id])
+  holdRequests HoldRequest[] // Holds placed on this venue offer
 
   @@index([venueId])
   @@index([artistId])
@@ -665,43 +673,43 @@ model VenueOffer {
 }
 
 model VenueOfferTemplate {
-  id                String       @id @default(cuid())
-  venueId           String
-  name              String       // e.g., "Standard Headliner Offer", "Support Slot Package"
-  isDefault         Boolean      @default(false)
-  
+  id        String  @id @default(cuid())
+  venueId   String
+  name      String // e.g., "Standard Headliner Offer", "Support Slot Package"
+  isDefault Boolean @default(false)
+
   // Financial Template
-  amount            Float?       // Default guarantee
-  doorDeal          Json?        // Default door split
-  ticketPrice       Json?        // Default ticket pricing
-  merchandiseSplit  String?      // Default merch split
-  
+  amount           Float? // Default guarantee
+  doorDeal         Json? // Default door split
+  ticketPrice      Json? // Default ticket pricing
+  merchandiseSplit String? // Default merch split
+
   // Show Template
-  billingPosition   String?      // Default billing position
-  setLength         Int?         // Default set length
-  
+  billingPosition String? // Default billing position
+  setLength       Int? // Default set length
+
   // Venue Template
-  equipmentProvided Json?        // Standard equipment offered
-  loadIn            String?      // Standard load-in time
-  soundcheck        String?      // Standard soundcheck time
-  doorsOpen         String?      // Standard doors time
-  showTime          String?      // Standard show time
-  curfew            String?      // Standard curfew
-  
+  equipmentProvided Json? // Standard equipment offered
+  loadIn            String? // Standard load-in time
+  soundcheck        String? // Standard soundcheck time
+  doorsOpen         String? // Standard doors time
+  showTime          String? // Standard show time
+  curfew            String? // Standard curfew
+
   // Value-Add Template
-  promotion         Json?        // Standard promotion support
-  lodging           Json?        // Standard lodging offering
-  
+  promotion Json? // Standard promotion support
+  lodging   Json? // Standard lodging offering
+
   // Message Template
-  messageTemplate   String?      // Boilerplate pitch message
-  additionalTerms   String?      // Standard additional terms
-  
+  messageTemplate String? // Boilerplate pitch message
+  additionalTerms String? // Standard additional terms
+
   // System fields
-  createdAt         DateTime     @default(now())
-  updatedAt         DateTime     @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  venue             Venue        @relation(fields: [venueId], references: [id])
+  venue Venue @relation(fields: [venueId], references: [id])
 
   @@index([venueId])
   @@index([isDefault])
@@ -847,71 +855,72 @@ enum RequestInitiator {
 }
 
 enum ShowRequestStatus {
-  OPEN        // Open for bids
-  PENDING     // Waiting for response
-  CONFIRMED   // Accepted and show confirmed
-  DECLINED    // Rejected
-  CANCELLED   // Cancelled by requester
-  EXPIRED     // Expired without response
+  OPEN // Open for bids
+  PENDING // Waiting for response
+  CONFIRMED // Accepted and show confirmed
+  DECLINED // Rejected
+  CANCELLED // Cancelled by requester
+  EXPIRED // Expired without response
 }
 
 enum HoldStatus {
-  PENDING     // Waiting for other party to approve
-  ACTIVE      // Hold is active, timer running
-  EXPIRED     // Hold time ran out
-  CANCELLED   // Manually ended early
-  DECLINED    // Other party rejected the hold
+  PENDING // Waiting for other party to approve
+  ACTIVE // Hold is active, timer running
+  EXPIRED // Hold time ran out
+  CANCELLED // Manually ended early
+  DECLINED // Other party rejected the hold
 }
 
 // NEW: Bid states for hold management
 enum BidHoldState {
-  AVAILABLE   // Normal bidding state
-  FROZEN      // Locked due to competing hold
-  HELD        // This bid has the active hold
+  AVAILABLE // Normal bidding state
+  FROZEN // Locked due to competing hold
+  HELD // This bid has the active hold
 }
 
 model HoldRequest {
-  id                String        @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // WHAT: What document is being held
-  showId            String?       // For confirmed shows
-  showRequestId     String?       // For show requests being negotiated
-  venueOfferId      String?       // For venue offers to artists
-  
+  showId        String? // For confirmed shows
+  showRequestId String? // For show requests being negotiated
+  venueOfferId  String? // For venue offers to artists
+
   // WHO: Hold request parties
-  requestedById     String        // Who requested the hold
-  respondedById     String?       // Who responded to the hold
-  
+  requestedById String // Who requested the hold
+  respondedById String? // Who responded to the hold
+
   // TERMS: Hold details
-  duration          Int           // Duration in hours
-  reason            String        // Why the hold is needed
-  customMessage     String?       // Optional additional context
-  
+  duration      Int // Duration in hours
+  reason        String // Why the hold is needed
+  customMessage String? // Optional additional context
+
   // STATUS: Hold lifecycle
-  status            HoldStatus    @default(PENDING)
-  requestedAt       DateTime      @default(now())
-  respondedAt       DateTime?     // When other party responded
-  startsAt          DateTime?     // When hold actually begins (after approval)
-  expiresAt         DateTime?     // When hold expires
-  
+  status      HoldStatus @default(PENDING)
+  requestedAt DateTime   @default(now())
+  respondedAt DateTime? // When other party responded
+  startsAt    DateTime? // When hold actually begins (after approval)
+  expiresAt   DateTime? // When hold expires
+
   // NEW: Competing bid management
-  frozenBidIds      String[]      // IDs of bids frozen by this hold
-  frozenOfferIds    String[]      // IDs of offers frozen by this hold
-  notifiedParties   String[]      // User IDs who have been notified
-  
+  frozenBidIds    String[] // IDs of bids frozen by this hold
+  frozenOfferIds  String[] // IDs of offers frozen by this hold
+  notifiedParties String[] // User IDs who have been notified
+
   // SYSTEM
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // RELATIONS
-  requestedBy       User          @relation("RequestedHolds", fields: [requestedById], references: [id])
-  respondedBy       User?         @relation("RespondedHolds", fields: [respondedById], references: [id])
-  show              Show?         @relation(fields: [showId], references: [id])
-  showRequest       ShowRequest?  @relation(fields: [showRequestId], references: [id])
-  venueOffer        VenueOffer?   @relation(fields: [venueOfferId], references: [id])
-  
+  requestedBy User         @relation("RequestedHolds", fields: [requestedById], references: [id])
+  respondedBy User?        @relation("RespondedHolds", fields: [respondedById], references: [id])
+  show        Show?        @relation(fields: [showId], references: [id])
+  showRequest ShowRequest? @relation(fields: [showRequestId], references: [id])
+  venueOffer  VenueOffer?  @relation(fields: [venueOfferId], references: [id])
+
   // NOTE: Application-level validation ensures exactly one of showId, showRequestId, or venueOfferId is set
-  
+
   @@index([showRequestId, status])
   @@index([status, expiresAt])
+  @@map("hold_requests")
 }

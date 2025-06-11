@@ -1631,30 +1631,42 @@ export default function TabbedTourItinerary({
                                       // Apply privacy filtering - only show bids user can see financial details for
                                       return permissions.canSeeFinancialDetails(undefined, bid, request);
                                     })
-                                    .map((bid: VenueBid) => (
-                                    <BidTimelineItem
-                                      key={`bid-${bid.id}`}
-                                      bid={bid}
-                                      request={request}
-                                      permissions={permissions}
-                                      isExpanded={false}
-                                      isDeleting={false}
-                                      venueOffers={venueOffers as any}
-                                      venueBids={venueBids}
-                                      venueId={venueId}
-                                      artistId={artistId}
-                                      venues={venues}
-                                      effectiveStatus={getEffectiveBidStatus(bid)}
-                                      onToggleExpansion={() => {}}
-                                      onDeleteBid={() => {}}
-                                      onShowDocument={handleBidDocumentModal}
-                                      onShowDetail={handleBidDocumentModal}
-                                      onAcceptBid={(bid) => handleBidAction(bid, 'accept')}
-                                      onDeclineBid={(bid) => handleBidAction(bid, 'decline')}
-                                      onOfferAction={handleOfferAction}
-                                      onBidAction={handleBidAction}
-                                    />
-                                  ))}
+                                    .map((bid: VenueBid) => {
+                                      // 🔒 CRITICAL: Check if bid is frozen by an active hold
+                                      const isFrozenByHold = (bid as any).holdState === 'FROZEN';
+                                      
+                                      return (
+                                        <BidTimelineItem
+                                          key={`bid-${bid.id}`}
+                                          bid={bid}
+                                          request={request}
+                                          permissions={permissions}
+                                          isExpanded={false}
+                                          isDeleting={false}
+                                          venueOffers={venueOffers as any}
+                                          venueBids={venueBids}
+                                          venueId={venueId}
+                                          artistId={artistId}
+                                          venues={venues}
+                                          effectiveStatus={getEffectiveBidStatus(bid)}
+                                          onToggleExpansion={() => {}}
+                                          onDeleteBid={() => {}}
+                                          onShowDocument={handleBidDocumentModal}
+                                          onShowDetail={handleBidDocumentModal}
+                                          onAcceptBid={(bid) => handleBidAction(bid, 'accept')}
+                                          onDeclineBid={(bid) => handleBidAction(bid, 'decline')}
+                                          onOfferAction={handleOfferAction}
+                                          onBidAction={handleBidAction}
+                                          isFrozenByHold={isFrozenByHold}
+                                          activeHoldInfo={isFrozenByHold ? {
+                                            id: (bid as any).frozenByHoldId || '',
+                                            expiresAt: '',
+                                            requesterName: 'Hold Request',
+                                            reason: 'Bid locked by active hold'
+                                          } : undefined}
+                                        />
+                                      );
+                                    })}
                                 </tbody>
                               </table>
                             </div>

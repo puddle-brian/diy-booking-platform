@@ -66,7 +66,18 @@ export async function GET(
 
     console.log(`🎯 API: Found ${bids.length} bids for show request${venueId ? ` from venue ${venueId}` : ''}`);
 
-    return NextResponse.json(bids);
+    // Transform bids to include hold state information
+    const transformedBids = bids.map(bid => ({
+      ...bid,
+      // Add frozen state information for UI
+      holdState: bid.holdState || 'AVAILABLE',
+      frozenByHoldId: bid.frozenByHoldId || null,
+      frozenAt: bid.frozenAt?.toISOString() || null,
+      unfrozenAt: bid.unfrozenAt?.toISOString() || null,
+      isFrozen: bid.holdState === 'FROZEN'
+    }));
+
+    return NextResponse.json(transformedBids);
   } catch (error) {
     console.error('Error fetching show request bids:', error);
     return NextResponse.json(

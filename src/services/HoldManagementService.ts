@@ -23,7 +23,7 @@ export interface HoldRequest {
 
 export interface CompetingItem {
   id: string;
-  type: 'bid' | 'offer';
+  type: 'bid' | 'offer' | 'showRequestBid';
   venueId: string;
   venueName: string;
   submittedById: string;
@@ -76,6 +76,19 @@ export class HoldManagementService {
           }
         });
 
+        // Find competing bids in the ShowRequestBid table (current system)
+        const competingShowRequestBids = await prisma.showRequestBid.findMany({
+          where: {
+            showRequestId: hold.showRequestId,
+            status: 'PENDING',
+            // holdState: 'AVAILABLE', // TODO: Re-enable when types are fixed
+            NOT: { bidderId: hold.requestedById }
+          },
+          include: {
+            venue: { select: { id: true, name: true } }
+          }
+        });
+
         // Also check unified ShowRequestBid table
         const unifiedBids = await prisma.showRequestBid.findMany({
           where: {
@@ -89,13 +102,13 @@ export class HoldManagementService {
         });
 
         // Combine all bids
-        const allBids = [...competingBids, ...unifiedBids];
+        const allBids = [...competingBids, ...competingShowRequestBids];
         frozenBidIds.push(...allBids.map(bid => bid.id));
 
         for (const bid of allBids) {
           competingItems.push({
             id: bid.id,
-            type: 'bid',
+            type: competingBids.includes(bid) ? 'bid' : 'showRequestBid',
             venueId: bid.venueId,
             venueName: bid.venue?.name || 'Unknown Venue',
             submittedById: bid.bidderId || '',
@@ -146,51 +159,77 @@ export class HoldManagementService {
             respondedById: userId,
             respondedAt: now,
             startsAt: now,
-            expiresAt: expiresAt
-            // TODO: Add when migration is complete:
-            // frozenBidIds: frozenBidIds,
-            // frozenOfferIds: frozenOfferIds
+            expiresAt: expiresAt,
+            frozenBidIds: frozenBidIds,
+            frozenOfferIds: frozenOfferIds
           }
         });
 
-        // 2. 🔒 TODO: FREEZE all competing bids when migration is complete
-        // const legacyBidIds = frozenBidIds.filter(id => 
-        //   competingItems.find(item => item.id === id && item.type === 'bid')
-        // );
-        // if (legacyBidIds.length > 0) {
-        //   await tx.bid.updateMany({
-        //     where: { id: { in: legacyBidIds } },
-        //     data: {
-        //       holdState: 'FROZEN',
-        //       frozenByHoldId: holdId,
-        //       frozenAt: now,
-        //       statusHistory: JSON.stringify([{
-        //         status: 'FROZEN',
-        //         timestamp: now.toISOString(),
-        //         reason: `Frozen by hold ${holdId}`,
-        //         holdId: holdId
-        //       }])
-        //     }
-        //   });
-        // }
+        // 2. 🔒 FREEZE all competing bids 
+        const legacyBidIds = frozenBidIds.filter(id => 
+          competingItems.find(item => item.id === id && item.type === 'bid')
+        );
+        if (legacyBidIds.length > 0) {
+          await tx.bid.updateMany({
+            where: { id: { in: legacyBidIds } },
+            data: {
+              holdState: 'FROZEN',
+              frozenByHoldId: holdId,
+              frozenAt: now,
+              statusHistory: {
+                set: [{
+                  status: 'FROZEN',
+                  timestamp: now.toISOString(),
+                  reason: `Frozen by hold ${holdId}`,
+                  holdId: holdId
+                }]
+              }
+            }
+          });
+        }
 
-        // 3. 🔒 TODO: FREEZE all competing venue offers when migration is complete
-        // if (frozenOfferIds.length > 0) {
-        //   await tx.venueOffer.updateMany({
-        //     where: { id: { in: frozenOfferIds } },
-        //     data: {
-        //       holdState: 'FROZEN',
-        //       frozenByHoldId: holdId,
-        //       frozenAt: now,
-        //       statusHistory: JSON.stringify([{
-        //         status: 'FROZEN',
-        //         timestamp: now.toISOString(),
-        //         reason: `Frozen by hold ${holdId}`,
-        //         holdId: holdId
-        //       }])
-        //     }
-        //   });
-        // }
+        // 2b. 🔒 FREEZE all competing ShowRequestBids
+        const showRequestBidIds = frozenBidIds.filter(id => 
+          competingItems.find(item => item.id === id && item.type === 'showRequestBid')
+        );
+        if (showRequestBidIds.length > 0) {
+          await tx.showRequestBid.updateMany({
+            where: { id: { in: showRequestBidIds } },
+            data: {
+              holdState: 'FROZEN',
+              frozenByHoldId: holdId,
+              frozenAt: now,
+              statusHistory: {
+                set: [{
+                  status: 'FROZEN',
+                  timestamp: now.toISOString(),
+                  reason: `Frozen by hold ${holdId}`,
+                  holdId: holdId
+                }]
+              }
+            }
+          });
+        }
+
+        // 3. 🔒 FREEZE all competing venue offers
+        if (frozenOfferIds.length > 0) {
+          await tx.venueOffer.updateMany({
+            where: { id: { in: frozenOfferIds } },
+            data: {
+              holdState: 'FROZEN',
+              frozenByHoldId: holdId,
+              frozenAt: now,
+              statusHistory: {
+                set: [{
+                  status: 'FROZEN',
+                  timestamp: now.toISOString(),
+                  reason: `Frozen by hold ${holdId}`,
+                  holdId: holdId
+                }]
+              }
+            }
+          });
+        }
 
         return updatedHold;
       });
@@ -258,25 +297,24 @@ export class HoldManagementService {
           }
         });
 
-        // 2. TODO: Unfreeze all bids when schema supports tracking
-        // Find all bids that were frozen by this hold and unfreeze them
+        // 2. Unfreeze all bids that were frozen by this hold
         if (hold.showRequestId) {
           const bidsToUnfreeze = await tx.bid.findMany({
             where: {
-              tourRequestId: hold.showRequestId
-              // TODO: Add when schema supports: frozenByHoldId: holdId
+              frozenByHoldId: holdId
             }
           });
 
-          // TODO: Update holdState when schema supports it
-          // await tx.bid.updateMany({
-          //   where: { frozenByHoldId: holdId },
-          //   data: {
-          //     holdState: 'AVAILABLE',
-          //     frozenByHoldId: null,
-          //     unfrozenAt: now
-          //   }
-          // });
+          if (bidsToUnfreeze.length > 0) {
+            await tx.bid.updateMany({
+              where: { frozenByHoldId: holdId },
+              data: {
+                holdState: 'AVAILABLE',
+                frozenByHoldId: null,
+                unfrozenAt: now
+              }
+            });
+          }
 
           for (const bid of bidsToUnfreeze) {
             unfrozenItems.push({
@@ -286,6 +324,37 @@ export class HoldManagementService {
               venueName: 'Unknown Venue',
               submittedById: bid.bidderId || '',
               currentStatus: bid.status
+            });
+          }
+        }
+
+        // 3. Unfreeze all venue offers that were frozen by this hold
+        if (hold.venueOfferId) {
+          const offersToUnfreeze = await tx.venueOffer.findMany({
+            where: {
+              frozenByHoldId: holdId
+            }
+          });
+
+          if (offersToUnfreeze.length > 0) {
+            await tx.venueOffer.updateMany({
+              where: { frozenByHoldId: holdId },
+              data: {
+                holdState: 'AVAILABLE',
+                frozenByHoldId: null,
+                unfrozenAt: now
+              }
+            });
+          }
+
+          for (const offer of offersToUnfreeze) {
+            unfrozenItems.push({
+              id: offer.id,
+              type: 'offer',
+              venueId: offer.venueId,
+              venueName: 'Unknown Venue',
+              submittedById: offer.createdById,
+              currentStatus: offer.status
             });
           }
         }

@@ -85,7 +85,34 @@ export async function GET(request: NextRequest) {
           }
         },
         bids: {
-          include: {
+          select: {
+            id: true,
+            venueId: true,  // CRITICAL: Include venueId field
+            proposedDate: true,
+            message: true,
+            amount: true,
+            status: true,
+            createdAt: true,
+            updatedAt: true,
+            acceptedAt: true,
+            billingNotes: true,
+            billingPosition: true,
+            cancelledAt: true,
+            cancelledReason: true,
+            declinedAt: true,
+            declinedReason: true,
+            heldAt: true,
+            heldUntil: true,
+            holdPosition: true,
+            lineupPosition: true,
+            otherActs: true,
+            setLength: true,
+            // Include hold state fields
+            holdState: true,
+            frozenByHoldId: true,
+            frozenAt: true,
+            unfrozenAt: true,
+            statusHistory: true,
             venue: {
               select: {
                 id: true,

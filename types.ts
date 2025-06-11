@@ -244,6 +244,13 @@ export interface VenueBid {
   createdAt: string;
   updatedAt: string;
   expiresAt: string; // bids expire if not responded to
+  
+  // NEW: Hold state management for frozen bids
+  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
+  frozenByHoldId?: string; // Reference to hold that froze this bid
+  frozenAt?: string; // When this bid was frozen
+  unfrozenAt?: string; // When this bid was unfrozen
+  isFrozen?: boolean; // Computed property for easier access
 }
 
 // 🎯 NEW: Venue Offers - Direct offers from venues to specific artists

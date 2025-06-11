@@ -60,6 +60,9 @@ interface VenueBid {
   billingNotes?: string;
   artistId?: string;
   artistName?: string;
+  holdState?: string;
+  isFrozen?: boolean;
+  frozenByHoldId?: string;
 }
 
 interface TourRequest {
@@ -190,6 +193,18 @@ export function BidActionButtons({
           <span className="text-orange-600">
             ({activeHoldInfo.requesterName})
           </span>
+        )}
+      </div>
+    );
+  }
+
+  // If bid is frozen by a hold, show locked state
+  if (bid.holdState === 'FROZEN' || bid.isFrozen) {
+    return (
+      <div className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md">
+        <span className="text-blue-600 font-medium">🔒 Locked by Hold</span>
+        {bid.frozenByHoldId && (
+          <span className="text-xs text-blue-500">Hold: {bid.frozenByHoldId.slice(-8)}</span>
         )}
       </div>
     );
