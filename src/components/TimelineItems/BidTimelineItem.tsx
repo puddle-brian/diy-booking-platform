@@ -261,7 +261,7 @@ export function BidTimelineItem({
               </span>
             </div>
           ) : (bid as any).holdState === 'HELD' ? (
-            /* 🔒 HELD BID: Show normal actions with hold context */
+            /* 🔒 HELD BID: Show two distinct actions - Release Hold vs Decline Bid */
             <div className="flex items-center space-x-1">
               {/* Accept Button (with hold context) */}
               {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onBidAction && (
@@ -278,7 +278,22 @@ export function BidTimelineItem({
                 </button>
               )}
               
-              {/* Decline Button (with hold context) */}
+              {/* NEW: Release Hold Button - removes hold but keeps bid pending */}
+              {onBidAction && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBidAction(bid, 'release-held');
+                  }}
+                  className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                  disabled={isDeleting}
+                  title="Release hold - return to normal bidding (bid stays available)"
+                >
+                  🔓
+                </button>
+              )}
+              
+              {/* Decline Bid Button - actually rejects the venue */}
               {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onBidAction && (
                 <button
                   onClick={(e) => {
@@ -287,7 +302,7 @@ export function BidTimelineItem({
                   }}
                   className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                   disabled={isDeleting}
-                  title="Decline this held bid - will release hold and unfreeze other bids"
+                  title="Decline this venue entirely - removes bid and releases hold"
                 >
                   ✕
                 </button>

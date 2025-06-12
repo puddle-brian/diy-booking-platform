@@ -428,6 +428,52 @@ export async function PUT(
         }
         break;
         
+      case 'release-held':
+        // NEW: Release a held bid - removes hold but keeps bid pending for normal accept/decline
+        console.log('🔓 Releasing held bid - returning to normal bidding, unfreezing competitors');
+        
+        updateData = {
+          status: BidStatus.PENDING, // ✅ Keep as pending! This is the key fix
+          holdState: 'AVAILABLE',
+          frozenByHoldId: null,
+          frozenAt: null,
+          unfrozenAt: new Date()
+        };
+        
+        // Find and release the associated hold
+        const activeHoldToRelease = await prisma.holdRequest.findFirst({
+          where: {
+            showRequestId: showRequestId,
+            status: 'ACTIVE'
+          }
+        });
+        
+        if (activeHoldToRelease) {
+          // Release the hold
+          await prisma.holdRequest.update({
+            where: { id: activeHoldToRelease.id },
+            data: {
+              status: 'DECLINED',
+              respondedAt: new Date()
+            }
+          });
+          
+          // Unfreeze all competing bids (they can compete again)
+          await prisma.showRequestBid.updateMany({
+            where: {
+              showRequestId: showRequestId,
+              holdState: 'FROZEN',
+              frozenByHoldId: activeHoldToRelease.id
+            },
+            data: {
+              holdState: 'AVAILABLE',
+              frozenByHoldId: null,
+              unfrozenAt: new Date()
+            }
+          });
+        }
+        break;
+        
       case 'decline-held':
         // Decline a held bid - normal decline but also releases hold and unfreezes competing bids
         console.log('🔒 Declining held bid - releasing hold and unfreezing competitors');
@@ -443,17 +489,17 @@ export async function PUT(
         };
         
         // Find and release the associated hold
-        const holdToRelease = await prisma.holdRequest.findFirst({
+        const heldBidHoldToRelease = await prisma.holdRequest.findFirst({
           where: {
             showRequestId: showRequestId,
             status: 'ACTIVE'
           }
         });
         
-        if (holdToRelease) {
+        if (heldBidHoldToRelease) {
           // Release the hold
           await prisma.holdRequest.update({
-            where: { id: holdToRelease.id },
+            where: { id: heldBidHoldToRelease.id },
             data: {
               status: 'DECLINED',
               respondedAt: new Date()
@@ -465,7 +511,7 @@ export async function PUT(
             where: {
               showRequestId: showRequestId,
               holdState: 'FROZEN',
-              frozenByHoldId: holdToRelease.id
+              frozenByHoldId: heldBidHoldToRelease.id
             },
             data: {
               holdState: 'AVAILABLE',
@@ -478,7 +524,7 @@ export async function PUT(
         
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Must be accept, undo-accept, hold, decline, accept-held, confirm-accepted, or decline-held' },
+          { error: 'Invalid action. Must be accept, undo-accept, hold, decline, accept-held, confirm-accepted, release-held, or decline-held' },
           { status: 400 }
         );
     }

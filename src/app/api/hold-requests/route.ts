@@ -372,6 +372,7 @@ export async function GET(request: NextRequest) {
     const showId = searchParams.get('showId');
     const showRequestId = searchParams.get('showRequestId');
     const status = searchParams.get('status');
+    const targetVenueId = searchParams.get('targetVenueId'); // NEW: For venue notifications
     
     // Parse venue offer IDs from the timeline format for GET requests too
     let venueOfferId = null;
@@ -382,7 +383,7 @@ export async function GET(request: NextRequest) {
       actualShowRequestId = null;
     }
     
-    console.log('🔒 HoldRequest API: Query params:', { showId, showRequestId, venueOfferId, actualShowRequestId, status });
+    console.log('🔒 HoldRequest API: Query params:', { showId, showRequestId, venueOfferId, actualShowRequestId, status, targetVenueId });
 
     // Build the query with proper parameter substitution using correct table name
     let query = `
@@ -394,7 +395,8 @@ export async function GET(request: NextRequest) {
              sr.title as show_request_title,
              sr."requestedDate" as show_request_date,
              vo.title as venue_offer_title,
-             vo."proposedDate" as venue_offer_date
+             vo."proposedDate" as venue_offer_date,
+             a.name as artist_name
       FROM "hold_requests" hr
       LEFT JOIN "User" u1 ON hr."requestedById" = u1.id
       LEFT JOIN "User" u2 ON hr."respondedById" = u2.id
@@ -402,21 +404,31 @@ export async function GET(request: NextRequest) {
       LEFT JOIN venues v ON s."venueId" = v.id
       LEFT JOIN "show_requests" sr ON hr."showRequestId" = sr.id
       LEFT JOIN venues srv ON sr."venueId" = srv.id
+      LEFT JOIN artists a ON sr."artistId" = a.id
       LEFT JOIN "venue_offers" vo ON hr."venueOfferId" = vo.id
       LEFT JOIN venues vov ON vo."venueId" = vov.id
-      WHERE (
-        hr."requestedById" = $1 OR 
+      -- 🎯 NEW: For targetVenueId, also check bids on artist-initiated requests
+      ${targetVenueId ? 
+        `LEFT JOIN "show_request_bids" srb ON hr."showRequestId" = srb."showRequestId" AND srb."venueId" = $1` : 
+        ''
+      }
+      WHERE (${targetVenueId ? 
+        // NEW: If targeting specific venue, find holds where that venue is the target
+        // This now includes: venue-initiated requests, shows, venue offers, AND bids on artist requests
+        `(srv.id = $1 OR v.id = $1 OR vov.id = $1 OR srb."venueId" = $1)` :
+        // EXISTING: General user permission check
+        `hr."requestedById" = $1 OR 
         hr."respondedById" = $1 OR
         s."artistId" = $1 OR
         v."submittedById" = $1 OR
         sr."artistId" = $1 OR
         srv."submittedById" = $1 OR
         vo."artistId" = $1 OR
-        vo."createdById" = $1
-      )
+        vo."createdById" = $1`
+      })
     `;
 
-    const params = [authResult.user!.id];
+    const params = [targetVenueId || authResult.user!.id];
 
     if (showId) {
       query += ` AND hr."showId" = $${params.length + 1}`;

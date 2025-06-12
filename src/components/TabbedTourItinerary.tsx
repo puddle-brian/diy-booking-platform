@@ -727,7 +727,7 @@ export default function TabbedTourItinerary({
       }
 
       // For hold-related actions, refresh data to get updated hold states
-      if (action === 'accept-held' || action === 'confirm-accepted' || action === 'decline-held') {
+      if (action === 'accept-held' || action === 'confirm-accepted' || action === 'decline-held' || action === 'release-held') {
         console.log(`🔄 Refreshing data after ${action} to update hold states`);
         await fetchData();
       }
@@ -736,6 +736,7 @@ export default function TabbedTourItinerary({
         accept: 'Bid accepted! You can now coordinate with the venue to finalize details.',
         'accept-held': 'Bid accepted! Click "Confirm" to finalize or change your mind.',
         'confirm-accepted': 'Show confirmed! Competing venues have been notified.',
+        'release-held': 'Hold released. Bid returned to normal bidding - other venues can now compete again.',
         'decline-held': 'Held bid declined. Other venues can now compete again.',
         hold: 'Bid placed on hold. You have time to consider other options.',
         decline: 'Bid declined and removed from your itinerary.'
@@ -747,6 +748,8 @@ export default function TabbedTourItinerary({
         showSuccess('Bid Accepted', 'Bid accepted! You can now confirm or change your mind.');
       } else if (action === 'confirm-accepted') {
         showSuccess('Show Confirmed', 'Show confirmed! Competing venues have been notified.');
+      } else if (action === 'release-held') {
+        showSuccess('Hold Released', 'The hold has been released. Bid is now available for normal accept/decline.');
       }
     } catch (error) {
       console.error(`Error ${action}ing bid:`, error);

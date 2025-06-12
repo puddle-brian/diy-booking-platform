@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   ProfileContext,
   Artist,
@@ -13,6 +13,7 @@ import {
 import TabbedTourItinerary from '../TabbedTourItinerary';
 import MediaSection from '../MediaSection';
 import TeamManagementCard from './TeamManagementCard';
+import { HoldNotificationPanel } from '../HoldNotificationPanel';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ProfileLayoutProps {
@@ -45,6 +46,9 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
   const artist = isArtist ? entity as Artist : null;
   const venue = !isArtist ? entity as Venue : null;
 
+  // 🔄 NEW: State to trigger refresh of tour itinerary when holds are approved
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
   // 🎯 NEW: Get current user's venue information for venue users viewing artist pages
   const getUserVenueInfo = () => {
     if (!user?.memberships || !isArtist) return { userVenueId: undefined, userVenueName: undefined };
@@ -59,6 +63,11 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
   };
 
   const { userVenueId, userVenueName } = getUserVenueInfo();
+
+  // 🔄 NEW: Function to trigger refresh of tour itinerary
+  const handleDataRefresh = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -85,10 +94,30 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
           />
         </div>
 
+        {/* Hold Notifications - CRITICAL: Show incoming hold requests prominently for venues */}
+        {!isArtist && context.isOwner && (
+          <div className="mb-6">
+            <HoldNotificationPanel
+              venueId={entity.id}
+              currentUserId={user?.id || ''}
+              onHoldResponse={(holdId, action) => {
+                console.log(`🔒 Venue ${action}ed hold ${holdId}`);
+                if (action === 'approve') {
+                  // 🔄 CRITICAL: Refresh tour itinerary data when hold is approved
+                  // This ensures the venue sees the updated bid states (HELD/FROZEN)
+                  console.log('🔄 Triggering tour itinerary refresh after hold approval');
+                  handleDataRefresh();
+                }
+              }}
+            />
+          </div>
+        )}
+
         {/* Primary Content Grid - Most important functionality */}
         <div className="grid gap-6 mb-8">
           {/* Tour Dates/Booking - HIGHEST PRIORITY */}
           <TabbedTourItinerary
+            key={`itinerary-${refreshTrigger}`} // 🔄 NEW: Force re-render when refresh is triggered
             {...(isArtist ? { 
               artistId: entity.id, 
               artistName: entity.name,

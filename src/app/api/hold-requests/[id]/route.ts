@@ -101,7 +101,7 @@ export async function PUT(
       );
     }
 
-    // Update the hold request
+    // Update the hold request and bid states in a transaction
     let newStatus: string;
     let updateData: any = {
       respondedById: authResult.user!.id,
@@ -132,18 +132,114 @@ export async function PUT(
         break;
     }
 
-    // Use raw query to update until Prisma types are ready
-    await prisma.$executeRaw`
-      UPDATE "hold_requests" 
-      SET 
-        status = CAST(${newStatus} AS "HoldStatus"),
-        "respondedById" = ${updateData.respondedById},
-        "respondedAt" = ${updateData.respondedAt},
-        "startsAt" = ${updateData.startsAt || null},
-        "expiresAt" = ${updateData.expiresAt || null},
-        "updatedAt" = ${updateData.updatedAt}
-      WHERE id = ${holdId}
-    `;
+    // Execute the update in a transaction to ensure consistency
+    await prisma.$transaction(async (tx) => {
+      // 1. Update the hold request
+      await tx.$executeRaw`
+        UPDATE "hold_requests" 
+        SET 
+          status = CAST(${newStatus} AS "HoldStatus"),
+          "respondedById" = ${updateData.respondedById},
+          "respondedAt" = ${updateData.respondedAt},
+          "startsAt" = ${updateData.startsAt || null},
+          "expiresAt" = ${updateData.expiresAt || null},
+          "updatedAt" = ${updateData.updatedAt}
+        WHERE id = ${holdId}
+      `;
+
+      // 2. If approving, update bid states
+      if (action === 'approve' && hold.showRequestId) {
+        console.log('🔒 Hold approved - updating bid states for show request:', hold.showRequestId);
+        
+        // Find the bid from the requester (the one that should be held)
+        // The requester is the artist, so find their venue's bid
+        const requesterBid = await tx.showRequestBid.findFirst({
+          where: {
+            showRequestId: hold.showRequestId,
+            // For artist-initiated requests, we need to find which venue the artist wants to hold
+            // This is tricky - we need to determine which venue the hold is for
+            // For now, let's find the venue that the requesting user has access to
+          },
+          include: {
+            venue: true,
+            bidder: true
+          }
+        });
+
+        // Actually, let's find the venue that the responding user (venue owner) owns
+        const venueOwnedByResponder = await tx.venue.findFirst({
+          where: {
+            submittedById: authResult.user!.id
+          }
+        });
+
+        if (venueOwnedByResponder) {
+          // Find the bid from this venue
+          const targetBid = await tx.showRequestBid.findFirst({
+            where: {
+              showRequestId: hold.showRequestId,
+              venueId: venueOwnedByResponder.id
+            }
+          });
+
+          if (targetBid) {
+            console.log('🔒 Setting bid to HELD state:', targetBid.id, 'for venue:', venueOwnedByResponder.name);
+            
+            // Set this bid to HELD
+            await tx.showRequestBid.update({
+              where: { id: targetBid.id },
+              data: {
+                holdState: 'HELD',
+                frozenByHoldId: holdId,
+                frozenAt: new Date()
+              }
+            });
+
+            // Freeze all competing bids
+            const frozenResult = await tx.showRequestBid.updateMany({
+              where: {
+                showRequestId: hold.showRequestId,
+                id: { not: targetBid.id }, // Don't freeze the held bid
+                status: { 
+                  notIn: ['ACCEPTED', 'REJECTED', 'WITHDRAWN'] // Don't freeze already decided bids
+                }
+              },
+              data: {
+                holdState: 'FROZEN',
+                frozenByHoldId: holdId,
+                frozenAt: new Date()
+              }
+            });
+
+            console.log(`✅ Hold activated: ${venueOwnedByResponder.name} bid HELD, ${frozenResult.count} competing bids FROZEN`);
+          } else {
+            console.log('⚠️ No bid found for responding venue:', venueOwnedByResponder.name);
+          }
+        } else {
+          console.log('⚠️ No venue found for responding user:', authResult.user!.id);
+        }
+      }
+
+      // 3. If declining or cancelling, unfreeze any frozen bids
+      if ((action === 'decline' || action === 'cancel') && hold.showRequestId) {
+        console.log('🔓 Hold declined/cancelled - unfreezing bids for show request:', hold.showRequestId);
+        
+        const unfrozenResult = await tx.showRequestBid.updateMany({
+          where: {
+            showRequestId: hold.showRequestId,
+            frozenByHoldId: holdId
+          },
+          data: {
+            holdState: 'AVAILABLE',
+            frozenByHoldId: null,
+            frozenAt: null,
+            unfrozenAt: new Date()
+          }
+        });
+
+        console.log(`✅ Unfroze ${unfrozenResult.count} bids`);
+      }
+    });
 
     // Get updated hold request
     const updatedHold = await prisma.$queryRaw`
