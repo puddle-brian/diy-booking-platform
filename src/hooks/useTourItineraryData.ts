@@ -208,6 +208,7 @@ export function useTourItineraryData({
           // Convert ShowRequests back to legacy format for compatibility with existing UI
           const legacyTourRequests: TourRequest[] = showRequestsData
             .filter((req: any) => req.initiatedBy === 'ARTIST')
+            .filter((req: any) => req.status !== 'CONFIRMED') // 🎯 Hide CONFIRMED requests - they become Shows
             .map((req: any) => {
               // 🎯 NEW: Handle venue-specific requests properly  
               // Venue-specific requests have both initiatedBy='ARTIST' AND venueId set
@@ -357,6 +358,7 @@ export function useTourItineraryData({
           // Convert venue-initiated ShowRequests to legacy VenueOffer format  
           const legacyVenueOffers: VenueOffer[] = showRequestsData
             .filter((req: any) => req.initiatedBy === 'VENUE')
+            .filter((req: any) => req.status !== 'CONFIRMED') // 🎯 Hide CONFIRMED offers - they become Shows
             .map((req: any) => ({
               id: req.id,
               venueId: req.venue?.id || req.venueId || 'unknown',

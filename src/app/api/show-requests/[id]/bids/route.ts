@@ -417,16 +417,55 @@ export async function PUT(
         break;
         
       case 'confirm-accepted':
-        // NEW: Confirm an accepted bid - this is when competitors get rejected
-        console.log('🔒 Confirming accepted bid - rejecting competitors');
+        // NEW: Confirm an accepted bid - this creates a Show and rejects competitors
+        console.log('🔒 Confirming accepted bid - creating show and rejecting competitors');
         
         updateData = {
-          status: BidStatus.ACCEPTED, // Stay accepted
+          status: BidStatus.CANCELLED, // Mark as cancelled since it's now a confirmed show
+          cancelledAt: new Date(),
+          cancelledReason: 'Converted to confirmed show',
           holdState: 'AVAILABLE', // Now available for scheduling
           frozenByHoldId: null,
           frozenAt: null,
           unfrozenAt: new Date()
         };
+        
+        // 🎯 CREATE CONFIRMED SHOW - This is what was missing!
+        const showRequest = await prisma.showRequest.findUnique({
+          where: { id: showRequestId },
+          include: { artist: true }
+        });
+        
+        if (showRequest && bid.proposedDate) {
+          const createdShow = await prisma.show.create({
+            data: {
+              title: `${showRequest.artist.name} at ${bid.venue.name}`,
+              date: bid.proposedDate,
+              venueId: bid.venueId,
+              artistId: showRequest.artistId,
+              description: `Show created from confirmed bid: ${showRequest.title}`,
+              ticketPrice: bid.amount || 15,
+              ageRestriction: 'ALL_AGES', // Default, could be enhanced
+              status: 'CONFIRMED', // This is the key - Show is CONFIRMED
+              createdById: bid.bidderId,
+              // Add detailed schedule if available
+              guarantee: bid.amount,
+              billingOrder: bid.billingPosition ? { lineup: [{ position: bid.billingPosition, artist: showRequest.artist.name }] } : undefined,
+              notes: `Confirmed show from accepted bid. ${bid.billingPosition || 'performer'} slot.`
+            }
+          });
+          
+          console.log(`✅ Created confirmed show: ${createdShow.id} - ${createdShow.title}`);
+        }
+        
+        // 🎯 UPDATE SHOWREQUEST STATUS - This prevents duplicate display
+        await prisma.showRequest.update({
+          where: { id: showRequestId },
+          data: {
+            status: 'CONFIRMED' // Mark the original request as confirmed
+          }
+        });
+        console.log(`✅ Updated ShowRequest ${showRequestId} status to CONFIRMED`);
         
         // Find the active hold (after artist accepted)
         const confirmHold = await prisma.holdRequest.findFirst({
