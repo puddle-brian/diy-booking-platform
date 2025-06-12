@@ -34,6 +34,13 @@ export function MakeOfferActionButton({
   }
 
   const existingBid = venueId ? requestBids.find(bid => bid.venueId === venueId) : null;
+  
+  // 🎯 NEW: Don't show edit offer button if bid is already accepted
+  // Once a bid is accepted, venue should use confirm/reject actions instead
+  if (existingBid && existingBid.status.toLowerCase() === 'accepted') {
+    return null;
+  }
+  
   const buttonText = existingBid ? "Edit Offer" : "Make Offer";
   
   // ✅ UX IMPROVEMENT: Visual differentiation between Make Offer vs Edit Offer

@@ -345,22 +345,57 @@ export function BidTimelineItem({
                 </>
               )}
 
-              {/* Undo Accept button for accepted bids */}
+              {/* Actions for accepted bids */}
               {currentStatus === 'accepted' && (
                 <>
-                  {/* Undo Accept Button */}
-                  {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onBidAction && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onBidAction(bid, 'undo-accept');
-                      }}
-                      className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
-                      disabled={isDeleting}
-                      title="Undo acceptance"
-                    >
-                      ↶
-                    </button>
+                  {/* 🎯 NEW: Venue-specific actions for accepted bids */}
+                  {permissions.actualViewerType === 'venue' ? (
+                    <>
+                      {/* Confirm Button */}
+                      {onBidAction && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onBidAction(bid, 'confirm-accepted');
+                          }}
+                          className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                          disabled={isDeleting}
+                          title="Confirm show - finalizes booking"
+                        >
+                          ✓
+                        </button>
+                      )}
+                      
+                      {/* Decline Button */}
+                      {onBidAction && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onBidAction(bid, 'decline');
+                          }}
+                          className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                          disabled={isDeleting}
+                          title="Reject acceptance - venue cannot confirm"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    /* Artist view: Show Undo Accept Button */
+                    permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onBidAction && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onBidAction(bid, 'undo-accept');
+                        }}
+                        className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700 transition-colors"
+                        disabled={isDeleting}
+                        title="Undo acceptance"
+                      >
+                        ↶
+                      </button>
+                    )
                   )}
                 </>
               )}

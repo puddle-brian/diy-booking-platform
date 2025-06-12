@@ -178,7 +178,28 @@ export function BidActionButtons({
   isFrozenByHold = false,
   activeHoldInfo
 }: BidActionButtonsProps) {
-  // Only show action buttons for artists
+  // 🎯 NEW: Venue-specific actions for accepted bids
+  if (permissions.actualViewerType === 'venue' && bidStatus === 'accepted') {
+    const renderVenueActionButton = (action: string, icon: string, bgColor: string, title: string) => (
+      <button
+        onClick={() => handleAction(action)}
+        disabled={isLoading}
+        className={`inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded text-white ${bgColor} disabled:opacity-50 transition-colors`}
+        title={title}
+      >
+        {icon}
+      </button>
+    );
+    
+    return (
+      <div className="flex items-center space-x-0.5 flex-wrap">
+        {renderVenueActionButton('confirm-accepted', '✅', 'bg-green-600 hover:bg-green-700', 'Confirm show - finalizes booking')}
+        {renderVenueActionButton('decline', '❌', 'bg-red-600 hover:bg-red-700', 'Reject acceptance - venue cannot confirm')}
+      </div>
+    );
+  }
+
+  // Only show action buttons for artists (all other cases)
   if (permissions.actualViewerType !== 'artist') {
     return null;
   }
