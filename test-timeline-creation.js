@@ -4,16 +4,16 @@ const prisma = new PrismaClient();
 async function testTimelineCreation() {
   console.log('🧪 Testing timeline creation with held bids...');
   
-  // Get Lightning Bolt's held and frozen bids
-  const lightningBoltBids = await prisma.bid.findMany({
+  // Get Lightning Bolt's held and frozen bids from ShowRequestBids
+  const lightningBoltBids = await prisma.showRequestBid.findMany({
     where: {
-      tourRequest: {
+      showRequest: {
         artist: { id: '1748101913848' }
       }
     },
     include: {
       venue: { select: { name: true } },
-      tourRequest: {
+      showRequest: {
         include: {
           artist: { select: { name: true, id: true } }
         }
@@ -27,7 +27,7 @@ async function testTimelineCreation() {
   // Convert to the format expected by timeline creation
   const venueBids = lightningBoltBids.map(bid => ({
     id: bid.id,
-    showRequestId: bid.tourRequestId, // Note: using tourRequestId
+    showRequestId: bid.showRequestId,
     venueId: bid.venueId,
     venueName: bid.venue.name,
     proposedDate: bid.proposedDate.toISOString(),
@@ -59,8 +59,8 @@ async function testTimelineCreation() {
     updatedAt: bid.updatedAt.toISOString(),
     expiresAt: '',
     location: bid.venue.name,
-    artistId: bid.tourRequest.artist.id,
-    artistName: bid.tourRequest.artist.name,
+    artistId: bid.showRequest.artist.id,
+    artistName: bid.showRequest.artist.name,
     holdState: bid.holdState,
     frozenByHoldId: bid.frozenByHoldId,
     frozenAt: bid.frozenAt?.toISOString(),

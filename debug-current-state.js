@@ -1,96 +1,95 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-async function checkCurrentHolds() {
+async function debugCurrentState() {
   console.log('🔍 Checking current held bids...');
   
-  const heldBids = await prisma.bid.findMany({
-    where: { holdState: 'HELD' },
-    include: {
-      venue: { select: { name: true, id: true } },
-      tourRequest: {
-        include: {
-          artist: { select: { name: true, id: true } },
+  try {
+    // Check for held bids using ShowRequestBid
+    const heldBids = await prisma.showRequestBid.findMany({
+      where: { holdState: 'HELD' },
+      include: {
+        venue: { select: { name: true } },
+        showRequest: { 
+          include: { 
+            artist: { select: { name: true } } 
+          } 
         }
       }
-    },
-    orderBy: [
-      { tourRequest: { artist: { name: 'asc' } } },
-      { proposedDate: 'asc' }
-    ]
-  });
+    });
 
-  console.log(`Found ${heldBids.length} HELD bids:`);
-  
-  heldBids.forEach(bid => {
-    console.log(`
-📍 HELD BID:
-  - Artist: ${bid.tourRequest.artist.name} (ID: ${bid.tourRequest.artist.id})
-  - Venue: ${bid.venue.name}
-  - Date: ${bid.proposedDate}
-  - Bid ID: ${bid.id}
-  - Tour Request ID: ${bid.tourRequest.id}
-    `);
-  });
+    console.log(`Found ${heldBids.length} HELD bids:`);
+    heldBids.forEach(bid => {
+      console.log(`  - ${bid.venue.name}: ${bid.showRequest.artist.name} (${bid.holdState}) - Hold ID: ${bid.frozenByHoldId}`);
+    });
 
-  // Also check frozen bids for same dates
-  console.log('\n❄️ Checking frozen bids...');
-  const frozenBids = await prisma.bid.findMany({
-    where: { holdState: 'FROZEN' },
-    include: {
-      venue: { select: { name: true } },
-      tourRequest: {
-        include: {
-          artist: { select: { name: true, id: true } }
+    console.log('\n❄️ Checking frozen bids...');
+    const frozenBids = await prisma.showRequestBid.findMany({
+      where: { holdState: 'FROZEN' },
+      include: {
+        venue: { select: { name: true } },
+        showRequest: { 
+          include: { 
+            artist: { select: { name: true } } 
+          } 
         }
       }
-    },
-    orderBy: [
-      { tourRequest: { artist: { name: 'asc' } } },
-      { proposedDate: 'asc' }
-    ]
-  });
+    });
 
-  console.log(`Found ${frozenBids.length} FROZEN bids:`);
-  
-  const frozenByArtistDate = {};
-  frozenBids.forEach(bid => {
-    const key = `${bid.tourRequest.artist.name}-${bid.proposedDate}`;
-    if (!frozenByArtistDate[key]) {
-      frozenByArtistDate[key] = [];
-    }
-    frozenByArtistDate[key].push(bid.venue.name);
-  });
+    console.log(`Found ${frozenBids.length} FROZEN bids:`);
+    frozenBids.forEach(bid => {
+      console.log(`  - ${bid.venue.name}: ${bid.showRequest.artist.name} (${bid.holdState}) - Hold ID: ${bid.frozenByHoldId}`);
+    });
 
-  Object.entries(frozenByArtistDate).forEach(([key, venues]) => {
-    console.log(`  ${key}: ${venues.join(', ')}`);
-  });
+    console.log('\n⚡ Lightning Bolt specific check...');
+    const lightningBoltBids = await prisma.showRequestBid.findMany({
+      where: {
+        showRequest: {
+          artist: { id: '1748101913848' }
+        }
+      },
+      include: {
+        venue: { select: { name: true } },
+        showRequest: { 
+          include: { 
+            artist: { select: { name: true } } 
+          } 
+        }
+      },
+      orderBy: { proposedDate: 'asc' }
+    });
 
-  // Check what Lightning Bolt specifically has
-  console.log('\n⚡ Lightning Bolt specific check...');
-  const lightningBoltBids = await prisma.bid.findMany({
-    where: {
-      tourRequest: {
-        artist: { id: '1748101913848' }
-      }
-    },
-    include: {
-      venue: { select: { name: true } },
-      tourRequest: {
-        include: {
-          artist: { select: { name: true, id: true } }
+    console.log(`Found ${lightningBoltBids.length} total bids for Lightning Bolt:`);
+    lightningBoltBids.forEach(bid => {
+      const status = bid.holdState === 'AVAILABLE' ? bid.status.toUpperCase() : bid.holdState;
+      console.log(`  - ${bid.venue.name}: ${bid.proposedDate} (${status}) - Status: ${bid.status}`);
+    });
+
+    // Check active hold requests
+    console.log('\n🔒 Checking active hold requests...');
+    const activeHolds = await prisma.holdRequest.findMany({
+      where: { status: 'ACTIVE' },
+      include: {
+        showRequest: {
+          include: {
+            artist: { select: { name: true } }
+          }
         }
       }
-    },
-    orderBy: { proposedDate: 'asc' }
-  });
+    });
 
-  console.log(`Found ${lightningBoltBids.length} total bids for Lightning Bolt:`);
-  lightningBoltBids.forEach(bid => {
-    console.log(`  - ${bid.venue.name}: ${bid.proposedDate} (${bid.holdState}) - Status: ${bid.status}`);
-  });
+    console.log(`Found ${activeHolds.length} ACTIVE hold requests:`);
+    activeHolds.forEach(hold => {
+      console.log(`  - Hold ${hold.id.slice(-8)}: ${hold.showRequest?.artist?.name || 'Unknown'}`);
+      console.log(`    Reason: ${hold.reason}`);
+      console.log(`    Expires: ${hold.expiresAt}`);
+    });
 
-  await prisma.$disconnect();
+  } catch (error) {
+    console.error('Error:', error);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
-checkCurrentHolds().catch(console.error); 
+debugCurrentState(); 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/prisma';
-import { BidStatus } from '@prisma/client';
+import { BidStatus, BidHoldState } from '@prisma/client';
 
 // GET /api/show-requests/[id]/bids - Get bids for a show request
 export async function GET(
@@ -344,19 +344,20 @@ export async function PUT(
       
       // 🔒 NEW HOLD-SPECIFIC ACTIONS
       case 'accept-held':
-        // Accept a held bid - normal acceptance but also releases hold and cancels competing bids
-        console.log('🔒 Accepting held bid (normal workflow)');
+        // Accept a held bid - artist chooses this venue but competitors stay frozen until confirmation
+        console.log('🔒 Accepting held bid (competitors stay frozen until confirmation)');
+        console.log('🔒 Setting holdState to: ACCEPTED_HELD');
         
         updateData = {
           status: BidStatus.ACCEPTED,
           acceptedAt: new Date(),
-          holdState: 'AVAILABLE', // Clear hold state
-          frozenByHoldId: null,
-          frozenAt: null,
-          unfrozenAt: new Date()
+          holdState: 'ACCEPTED_HELD', // ✅ Move to ACCEPTED_HELD state - waiting for final confirmation
+          // Keep frozenByHoldId and frozenAt - competitors still frozen
         };
         
-        // Find and release the associated hold
+        console.log('🔒 Update data:', updateData);
+        
+        // Find the associated hold but keep it ACTIVE
         const activeHold = await prisma.holdRequest.findFirst({
           where: {
             showRequestId: showRequestId,
@@ -365,29 +366,63 @@ export async function PUT(
         });
         
         if (activeHold) {
-          // Release the hold 
+          // Update hold to show it's been responded to but keep active
           await prisma.holdRequest.update({
             where: { id: activeHold.id },
             data: {
-              status: 'CANCELLED',
+              status: 'ACTIVE', // Keep active until confirmed
               respondedAt: new Date()
             }
           });
           
-          // Cancel all competing bids (they lost the competition)
+          // Keep competitors FROZEN - they're not rejected until show is confirmed
+          // This allows artist to change their mind before final confirmation
+        }
+        break;
+        
+      case 'confirm-accepted':
+        // NEW: Confirm an accepted bid - this is when competitors get rejected
+        console.log('🔒 Confirming accepted bid - rejecting competitors');
+        
+        updateData = {
+          status: BidStatus.ACCEPTED, // Stay accepted
+          holdState: 'AVAILABLE', // Now available for scheduling
+          frozenByHoldId: null,
+          frozenAt: null,
+          unfrozenAt: new Date()
+        };
+        
+        // Find the active hold (after artist accepted)
+        const confirmHold = await prisma.holdRequest.findFirst({
+          where: {
+            showRequestId: showRequestId,
+            status: 'ACTIVE'
+          }
+        });
+        
+        if (confirmHold) {
+          // Mark hold as cancelled (confirmed the choice)
+          await prisma.holdRequest.update({
+            where: { id: confirmHold.id },
+            data: {
+              status: 'CANCELLED'
+            }
+          });
+          
+          // NOW reject all competing bids (they definitively lost)
           await prisma.showRequestBid.updateMany({
             where: {
               showRequestId: showRequestId,
               holdState: 'FROZEN',
-              frozenByHoldId: activeHold.id
+              frozenByHoldId: confirmHold.id
             },
             data: {
-              status: BidStatus.REJECTED, // Cancel competing bids
+              status: BidStatus.REJECTED,
               holdState: 'AVAILABLE',
               frozenByHoldId: null,
               unfrozenAt: new Date(),
               declinedAt: new Date(),
-              declinedReason: 'Artist accepted competing bid'
+              declinedReason: 'Artist confirmed competing venue'
             }
           });
         }
@@ -443,7 +478,7 @@ export async function PUT(
         
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Must be accept, undo-accept, hold, decline, accept-held, or decline-held' },
+          { error: 'Invalid action. Must be accept, undo-accept, hold, decline, accept-held, confirm-accepted, or decline-held' },
           { status: 400 }
         );
     }

@@ -5,8 +5,8 @@ async function createQuickHoldTest() {
   console.log('🔒 Creating quick hold test scenario...');
   
   try {
-    // Find Lightning Bolt's tour request with the most bids
-    const tourRequest = await prisma.tourRequest.findFirst({
+    // Find Lightning Bolt's show request with the most bids
+    const showRequest = await prisma.showRequest.findFirst({
       where: { artistId: '1748101913848' }, // Lightning Bolt
       include: {
         bids: {
@@ -20,16 +20,17 @@ async function createQuickHoldTest() {
       }
     });
 
-    if (!tourRequest || tourRequest.bids.length < 4) {
+    if (!showRequest || showRequest.bids.length < 4) {
       console.log('❌ Need at least 4 bids for Lightning Bolt to create hold scenario');
+      console.log(`Found: ${showRequest ? showRequest.bids.length : 0} bids`);
       return;
     }
 
-    console.log(`\n🎯 Found: ${tourRequest.title} with ${tourRequest.bids.length} bids`);
+    console.log(`\n🎯 Found: ${showRequest.title} with ${showRequest.bids.length} bids`);
 
     // Clear any existing holds first
-    await prisma.bid.updateMany({
-      where: { tourRequestId: tourRequest.id },
+    await prisma.showRequestBid.updateMany({
+      where: { showRequestId: showRequest.id },
       data: {
         holdState: 'AVAILABLE',
         frozenByHoldId: null,
@@ -38,11 +39,11 @@ async function createQuickHoldTest() {
       }
     });
 
-    // Create hold request
+    // Create hold request - using brian-gibson as requestor
     const holdRequest = await prisma.holdRequest.create({
       data: {
-        showRequestId: tourRequest.id,
-        requestedById: '1748101913848', // Lightning Bolt artist ID
+        showRequestId: showRequest.id,
+        requestedById: 'brian-gibson', // Valid Lightning Bolt user ID
         duration: 48,
         reason: "Quick test hold - finalizing routing",
         status: 'ACTIVE',
@@ -53,12 +54,12 @@ async function createQuickHoldTest() {
       }
     });
 
-    const bids = tourRequest.bids;
+    const bids = showRequest.bids;
     const heldBid = bids[0];
     const frozenBids = bids.slice(1, 4); // Next 3 become frozen
 
     // Set held bid
-    await prisma.bid.update({
+    await prisma.showRequestBid.update({
       where: { id: heldBid.id },
       data: {
         holdState: 'HELD',
@@ -68,7 +69,7 @@ async function createQuickHoldTest() {
     });
 
     // Set frozen bids
-    await prisma.bid.updateMany({
+    await prisma.showRequestBid.updateMany({
       where: { id: { in: frozenBids.map(b => b.id) } },
       data: {
         holdState: 'FROZEN',

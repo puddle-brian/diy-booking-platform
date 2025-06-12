@@ -726,17 +726,27 @@ export default function TabbedTourItinerary({
         throw new Error(errorData.error || `Failed to ${action} bid`);
       }
 
-      // Keep optimistic state until next refresh - don't clear immediately
-      // This prevents stale data from overriding our optimistic updates
+      // For hold-related actions, refresh data to get updated hold states
+      if (action === 'accept-held' || action === 'confirm-accepted' || action === 'decline-held') {
+        console.log(`🔄 Refreshing data after ${action} to update hold states`);
+        await fetchData();
+      }
       
       const actionMessages = {
         accept: 'Bid accepted! You can now coordinate with the venue to finalize details.',
+        'accept-held': 'Bid accepted! Click "Confirm" to finalize or change your mind.',
+        'confirm-accepted': 'Show confirmed! Competing venues have been notified.',
+        'decline-held': 'Held bid declined. Other venues can now compete again.',
         hold: 'Bid placed on hold. You have time to consider other options.',
         decline: 'Bid declined and removed from your itinerary.'
       };
       
-      if (action === 'decline') {
+      if (action === 'decline' || action === 'decline-held') {
         showSuccess('Bid Declined', 'The bid has been removed from your itinerary.');
+      } else if (action === 'accept-held') {
+        showSuccess('Bid Accepted', 'Bid accepted! You can now confirm or change your mind.');
+      } else if (action === 'confirm-accepted') {
+        showSuccess('Show Confirmed', 'Show confirmed! Competing venues have been notified.');
       }
     } catch (error) {
       console.error(`Error ${action}ing bid:`, error);

@@ -876,6 +876,7 @@ enum BidHoldState {
   AVAILABLE // Normal bidding state
   FROZEN // Locked due to competing hold
   HELD // This bid has the active hold
+  ACCEPTED_HELD // Artist accepted this held bid, waiting for final confirmation
 }
 
 model HoldRequest {
