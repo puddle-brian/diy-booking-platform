@@ -611,7 +611,14 @@ export function useTourItineraryData({
                     lineupPosition: bid.lineupPosition,
                     setLength: bid.setLength,
                     otherActs: bid.otherActs,
-                    billingNotes: bid.billingNotes
+                    billingNotes: bid.billingNotes,
+                    // 🔒 CRITICAL: Include hold state fields for frozen state functionality
+                    holdState: bid.holdState as 'AVAILABLE' | 'FROZEN' | 'HELD' | undefined,
+                    frozenByHoldId: bid.frozenByHoldId,
+                    frozenAt: bid.frozenAt,
+                    unfrozenAt: bid.unfrozenAt,
+                    isFrozen: bid.holdState === 'FROZEN',
+                    venue: bid.venue // Include venue object for proper name display
                   } as VenueBid & { artistId?: string; artistName?: string });
                 });
               }

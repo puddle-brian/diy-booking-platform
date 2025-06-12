@@ -235,6 +235,28 @@ export async function POST(request: NextRequest) {
         { status: 409 }
       );
     }
+    
+    // 🔒 NEW: Check for existing accepted bids (prevent holds on decided requests)
+    if (actualShowRequestId) {
+      const acceptedBids = await prisma.showRequestBid.findMany({
+        where: {
+          showRequestId: actualShowRequestId,
+          status: 'ACCEPTED'
+        },
+        include: {
+          venue: { select: { name: true } }
+        }
+      });
+      
+      if (acceptedBids.length > 0) {
+        const acceptedVenue = acceptedBids[0].venue?.name || 'Unknown Venue';
+        console.log('🔒 HoldRequest API: Cannot create hold - bid already accepted by:', acceptedVenue);
+        return NextResponse.json(
+          { error: `Cannot create hold - ${acceptedVenue} has already been accepted for this show` },
+          { status: 409 }
+        );
+      }
+    }
 
     // Create the hold request using raw query
     const holdId = crypto.randomUUID();

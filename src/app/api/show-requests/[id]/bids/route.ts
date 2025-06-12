@@ -312,18 +312,54 @@ export async function PUT(
     
     switch (body.action.toLowerCase()) {
       case 'accept':
+        // 🔒 ENHANCED: Regular accept now properly handles competing bids
+        console.log('🔒 Accepting bid - rejecting all competitors (instant decision)');
+        
         updateData = {
           status: BidStatus.ACCEPTED,
-          acceptedAt: new Date()
+          acceptedAt: new Date(),
+          holdState: 'AVAILABLE' // Clear any hold state
         };
+        
+        // First, check if there are any active holds on this show request
+        const activeHoldsOnRequest = await prisma.holdRequest.findMany({
+          where: {
+            showRequestId: showRequestId,
+            status: 'ACTIVE'
+          }
+        });
+        
+        // Cancel any active holds (this bid wins definitively)
+        if (activeHoldsOnRequest.length > 0) {
+          console.log(`🔒 Cancelling ${activeHoldsOnRequest.length} active holds due to bid acceptance`);
+          await prisma.holdRequest.updateMany({
+            where: {
+              showRequestId: showRequestId,
+              status: 'ACTIVE'
+            },
+            data: {
+              status: 'CANCELLED',
+              respondedAt: new Date()
+            }
+          });
+        }
+        
+        // After updating this bid, reject all competing bids immediately
+        // (This is a transaction that will happen after the main bid update)
         break;
       case 'undo-accept':
+        // 🔒 ENHANCED: Undo-accept now unfreezes competing bids
+        console.log('🔒 Undo-accept: Unfreezing competing bids');
+        
         updateData = {
           status: BidStatus.PENDING,
           acceptedAt: null,
           declinedAt: null,
-          declinedReason: body.reason || null
+          declinedReason: body.reason || null,
+          holdState: 'AVAILABLE' // Clear any hold state
         };
+        
+        // After the main update, unfreeze competitors that were frozen by this acceptance
         break;
       case 'hold':
         updateData = {
@@ -537,6 +573,52 @@ export async function PUT(
         showRequest: { include: { artist: true } }
       }
     });
+
+    // 🔒 POST-UPDATE: Handle competing bids for regular accept action
+    if (body.action.toLowerCase() === 'accept') {
+      console.log('🔒 Post-accept: Freezing all competing bids (artist can still change mind)');
+      
+      // Freeze all other bids on this show request (don't reject yet - artist might change mind)
+      const frozenCompetitors = await prisma.showRequestBid.updateMany({
+        where: {
+          showRequestId: showRequestId,
+          id: { not: body.bidId }, // Don't freeze the accepted bid
+          status: { 
+            notIn: ['ACCEPTED', 'REJECTED'] // Don't freeze already decided bids
+          }
+        },
+        data: {
+          holdState: 'FROZEN', // Freeze instead of reject
+          frozenByHoldId: 'accept-' + body.bidId, // Track what froze them
+          frozenAt: new Date()
+          // Keep original status - they're not rejected yet
+        }
+      });
+      
+      console.log(`✅ Regular accept completed: ${frozenCompetitors.count} competing bids frozen (not rejected)`);
+    }
+    
+    // 🔒 POST-UPDATE: Handle competing bids for undo-accept action
+    if (body.action.toLowerCase() === 'undo-accept') {
+      console.log('🔒 Post-undo-accept: Unfreezing competing bids');
+      
+      // Unfreeze all bids that were frozen by this bid's acceptance
+      const unfrozenCompetitors = await prisma.showRequestBid.updateMany({
+        where: {
+          showRequestId: showRequestId,
+          frozenByHoldId: 'accept-' + body.bidId, // Only unfreeze bids frozen by this specific acceptance
+          holdState: 'FROZEN'
+        },
+        data: {
+          holdState: 'AVAILABLE',
+          frozenByHoldId: null,
+          frozenAt: null,
+          unfrozenAt: new Date()
+        }
+      });
+      
+      console.log(`✅ Undo-accept completed: ${unfrozenCompetitors.count} competing bids unfrozen`);
+    }
 
     console.log(`✅ Bid ${body.action}ed: ${bid.venue.name} → ${bid.showRequest.artist.name}`);
 
