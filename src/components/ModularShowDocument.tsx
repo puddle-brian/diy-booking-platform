@@ -668,6 +668,7 @@ export default function ModularShowDocument({
         {(show || bid || tourRequest) && (
           <div className="px-6 py-4 border-b border-gray-100">
             <HoldRequestPanel
+              key={`hold-${bid?.id || show?.id || tourRequest?.id}-${bid?.status || 'no-status'}`} // Force refresh when bid status changes
               showId={show?.id || undefined}
               showRequestId={bid?.showRequestId || tourRequest?.id || undefined}
               currentUserId={user?.id || 'anonymous'}

@@ -434,6 +434,9 @@ export async function GET(request: NextRequest) {
         `LEFT JOIN "show_request_bids" srb ON hr."showRequestId" = srb."showRequestId" AND srb."venueId" = $1` : 
         ''
       }
+      -- 🚀 AUTO-HOLD FIX: Include bids for general permission checking too
+      LEFT JOIN "show_request_bids" srb_general ON hr."showRequestId" = srb_general."showRequestId"
+      LEFT JOIN venues bid_venue ON srb_general."venueId" = bid_venue.id
       WHERE (${targetVenueId ? 
         // NEW: If targeting specific venue, find holds where that venue is the target
         // This now includes: venue-initiated requests, shows, venue offers, AND bids on artist requests
@@ -446,7 +449,8 @@ export async function GET(request: NextRequest) {
         sr."artistId" = $1 OR
         srv."submittedById" = $1 OR
         vo."artistId" = $1 OR
-        vo."createdById" = $1`
+        vo."createdById" = $1 OR
+        bid_venue."submittedById" = $1`
       })
     `;
 

@@ -311,12 +311,21 @@ export function HoldRequestPanel({
               Request exclusive negotiation time to finalize details without competing offers
             </p>
           </div>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-          >
-            Request Hold
-          </button>
+          <div className="flex space-x-2">
+            <button
+              onClick={fetchHoldRequest}
+              className="text-blue-600 hover:text-blue-800 px-3 py-2 text-sm font-medium transition-colors"
+              title="Refresh hold status"
+            >
+              🔄 Refresh
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              Request Hold
+            </button>
+          </div>
         </div>
 
         {showForm && (
