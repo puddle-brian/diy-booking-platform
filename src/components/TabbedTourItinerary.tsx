@@ -1555,7 +1555,20 @@ export default function TabbedTourItinerary({
                             }
                             
                             // Default logic for artists and venues without bids
-                            // Check if this request has any active holds
+                            // 🚀 PRIORITY STATUS LOGIC: Check for accepted bids first (highest priority)
+                            const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
+                              bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
+                            );
+                            
+                            if (hasAcceptedBid) {
+                              return (
+                                <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                  Accepted
+                                </span>
+                              );
+                            }
+                            
+                            // Check if this request has any active holds (lower priority than accepted)
                             const hasActiveHold = requestBids.some((bid: VenueBid) => 
                               (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
                             );
