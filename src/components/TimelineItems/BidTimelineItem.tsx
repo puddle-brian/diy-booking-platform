@@ -171,17 +171,34 @@ export function BidTimelineItem({
       {/* Venue column - w-[19%] */}
       <td className="px-4 py-1.5 w-[19%]">
         <div className="text-sm font-medium text-gray-900 truncate">
-          {bid.venueId && bid.venueId !== 'external-venue' ? (
-            <a 
-              href={`/venues/${bid.venueId}`}
-              className="text-blue-600 hover:text-blue-800 hover:underline"
-              title="View venue page"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {bid.venueName}
-            </a>
+          {venueId ? (
+            // When viewing as venue, show artist information
+            (bid as any).artistId && (bid as any).artistId !== 'external-artist' ? (
+              <a 
+                href={`/artists/${(bid as any).artistId}`}
+                className="text-blue-600 hover:text-blue-800 hover:underline"
+                title="View artist page"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {(bid as any).artistName || 'Unknown Artist'}
+              </a>
+            ) : (
+              <span>{(bid as any).artistName || 'Unknown Artist'}</span>
+            )
           ) : (
-            <span>{bid.venueName}</span>
+            // When viewing as artist, show venue information (original behavior)
+            bid.venueId && bid.venueId !== 'external-venue' ? (
+              <a 
+                href={`/venues/${bid.venueId}`}
+                className="text-blue-600 hover:text-blue-800 hover:underline"
+                title="View venue page"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {bid.venueName}
+              </a>
+            ) : (
+              <span>{bid.venueName}</span>
+            )
           )}
         </div>
       </td>
