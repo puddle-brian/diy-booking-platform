@@ -262,6 +262,37 @@ export async function POST(request: NextRequest) {
         });
         createdBids.push(createdBid);
       }
+      
+      // 🎯 FIX: After creating all bids for this show request, freeze competing bids for accepted bids
+      // Get only the bids we just created for this specific show request
+      const bidsForThisRequest = createdBids.filter(bid => bid.showRequestId === showRequest.id);
+      const acceptedBidsForThisRequest = bidsForThisRequest.filter(bid => bid.status === BidStatus.ACCEPTED);
+      
+      if (acceptedBidsForThisRequest.length > 0) {
+        console.log(`🔒 Freezing competing bids for ${acceptedBidsForThisRequest.length} accepted bid(s) on ${showRequest.title}`);
+        
+        for (const acceptedBid of acceptedBidsForThisRequest) {
+          // Freeze all other bids on this show request
+          const freezeResult = await prisma.showRequestBid.updateMany({
+            where: {
+              showRequestId: showRequest.id,
+              id: { not: acceptedBid.id }, // Don't freeze the accepted bid itself
+              status: { 
+                notIn: ['ACCEPTED', 'REJECTED'] // Don't freeze already decided bids
+              }
+            },
+            data: {
+              holdState: 'FROZEN',
+              frozenByHoldId: 'accept-' + acceptedBid.id, // Track what froze them
+              frozenAt: new Date()
+            }
+          });
+          
+          console.log(`   ✅ Froze ${freezeResult.count} competing bids for accepted bid from venue ${acceptedBid.venueId}`);
+        }
+      } else {
+        console.log(`   ℹ️ No accepted bids found for ${showRequest.title} - skipping freeze logic`);
+      }
     }
 
     console.log(`✅ Created ${createdBids.length} sophisticated bids with realistic statuses (NEW SYSTEM)`);

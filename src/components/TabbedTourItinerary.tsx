@@ -726,9 +726,9 @@ export default function TabbedTourItinerary({
         throw new Error(errorData.error || `Failed to ${action} bid`);
       }
 
-      // For hold-related actions, refresh data to get updated hold states
-      if (action === 'accept-held' || action === 'confirm-accepted' || action === 'decline-held' || action === 'release-held') {
-        console.log(`🔄 Refreshing data after ${action} to update hold states`);
+      // 🎯 FIX: Refresh data for actions that affect competing bids' states
+      if (action === 'accept-held' || action === 'confirm-accepted' || action === 'decline-held' || action === 'release-held' || action === 'undo-accept' || action === 'accept') {
+        console.log(`🔄 Refreshing data after ${action} to update competing bid states`);
         await fetchData();
       }
       
@@ -750,6 +750,10 @@ export default function TabbedTourItinerary({
         showSuccess('Show Confirmed', 'Show confirmed! Competing venues have been notified.');
       } else if (action === 'release-held') {
         showSuccess('Hold Released', 'The hold has been released. Bid is now available for normal accept/decline.');
+      } else if (action === 'undo-accept') {
+        showSuccess('Acceptance Undone', 'Bid returned to pending. Competing venues can now compete again.');
+      } else if (action === 'accept') {
+        showSuccess('Bid Accepted', 'Bid accepted! Competing venues are now frozen while you finalize.');
       }
     } catch (error) {
       console.error(`Error ${action}ing bid:`, error);
@@ -779,6 +783,12 @@ export default function TabbedTourItinerary({
           newSet.delete(bid.id);
           return newSet;
         });
+      }
+      
+      // 🎯 For actions that affect multiple bids, always refresh to ensure consistency
+      if (['accept', 'undo-accept', 'accept-held', 'confirm-accepted'].includes(action)) {
+        console.log(`🔄 Error occurred during ${action} - refreshing data to ensure consistency`);
+        await fetchData();
       }
       
       showError(`${action.charAt(0).toUpperCase() + action.slice(1)} Failed`, `Failed to ${action} bid: ${error instanceof Error ? error.message : 'Unknown error'}`);

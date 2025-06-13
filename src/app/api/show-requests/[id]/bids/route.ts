@@ -640,6 +640,22 @@ export async function PUT(
     // 🔒 POST-UPDATE: Handle competing bids for undo-accept action
     if (body.action.toLowerCase() === 'undo-accept') {
       console.log('🔒 Post-undo-accept: Unfreezing competing bids');
+      console.log('🔍 Looking for bids frozen by:', 'accept-' + body.bidId);
+      
+      // First, let's see what we're trying to unfreeze
+      const bidsToUnfreeze = await prisma.showRequestBid.findMany({
+        where: {
+          showRequestId: showRequestId,
+          frozenByHoldId: 'accept-' + body.bidId,
+          holdState: 'FROZEN'
+        },
+        include: { venue: { select: { name: true } } }
+      });
+      
+      console.log(`🔍 Found ${bidsToUnfreeze.length} bids to unfreeze:`);
+      bidsToUnfreeze.forEach(bid => {
+        console.log(`   - ${bid.venue.name} (frozenBy: ${bid.frozenByHoldId})`);
+      });
       
       // Unfreeze all bids that were frozen by this bid's acceptance
       const unfrozenCompetitors = await prisma.showRequestBid.updateMany({
@@ -657,6 +673,10 @@ export async function PUT(
       });
       
       console.log(`✅ Undo-accept completed: ${unfrozenCompetitors.count} competing bids unfrozen`);
+      
+      if (unfrozenCompetitors.count === 0 && bidsToUnfreeze.length > 0) {
+        console.log('⚠️ WARNING: Found bids to unfreeze but updateMany affected 0 rows - potential bug!');
+      }
     }
 
     console.log(`✅ Bid ${body.action}ed: ${bid.venue.name} → ${bid.showRequest.artist.name}`);
