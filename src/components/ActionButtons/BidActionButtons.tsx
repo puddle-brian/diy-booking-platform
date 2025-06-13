@@ -280,12 +280,33 @@ export function BidActionButtons({
 
       {bidStatus === 'accepted' && (
         <>
-          {renderActionButton(
-            'undo-accept', 
-            '↶', 
-            'bg-orange-600 hover:bg-orange-700', 
-            request?.isVenueInitiated ? "Undo not available for offers" : "Undo acceptance - return to pending",
-            Boolean(request?.isVenueInitiated)
+          {/* Check if this is an auto-held acceptance (new workflow) */}
+          {bid.holdState === 'ACCEPTED_HELD' ? (
+            <>
+              {renderActionButton(
+                'confirm-accepted', 
+                '✅', 
+                'bg-green-600 hover:bg-green-700', 
+                'Confirm booking - creates show and finalizes deal'
+              )}
+              {renderActionButton(
+                'undo-accept', 
+                '🤔', 
+                'bg-yellow-600 hover:bg-yellow-700', 
+                'Change mind - cancel acceptance and return to pending'
+              )}
+            </>
+          ) : (
+            <>
+              {/* Legacy acceptance - just show undo */}
+              {renderActionButton(
+                'undo-accept', 
+                '↶', 
+                'bg-orange-600 hover:bg-orange-700', 
+                request?.isVenueInitiated ? "Undo not available for offers" : "Undo acceptance - return to pending",
+                Boolean(request?.isVenueInitiated)
+              )}
+            </>
           )}
         </>
       )}

@@ -312,26 +312,30 @@ export async function PUT(
     
     switch (body.action.toLowerCase()) {
       case 'accept':
-        // 🔒 ENHANCED: Regular accept now properly handles competing bids
-        console.log('🔒 Accepting bid - rejecting all competitors (instant decision)');
+        // 🚀 NEW AUTO-HOLD: Accept now automatically creates a 24h hold for confirmation
+        console.log('🚀 Auto-Hold: Accepting bid with automatic 24h hold period');
         
         updateData = {
           status: BidStatus.ACCEPTED,
           acceptedAt: new Date(),
-          holdState: 'AVAILABLE' // Clear any hold state
+          holdState: 'ACCEPTED_HELD' // NEW: Auto-hold state - waiting for confirmation
         };
         
-        // First, check if there are any active holds on this show request
-        const activeHoldsOnRequest = await prisma.holdRequest.findMany({
+        // 🚀 AUTO-CREATE 24H HOLD for artist to confirm/change mind
+        const autoHoldExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+        
+        console.log(`🚀 Creating automatic 24h hold (expires: ${autoHoldExpiry.toLocaleString()})`);
+        
+        // Cancel any existing active holds first
+        const existingHolds = await prisma.holdRequest.findMany({
           where: {
             showRequestId: showRequestId,
             status: 'ACTIVE'
           }
         });
         
-        // Cancel any active holds (this bid wins definitively)
-        if (activeHoldsOnRequest.length > 0) {
-          console.log(`🔒 Cancelling ${activeHoldsOnRequest.length} active holds due to bid acceptance`);
+        if (existingHolds.length > 0) {
+          console.log(`🚀 Cancelling ${existingHolds.length} existing holds due to acceptance`);
           await prisma.holdRequest.updateMany({
             where: {
               showRequestId: showRequestId,
@@ -344,12 +348,47 @@ export async function PUT(
           });
         }
         
-        // After updating this bid, reject all competing bids immediately
-        // (This is a transaction that will happen after the main bid update)
+        // Get the user who manages this artist (we need a User ID, not Artist ID)
+        const artistUser = await prisma.membership.findFirst({
+          where: {
+            entityId: bid.showRequest.artistId,
+            entityType: 'ARTIST',
+            status: 'ACTIVE'
+          },
+          select: {
+            userId: true
+          }
+        });
+
+        if (!artistUser) {
+          console.error(`🚀 No active user found for artist ${bid.showRequest.artistId}`);
+          // Fallback to a system user or skip auto-hold creation
+          return NextResponse.json(
+            { error: 'Unable to create auto-hold: No active user found for artist' },
+            { status: 400 }
+          );
+        }
+
+        // Create the new auto-hold
+        const autoHold = await prisma.holdRequest.create({
+          data: {
+            showRequestId: showRequestId,
+            requestedById: artistUser.userId, // The USER who manages the artist
+            reason: 'Automatic hold for acceptance confirmation - 24h to confirm or change mind',
+            expiresAt: autoHoldExpiry,
+            duration: 24, // 24 hours
+            status: 'ACTIVE'
+          }
+        });
+        
+        console.log(`🚀 Created auto-hold: ${autoHold.id} (expires in 24h)`);
+        
+        // After updating this bid, freeze all competing bids (they can't be accepted during hold)
+        // (This happens after the main bid update in the post-processing section)
         break;
       case 'undo-accept':
-        // 🔒 ENHANCED: Undo-accept now unfreezes competing bids
-        console.log('🔒 Undo-accept: Unfreezing competing bids');
+        // 🚀 AUTO-HOLD UNDO: Cancel auto-hold and unfreeze competing bids
+        console.log('🚀 Auto-Hold Undo: Cancelling auto-hold and unfreezing competing bids');
         
         updateData = {
           status: BidStatus.PENDING,
@@ -358,6 +397,26 @@ export async function PUT(
           declinedReason: body.reason || null,
           holdState: 'AVAILABLE' // Clear any hold state
         };
+        
+        // Cancel the auto-created hold
+        const activeAutoHold = await prisma.holdRequest.findFirst({
+          where: {
+            showRequestId: showRequestId,
+            status: 'ACTIVE',
+            reason: 'Automatic hold for acceptance confirmation - 24h to confirm or change mind'
+          }
+        });
+        
+        if (activeAutoHold) {
+          console.log(`🚀 Cancelling auto-hold: ${activeAutoHold.id}`);
+          await prisma.holdRequest.update({
+            where: { id: activeAutoHold.id },
+            data: {
+              status: 'CANCELLED',
+              respondedAt: new Date()
+            }
+          });
+        }
         
         // After the main update, unfreeze competitors that were frozen by this acceptance
         break;
