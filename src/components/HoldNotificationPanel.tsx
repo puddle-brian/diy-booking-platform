@@ -58,7 +58,19 @@ export function HoldNotificationPanel({
       
       if (response.ok) {
         const holds = await response.json();
-        setIncomingHolds(holds.filter((hold: HoldRequest) => 
+        
+        // 🔒 SAFEGUARD: Deduplicate holds by ID to prevent React key errors
+        const uniqueHolds = holds.reduce((acc: HoldRequest[], hold: HoldRequest) => {
+          const existingIndex = acc.findIndex(h => h.id === hold.id);
+          if (existingIndex === -1) {
+            acc.push(hold);
+          }
+          return acc;
+        }, []);
+        
+        console.log(`🔒 HoldNotificationPanel: Received ${holds.length} holds, deduplicated to ${uniqueHolds.length} unique holds`);
+        
+        setIncomingHolds(uniqueHolds.filter((hold: HoldRequest) => 
           hold.status === 'PENDING' && hold.requestedById !== currentUserId
         ));
       }
@@ -212,9 +224,9 @@ export function HoldNotificationPanel({
       {/* Individual hold requests */}
       {showAll && (
         <div className="space-y-2 ml-4">
-          {incomingHolds.map((hold) => (
+          {incomingHolds.map((hold, index) => (
             <div
-              key={hold.id}
+              key={`${hold.id}-${index}`}
               className="bg-white border border-amber-200 rounded-lg p-3 shadow-sm"
             >
               <div className="flex items-center justify-between">

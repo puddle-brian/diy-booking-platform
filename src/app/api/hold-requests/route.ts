@@ -409,7 +409,7 @@ export async function GET(request: NextRequest) {
 
     // Build the query with proper parameter substitution using correct table name
     let query = `
-      SELECT hr.*, 
+      SELECT DISTINCT hr.*, 
              u1.username as requester_name,
              u2.username as responder_name,
              s.title as show_title,
@@ -429,7 +429,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN artists a ON sr."artistId" = a.id
       LEFT JOIN "venue_offers" vo ON hr."venueOfferId" = vo.id
       LEFT JOIN venues vov ON vo."venueId" = vov.id
-      -- 🎯 NEW: For targetVenueId, also check bids on artist-initiated requests
+      -- 🎯 FIXED: For targetVenueId, also check bids on artist-initiated requests (with DISTINCT to avoid duplicates)
       ${targetVenueId ? 
         `LEFT JOIN "show_request_bids" srb ON hr."showRequestId" = srb."showRequestId" AND srb."venueId" = $1` : 
         ''
@@ -438,8 +438,8 @@ export async function GET(request: NextRequest) {
       LEFT JOIN "show_request_bids" srb_general ON hr."showRequestId" = srb_general."showRequestId"
       LEFT JOIN venues bid_venue ON srb_general."venueId" = bid_venue.id
       WHERE (${targetVenueId ? 
-        // NEW: If targeting specific venue, find holds where that venue is the target
-        // This now includes: venue-initiated requests, shows, venue offers, AND bids on artist requests
+        // FIXED: If targeting specific venue, find holds where that venue is the target
+        // DISTINCT ensures no duplicates from multiple bids
         `(srv.id = $1 OR v.id = $1 OR vov.id = $1 OR srb."venueId" = $1)` :
         // EXISTING: General user permission check
         `hr."requestedById" = $1 OR 
