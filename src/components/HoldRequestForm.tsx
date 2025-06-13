@@ -89,10 +89,10 @@ export function HoldRequestForm({ onSubmit, onCancel, otherPartyName }: HoldRequ
           {isSubmitting ? (
             <div className="flex items-center space-x-1">
               <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
-              <span>Requesting...</span>
+              <span>Submitting...</span>
             </div>
           ) : (
-            '🔒 Request Hold'
+            'Submit'
           )}
         </button>
       </div>
