@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../lib/prisma';
-import { BidStatus, ShowStatus, AgeRestriction } from '@prisma/client';
+import { BidStatus, ShowStatus, AgeRestriction, BidHoldState } from '@prisma/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -261,18 +261,81 @@ export async function POST(request: NextRequest) {
           data: bidData
         });
         createdBids.push(createdBid);
+        
+        if (status === BidStatus.ACCEPTED) {
+          console.log(`🚀 Created ACCEPTED bid: ${createdBid.id} for ${artist?.name} at ${venue.name}`);
+        }
       }
       
-      // 🎯 FIX: After creating all bids for this show request, freeze competing bids for accepted bids
+      // 🚀 NEW AUTO-HOLD WORKFLOW: Create auto-holds for accepted bids
       // Get only the bids we just created for this specific show request
       const bidsForThisRequest = createdBids.filter(bid => bid.showRequestId === showRequest.id);
       const acceptedBidsForThisRequest = bidsForThisRequest.filter(bid => bid.status === BidStatus.ACCEPTED);
       
       if (acceptedBidsForThisRequest.length > 0) {
-        console.log(`🔒 Freezing competing bids for ${acceptedBidsForThisRequest.length} accepted bid(s) on ${showRequest.title}`);
+        console.log(`🚀 Creating auto-holds for ${acceptedBidsForThisRequest.length} accepted bid(s) on ${showRequest.title}`);
+        console.log(`🚀 Show request artist ID: ${showRequest.artistId}`);
         
         for (const acceptedBid of acceptedBidsForThisRequest) {
-          // Freeze all other bids on this show request
+          // Update the accepted bid to have ACCEPTED_HELD state
+          await prisma.showRequestBid.update({
+            where: { id: acceptedBid.id },
+            data: {
+              holdState: 'ACCEPTED_HELD' as BidHoldState
+            }
+          });
+          
+          // Get the artist user who would have accepted this bid
+          const artistUser = await prisma.membership.findFirst({
+            where: {
+              entityId: showRequest.artistId,
+              entityType: 'ARTIST',
+              status: 'ACTIVE'
+            },
+            select: {
+              userId: true
+            }
+          });
+
+          console.log(`🚀 Artist user lookup result:`, artistUser);
+
+          if (artistUser) {
+            // Create the auto-hold (24h expiry)
+            const autoHoldExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            const holdId = `hold_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            await prisma.$executeRaw`
+              INSERT INTO "hold_requests" (
+                id, 
+                "showRequestId", 
+                "requestedById", 
+                duration, 
+                reason, 
+                status,
+                "requestedAt",
+                "expiresAt",
+                "createdAt",
+                "updatedAt"
+              ) VALUES (
+                ${holdId},
+                ${showRequest.id},
+                ${artistUser.userId},
+                ${24},
+                ${'Automatic hold for acceptance confirmation - 24h to confirm or change mind'},
+                ${'ACTIVE'}::"HoldStatus",
+                ${new Date()},
+                ${autoHoldExpiry},
+                ${new Date()},
+                ${new Date()}
+              )
+            `;
+            
+            console.log(`   🚀 Created auto-hold for accepted bid from venue ${acceptedBid.venueId}`);
+          } else {
+            console.log(`   ⚠️ No artist user found for artist ${showRequest.artistId} - skipping auto-hold`);
+          }
+          
+          // Freeze all other bids on this show request (they're now competing with an accepted-held bid)
           const freezeResult = await prisma.showRequestBid.updateMany({
             where: {
               showRequestId: showRequest.id,
@@ -288,10 +351,10 @@ export async function POST(request: NextRequest) {
             }
           });
           
-          console.log(`   ✅ Froze ${freezeResult.count} competing bids for accepted bid from venue ${acceptedBid.venueId}`);
+          console.log(`   ✅ Froze ${freezeResult.count} competing bids for accepted-held bid`);
         }
       } else {
-        console.log(`   ℹ️ No accepted bids found for ${showRequest.title} - skipping freeze logic`);
+        console.log(`   ℹ️ No accepted bids found for ${showRequest.title} - skipping auto-hold logic`);
       }
     }
 
