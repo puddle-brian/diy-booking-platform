@@ -51,6 +51,21 @@ interface ModuleState {
   errors: string[];
 }
 
+// Helper function to check if a show is confirmed
+const isConfirmedShow = (show?: any, bid?: any, tourRequest?: any) => {
+  // Check various ways a show/booking can be confirmed
+  if (show?.status === 'confirmed') return true;
+  if (bid?.status === 'CONFIRMED') return true;
+  if (tourRequest?.status === 'CONFIRMED') return true;
+  
+  // Check for other status variations
+  if (show?.status === 'CONFIRMED') return true;
+  if (bid?.status === 'confirmed') return true;
+  if (tourRequest?.status === 'confirmed') return true;
+  
+  return false;
+};
+
 export default function ModularShowDocument({
   show,
   bid,
@@ -664,8 +679,8 @@ export default function ModularShowDocument({
           </div>
         </div>
 
-        {/* Hold Request Panel - Now fully functional with real data */}
-        {(show || bid || tourRequest) && (
+        {/* Hold Request Panel - Only show for non-confirmed shows */}
+        {(show || bid || tourRequest) && !isConfirmedShow(show, bid, tourRequest) && (
           <div className="px-6 py-4 border-b border-gray-100">
             <HoldRequestPanel
               key={`hold-${bid?.id || show?.id || tourRequest?.id}-${bid?.status || 'no-status'}`} // Force refresh when bid status changes

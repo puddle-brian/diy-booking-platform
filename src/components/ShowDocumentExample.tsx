@@ -97,18 +97,20 @@ export function ShowDocumentExample({
           </div>
         </div>
 
-        {/* Hold Request Panel - THE INTEGRATION POINT */}
+        {/* Hold Request Panel - Only show for non-confirmed shows */}
         <div className="p-6">
-          <HoldRequestPanel
-            showId={showId}
-            showRequestId={showRequestId}
-            currentUserId={currentUserId}
-            artistId={artistId}
-            venueId={venueId}
-            artistName={artistName}
-            venueName={venueName}
-            onHoldChange={handleHoldChange}
-          />
+          {documentStatus !== 'confirmed' && (
+            <HoldRequestPanel
+              showId={showId}
+              showRequestId={showRequestId}
+              currentUserId={currentUserId}
+              artistId={artistId}
+              venueId={venueId}
+              artistName={artistName}
+              venueName={venueName}
+              onHoldChange={handleHoldChange}
+            />
+          )}
 
           {/* Rest of Show Document Content */}
           <div className="space-y-6">
