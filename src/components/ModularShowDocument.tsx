@@ -96,7 +96,7 @@ export default function ModularShowDocument({
       setDocumentData({
         title: `${bid.venueName} Bid`,
         date: bid.proposedDate,
-        artistName: 'Artist', // Would need to fetch from tour request
+        artistName: (bid as any).artistName || 'Artist',
         venueName: bid.venueName
       });
     } else if (tourRequest) {

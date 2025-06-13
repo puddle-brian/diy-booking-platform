@@ -1384,7 +1384,10 @@ export default function TabbedTourItinerary({
                       setLength: originalOffer.setLength,
                       otherActs: originalOffer.otherActs,
                       billingNotes: originalOffer.billingNotes,
-                    };
+                      // Add missing artist information for show document headers
+                      artistId: originalOffer.artistId,
+                      artistName: originalOffer.artistName,
+                    } as VenueBid & { artistId?: string; artistName?: string };
                     
                     requestBids = [syntheticBid];
                   }
