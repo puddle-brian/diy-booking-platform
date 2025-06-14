@@ -359,8 +359,18 @@ export function ShowTimelineItem({
                 </td>
 
                 <td className="px-4 py-1.5 w-[19%]">
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {show.artistName || 'Unknown Artist'}
+                  <div className="text-sm font-medium truncate">
+                    {show.artistId ? (
+                      <a 
+                        href={`/artists/${show.artistId}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-150"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {show.artistName || 'Unknown Artist'}
+                      </a>
+                    ) : (
+                      <span className="text-gray-900">{show.artistName || 'Unknown Artist'}</span>
+                    )}
                     <span className="text-xs text-gray-500 ml-2">• Headliner</span>
                   </div>
                 </td>
@@ -432,8 +442,18 @@ export function ShowTimelineItem({
                   </td>
 
                   <td className="px-4 py-1.5 w-[19%]">
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {bid.tourRequest?.artist?.name || 'Unknown Artist'}
+                    <div className="text-sm font-medium truncate">
+                      {bid.tourRequest?.artist?.id ? (
+                        <a 
+                          href={`/artists/${bid.tourRequest.artist.id}`}
+                          className="text-blue-600 hover:text-blue-800 hover:underline transition-colors duration-150"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {bid.tourRequest.artist.name}
+                        </a>
+                      ) : (
+                        <span className="text-gray-900">Unknown Artist</span>
+                      )}
                       <span className="text-xs text-gray-500 ml-2">• {getRoleLabel(bid.lineupRole)}</span>
                     </div>
                   </td>
@@ -473,54 +493,57 @@ export function ShowTimelineItem({
 
                   <td className="px-4 py-1.5 w-[8%]">
                     <div className="flex items-center space-x-1">
-                      {/* Document button for lineup slot - show bid-specific document */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Create a bid document that shows this specific lineup slot details
-                          // We need to call a bid document handler, not show document
-                          // For now, let's create a custom handler for lineup bids
-                          handleLineupBidDocument(bid);
-                        }}
-                        className="inline-flex items-center justify-center w-8 h-8 text-yellow-600 hover:text-yellow-800 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 hover:border-yellow-300 rounded-lg transition-colors duration-150"
-                        title="View lineup slot details"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </button>
+                      {/* Only show document button for the current artist's own lineup bid */}
+                      {artistId && bid.tourRequest?.artist?.id === artistId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleLineupBidDocument(bid);
+                          }}
+                          className="inline-flex items-center justify-center w-8 h-8 text-yellow-600 hover:text-yellow-800 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 hover:border-yellow-300 rounded-lg transition-colors duration-150"
+                          title="View lineup slot details"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </button>
+                      )}
                     </div>
                   </td>
 
                   <td className="px-4 py-1.5 w-[10%]">
                     <div className="flex items-center space-x-1">
-                      {/* 🎯 FIX: Use standard BidActionButtons instead of custom LineupActionButtons */}
-                      <BidActionButtons
-                        bid={bid}
-                        request={bid.tourRequest ? {
-                          id: bid.showRequestId,
-                          title: `${bid.lineupRole} for ${show.venueName}`,
-                          artistId: bid.tourRequest.artist.id,
-                          artistName: bid.tourRequest.artist.name,
-                          isVenueInitiated: false,
-                          createdById: bid.invitedByUserId,
-                          requestDate: show.date,
-                          targetLocations: [],
-                          genres: [],
-                          description: '',
-                          status: 'ACTIVE',
-                          isLegacyRange: false,
-                          createdAt: bid.createdAt,
-                          updatedAt: bid.updatedAt
-                        } as any : undefined}
-                        permissions={permissions}
-                        bidStatus={bid.status.toLowerCase() as any}
-                        isLoading={false}
-                        venueOffers={[]}
-                        onBidAction={handleLineupBidAction}
-                        onOfferAction={async () => {}} // Not needed for lineup bids
-                        currentArtistId={artistId}
-                      />
+                      {/* Only show action buttons for the current artist's own lineup bid */}
+                      {artistId && bid.tourRequest?.artist?.id === artistId ? (
+                        <BidActionButtons
+                          bid={bid}
+                          request={bid.tourRequest ? {
+                            id: bid.showRequestId,
+                            title: `${bid.lineupRole} for ${show.venueName}`,
+                            artistId: bid.tourRequest.artist.id,
+                            artistName: bid.tourRequest.artist.name,
+                            isVenueInitiated: false,
+                            createdById: bid.invitedByUserId,
+                            requestDate: show.date,
+                            targetLocations: [],
+                            genres: [],
+                            description: '',
+                            status: 'ACTIVE',
+                            isLegacyRange: false,
+                            createdAt: bid.createdAt,
+                            updatedAt: bid.updatedAt
+                          } as any : undefined}
+                          permissions={permissions}
+                          bidStatus={bid.status.toLowerCase() as any}
+                          isLoading={false}
+                          venueOffers={[]}
+                          onBidAction={handleLineupBidAction}
+                          onOfferAction={async () => {}} // Not needed for lineup bids
+                          currentArtistId={artistId}
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-500">-</span>
+                      )}
                     </div>
                   </td>
                 </tr>
