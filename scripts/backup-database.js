@@ -101,12 +101,26 @@ async function restoreDatabase(backupFile) {
     }
 
     if (backup.artists?.length) {
-      await prisma.artist.createMany({ data: backup.artists });
+      const fixedArtists = backup.artists.map(artist => {
+        const { socialHandles, ...rest } = artist;
+        return {
+          ...rest,
+          socialLinks: socialHandles
+        };
+      });
+      await prisma.artist.createMany({ data: fixedArtists });
       console.log(`✅ Restored ${backup.artists.length} artists`);
     }
 
     if (backup.venues?.length) {
-      await prisma.venue.createMany({ data: backup.venues });
+      const fixedVenues = backup.venues.map(venue => {
+        const { socialHandles, ...rest } = venue;
+        return {
+          ...rest,
+          socialLinks: socialHandles
+        };
+      });
+      await prisma.venue.createMany({ data: fixedVenues });
       console.log(`✅ Restored ${backup.venues.length} venues`);
     }
 

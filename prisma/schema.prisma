@@ -74,7 +74,7 @@ model Venue {
   contactEmail       String?
   contactPhone       String?
   website            String?
-  socialHandles      Json?
+  socialLinks        Json?                // Renamed from socialHandles to match Artist model
   equipment          Json?
   features           String[]
   pricing            Json?
@@ -728,8 +728,6 @@ model ActivityNotification {
   @@index([expiresAt])
   @@map("activity_notifications")
 }
-
-
 
 enum Role {
   USER

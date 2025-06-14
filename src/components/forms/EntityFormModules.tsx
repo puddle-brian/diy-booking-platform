@@ -781,7 +781,7 @@ export interface ArtistAdditionalDetailsModuleProps {
     artistDetails: ArtistDetailsData;
     images: string[];
     website?: string;
-    socialHandles?: string;
+    socialLinks?: string;
     artistType: ArtistType;
   };
   onChange: (field: string, value: any) => void;
@@ -809,8 +809,8 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
     onChange('artistDetails', details);
   };
 
-  const handleSocialHandlesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange('socialHandles', e.target.value);
+  const handleSocialLinksChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onChange('socialLinks', e.target.value);
   };
 
   // Image upload functionality (same as venue module)
@@ -970,8 +970,8 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
               id="social-handles"
               name="socialHandles"
               type="text"
-              value={data.socialHandles || ''}
-              onChange={handleSocialHandlesChange}
+              value={data.socialLinks || ''}
+              onChange={handleSocialLinksChange}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
               placeholder="@yourband on Instagram, Facebook, etc."
             />

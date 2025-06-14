@@ -3,6 +3,8 @@ import { Show, VenueBid, LineupPosition } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
+import { LineupInvitationModal } from '../modals/LineupInvitationModal';
+import { LineupActionButtons } from '../LineupActionButtons';
 
 interface LineupBid extends VenueBid {
   isLineupSlot: true;
@@ -49,6 +51,7 @@ export function ShowTimelineItem({
 }: ShowTimelineItemProps) {
   const [lineupBids, setLineupBids] = useState<LineupBid[]>([]);
   const [loadingLineup, setLoadingLineup] = useState(false);
+  const [showInvitationModal, setShowInvitationModal] = useState(false);
 
   // Fetch lineup bids when expanded
   useEffect(() => {
@@ -61,10 +64,14 @@ export function ShowTimelineItem({
     setLoadingLineup(true);
     try {
       // Query bids where isLineupSlot=true and parentShowId=show.id
+      console.log(`🎵 Fetching lineup bids for show ${show.id}`);
       const response = await fetch(`/api/bids?parentShowId=${show.id}&isLineupSlot=true`);
       if (response.ok) {
         const bids = await response.json();
+        console.log(`🎵 Received ${bids.length} lineup bids:`, bids);
         setLineupBids(bids.sort((a: LineupBid, b: LineupBid) => a.billingOrder - b.billingOrder));
+      } else {
+        console.error('Failed to fetch lineup bids:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Failed to fetch lineup bids:', error);
@@ -116,6 +123,37 @@ export function ShowTimelineItem({
       case 'OPENER': return 'bg-yellow-50 hover:bg-yellow-100';
       case 'LOCAL_OPENER': return 'bg-purple-50 hover:bg-purple-100';
       default: return 'bg-gray-50 hover:bg-gray-100';
+    }
+  };
+
+  const handleInvitationSent = () => {
+    // Refresh lineup bids after sending invitation
+    fetchLineupBids();
+  };
+
+  const handleLineupResponse = async (bidId: string, action: 'accept' | 'decline', reason?: string) => {
+    try {
+      const response = await fetch(`/api/lineup-invitations/${bidId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action,
+          reason
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh lineup bids to show updated status
+        fetchLineupBids();
+      } else {
+        const error = await response.json();
+        alert(`Failed to ${action} invitation: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error(`Failed to ${action} lineup invitation:`, error);
+      alert(`Failed to ${action} invitation. Please try again.`);
     }
   };
 
@@ -398,7 +436,12 @@ export function ShowTimelineItem({
 
                   <td className="px-4 py-1.5 w-[10%]">
                     <div className="flex items-center space-x-1">
-                      {/* Future: Accept/Decline buttons for lineup invitations */}
+                      <LineupActionButtons
+                        bid={bid}
+                        showId={show.id}
+                        canRespond={true}
+                        onResponse={handleLineupResponse}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -411,8 +454,7 @@ export function ShowTimelineItem({
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        // TODO: Implement add support act functionality
-                        alert('Adding support acts coming soon!');
+                        setShowInvitationModal(true);
                       }}
                       className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-4 rounded border-2 border-dashed border-green-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
                     >
@@ -428,6 +470,16 @@ export function ShowTimelineItem({
           )}
         </>
       )}
+
+      {/* Lineup Invitation Modal */}
+      <LineupInvitationModal
+        isOpen={showInvitationModal}
+        onClose={() => setShowInvitationModal(false)}
+        showId={show.id}
+        showDate={show.date}
+        venueName={show.venueName || 'TBA'}
+        onInvitationSent={handleInvitationSent}
+      />
     </>
   );
 } 
