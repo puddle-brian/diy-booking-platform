@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../lib/prisma';
+import { ActivityNotificationService } from '../../../services/ActivityNotificationService';
 
 // GET /api/show-requests - Get show requests with filtering
 export async function GET(request: NextRequest) {
@@ -329,6 +330,80 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Show request created: ${newShowRequest.title}`);
     console.log(`🎯 Created by: ${body.initiatedBy} | Artist: ${artist.name} | Date: ${body.requestedDate}`);
+
+    // 🎯 UX IMPROVEMENT: Notify venue owners when artists request to play there
+    console.log(`🔔 Notification check: parsedVenueId=${parsedVenueId}, initiatedBy=${body.initiatedBy}`);
+    if (parsedVenueId && body.initiatedBy === 'ARTIST') {
+      console.log(`🔔 Attempting to notify venue members for venue ${parsedVenueId}`);
+      try {
+        // Get venue owners to notify (using same pattern as bid notifications)
+        const venueMembers = await prisma.membership.findMany({
+          where: { 
+            entityType: 'VENUE',
+            entityId: parsedVenueId,
+            status: 'ACTIVE'  // This was the missing piece!
+          },
+          include: {
+            user: { 
+              select: { id: true, username: true } 
+            }
+          }
+        });
+        
+        console.log(`🔔 Found ${venueMembers.length} venue members with OWNER/ADMIN roles`);
+        if (venueMembers.length === 0) {
+          // Check if there are ANY members for this venue
+          const allMembers = await prisma.membership.findMany({
+            where: { 
+              entityType: 'VENUE',
+              entityId: parsedVenueId
+            },
+            include: {
+              user: { 
+                select: { id: true, username: true } 
+              }
+            }
+          });
+          console.log(`🔔 Total venue members (any role): ${allMembers.length}`);
+          allMembers.forEach(member => {
+            console.log(`🔔 Member: ${member.user.username} (${member.role})`);
+          });
+        }
+
+        // Notify each venue owner/admin
+        for (const member of venueMembers) {
+          const showDate = new Date(body.requestedDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          });
+          
+          // Use venue name for clearer notification
+          const venueName = newShowRequest.venue?.name || 'your venue';
+          
+          await ActivityNotificationService.createNotification({
+            userId: member.user.id,
+            type: 'SHOW_REQUEST',
+            title: 'New Show Request',
+            summary: `${artist.name} wants to play at ${venueName} on ${showDate}`,
+            entityType: 'SHOW_REQUEST',
+            entityId: newShowRequest.id,
+            actionUrl: `/show-requests/${newShowRequest.id}`,
+            metadata: { 
+              artistName: artist.name, 
+              venueName: venueName,
+              showTitle: newShowRequest.title,
+              requestedDate: showDate 
+            }
+          });
+        }
+        
+        console.log(`📢 Notified ${venueMembers.length} venue members about new show request`);
+      } catch (notificationError) {
+        // Don't fail the request if notification fails
+        console.error('Error sending show request notification:', notificationError);
+      }
+    }
 
     return NextResponse.json(newShowRequest, { status: 201 });
   } catch (error) {

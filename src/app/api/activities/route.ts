@@ -173,6 +173,8 @@ function getActionTextForType(type: string): string {
       return 'Review Changes';
     case 'SHOW_CONFIRMED':
       return 'View Show';
+    case 'SHOW_REQUEST':
+      return 'View Request';
     case 'TOUR_REQUEST':
       return 'View Applications';
     case 'MEMBER_INVITE':
