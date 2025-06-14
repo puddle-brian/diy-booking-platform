@@ -170,25 +170,6 @@ export function ShowTimelineItem({
     await handleLineupResponse(bid.id, lineupAction as 'accept' | 'decline', reason);
   };
 
-  // 🎯 NEW: Handler for lineup bid documents
-  const handleLineupBidDocument = (bid: LineupBid) => {
-    // Create a mock show object specific to this lineup slot
-    const lineupShow = {
-      ...show,
-      id: `lineup-${bid.id}`, // Unique ID for this lineup slot
-      artistId: bid.tourRequest?.artist?.id || 'unknown',
-      artistName: bid.tourRequest?.artist?.name || 'Unknown Artist',
-      title: `${bid.tourRequest?.artist?.name || 'Unknown Artist'} • ${getRoleLabel(bid.lineupRole)} at ${show.venueName}`,
-      guarantee: bid.guarantee,
-      setLength: bid.setLength,
-      lineupRole: bid.lineupRole,
-      billingOrder: bid.billingOrder,
-    };
-    
-    // Call the show document handler with the lineup-specific show data
-    onShowDocument(lineupShow as any);
-  };
-
   return (
     <>
       <tr 
@@ -465,7 +446,7 @@ export function ShowTimelineItem({
                         } as any : undefined;
                         const canSeeFinancial = permissions.canSeeFinancialDetails(show, bid, mockRequest);
                         const hasGuarantee = bid.guarantee;
-
+                        console.log(`🎵 GUARANTEE DEBUG - canSeeFinancial: ${canSeeFinancial}, hasGuarantee: ${hasGuarantee}, guarantee: ${bid.guarantee}`);
                         return canSeeFinancial ? (hasGuarantee ? `$${bid.guarantee}` : 'TBD') : '-';
                       })()}
                     </div>
@@ -473,17 +454,14 @@ export function ShowTimelineItem({
 
                   <td className="px-4 py-1.5 w-[8%]">
                     <div className="flex items-center space-x-1">
-                      {/* Document button for lineup slot - show bid-specific document */}
+                      {/* Document button for lineup slot - treat as show document since it's a confirmed show */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          // Create a bid document that shows this specific lineup slot details
-                          // We need to call a bid document handler, not show document
-                          // For now, let's create a custom handler for lineup bids
-                          handleLineupBidDocument(bid);
+                          onShowDocument(show);
                         }}
-                        className="inline-flex items-center justify-center w-8 h-8 text-yellow-600 hover:text-yellow-800 bg-yellow-50 hover:bg-yellow-100 border border-yellow-200 hover:border-yellow-300 rounded-lg transition-colors duration-150"
-                        title="View lineup slot details"
+                        className="inline-flex items-center justify-center w-8 h-8 text-green-600 hover:text-green-800 bg-green-50 hover:bg-green-100 border border-green-200 hover:border-green-300 rounded-lg transition-colors duration-150"
+                        title="View show document"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />

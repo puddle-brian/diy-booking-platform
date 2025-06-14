@@ -272,11 +272,23 @@ export function BidActionButtons({
       {bidStatus === 'pending' && (
         <>
           {renderActionButton('accept', '✓', 'bg-green-600 hover:bg-green-700', 'Accept this bid')}
+          {renderActionButton(
+            'hold', 
+            '⏸', 
+            'bg-yellow-600 hover:bg-yellow-700', 
+            request?.isVenueInitiated ? "Hold not available for offers" : "Place on hold",
+            Boolean(request?.isVenueInitiated)
+          )}
           {renderActionButton('decline', '✕', 'bg-red-600 hover:bg-red-700', 'Decline this bid')}
         </>
       )}
 
-
+      {bidStatus === 'hold' && (
+        <>
+          {renderActionButton('accept', '✓', 'bg-green-600 hover:bg-green-700', 'Accept this bid')}
+          {renderActionButton('decline', '✕', 'bg-red-600 hover:bg-red-700', 'Decline this bid')}
+        </>
+      )}
 
       {bidStatus === 'accepted' && (
         <>
