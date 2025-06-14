@@ -34,7 +34,8 @@ import {
   generateStableMonthTabs,
   generateMinimalMonthLabels,
   generateCompactMonthLabels,
-  getDefaultActiveMonthStable
+  getDefaultActiveMonthStable,
+  getMonthKeyFromDate
 } from '../utils/timelineUtils';
 
 // Import action button components
@@ -1950,6 +1951,10 @@ export default function TabbedTourItinerary({
                     
                     setShowAddDateForm(false);
                     await fetchData();
+                    
+                    // 🎯 UX IMPROVEMENT: Auto-focus on the month with the new content
+                    const targetMonth = getMonthKeyFromDate(formData.proposedDate);
+                    actions.setActiveMonth(targetMonth);
                   } catch (error) {
                     console.error('Error creating venue offer:', error);
                     throw error;
@@ -2069,6 +2074,11 @@ export default function TabbedTourItinerary({
 
                   setShowAddDateForm(false);
                   await fetchData();
+                  
+                  // 🎯 UX IMPROVEMENT: Auto-focus on the month with the new content
+                  const dateToFocus = addDateForm.type === 'request' ? formData.requestDate : formData.date;
+                  const targetMonth = getMonthKeyFromDate(dateToFocus);
+                  actions.setActiveMonth(targetMonth);
                 } catch (error) {
                   console.error('Error in form submission:', error);
                   throw error; // Re-throw so UnifiedShowRequestForm can handle it
