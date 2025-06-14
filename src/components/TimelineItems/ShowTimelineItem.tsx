@@ -471,6 +471,7 @@ export function ShowTimelineItem({
                         venueOffers={[]}
                         onBidAction={handleLineupBidAction}
                         onOfferAction={async () => {}} // Not needed for lineup bids
+                        currentArtistId={artistId}
                       />
                     </div>
                   </td>

@@ -164,6 +164,8 @@ interface BidActionButtonsProps {
     requesterName: string;
     reason: string;
   };
+  // NEW: Current artist ID for ownership check
+  currentArtistId?: string;
 }
 
 export function BidActionButtons({
@@ -176,7 +178,8 @@ export function BidActionButtons({
   onBidAction,
   onOfferAction,
   isFrozenByHold = false,
-  activeHoldInfo
+  activeHoldInfo,
+  currentArtistId
 }: BidActionButtonsProps) {
   // 🎯 NEW: Venue-specific actions for accepted bids
   if (permissions.actualViewerType === 'venue' && bidStatus === 'accepted') {
@@ -202,6 +205,15 @@ export function BidActionButtons({
   // Only show action buttons for artists (all other cases)
   if (permissions.actualViewerType !== 'artist') {
     return null;
+  }
+
+  // 🎯 NEW: Only show action buttons if current artist owns this bid
+  if (currentArtistId) {
+    // Check multiple possible sources for the artist ID
+    const bidArtistId = bid.artistId || request?.artistId || (bid as any).tourRequest?.artist?.id;
+    if (bidArtistId && currentArtistId !== bidArtistId) {
+      return null;
+    }
   }
 
   // ❄️ FROZEN: Show just snowflake icon when bid is frozen by an active hold
