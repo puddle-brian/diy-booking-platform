@@ -338,26 +338,8 @@ export default function TabbedTourItinerary({
           // Optimistic update - immediately hide the show
           actions.deleteShowOptimistic(showId);
           
-          // If this was the last item in the month, switch to a valid month immediately
-          if (isLastItemInMonth && monthGroups.length > 1) {
-            // Find the next best month to switch to
-            const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
-            let newActiveMonth: string;
-            
-            if (currentMonthIndex < monthGroups.length - 1) {
-              // Switch to next month
-              newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
-            } else if (currentMonthIndex > 0) {
-              // Switch to previous month
-              newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
-            } else {
-              // Fallback to current month
-              const now = new Date();
-              newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-            }
-            
-            actions.setActiveMonth(newActiveMonth);
-          }
+          // 🎯 UX IMPROVEMENT: Stay on current month after deletion to confirm action worked
+          // (Removed auto-switching logic that was confusing users)
           
           const response = await fetch(`/api/shows/${showId}`, {
             method: 'DELETE',
@@ -484,37 +466,12 @@ export default function TabbedTourItinerary({
     
     // Optimistic update for decline action to avoid flashing
     if (action === 'decline') {
-      // Check if this is the last item in the current month before deletion
-      const syntheticRequestId = `venue-offer-${offer.id}`;
-      const currentMonthEntries = activeMonthEntries;
-      const offerToDelete = currentMonthEntries.find(entry => 
-        entry.type === 'tour-request' && (entry.data as any).id === syntheticRequestId
-      );
-      const isLastItemInMonth = currentMonthEntries.length === 1 && offerToDelete;
-      
       // Find and hide the synthetic tour request for this offer
+      const syntheticRequestId = `venue-offer-${offer.id}`;
       actions.deleteRequestOptimistic(syntheticRequestId);
       
-      // If this was the last item in the month, switch to a valid month immediately
-      if (isLastItemInMonth && monthGroups.length > 1) {
-        // Find the next best month to switch to
-        const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
-        let newActiveMonth: string;
-        
-        if (currentMonthIndex < monthGroups.length - 1) {
-          // Switch to next month
-          newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
-        } else if (currentMonthIndex > 0) {
-          // Switch to previous month
-          newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
-        } else {
-          // Fallback to current month
-          const now = new Date();
-          newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        }
-        
-        actions.setActiveMonth(newActiveMonth);
-      }
+      // 🎯 UX IMPROVEMENT: Stay on current month after deletion to confirm action worked
+      // (Removed auto-switching logic that was confusing users)
     } else if (action === 'accept') {
       // Optimistic update for accept action
       setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
@@ -813,37 +770,12 @@ export default function TabbedTourItinerary({
     
     // Optimistic update for decline action to avoid flashing
     if (action === 'decline') {
-      // Check if this is the last item in the current month before deletion
-      const syntheticRequestId = `venue-offer-${offer.id}`;
-      const currentMonthEntries = activeMonthEntries;
-      const offerToDelete = currentMonthEntries.find(entry => 
-        entry.type === 'tour-request' && (entry.data as any).id === syntheticRequestId
-      );
-      const isLastItemInMonth = currentMonthEntries.length === 1 && offerToDelete;
-      
       // Find and hide the synthetic tour request for this offer
+      const syntheticRequestId = `venue-offer-${offer.id}`;
       actions.deleteRequestOptimistic(syntheticRequestId);
       
-      // If this was the last item in the month, switch to a valid month immediately
-      if (isLastItemInMonth && monthGroups.length > 1) {
-        // Find the next best month to switch to
-        const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
-        let newActiveMonth: string;
-        
-        if (currentMonthIndex < monthGroups.length - 1) {
-          // Switch to next month
-          newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
-        } else if (currentMonthIndex > 0) {
-          // Switch to previous month
-          newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
-        } else {
-          // Fallback to current month
-          const now = new Date();
-          newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        }
-        
-        actions.setActiveMonth(newActiveMonth);
-      }
+      // 🎯 UX IMPROVEMENT: Stay on current month after deletion to confirm action worked
+      // (Removed auto-switching logic that was confusing users)
     } else if (action === 'accept') {
       // Optimistic update for accept action
       setBidStatusOverrides(prev => new Map(prev).set(offer.id, 'accepted'));
@@ -1085,36 +1017,11 @@ export default function TabbedTourItinerary({
       async () => {
         actions.setDeleteLoading(requestId);
         
-        // Check if this is the last item in the current month before deletion
-        const currentMonthEntries = activeMonthEntries;
-        const requestToDelete = currentMonthEntries.find(entry => 
-          entry.type === 'tour-request' && (entry.data as TourRequest).id === requestId
-        );
-        const isLastItemInMonth = currentMonthEntries.length === 1 && requestToDelete;
-        
         // Optimistic update - immediately hide the request
         actions.deleteRequestOptimistic(requestId);
         
-        // If this was the last item in the month, switch to a valid month immediately
-        if (isLastItemInMonth && monthGroups.length > 1) {
-          // Find the next best month to switch to
-          const currentMonthIndex = monthGroups.findIndex(group => group.monthKey === state.activeMonthTab);
-          let newActiveMonth: string;
-          
-          if (currentMonthIndex < monthGroups.length - 1) {
-            // Switch to next month
-            newActiveMonth = monthGroups[currentMonthIndex + 1].monthKey;
-          } else if (currentMonthIndex > 0) {
-            // Switch to previous month
-            newActiveMonth = monthGroups[currentMonthIndex - 1].monthKey;
-          } else {
-            // Fallback to current month
-            const now = new Date();
-            newActiveMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-          }
-          
-          actions.setActiveMonth(newActiveMonth);
-        }
+        // 🎯 UX IMPROVEMENT: Stay on current month after deletion to confirm action worked
+        // (Removed auto-switching logic that was confusing users)
         
         try {
           const response = await fetch(`/api/show-requests/${requestId}`, {
