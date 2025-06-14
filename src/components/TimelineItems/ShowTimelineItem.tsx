@@ -4,7 +4,7 @@ import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
 import { LineupInvitationModal } from '../modals/LineupInvitationModal';
-import { LineupActionButtons } from '../LineupActionButtons';
+import { BidActionButtons } from '../ActionButtons/BidActionButtons';
 
 interface LineupBid extends VenueBid {
   isLineupSlot: true;
@@ -155,6 +155,16 @@ export function ShowTimelineItem({
       console.error(`Failed to ${action} lineup invitation:`, error);
       alert(`Failed to ${action} invitation. Please try again.`);
     }
+  };
+
+  // 🎯 NEW: Unified lineup bid action handler that works with BidActionButtons
+  const handleLineupBidAction = async (bid: any, action: string, reason?: string) => {
+    // Convert action to lineup invitation format
+    const lineupAction = action === 'accept' ? 'accept' : 
+                        action === 'decline' ? 'decline' : 
+                        action; // Pass through other actions as-is
+    
+    await handleLineupResponse(bid.id, lineupAction as 'accept' | 'decline', reason);
   };
 
   return (
@@ -436,11 +446,31 @@ export function ShowTimelineItem({
 
                   <td className="px-4 py-1.5 w-[10%]">
                     <div className="flex items-center space-x-1">
-                      <LineupActionButtons
+                      {/* 🎯 FIX: Use standard BidActionButtons instead of custom LineupActionButtons */}
+                      <BidActionButtons
                         bid={bid}
-                        showId={show.id}
-                        canRespond={true}
-                        onResponse={handleLineupResponse}
+                        request={bid.tourRequest ? {
+                          id: bid.showRequestId,
+                          title: `${bid.lineupRole} for ${show.venueName}`,
+                          artistId: bid.tourRequest.artist.id,
+                          artistName: bid.tourRequest.artist.name,
+                          isVenueInitiated: false,
+                          createdById: bid.invitedByUserId,
+                          requestDate: show.date,
+                          targetLocations: [],
+                          genres: [],
+                          description: '',
+                          status: 'ACTIVE',
+                          isLegacyRange: false,
+                          createdAt: bid.createdAt,
+                          updatedAt: bid.updatedAt
+                        } as any : undefined}
+                        permissions={permissions}
+                        bidStatus={bid.status.toLowerCase() as any}
+                        isLoading={false}
+                        venueOffers={[]}
+                        onBidAction={handleLineupBidAction}
+                        onOfferAction={async () => {}} // Not needed for lineup bids
                       />
                     </div>
                   </td>

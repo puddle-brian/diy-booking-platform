@@ -65,6 +65,47 @@ export async function PATCH(
 
     if (action === 'accept') {
       updateData.acceptedAt = new Date();
+      
+      // 🎯 FIX: Create Show record for accepted lineup invitation
+      // First get the parent show and venue info
+      const parentShow = await prisma.show.findUnique({
+        where: { id: lineupBid.parentShowId! },
+        include: {
+          venue: {
+            include: {
+              location: true
+            }
+          }
+        }
+      });
+
+      if (parentShow) {
+        // Create a Show record for the support act
+        const supportShow = await prisma.show.create({
+          data: {
+            title: `${lineupBid.tourRequest.artist.name} (${lineupBid.lineupRole?.toLowerCase().replace('_', ' ')})`,
+            date: parentShow.date,
+            artistId: lineupBid.tourRequest.artist.id,
+            artistName: lineupBid.tourRequest.artist.name,
+            venueId: parentShow.venueId,
+            venueName: parentShow.venueName,
+            city: parentShow.city,
+            state: parentShow.state,
+            country: parentShow.country,
+            guarantee: lineupBid.amount || null,
+            capacity: parentShow.capacity,
+            ageRestriction: parentShow.ageRestriction,
+            // Link to parent show for lineup context
+            parentShowId: parentShow.id,
+            isLineupSlot: true,
+            lineupRole: lineupBid.lineupRole,
+            billingOrder: lineupBid.billingOrder,
+            status: 'CONFIRMED'
+          }
+        });
+
+        console.log(`✅ Created Show record for support act: ${supportShow.id}`);
+      }
     } else {
       updateData.declinedAt = new Date();
       if (reason) {
