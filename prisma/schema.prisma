@@ -8,32 +8,34 @@ datasource db {
 }
 
 model User {
-  id                      String                    @id @default(cuid())
-  email                   String                    @unique
-  username                String                    @unique
-  passwordHash            String?
-  role                    Role                      @default(USER)
-  verified                Boolean                   @default(false)
-  createdAt               DateTime                  @default(now())
-  updatedAt               DateTime                  @updatedAt
-  activityNotifications   ActivityNotification[]
-  submittedArtists        Artist[]
-  bids                    Bid[]
-  conversations           ConversationParticipant[]
-  favorites               Favorite[]
-  requestedHolds          HoldRequest[]             @relation("RequestedHolds")
-  respondedHolds          HoldRequest[]             @relation("RespondedHolds")
-  memberships             Membership[]
-  receivedMessages        Message[]                 @relation("ReceivedMessages")
-  sentMessages            Message[]                 @relation("SentMessages")
-  submittedInfrastructure SceneInfrastructure[]
-  sceneReports            SceneReport[]
-  showRequestBids         ShowRequestBid[]
-  showRequests            ShowRequest[]
-  shows                   Show[]
-  tourRequests            TourRequest[]
-  venueOffers             VenueOffer[]
-  submittedVenues         Venue[]
+  id                        String                    @id @default(cuid())
+  email                     String                    @unique
+  username                  String                    @unique
+  passwordHash              String?
+  role                      Role                      @default(USER)
+  verified                  Boolean                   @default(false)
+  createdAt                 DateTime                  @default(now())
+  updatedAt                 DateTime                  @updatedAt
+  activityNotifications     ActivityNotification[]
+  submittedArtists          Artist[]                  @relation("SubmittedArtists")
+  ownedArtists              Artist[]                  @relation("OwnedArtists")
+  sentLineupInvitations     Bid[]                     @relation("SentLineupInvitations")  // 🎵 NEW: Lineup invitations sent
+  bids                      Bid[]
+  conversations             ConversationParticipant[]
+  favorites                 Favorite[]
+  requestedHolds            HoldRequest[]             @relation("RequestedHolds")
+  respondedHolds            HoldRequest[]             @relation("RespondedHolds")
+  memberships               Membership[]
+  receivedMessages          Message[]                 @relation("ReceivedMessages")
+  sentMessages              Message[]                 @relation("SentMessages")
+  submittedInfrastructure   SceneInfrastructure[]
+  sceneReports              SceneReport[]
+  showRequestBids           ShowRequestBid[]
+  showRequests              ShowRequest[]
+  shows                     Show[]
+  tourRequests              TourRequest[]
+  venueOffers               VenueOffer[]
+  submittedVenues           Venue[]
 
   @@index([email])
   @@index([role])
@@ -108,38 +110,50 @@ model Venue {
 }
 
 model Artist {
-  id             String           @id @default(cuid())
-  name           String
-  locationId     String
-  artistType     ArtistType?
-  genres         String[]
-  members        Int?
-  yearFormed     Int?
-  tourStatus     TourStatus?
-  contactEmail   String?
-  website        String?
-  socialHandles  Json?
-  equipmentNeeds Json?
-  description    String?
-  images         String[]
-  verified       Boolean          @default(false)
-  submittedById  String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  templates      ArtistTemplate[]
-  location       Location         @relation(fields: [locationId], references: [id])
-  submittedBy    User?            @relation(fields: [submittedById], references: [id])
-  showRequests   ShowRequest[]
-  shows          Show[]
-  tourRequests   TourRequest[]
-  venueOffers    VenueOffer[]
+  id               String                @id @default(cuid())
+  name             String
+  locationId       String                // Restored: Artist location
+  genres           String[]
+  artistType       ArtistType?           // Made optional to avoid breaking existing data
+  members          Int?                  // Restored: Band member count
+  yearFormed       Int?                  // Restored: Formation year
+  description      String?
+  contactEmail     String?
+  contactPhone     String?
+  website          String?
+  socialLinks      Json?                 // Renamed from socialHandles
+  tourStatus       TourStatus?           // Made optional to avoid breaking existing data
+  equipmentNeeds   Json?                 // Restored: Equipment requirements
+  images           String[]              // Restored: Artist images
+  verified         Boolean               @default(false)  // Restored: Verification status
+  submittedById    String?               // Restored: Who submitted this artist
+  profileImage     String?
+  profileCoverText String?
+  recentUpdates    Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  ownerId          String?
+  
+  // Relations
+  sceneReports     SceneReport[]
+  showRequestBids  ShowRequestBid[]
+  showRequests     ShowRequest[]         // Restored: Artist show requests
+  shows            Show[]
+
+  tourRequests     TourRequest[]
+  templates        ArtistTemplate[]
+  venueOffers      VenueOffer[]
+  location         Location              @relation(fields: [locationId], references: [id])  // Restored
+  submittedBy      User?                 @relation("SubmittedArtists", fields: [submittedById], references: [id])  // Restored
+  owner            User?                 @relation("OwnedArtists", fields: [ownerId], references: [id])
 
   @@index([locationId])
+  @@index([name])
+  @@index([ownerId])
   @@index([artistType])
   @@index([genres])
   @@index([tourStatus])
   @@index([verified])
-  @@index([name])
   @@index([createdAt])
   @@map("artists")
 }
@@ -280,6 +294,8 @@ model ShowRequestBid {
   bidder          User         @relation(fields: [bidderId], references: [id])
   showRequest     ShowRequest  @relation(fields: [showRequestId], references: [id])
   venue           Venue        @relation(fields: [venueId], references: [id])
+  Artist          Artist?      @relation(fields: [artistId], references: [id])
+  artistId        String?
 
   @@index([showRequestId])
   @@index([venueId])
@@ -304,6 +320,8 @@ model SceneReport {
   author     User       @relation(fields: [authorId], references: [id])
   location   Location?  @relation(fields: [locationId], references: [id])
   venue      Venue?     @relation(fields: [venueId], references: [id])
+  Artist     Artist?    @relation(fields: [artistId], references: [id])
+  artistId   String?
 
   @@index([locationId])
   @@index([venueId])
@@ -322,7 +340,7 @@ model Show {
   artistId       String
   description    String?
   ticketPrice    Float?
-  ageRestriction AgeRestriction?
+  ageRestriction  AgeRestriction?
   status         ShowStatus      @default(CONFIRMED)
   createdById    String
   createdAt      DateTime        @default(now())
@@ -338,6 +356,7 @@ model Show {
   showTime       String?
   soundcheck     String?
   holdRequests   HoldRequest[]
+  lineupBids     Bid[]           @relation("LineupBids") // 🎵 NEW: Lineup bids for this show
   artist         Artist          @relation(fields: [artistId], references: [id])
   createdBy      User            @relation(fields: [createdById], references: [id])
   venue          Venue           @relation(fields: [venueId], references: [id])
@@ -379,9 +398,16 @@ model Bid {
   holdState       BidHoldState @default(AVAILABLE)
   statusHistory   Json         @default("[]")
   unfrozenAt      DateTime?
+  isLineupSlot    Boolean      @default(false)    // Marks this as a lineup invitation
+  parentShowId    String?                         // Links to the confirmed show this is for
+  lineupRole      LineupPosition?                 // HEADLINER, DIRECT_SUPPORT, OPENER, LOCAL_OPENER
+  billingOrder    Int?                            // 1 = headliner, 2 = direct support, etc.
+  invitedByUserId String?                         // Who sent this lineup invitation
   bidder          User         @relation(fields: [bidderId], references: [id])
   tourRequest     TourRequest  @relation(fields: [tourRequestId], references: [id])
   venue           Venue        @relation(fields: [venueId], references: [id])
+  parentShow      Show?        @relation("LineupBids", fields: [parentShowId], references: [id])
+  invitedBy       User?        @relation("SentLineupInvitations", fields: [invitedByUserId], references: [id])
 
   @@index([tourRequestId])
   @@index([venueId])
@@ -390,6 +416,9 @@ model Bid {
   @@index([proposedDate])
   @@index([holdPosition])
   @@index([createdAt])
+  @@index([isLineupSlot])
+  @@index([parentShowId])
+  @@index([billingOrder])
   @@map("bids")
 }
 
@@ -700,6 +729,8 @@ model ActivityNotification {
   @@map("activity_notifications")
 }
 
+
+
 enum Role {
   USER
   MODERATOR
@@ -880,4 +911,18 @@ enum ActivityType {
   MEMBER_INVITE
   REVIEW_RECEIVED
   VENUE_OFFER
+}
+
+enum LineupPosition {
+  HEADLINER
+  DIRECT_SUPPORT
+  OPENER
+  LOCAL_OPENER
+}
+
+enum LineupStatus {
+  INVITED
+  CONFIRMED
+  DECLINED
+  CANCELLED
 }

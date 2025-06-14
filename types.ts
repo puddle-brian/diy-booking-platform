@@ -543,4 +543,34 @@ export const PERFORMER_TYPE_LABELS: Record<PerformerType, string> = {
 
 // Legacy aliases for backward compatibility
 export const VENUE_TYPE_LABELS = SPACE_TYPE_LABELS;
-export const ARTIST_TYPE_LABELS = PERFORMER_TYPE_LABELS; 
+export const ARTIST_TYPE_LABELS = PERFORMER_TYPE_LABELS;
+
+// Show Types
+export interface ShowWithLineup extends Show {
+  // 🎵 Lineup bids are just regular VenueBids with isLineupSlot=true and parentShowId set
+  lineupBids?: (VenueBid & {
+    isLineupSlot: true;
+    parentShowId: string;
+    lineupRole: 'HEADLINER' | 'DIRECT_SUPPORT' | 'OPENER' | 'LOCAL_OPENER';
+    billingOrder: number;
+    invitedByUserId: string;
+  })[];
+}
+
+// Lineup invitation request/response types
+// 🎵 Lineup support types - reusing existing VenueBid infrastructure
+export type LineupPosition = 'HEADLINER' | 'DIRECT_SUPPORT' | 'OPENER' | 'LOCAL_OPENER';
+
+export interface LineupInvitationRequest {
+  showId: string;
+  artistId: string;
+  position: LineupPosition;
+  billingOrder: number;
+  guarantee?: number;
+  doorDeal?: {
+    split: string;
+    minimumGuarantee?: number;
+  };
+  setLength?: number;
+  message?: string;
+} 

@@ -28,7 +28,7 @@ export async function GET(
     console.log(`✅ Found artist: ${artist.name}`);
     console.log(`📍 Location: ${artist.location?.city}, ${artist.location?.stateProvince}`);
     console.log(`🎵 Artist type: ${artist.artistType}`);
-    console.log(`📱 Social handles:`, artist.socialHandles);
+    console.log(`📱 Social handles:`, artist.socialLinks);
 
     // Transform data to match frontend expectations with better error handling
     const transformedArtist = {
@@ -48,8 +48,8 @@ export async function GET(
         phone: '',
         social: (() => {
           try {
-            if (artist.socialHandles && typeof artist.socialHandles === 'object') {
-              return (artist.socialHandles as any)?.social || '';
+            if (artist.socialLinks && typeof artist.socialLinks === 'object') {
+              return (artist.socialLinks as any)?.social || '';
             }
             return '';
           } catch (e) {
@@ -137,7 +137,7 @@ export async function PUT(
         equipmentNeeds: body.equipment,
         contactEmail: body.contact?.email,
         website: body.contact?.website,
-        socialHandles: body.contact?.social ? { social: body.contact.social } : undefined,
+        socialLinks: body.contact?.social ? { social: body.contact.social } : undefined,
         description: body.description,
         images: body.images
       },
@@ -162,7 +162,7 @@ export async function PUT(
       contact: {
         email: updatedArtist.contactEmail,
         phone: '',
-        social: (updatedArtist.socialHandles as any)?.social,
+        social: (updatedArtist.socialLinks as any)?.social,
         website: updatedArtist.website,
         booking: updatedArtist.contactEmail,
       },

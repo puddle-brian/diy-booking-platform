@@ -49,8 +49,9 @@ async function createDefaultTemplate(artistId: string) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log(`🎵 API: Fetching artists from database`);
-    
+    // Remove the auth requirement to make this a public endpoint
+    console.log('🎵 API: Fetching artists from database');
+
     // Fetch ALL artists with location data (no pagination)
     const artists = await prisma.artist.findMany({
       include: {
@@ -58,35 +59,36 @@ export async function GET(request: NextRequest) {
       },
       orderBy: [
         { verified: 'desc' },
-        { createdAt: 'desc' }
+        { name: 'asc' }
       ]
     });
-    
+
     console.log(`🎵 API: Found ${artists.length} artists in database`);
-    
-    // Transform data to match frontend expectations
-    const transformedArtists = artists.map((artist: any) => ({
+
+    // Transform to match frontend expectations
+    const transformedArtists = artists.map(artist => ({
       id: artist.id,
       name: artist.name,
-      city: artist.location.city,
-      state: artist.location.stateProvince,
-      country: artist.location.country,
+      city: artist.location?.city || '',
+      state: artist.location?.stateProvince || '',
+      country: artist.location?.country || 'USA',
+      location: {
+        city: artist.location?.city || '',
+        state: artist.location?.stateProvince || '',
+        country: artist.location?.country || 'USA',
+        latitude: 0, // TODO: Add to location schema if needed
+        longitude: 0, // TODO: Add to location schema if needed
+      },
       artistType: artist.artistType?.toLowerCase() || 'band',
       genres: artist.genres || [],
       members: artist.members,
       yearFormed: artist.yearFormed,
       tourStatus: artist.tourStatus?.toLowerCase() || 'active',
-      equipment: artist.equipmentNeeds || {
-        needsPA: false,
-        needsMics: false,
-        needsDrums: false,
-        needsAmps: false,
-        acoustic: false,
-      },
+      equipment: artist.equipmentNeeds || {},
       contact: {
         email: artist.contactEmail,
         phone: '',
-        social: (artist.socialHandles as any)?.social,
+        social: (artist.socialLinks as any)?.social,
         website: artist.website,
         booking: artist.contactEmail,
       },
@@ -223,7 +225,7 @@ export async function POST(request: NextRequest) {
       equipmentNeeds: body.equipmentNeeds || {},
       contactEmail: body.contactEmail,
       website: body.website || undefined,
-      socialHandles: body.socialHandles || undefined,
+      socialLinks: body.socialLinks || undefined,
       description: body.description || '',
       images: Array.isArray(body.images) ? body.images : ['/api/placeholder/band'],
       verified: true // Make new artists verified by default so they appear immediately
@@ -257,7 +259,7 @@ export async function POST(request: NextRequest) {
       contact: {
         email: artist.contactEmail,
         phone: '',
-        social: (artist.socialHandles as any)?.social,
+        social: (artist.socialLinks as any)?.social,
         website: artist.website,
         booking: artist.contactEmail,
       },
