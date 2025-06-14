@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../../../../lib/prisma';
+import { ActivityNotificationService } from '../../../../services/ActivityNotificationService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
 
@@ -252,7 +253,65 @@ export async function PUT(
       WHERE hr.id = ${holdId}
     ` as any[];
 
-    return NextResponse.json(updatedHold[0]);
+    const holdData = updatedHold[0] as any;
+
+    // 📢 NEW: Create activity notification for hold response
+    try {
+      if (action === 'approve' || action === 'decline') {
+        const responderName = holdData.responder_name || 'Someone';
+        const originalRequesterId = hold.requestedById;
+        
+        // Get the venue name for the responder
+        const responderVenue = await prisma.membership.findFirst({
+          where: {
+            userId: authResult.user!.id,
+            entityType: 'VENUE',
+            status: 'ACTIVE'
+          }
+        });
+        
+        let venueName = responderName;
+        if (responderVenue) {
+          const venue = await prisma.venue.findUnique({
+            where: { id: responderVenue.entityId }
+          });
+          venueName = venue?.name || responderName;
+        }
+        
+        // Notify the original requester about the response
+        if (originalRequesterId && originalRequesterId !== authResult.user!.id) {
+          if (action === 'approve') {
+            await ActivityNotificationService.createNotification({
+              userId: originalRequesterId,
+              type: 'HOLD_GRANTED',
+              title: 'Hold Approved',
+              summary: `${venueName} approved your hold request`,
+              entityType: 'HOLD_REQUEST',
+              entityId: holdId,
+              actionUrl: `/itinerary#hold-${holdId}`,
+              metadata: { responderName: venueName, action: 'approved' }
+            });
+          } else {
+            await ActivityNotificationService.createNotification({
+              userId: originalRequesterId,
+              type: 'HOLD_DECLINED',
+              title: 'Hold Declined',
+              summary: `${venueName} declined your hold request`,
+              entityType: 'HOLD_REQUEST',
+              entityId: holdId,
+              actionUrl: `/itinerary#hold-${holdId}`,
+              metadata: { responderName: venueName, action: 'declined' }
+            });
+          }
+          console.log(`📢 Activity notification created for hold ${action}:`, holdId);
+        }
+      }
+    } catch (error) {
+      console.error('📢 Error creating hold response notification:', error);
+      // Don't fail the whole request if notification fails
+    }
+
+    return NextResponse.json(holdData);
 
   } catch (error) {
     console.error('Error updating hold request:', error);

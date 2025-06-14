@@ -33,6 +33,7 @@ model User {
   showRequestBids         ShowRequestBid[] // 🎯 NEW: Bids on show requests
   requestedHolds          HoldRequest[]             @relation("RequestedHolds")
   respondedHolds          HoldRequest[]             @relation("RespondedHolds")
+  activityNotifications   ActivityNotification[] // Activity feed notifications
 
   @@index([email])
   @@index([role])
@@ -826,6 +827,13 @@ enum FeedbackStatus {
 enum EntityType {
   VENUE
   ARTIST
+  SHOW
+  SHOW_REQUEST
+  BID
+  VENUE_OFFER
+  HOLD_REQUEST
+  MESSAGE
+  TOUR_REQUEST
 }
 
 enum MembershipStatus {
@@ -879,6 +887,21 @@ enum BidHoldState {
   ACCEPTED_HELD // Artist accepted this held bid, waiting for final confirmation
 }
 
+enum ActivityType {
+  HOLD_REQUEST // Someone requested a hold
+  HOLD_GRANTED // Hold was approved
+  HOLD_DECLINED // Hold was declined
+  MESSAGE // New message in show document
+  BID_UPDATE // Bid status changed (accepted, declined, etc.)
+  BID_RECEIVED // New bid received
+  SHOW_EDIT // Show document was updated
+  SHOW_CONFIRMED // Show was confirmed
+  TOUR_REQUEST // New tour request application
+  MEMBER_INVITE // Invited to join band/venue
+  REVIEW_RECEIVED // New review posted
+  VENUE_OFFER // New venue offer received
+}
+
 model HoldRequest {
   id String @id @default(cuid())
 
@@ -924,4 +947,46 @@ model HoldRequest {
   @@index([showRequestId, status])
   @@index([status, expiresAt])
   @@map("hold_requests")
+}
+
+model ActivityNotification {
+  id String @id @default(cuid())
+
+  // WHO: Who should see this notification
+  userId String
+
+  // WHAT: Type and content
+  type       ActivityType
+  title      String // e.g., "Hold Request", "New Message", "Bid Update"
+  summary    String // Brief description for single-line display
+  fullContent String? // Full message/details for expansion
+
+  // WHERE: What it relates to
+  entityType EntityType? // SHOW, SHOW_REQUEST, BID, VENUE_OFFER, etc.
+  entityId   String? // ID of the related entity
+  actionUrl  String? // Direct link to take action
+
+  // CONTEXT: Additional metadata
+  metadata Json? // Flexible storage for context (artist name, show date, etc.)
+
+  // STATE: Read and action status
+  isRead     Boolean @default(false)
+  readAt     DateTime?
+  actionTaken Boolean @default(false) // If user took the suggested action
+  actionTakenAt DateTime?
+
+  // SYSTEM
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime? // Some notifications may expire
+
+  // RELATIONS
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@index([entityType, entityId])
+  @@index([expiresAt])
+  @@map("activity_notifications")
 }

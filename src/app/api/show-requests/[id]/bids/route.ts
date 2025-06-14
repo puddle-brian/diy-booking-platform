@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/prisma';
 import { BidStatus, BidHoldState } from '@prisma/client';
+import { ActivityNotificationService } from '../../../../../services/ActivityNotificationService';
 
 // GET /api/show-requests/[id]/bids - Get bids for a show request
 export async function GET(
@@ -383,6 +384,63 @@ export async function PUT(
         
         console.log(`🚀 Created auto-hold: ${autoHold.id} (expires in 24h)`);
         
+        // 📢 Create activity notification for venue owner (useful self-activity)
+        try {
+          const showRequestData = await prisma.showRequest.findUnique({
+            where: { id: showRequestId },
+            include: { artist: true }
+          });
+          
+          // Get the venue owner's username (not the internal bidderId)
+          const venueOwner = await prisma.membership.findFirst({
+            where: {
+              entityId: bid.venueId,
+              entityType: 'VENUE',
+              status: 'ACTIVE'
+            },
+            select: {
+              userId: true
+            }
+          });
+          
+          console.log('🧪 DEBUG: Bid acceptance notification data:', {
+            bidId: bid.id,
+            bidderId: bid.bidderId,
+            venueId: bid.venueId,
+            venueName: bid.venue?.name,
+            artistName: showRequestData?.artist?.name,
+            showRequestId: showRequestId,
+            venueOwnerUserId: venueOwner?.userId
+          });
+          
+          if (showRequestData && bid.venue && venueOwner) {
+            await ActivityNotificationService.createNotification({
+              userId: venueOwner.userId, // The venue owner's username
+              type: 'BID_UPDATE',
+              title: 'Bid Accepted',
+              summary: `${showRequestData.artist.name} accepted your bid for ${bid.proposedDate ? new Date(bid.proposedDate).toLocaleDateString() : 'requested date'}`,
+              entityType: 'BID',
+              entityId: bid.id,
+              actionUrl: `/venues/${bid.venueId}`,
+              metadata: {
+                artistName: showRequestData.artist.name,
+                showDate: bid.proposedDate ? new Date(bid.proposedDate).toLocaleDateString() : 'TBD',
+                actionType: 'bid_accepted',
+                venueName: bid.venue.name
+              }
+            });
+            console.log('📢 Activity notification created for bid acceptance:', bid.id, 'for user:', venueOwner.userId);
+          } else {
+            console.log('🧪 DEBUG: Missing data for notification:', {
+              hasShowRequestData: !!showRequestData,
+              hasVenue: !!bid.venue,
+              hasVenueOwner: !!venueOwner
+            });
+          }
+        } catch (error) {
+          console.error('Error creating bid acceptance notification:', error);
+        }
+        
         // After updating this bid, freeze all competing bids (they can't be accepted during hold)
         // (This happens after the main bid update in the post-processing section)
         break;
@@ -473,6 +531,64 @@ export async function PUT(
           // Keep competitors FROZEN - they're not rejected until show is confirmed
           // This allows artist to change their mind before final confirmation
         }
+
+        // 📢 Create activity notification for venue owner (useful self-activity)
+        try {
+          const showRequestData = await prisma.showRequest.findUnique({
+            where: { id: showRequestId },
+            include: { artist: true }
+          });
+          
+          // Get the venue owner's username (not the internal bidderId)
+          const venueOwner = await prisma.membership.findFirst({
+            where: {
+              entityId: bid.venueId,
+              entityType: 'VENUE',
+              status: 'ACTIVE'
+            },
+            select: {
+              userId: true
+            }
+          });
+          
+          console.log('🧪 DEBUG: Bid acceptance notification data:', {
+            bidId: bid.id,
+            bidderId: bid.bidderId,
+            venueId: bid.venueId,
+            venueName: bid.venue?.name,
+            artistName: showRequestData?.artist?.name,
+            showRequestId: showRequestId,
+            venueOwnerUserId: venueOwner?.userId
+          });
+          
+          if (showRequestData && bid.venue && venueOwner) {
+            await ActivityNotificationService.createNotification({
+              userId: venueOwner.userId, // The venue owner's username
+              type: 'BID_UPDATE',
+              title: 'Bid Accepted',
+              summary: `${showRequestData.artist.name} accepted your bid for ${bid.proposedDate ? new Date(bid.proposedDate).toLocaleDateString() : 'requested date'}`,
+              entityType: 'BID',
+              entityId: bid.id,
+              actionUrl: `/venues/${bid.venueId}`,
+              metadata: {
+                artistName: showRequestData.artist.name,
+                showDate: bid.proposedDate ? new Date(bid.proposedDate).toLocaleDateString() : 'TBD',
+                actionType: 'bid_accepted',
+                venueName: bid.venue.name
+              }
+            });
+            console.log('📢 Activity notification created for bid acceptance:', bid.id, 'for user:', venueOwner.userId);
+          } else {
+            console.log('🧪 DEBUG: Missing data for notification:', {
+              hasShowRequestData: !!showRequestData,
+              hasVenue: !!bid.venue,
+              hasVenueOwner: !!venueOwner
+            });
+          }
+        } catch (error) {
+          console.error('Error creating bid acceptance notification:', error);
+        }
+        
         break;
         
       case 'confirm-accepted':

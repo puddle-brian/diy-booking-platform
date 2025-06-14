@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../../../lib/prisma';
+import { ActivityNotificationService } from '../../../services/ActivityNotificationService';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'book-yr-life-secret-key-change-in-production';
 
@@ -364,8 +365,69 @@ export async function POST(request: NextRequest) {
       WHERE hr.id = ${holdId}
     ` as any[];
 
-    console.log('🔒 HoldRequest API: Returning created hold:', createdHold[0]);
-    return NextResponse.json(createdHold[0], { status: 201 });
+    const holdData = createdHold[0] as any;
+
+    // 📢 NEW: Create activity notification for the hold request
+    try {
+      // Determine who should receive the notification (the other party)
+      let recipientId = '';
+      let requesterName = holdData.requester_name || 'Someone';
+      let showDate = '';
+
+      // Determine recipient and show details based on what type of hold this is
+      if (finalShowId) {
+        // Show-based hold - notify the other party involved in the show
+        const show = await prisma.show.findUnique({
+          where: { id: finalShowId },
+          include: { 
+            venue: { select: { submittedById: true } },
+            artist: { select: { submittedById: true } }
+          }
+        });
+        
+        if (show) {
+          recipientId = show.venue?.submittedById === authResult.user!.id 
+            ? (show.artist?.submittedById || '') 
+            : (show.venue?.submittedById || '');
+          showDate = show.date ? new Date(show.date).toLocaleDateString() : '';
+        }
+      } else if (finalShowRequestId) {
+        // Show request-based hold - notify the venue owner
+        const showRequest = await prisma.showRequest.findUnique({
+          where: { id: finalShowRequestId },
+          include: { 
+            venue: { select: { submittedById: true } },
+            artist: { select: { submittedById: true } }
+          }
+        });
+        
+        if (showRequest) {
+          recipientId = showRequest.venue?.submittedById === authResult.user!.id
+            ? (showRequest.artist?.submittedById || '')
+            : (showRequest.venue?.submittedById || '');
+          showDate = showRequest.requestedDate 
+            ? new Date(showRequest.requestedDate).toLocaleDateString() 
+            : '';
+        }
+      }
+
+      // Create the notification if we found a recipient
+      if (recipientId && recipientId !== authResult.user!.id) {
+        await ActivityNotificationService.notifyHoldRequest(
+          holdId,
+          requesterName,
+          recipientId,
+          showDate
+        );
+        console.log('📢 Activity notification created for hold request:', holdId);
+      }
+    } catch (error) {
+      console.error('📢 Error creating hold request notification:', error);
+      // Don't fail the whole request if notification fails
+    }
+
+    console.log('🔒 HoldRequest API: Returning created hold:', holdData);
+    return NextResponse.json(holdData, { status: 201 });
 
   } catch (error) {
     console.error('🔒 HoldRequest API: Error creating hold request:', error);

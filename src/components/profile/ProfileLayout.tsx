@@ -14,6 +14,7 @@ import TabbedTourItinerary from '../TabbedTourItinerary';
 import MediaSection from '../MediaSection';
 import TeamManagementCard from './TeamManagementCard';
 import { HoldNotificationPanel } from '../HoldNotificationPanel';
+import { ActivityFeed } from '../ActivityFeed';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ProfileLayoutProps {
@@ -94,22 +95,32 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
           />
         </div>
 
-        {/* Hold Notifications - CRITICAL: Show incoming hold requests prominently for venues */}
-        {!isArtist && context.isOwner && (
-          <div className="mb-6">
-            <HoldNotificationPanel
-              venueId={entity.id}
-              currentUserId={user?.id || ''}
-              onHoldResponse={(holdId, action) => {
-                console.log(`🔒 Venue ${action}ed hold ${holdId}`);
-                if (action === 'approve') {
-                  // 🔄 CRITICAL: Refresh tour itinerary data when hold is approved
-                  // This ensures the venue sees the updated bid states (HELD/FROZEN)
-                  console.log('🔄 Triggering tour itinerary refresh after hold approval');
-                  handleDataRefresh();
-                }
-              }}
+        {/* Activity Feed - Show all relevant notifications and actions */}
+        {context.isOwner && (
+          <div className="mb-4">
+            <ActivityFeed
+              userId={user?.id || ''}
+              venueId={!isArtist ? entity.id : undefined}
+              maxItems={5}
+              className="bg-white"
             />
+            
+            {/* Legacy Hold Notifications - Keep for now as fallback */}
+            {!isArtist && (
+              <HoldNotificationPanel
+                venueId={entity.id}
+                currentUserId={user?.id || ''}
+                onHoldResponse={(holdId, action) => {
+                  console.log(`🔒 Venue ${action}ed hold ${holdId}`);
+                  if (action === 'approve') {
+                    // 🔄 CRITICAL: Refresh tour itinerary data when hold is approved
+                    // This ensures the venue sees the updated bid states (HELD/FROZEN)
+                    console.log('🔄 Triggering tour itinerary refresh after hold approval');
+                    handleDataRefresh();
+                  }
+                }}
+              />
+            )}
           </div>
         )}
 
