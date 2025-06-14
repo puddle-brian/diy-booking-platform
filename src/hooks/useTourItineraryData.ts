@@ -194,7 +194,55 @@ export function useTourItineraryData({
         throw new Error('Failed to fetch shows');
       }
       const showsData = await showsResponse.json();
-      setShows(Array.isArray(showsData) ? showsData : []);
+      let allShows = Array.isArray(showsData) ? showsData : [];
+
+      // 🎯 NEW: For artists, also fetch shows where they have lineup invitations
+      if (artistId) {
+        try {
+          const lineupBidsResponse = await fetch(`/api/bids?artistId=${artistId}&isLineupSlot=true&t=${timestamp}`);
+          if (lineupBidsResponse.ok) {
+            const lineupBids = await lineupBidsResponse.json();
+            console.log(`🎯 Found ${lineupBids.length} lineup bids for artist`);
+            
+            // Get unique parent show IDs from lineup bids
+            const parentShowIds = [...new Set(lineupBids.map((bid: any) => bid.parentShowId).filter(Boolean))];
+            console.log(`🎯 Found ${parentShowIds.length} unique parent shows from lineup bids`);
+            
+            // Fetch parent shows that aren't already in the shows list
+            const existingShowIds = new Set(allShows.map(show => show.id));
+            const newParentShowIds = parentShowIds.filter(id => !existingShowIds.has(id));
+            
+            if (newParentShowIds.length > 0) {
+              console.log(`🎯 Fetching ${newParentShowIds.length} additional parent shows`);
+              
+              // Fetch each parent show individually
+              const parentShowPromises = newParentShowIds.map(async (showId) => {
+                try {
+                  const response = await fetch(`/api/shows/${showId}`);
+                  if (response.ok) {
+                    return await response.json();
+                  }
+                  return null;
+                } catch (error) {
+                  console.error(`Failed to fetch parent show ${showId}:`, error);
+                  return null;
+                }
+              });
+              
+              const parentShows = (await Promise.all(parentShowPromises)).filter(Boolean);
+              console.log(`🎯 Successfully fetched ${parentShows.length} parent shows`);
+              
+              // Add parent shows to the shows list
+              allShows = [...allShows, ...parentShows];
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch lineup bids or parent shows:', error);
+          // Don't fail the entire request if lineup fetching fails
+        }
+      }
+
+      setShows(allShows);
 
       // 🎯 NEW UNIFIED API: Fetch show requests (replaces both tour-requests and venue-offers)
       if (artistId) {
