@@ -30,7 +30,11 @@ import { useItineraryState } from '../hooks/useItineraryState';
 import {
   createTimelineEntries,
   groupEntriesByMonth,
-  getDefaultActiveMonth
+  getDefaultActiveMonth,
+  generateStableMonthTabs,
+  generateMinimalMonthLabels,
+  generateCompactMonthLabels,
+  getDefaultActiveMonthStable
 } from '../utils/timelineUtils';
 
 // Import action button components
@@ -71,7 +75,7 @@ export default function TabbedTourItinerary({
   const { AlertModal, confirm, error: showError, success: showSuccess, info: showInfo, toast } = useAlert();
 
   // 🎯 REFACTORED: Use centralized state management
-  const { state, actions } = useItineraryState();
+  const { state, actions, getSavedActiveMonth, isValidSavedMonth } = useItineraryState();
 
   // 🎯 REFACTORED: Use centralized permissions hook
   const permissions = useItineraryPermissions({
@@ -234,6 +238,9 @@ export default function TabbedTourItinerary({
   });
   const timelineEntries = createTimelineEntries(filteredShows, filteredTourRequests, filteredVenueOffers, filteredVenueBids, artistId, venueId);
   const monthGroups = groupEntriesByMonth(timelineEntries);
+  
+  // 🎯 UX IMPROVEMENT: Generate stable 12-month tabs with compact spacing
+  const stableMonthTabs = generateCompactMonthLabels(monthGroups);
 
   // 🎯 UX IMPROVEMENT: Helper function to determine when venues should see offer buttons
   const shouldShowOfferButton = (request: TourRequest & { isVenueInitiated?: boolean }) => {
@@ -251,21 +258,23 @@ export default function TabbedTourItinerary({
     return !request.isVenueInitiated;
   };
 
-  // Set active tab to first month with entries, or current month if no entries
+  // 🎯 UX IMPROVEMENT: Enhanced active month management with persistence
   useEffect(() => {
-    if (monthGroups.length > 0) {
-      const currentTabExists = monthGroups.some(group => group.monthKey === state.activeMonthTab);
-      
-      if (!state.activeMonthTab || !currentTabExists) {
-        const defaultMonth = getDefaultActiveMonth(monthGroups);
-        actions.setActiveMonth(defaultMonth);
-      }
-    } else if (monthGroups.length === 0) {
-      const now = new Date();
-      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-      actions.setActiveMonth(currentMonth);
+    // Try to restore saved month first
+    const savedMonth = getSavedActiveMonth();
+    
+    if (savedMonth && isValidSavedMonth(savedMonth) && !state.activeMonthTab) {
+      // Restore saved month if valid and no current selection
+      actions.setActiveMonth(savedMonth);
+      return;
     }
-  }, [monthGroups.length, state.activeMonthTab, actions]);
+    
+    // If no saved month or invalid, use smart defaults
+    if (!state.activeMonthTab && stableMonthTabs.length > 0) {
+      const defaultMonth = getDefaultActiveMonthStable(stableMonthTabs);
+      actions.setActiveMonth(defaultMonth);
+    }
+  }, [stableMonthTabs.length, state.activeMonthTab, actions, getSavedActiveMonth, isValidSavedMonth]);
 
   // 🎯 FIX: Reset optimistic state when switching between venues/artists
   useEffect(() => {
@@ -273,7 +282,7 @@ export default function TabbedTourItinerary({
     actions.resetOptimisticState();
   }, [artistId, venueId, actions.resetOptimisticState]);
 
-  const activeMonthEntries = monthGroups.find(group => group.monthKey === state.activeMonthTab)?.entries || [];
+  const activeMonthEntries = stableMonthTabs.find(group => group.monthKey === state.activeMonthTab)?.entries || [];
 
   // Handler functions that are still needed in the component
   const toggleBidExpansion = (requestId: string) => {
@@ -1233,27 +1242,28 @@ export default function TabbedTourItinerary({
       )}
 
       {/* Month Tabs */}
-      {monthGroups.length > 0 && (
-        <div className="border-b border-gray-200">
-          <div className="px-6">
-            <nav className="flex space-x-8 overflow-x-auto">
-              {monthGroups.map((group) => (
-                <button
-                  key={group.monthKey}
-                  onClick={() => actions.setActiveMonth(group.monthKey)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                    state.activeMonthTab === group.monthKey
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  {group.monthLabel} ({group.entries.length})
-                </button>
-              ))}
-            </nav>
-          </div>
+      {/* 🎯 UX IMPROVEMENT: Compact month tabs with optimal spacing */}
+      <div className="border-b border-gray-200">
+        <div className="px-6">
+          <nav className="flex space-x-4 overflow-x-auto">
+            {stableMonthTabs.map((group) => (
+              <button
+                key={group.monthKey}
+                onClick={() => actions.setActiveMonth(group.monthKey)}
+                className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+                  state.activeMonthTab === group.monthKey
+                    ? 'border-blue-500 text-blue-600'
+                    : group.count > 0 
+                      ? 'border-transparent text-gray-700 hover:text-gray-900 hover:border-gray-300'
+                      : 'border-transparent text-gray-400 hover:text-gray-500 hover:border-gray-200'
+                }`}
+              >
+                {group.monthLabel} {group.count > 0 && `(${group.count})`}
+              </button>
+            ))}
+          </nav>
         </div>
-      )}
+      </div>
 
       {/* Table Content */}
       <div className="overflow-x-auto">
@@ -1280,7 +1290,7 @@ export default function TabbedTourItinerary({
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl">📅</span>
                   </div>
-                  {monthGroups.length === 0 ? (
+                  {stableMonthTabs.every(tab => tab.count === 0) ? (
                     <>
                       <p className="mb-2 font-medium">No shows booked</p>
                       <p className="text-sm">
@@ -1749,7 +1759,7 @@ export default function TabbedTourItinerary({
             })}
             
             {/* Add Date Row */}
-            {monthGroups.length === 0 && editable && (
+            {stableMonthTabs.every(tab => tab.count === 0) && editable && (
               <tr>
                 <td colSpan={10} className="px-6 py-3">
                   <button
@@ -1776,7 +1786,7 @@ export default function TabbedTourItinerary({
       </div>
 
       {/* Add floating Add Date button when there are entries */}
-      {monthGroups.length > 0 && editable && (
+      {stableMonthTabs.some(tab => tab.count > 0) && editable && (
         <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
           <button
             onClick={() => {

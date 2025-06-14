@@ -441,7 +441,75 @@ export function groupEntriesByMonth(entries: TimelineEntry[]): MonthGroup[] {
 }
 
 /**
- * Generates appropriate default active month tab
+ * Generates a complete 12-month tab structure with abbreviated month names
+ * This ensures consistent navigation regardless of which months have data
+ */
+export function generateStableMonthTabs(monthGroups: MonthGroup[]): MonthGroup[] {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  
+  // Generate 12 months starting from current month
+  const stableMonths: MonthGroup[] = [];
+  
+  for (let i = 0; i < 12; i++) {
+    const targetDate = new Date(currentYear, currentMonth + i, 1);
+    const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    // 🎯 UX IMPROVEMENT: Smart year display logic
+    let monthLabel: string;
+    
+    if (targetDate.getFullYear() === currentYear) {
+      // Current year: just show month name
+      monthLabel = targetDate.toLocaleDateString('en-US', { month: 'short' });
+    } else {
+      // Different year: show abbreviated year
+      monthLabel = targetDate.toLocaleDateString('en-US', { 
+        month: 'short',
+        year: '2-digit' // This gives us "'25" format
+      }).replace(',', ' \''); // Format as "Jan '25"
+    }
+    
+    // Find existing data for this month
+    const existingMonth = monthGroups.find(group => group.monthKey === monthKey);
+    
+    stableMonths.push({
+      monthKey,
+      monthLabel,
+      entries: existingMonth?.entries || [],
+      count: existingMonth?.count || 0
+    });
+  }
+  
+  return stableMonths;
+}
+
+/**
+ * Generates appropriate default active month tab with stable month structure
+ */
+export function getDefaultActiveMonthStable(stableMonthTabs: MonthGroup[]): string {
+  // Find the soonest month with shows (not just any entries)
+  const monthWithShows = stableMonthTabs.find(group => 
+    group.entries.some(entry => entry.type === 'show')
+  );
+  
+  if (monthWithShows) {
+    return monthWithShows.monthKey;
+  }
+  
+  // Find the soonest month with any content
+  const monthWithContent = stableMonthTabs.find(group => group.count > 0);
+  if (monthWithContent) {
+    return monthWithContent.monthKey;
+  }
+  
+  // Default to current month
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Original function for backward compatibility
  */
 export function getDefaultActiveMonth(monthGroups: MonthGroup[]): string {
   if (monthGroups.length === 0) {
@@ -461,4 +529,96 @@ export function getDefaultActiveMonth(monthGroups: MonthGroup[]): string {
     // If no shows, use the first month with any entries
     return monthGroups[0].monthKey;
   }
+}
+
+/**
+ * Extracts month key from a date string for auto-focusing
+ */
+export function getMonthKeyFromDate(dateString: string): string {
+  let date: Date;
+  
+  if (typeof dateString === 'string') {
+    if (dateString.includes('T') || dateString.includes('Z')) {
+      // ISO string with time - parse normally
+      date = new Date(dateString);
+    } else {
+      // Date-only string (e.g., "2025-08-01") - treat as local date
+      const parts = dateString.split('-');
+      if (parts.length === 3) {
+        // Create date in local timezone to avoid UTC conversion
+        date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      } else {
+        date = new Date(dateString);
+      }
+    }
+  } else {
+    date = new Date(dateString);
+  }
+  
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Alternative month label generators for different space/clarity tradeoffs
+ */
+
+// Option 1: Minimal - just month names, year only when it changes
+export function generateMinimalMonthLabels(monthGroups: MonthGroup[]): MonthGroup[] {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  
+  const stableMonths: MonthGroup[] = [];
+  let lastYear = currentYear;
+  
+  for (let i = 0; i < 12; i++) {
+    const targetDate = new Date(currentYear, currentMonth + i, 1);
+    const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    const monthName = targetDate.toLocaleDateString('en-US', { month: 'short' });
+    const yearChanged = targetDate.getFullYear() !== lastYear;
+    
+    // Show year only when it changes
+    const monthLabel = yearChanged ? `${monthName} '${String(targetDate.getFullYear()).slice(-2)}` : monthName;
+    lastYear = targetDate.getFullYear();
+    
+    const existingMonth = monthGroups.find(group => group.monthKey === monthKey);
+    
+    stableMonths.push({
+      monthKey,
+      monthLabel,
+      entries: existingMonth?.entries || [],
+      count: existingMonth?.count || 0
+    });
+  }
+  
+  return stableMonths;
+}
+
+// Option 2: Ultra-compact - just 3-letter month codes
+export function generateCompactMonthLabels(monthGroups: MonthGroup[]): MonthGroup[] {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  
+  const stableMonths: MonthGroup[] = [];
+  
+  for (let i = 0; i < 12; i++) {
+    const targetDate = new Date(currentYear, currentMonth + i, 1);
+    const monthKey = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+    
+    // Just the 3-letter month abbreviation
+    const monthLabel = targetDate.toLocaleDateString('en-US', { month: 'short' });
+    
+    const existingMonth = monthGroups.find(group => group.monthKey === monthKey);
+    
+    stableMonths.push({
+      monthKey,
+      monthLabel,
+      entries: existingMonth?.entries || [],
+      count: existingMonth?.count || 0
+    });
+  }
+  
+  return stableMonths;
 } 

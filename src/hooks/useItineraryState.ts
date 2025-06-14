@@ -299,6 +299,8 @@ function itineraryReducer(state: ItineraryState, action: ItineraryAction): Itine
       };
       
     case 'SET_ACTIVE_MONTH':
+      // Save to localStorage for persistence across page navigation
+      saveActiveMonth(action.monthKey);
       return {
         ...state,
         activeMonthTab: action.monthKey
@@ -406,5 +408,45 @@ export function useItineraryState() {
       dispatch({ type: 'CLOSE_TOUR_REQUEST_DETAIL' }),
   }), []); // Empty dependency array since dispatch is stable
   
-  return { state, actions };
-} 
+  return { 
+    state, 
+    actions,
+    // Persistence helpers
+    getSavedActiveMonth,
+    isValidSavedMonth
+  };
+}
+
+// Month state persistence helpers
+const ACTIVE_MONTH_STORAGE_KEY = 'diy-booking-active-month';
+
+// Helper to save active month to localStorage
+const saveActiveMonth = (monthKey: string) => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(ACTIVE_MONTH_STORAGE_KEY, monthKey);
+  }
+};
+
+// Helper to get saved active month from localStorage
+const getSavedActiveMonth = (): string | null => {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem(ACTIVE_MONTH_STORAGE_KEY);
+  }
+  return null;
+};
+
+// Helper to check if saved month is still valid (within 12 months)
+const isValidSavedMonth = (monthKey: string): boolean => {
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  
+  // Parse the saved month
+  const [savedYear, savedMonth] = monthKey.split('-').map(Number);
+  const [currentYear, currentMonthNum] = currentMonth.split('-').map(Number);
+  
+  // Calculate month difference
+  const monthDiff = (savedYear - currentYear) * 12 + (savedMonth - currentMonthNum);
+  
+  // Valid if within 12 months forward or 3 months backward
+  return monthDiff >= -3 && monthDiff <= 12;
+}; 
