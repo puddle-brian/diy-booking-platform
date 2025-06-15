@@ -185,7 +185,7 @@ export function ShowTimelineItem({
   return (
     <>
       <tr 
-        className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+        className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150 cursor-pointer !border-t-2 !border-t-green-400 !border-b-2 !border-b-green-400"
         onClick={() => onToggleExpansion(show.id)}
       >
         <td className="px-4 py-3 w-[3%]">

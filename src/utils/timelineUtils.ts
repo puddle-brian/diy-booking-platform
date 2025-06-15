@@ -169,13 +169,17 @@ export function createTimelineEntries(
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   
-  // Add confirmed shows
+  // Add confirmed shows only
   shows.forEach(show => {
-    entries.push({
-      type: 'show',
-      date: show.date,
-      data: show
-    });
+    // Only add shows that are actually confirmed (handle both case variations)
+    const status = show.status?.toLowerCase();
+    if (status === 'confirmed' || status === 'accepted') {
+      entries.push({
+        type: 'show',
+        date: show.date,
+        data: show
+      });
+    }
   });
   
   // 🎯 UNIFIED SYSTEM: Convert venue offers to synthetic tour requests with bids
