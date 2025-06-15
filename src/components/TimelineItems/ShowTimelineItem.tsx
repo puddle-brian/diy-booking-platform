@@ -319,14 +319,7 @@ export function ShowTimelineItem({
 
         <td className="px-4 py-3 w-[8%]">
           <div className="flex items-center space-x-1">
-            {permissions.canViewShowDocument(show) && (
-              <DocumentActionButton
-                type="show"
-                show={show}
-                permissions={permissions}
-                onShowDocument={() => onShowDocument(show)}
-              />
-            )}
+            {/* Document button moved to individual artist rows in expanded view */}
           </div>
         </td>
 
