@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from '../OfferInput';
+import { extractDateString, formatDisplayDate } from '../../utils/dateUtils';
 
 interface Artist {
   id: string;
@@ -131,7 +132,7 @@ export function AddSupportActModal({
         body: JSON.stringify({
           artistId: selectedArtist.id,
           title: `${selectedArtist.name} - ${new Date(showDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName} (Support)`,
-          proposedDate: showDate,
+          proposedDate: extractDateString(showDate), // Extract YYYY-MM-DD to avoid timezone issues
           amount: legacyOffer.amount,
           doorDeal: legacyOffer.doorDeal,
           billingPosition: 'SUPPORT',
@@ -166,11 +167,7 @@ export function AddSupportActModal({
                 Add Support Act
               </h3>
               <p className="text-sm text-gray-600 mb-6">
-                Invite an artist to play support on {new Date(showDate).toLocaleDateString('en-US', { 
-                  weekday: 'long',
-                  month: 'long', 
-                  day: 'numeric' 
-                })} at {venueName}. This will create a venue offer that appears in both your timeline and the artist's itinerary.
+                Invite an artist to play support on {formatDisplayDate(showDate)} at {venueName}. This will create a venue offer that appears in both your timeline and the artist's itinerary.
               </p>
 
               {error && (

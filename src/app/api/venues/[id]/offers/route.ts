@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../../../../lib/prisma';
 import { OfferStatus } from '@prisma/client';
+import { createNormalizedDateTime } from '@/utils/dateUtils';
 
 // GET /api/venues/[id]/offers - Get all offers made by this venue
 export async function GET(
@@ -160,7 +161,7 @@ export async function POST(
         createdById: systemUser.id,
         title: body.title,
         description: body.description || null,
-        proposedDate: new Date(body.proposedDate),
+        proposedDate: createNormalizedDateTime(body.proposedDate), // Normalize to noon UTC to avoid timezone issues
         alternativeDates: body.alternativeDates ? body.alternativeDates.map((date: string) => new Date(date)) : [],
         message: body.message,
         

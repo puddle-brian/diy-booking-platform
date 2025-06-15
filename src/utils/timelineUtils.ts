@@ -1,4 +1,5 @@
 import { Show, TourRequest } from '../../types';
+import { extractDateString } from './dateUtils';
 
 interface VenueBid {
   id: string;
@@ -194,9 +195,8 @@ export function createTimelineEntries(
         return; // Skip offers for other artists when viewing a specific artist page
       }
       
-      // 🎯 FIX: Ensure proper date handling - use original proposedDate without conversion
-      // Extract just the date part to avoid timezone issues with ISO timestamps
-      const offerDate = offer.proposedDate.split('T')[0]; // Extract YYYY-MM-DD from ISO timestamp
+      // 🎯 FIX: Consistent date handling - extract date string to avoid timezone issues  
+      const offerDate = extractDateString(offer.proposedDate);
       
       // Create synthetic tour request from venue offer
       const syntheticRequest: TourRequest = {
