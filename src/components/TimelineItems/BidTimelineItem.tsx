@@ -279,7 +279,7 @@ export function BidTimelineItem({
               venueId={venueId}
               venueName={venueName}
               requestBids={venueBids}
-              onMakeOffer={(req, existingBid) => onMakeOffer(req, existingBid)}
+              onMakeOffer={(req, _existingBid) => onMakeOffer(req, bid)}
             />
           )}
           
