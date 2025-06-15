@@ -138,14 +138,8 @@ export function ShowTimelineItem({
         offer.title?.includes('(Support)')
       );
       
-      // ✅ IMPROVED: More robust date matching
-      const proposedDate = new Date(offer.proposedDate);
-      const showDate = new Date(show.date);
-      const isSameDate = (
-        proposedDate.getFullYear() === showDate.getFullYear() &&
-        proposedDate.getMonth() === showDate.getMonth() &&
-        proposedDate.getDate() === showDate.getDate()
-      );
+      // ✅ IMPROVED: More robust date matching using date utility to avoid timezone issues
+      const datesMatch = isSameDate(offer.proposedDate, show.date);
       
       // ✅ IMPROVED: More robust venue matching
       const isVenueMatch = (
@@ -157,7 +151,7 @@ export function ShowTimelineItem({
       // ✅ Filter out declined offers - they shouldn't be counted
       const isActiveOffer = offer.status !== 'declined' && offer.status !== 'DECLINED';
       
-      return isSupportAct && isSameDate && isVenueMatch && isActiveOffer;
+      return isSupportAct && datesMatch && isVenueMatch && isActiveOffer;
     });
     
     const confirmed = supportOffers.filter(offer => 
