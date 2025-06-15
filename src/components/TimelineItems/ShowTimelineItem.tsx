@@ -345,11 +345,34 @@ export function ShowTimelineItem({
 
           {/* Support act rows */}
           {venueOffers
-            .filter(offer => 
-              offer.billingPosition === 'SUPPORT' &&
-              offer.proposedDate.split('T')[0] === show.date.split('T')[0] &&
-              offer.venueId === (show.venueId || venueId)
-            )
+            .filter(offer => {
+              // ✅ IMPROVED: More robust support act detection
+              const isSupportAct = (
+                offer.billingPosition === 'SUPPORT' ||
+                offer.billingPosition === 'direct-support' ||
+                offer.billingPosition === 'opener' ||
+                offer.billingPosition === 'local-opener' ||
+                offer.title?.includes('(Support)')
+              );
+              
+              // ✅ IMPROVED: More robust date matching
+              const proposedDate = new Date(offer.proposedDate);
+              const showDate = new Date(show.date);
+              const isSameDate = (
+                proposedDate.getFullYear() === showDate.getFullYear() &&
+                proposedDate.getMonth() === showDate.getMonth() &&
+                proposedDate.getDate() === showDate.getDate()
+              );
+              
+              // ✅ IMPROVED: More robust venue matching
+              const isVenueMatch = (
+                offer.venueId === show.venueId ||
+                offer.venueId === venueId ||
+                offer.venueName === show.venueName
+              );
+              
+              return isSupportAct && isSameDate && isVenueMatch;
+            })
             .map((supportOffer, index) => (
               <tr key={`support-${supportOffer.id}`} className="bg-orange-50 hover:bg-orange-100">
                 <td className="px-2 py-1.5 w-[3%]">
@@ -387,7 +410,13 @@ export function ShowTimelineItem({
                     ) : (
                       <span>{supportOffer.artistName || 'Unknown Artist'}</span>
                     )}
-                    <span className="text-xs text-gray-500 ml-2">• Support</span>
+                    <span className="text-xs text-gray-500 ml-2">
+                      • {supportOffer.billingPosition === 'SUPPORT' ? 'Support' : 
+                          supportOffer.billingPosition === 'direct-support' ? 'Direct Support' :
+                          supportOffer.billingPosition === 'opener' ? 'Opener' :
+                          supportOffer.billingPosition === 'local-opener' ? 'Local Opener' : 'Support'}
+                      {supportOffer.setLength && ` • ${supportOffer.setLength}min`}
+                    </span>
                   </div>
                 </td>
 

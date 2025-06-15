@@ -5,7 +5,10 @@ import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton, DocumentActionButton, MakeOfferActionButton } from '../ActionButtons';
 
 interface TourRequestTimelineItemProps {
-  request: TourRequest & { isVenueInitiated?: boolean };
+  request: TourRequest & { 
+    isVenueInitiated?: boolean;
+    billingPosition?: string;
+  };
   permissions: ItineraryPermissions;
   isExpanded: boolean;
   isDeleting: boolean;
@@ -40,13 +43,25 @@ export function TourRequestTimelineItem({
   
   const getRequestStatusBadge = () => {
     if (request.isVenueInitiated) {
-      // Check if this is a support act offer
-      const isSupportAct = request.title?.includes('(Support)');
+      // ✅ IMPROVED: More robust support act detection
+      const isSupportAct = (
+        request.title?.includes('(Support)') ||
+        request.billingPosition === 'SUPPORT' ||
+        request.billingPosition === 'direct-support' ||
+        request.billingPosition === 'opener' ||
+        request.billingPosition === 'local-opener'
+      );
       
       if (isSupportAct) {
+        // ✅ ENHANCED: Show specific billing position if available
+        const billingText = request.billingPosition === 'direct-support' ? 'Direct Support' :
+                           request.billingPosition === 'opener' ? 'Opener' :
+                           request.billingPosition === 'local-opener' ? 'Local Support' :
+                           'Support Act';
+        
         return {
           className: "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800",
-          text: "Support Offer"
+          text: billingText
         };
       }
       

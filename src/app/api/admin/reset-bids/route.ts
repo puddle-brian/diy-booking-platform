@@ -146,13 +146,67 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Admin API: Test data reset completed successfully!');
     
+    // Create diverse confirmed shows for testing (FAST bulk creation)
+    console.log('🎭 Admin API: Creating diverse confirmed shows...');
+    
+    // Get diverse artists from database
+    const diverseArtists = await prisma.artist.findMany({
+      where: {
+        name: {
+          in: ['Against Me!', 'The Menzingers', 'Joyce Manor', 'lightning bolt']
+        }
+      },
+      take: 4
+    });
+    
+    if (diverseArtists.length > 0) {
+      const confirmedShows: any[] = [];
+      const baseDate = new Date();
+      
+      // Create confirmed shows for different artists
+      diverseArtists.forEach((artist, artistIndex) => {
+        venues.slice(0, 3).forEach((venue, venueIndex) => {
+          const showDate = new Date(baseDate);
+          showDate.setDate(baseDate.getDate() + 20 + (artistIndex * 30) + (venueIndex * 7));
+          
+          confirmedShows.push({
+            artistId: artist.id,
+            artistName: artist.name,
+            venueId: venue.id,
+            venueName: venue.name,
+            title: `${artist.name} at ${venue.name}`,
+            date: showDate,
+            city: 'Test City',
+            state: 'Test State',
+            capacity: venue.capacity || 200,
+            ageRestriction: 'ALL_AGES',
+            guarantee: Math.floor(Math.random() * 600) + 400,
+            status: 'CONFIRMED',
+            createdById: systemUser.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        });
+      });
+      
+      // Bulk create all shows at once (FAST!)
+      await prisma.show.createMany({
+        data: confirmedShows,
+        skipDuplicates: true
+      });
+      
+      console.log(`✅ Admin API: Created ${confirmedShows.length} diverse confirmed shows`);
+    }
+    
     // Show summary
     const totalRequests = await prisma.showRequest.count();
     const totalBids = await prisma.showRequestBid.count();
+    const totalShows = await prisma.show.count();
     
     console.log(`\n📊 Admin API Summary:`);
     console.log(`   - ${totalRequests} total show requests`);
     console.log(`   - ${totalBids} total bids`);
+    console.log(`   - ${totalShows} total shows`);
     console.log(`   - Lightning Bolt now has multiple venues bidding on their requests!`);
 
     return NextResponse.json({ 
@@ -161,6 +215,7 @@ export async function POST(request: NextRequest) {
       summary: {
         totalRequests,
         totalBids,
+        totalShows,
         deletedBids: deletedBids.count,
         deletedRequests: deletedRequests.count
       }

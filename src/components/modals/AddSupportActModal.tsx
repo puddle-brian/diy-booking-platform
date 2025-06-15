@@ -170,7 +170,7 @@ export function AddSupportActModal({
                   weekday: 'long',
                   month: 'long', 
                   day: 'numeric' 
-                })} at {venueName}
+                })} at {venueName}. This will create a venue offer that appears in both your timeline and the artist's itinerary.
               </p>
 
               {error && (

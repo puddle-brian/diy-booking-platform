@@ -456,20 +456,33 @@ export function useTourItineraryData({
             // Merge old and new venue offers, avoiding duplicates
             const allVenueOffers = [...legacyVenueOffers];
             oldLegacyVenueOffers.forEach(oldOffer => {
-              // Check if this offer already exists in the new system
+              // ✅ IMPROVED: More robust deduplication logic
               const existsInNew = legacyVenueOffers.some(newOffer => 
-                newOffer.venueId === oldOffer.venueId && 
-                newOffer.artistId === oldOffer.artistId &&
-                newOffer.proposedDate === oldOffer.proposedDate &&
-                newOffer.title === oldOffer.title
+                // Primary match: same IDs
+                (newOffer.id === oldOffer.id) ||
+                // Secondary match: same core booking details
+                (newOffer.venueId === oldOffer.venueId && 
+                 newOffer.artistId === oldOffer.artistId &&
+                 Math.abs(new Date(newOffer.proposedDate).getTime() - new Date(oldOffer.proposedDate).getTime()) < 24 * 60 * 60 * 1000 && // Same day
+                 newOffer.title === oldOffer.title)
               );
               
               if (!existsInNew) {
                 allVenueOffers.push(oldOffer);
+              } else {
+                console.log(`🔍 Skipping duplicate offer: ${oldOffer.title} (found in both systems)`);
               }
             });
             
-            console.log(`🎯 Merged venue offers: ${legacyVenueOffers.length} from new system + ${oldLegacyVenueOffers.length} from old system = ${allVenueOffers.length} total`);
+            console.log(`🎯 Merged venue offers: ${legacyVenueOffers.length} from new system + ${oldLegacyVenueOffers.filter(oldOffer => 
+              !legacyVenueOffers.some(newOffer => 
+                (newOffer.id === oldOffer.id) ||
+                (newOffer.venueId === oldOffer.venueId && 
+                 newOffer.artistId === oldOffer.artistId &&
+                 Math.abs(new Date(newOffer.proposedDate).getTime() - new Date(oldOffer.proposedDate).getTime()) < 24 * 60 * 60 * 1000 &&
+                 newOffer.title === oldOffer.title)
+              )
+            ).length} unique from old system = ${allVenueOffers.length} total`);
             setVenueOffers(allVenueOffers);
           }
         }
@@ -663,20 +676,33 @@ export function useTourItineraryData({
             // Merge old and new venue offers, avoiding duplicates
             const allVenueOffers = [...legacyVenueOffers];
             oldLegacyVenueOffers.forEach(oldOffer => {
-              // Check if this offer already exists in the new system
+              // ✅ IMPROVED: More robust deduplication logic
               const existsInNew = legacyVenueOffers.some(newOffer => 
-                newOffer.venueId === oldOffer.venueId && 
-                newOffer.artistId === oldOffer.artistId &&
-                newOffer.proposedDate === oldOffer.proposedDate &&
-                newOffer.title === oldOffer.title
+                // Primary match: same IDs
+                (newOffer.id === oldOffer.id) ||
+                // Secondary match: same core booking details
+                (newOffer.venueId === oldOffer.venueId && 
+                 newOffer.artistId === oldOffer.artistId &&
+                 Math.abs(new Date(newOffer.proposedDate).getTime() - new Date(oldOffer.proposedDate).getTime()) < 24 * 60 * 60 * 1000 && // Same day
+                 newOffer.title === oldOffer.title)
               );
               
               if (!existsInNew) {
                 allVenueOffers.push(oldOffer);
+              } else {
+                console.log(`🔍 Skipping duplicate offer: ${oldOffer.title} (found in both systems)`);
               }
             });
             
-            console.log(`🎯 Merged venue offers for venue: ${legacyVenueOffers.length} from new system + ${oldLegacyVenueOffers.length} from old system = ${allVenueOffers.length} total`);
+            console.log(`🎯 Merged venue offers for venue: ${legacyVenueOffers.length} from new system + ${oldLegacyVenueOffers.filter(oldOffer => 
+              !legacyVenueOffers.some(newOffer => 
+                (newOffer.id === oldOffer.id) ||
+                (newOffer.venueId === oldOffer.venueId && 
+                 newOffer.artistId === oldOffer.artistId &&
+                 Math.abs(new Date(newOffer.proposedDate).getTime() - new Date(oldOffer.proposedDate).getTime()) < 24 * 60 * 60 * 1000 &&
+                 newOffer.title === oldOffer.title)
+              )
+            ).length} unique from old system = ${allVenueOffers.length} total`);
             setVenueOffers(allVenueOffers);
           }
 
