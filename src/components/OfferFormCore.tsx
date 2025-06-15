@@ -35,6 +35,8 @@ interface OfferFormCoreProps {
     createdAt: string;
     updatedAt: string;
     guarantee?: number;
+    billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
+    setLength?: number;
   };
   
   // 🎯 UX IMPROVEMENT: Delete functionality for existing offers
@@ -72,7 +74,29 @@ export default function OfferFormCore({
   submitButtonText = "Send Offer",
   error
 }: OfferFormCoreProps) {
-  // Form state
+  // 🎵 Smart billing position logic
+  const getSmartBillingDefault = async (proposedDate: string): Promise<'headliner' | 'support'> => {
+    if (!proposedDate || !venueId) return 'headliner';
+    
+    try {
+      // Check for existing confirmed shows or accepted offers on this date
+      const response = await fetch(`/api/venues/${venueId}/shows?date=${proposedDate}`);
+      if (response.ok) {
+        const existingShows = await response.json();
+        const hasHeadliner = existingShows.some((show: any) => 
+          show.billingPosition === 'headliner' || 
+          show.billingOrder?.position === 'headliner'
+        );
+        return hasHeadliner ? 'support' : 'headliner';
+      }
+    } catch (error) {
+      console.log('Could not check existing shows, defaulting to headliner');
+    }
+    
+    return 'headliner';
+  };
+
+  // Form state - Updated to include billing position fields
   const [formData, setFormData] = useState<{
     artistId: string;
     artistName: string;
@@ -80,13 +104,17 @@ export default function OfferFormCore({
     capacity: string;
     ageRestriction: string;
     message: string;
+    billingPosition: 'headliner' | 'co-headliner' | 'support' | 'local-support';
+    setLength: string;
   }>({
     artistId: preSelectedArtist?.id || '',
     artistName: preSelectedArtist?.name || '',
     proposedDate: preSelectedDate || '',
     capacity: '',
     ageRestriction: 'ALL_AGES',
-    message: ''
+    message: '',
+    billingPosition: 'headliner', // Smart default
+    setLength: ''
   });
   
   const [offerData, setOfferData] = useState<any>(null);
@@ -124,6 +152,18 @@ export default function OfferFormCore({
       if (existingBid.message) {
         updates.message = existingBid.message;
         console.log('✅ Set message:', existingBid.message);
+      }
+      
+      // 🎵 Pre-populate billing position from existing bid
+      if (existingBid.billingPosition) {
+        updates.billingPosition = existingBid.billingPosition;
+        console.log('✅ Set billing position:', existingBid.billingPosition);
+      }
+      
+      // Pre-populate set length from existing bid
+      if (existingBid.setLength) {
+        updates.setLength = existingBid.setLength.toString();
+        console.log('✅ Set length:', existingBid.setLength);
       }
       
       // If we have a preSelectedDate (from the date row button), use it
@@ -164,6 +204,19 @@ export default function OfferFormCore({
     setFilteredArtists(filtered);
   }, [artistSearch, artists]);
 
+  // 🎵 Smart billing position logic - update when date changes
+  useEffect(() => {
+    const updateSmartBillingPosition = async () => {
+      if (formData.proposedDate && !hasInitializedFromExistingBid) {
+        // Only run smart defaults for new offers, not when editing existing ones
+        const smartDefault = await getSmartBillingDefault(formData.proposedDate);
+        setFormData(prev => ({ ...prev, billingPosition: smartDefault }));
+      }
+    };
+
+    updateSmartBillingPosition();
+  }, [formData.proposedDate, hasInitializedFromExistingBid]);
+
   const loadArtists = async () => {
     try {
       const response = await fetch('/api/artists');
@@ -196,7 +249,10 @@ export default function OfferFormCore({
       proposedDate: formData.proposedDate,
       ageRestriction: formData.ageRestriction,
       message: formData.message,
-      offerData: offerData // The parsed offer data from OfferInput
+      offerData: offerData, // The parsed offer data from OfferInput
+      // 🎵 Include billing position and set length data
+      billingPosition: formData.billingPosition,
+      setLength: formData.setLength ? parseInt(formData.setLength) : undefined
     };
 
     await onSubmit(submissionData);
@@ -382,6 +438,79 @@ export default function OfferFormCore({
           </div>
         </div>
 
+        {/* Billing Position - Clean, professional section */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+            </svg>
+            <h4 className="text-base font-semibold text-blue-900">Billing Position *</h4>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-blue-800 mb-2">
+                What role are you offering?
+              </label>
+              <select
+                required
+                value={formData.billingPosition}
+                onChange={(e) => setFormData(prev => ({ ...prev, billingPosition: e.target.value as any }))}
+                className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <option value="headliner">Headliner</option>
+                <option value="support">Support</option>
+                <option value="local-support">Local Support</option>
+                <option value="co-headliner">Co-Headliner</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-blue-800 mb-2">
+                Set Length (minutes)
+              </label>
+              <input
+                type="number"
+                value={formData.setLength || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, setLength: e.target.value }))}
+                placeholder="e.g. 60"
+                min="15"
+                max="180"
+                className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              />
+            </div>
+          </div>
+          <p className="text-xs text-blue-600 mt-2">
+            {formData.billingPosition === 'headliner' && 'Main draw, top billing, longest set (typically 45-90 min)'}
+            {formData.billingPosition === 'support' && 'Opening act, shorter set time (typically 30-45 min)'}
+            {formData.billingPosition === 'local-support' && 'Local opener, builds community (typically 20-30 min)'}
+            {formData.billingPosition === 'co-headliner' && 'Shared top billing with touring act (typically 45-75 min)'}
+          </p>
+          
+          {/* Smart validation warning for potential billing conflicts */}
+          {formData.billingPosition === 'headliner' && formData.proposedDate && (
+            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+              <div className="flex items-center gap-1">
+                <svg className="w-3 h-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span className="font-medium">Headliner Booking:</span>
+              </div>
+              <span>Make sure this date doesn't conflict with other headliner shows. Consider if you need support acts to fill the lineup.</span>
+            </div>
+          )}
+          
+          {formData.billingPosition === 'co-headliner' && formData.proposedDate && (
+            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
+              <div className="flex items-center gap-1">
+                <svg className="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span className="font-medium">Co-Headliner Booking:</span>
+              </div>
+              <span>Make sure you have another headliner confirmed for this date, or specify in your message who they'll be co-headlining with.</span>
+            </div>
+          )}
+        </div>
+
         {/* Personal Message */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -454,7 +583,7 @@ export default function OfferFormCore({
             
             <button
               type="submit"
-              disabled={loading || isDeleting || (!preSelectedArtist && !formData.artistId) || !formData.proposedDate}
+              disabled={loading || isDeleting || (!preSelectedArtist && !formData.artistId) || !formData.proposedDate || !formData.billingPosition}
               className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 font-medium"
             >
               {loading && (

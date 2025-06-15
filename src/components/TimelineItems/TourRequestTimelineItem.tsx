@@ -43,25 +43,41 @@ export function TourRequestTimelineItem({
   
   const getRequestStatusBadge = () => {
     if (request.isVenueInitiated) {
-      // ✅ IMPROVED: More robust support act detection
+      // 🎵 IMPROVED: Updated billing position detection for simplified system
       const isSupportAct = (
         request.title?.includes('(Support)') ||
         request.billingPosition === 'SUPPORT' ||
-        request.billingPosition === 'direct-support' ||
-        request.billingPosition === 'opener' ||
-        request.billingPosition === 'local-opener'
+        request.billingPosition === 'support' ||
+        request.billingPosition === 'local-support'
       );
       
       if (isSupportAct) {
-        // ✅ ENHANCED: Show specific billing position if available
-        const billingText = request.billingPosition === 'direct-support' ? 'Direct Support' :
-                           request.billingPosition === 'opener' ? 'Opener' :
-                           request.billingPosition === 'local-opener' ? 'Local Support' :
-                           'Support Act';
+        // 🎵 ENHANCED: Show specific billing position with better visual indicators
+        const billingText = request.billingPosition === 'support' ? '🎸 Support' :
+                           request.billingPosition === 'local-support' ? '🏠 Local Support' :
+                           '🎸 Support Act';
         
         return {
           className: "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800",
           text: billingText
+        };
+      }
+      
+      // Check for headliner/co-headliner positions
+      const isHeadliner = request.billingPosition === 'headliner';
+      const isCoHeadliner = request.billingPosition === 'co-headliner';
+      
+      if (isHeadliner) {
+        return {
+          className: "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800",
+          text: "🌟 Headliner Offer"
+        };
+      }
+      
+      if (isCoHeadliner) {
+        return {
+          className: "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800",
+          text: "⭐ Co-Headliner Offer"
         };
       }
       

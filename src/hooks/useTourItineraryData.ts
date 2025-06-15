@@ -1,6 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Show, TourRequest } from '../../types';
 
+// 🎵 Helper function to map old billing positions to new simplified system
+function mapBillingPosition(oldPosition: string | undefined): 'headliner' | 'co-headliner' | 'support' | 'local-support' | undefined {
+  if (!oldPosition) return undefined;
+  
+  switch (oldPosition) {
+    case 'headliner':
+      return 'headliner';
+    case 'co-headliner':
+      return 'co-headliner';
+    case 'direct-support':
+    case 'opener':
+      return 'support';
+    case 'local-opener':
+      return 'local-support';
+    default:
+      return 'support'; // Default fallback for unknown values
+  }
+}
+
 interface VenueBid {
   id: string;
   showRequestId: string;
@@ -51,7 +70,7 @@ interface VenueBid {
   declinedReason?: string;
   cancelledAt?: string;
   cancelledReason?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
   lineupPosition?: number;
   setLength?: number;
   otherActs?: string;
@@ -89,7 +108,7 @@ interface VenueOffer {
     door?: number;
   };
   merchandiseSplit?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
   lineupPosition?: number;
   setLength?: number;
   otherActs?: string;
@@ -599,7 +618,7 @@ export function useTourItineraryData({
               doorDeal: req.doorDeal,
               ticketPrice: req.ticketPrice,
               merchandiseSplit: req.merchandiseSplit,
-              billingPosition: req.billingPosition as any,
+              billingPosition: mapBillingPosition(req.billingPosition),
               lineupPosition: req.lineupPosition,
               setLength: req.setLength,
               otherActs: req.otherActs,
@@ -625,9 +644,6 @@ export function useTourItineraryData({
               venue: req.venue,
               artist: req.artist
             }));
-          setVenueOffers(legacyVenueOffers);
-          
-          // All venue offers now come from the unified ShowRequest system
           setVenueOffers(legacyVenueOffers);
 
           // Get venue's bids on artist-initiated requests (now includes ALL artist requests with venue bids)
@@ -695,7 +711,7 @@ export function useTourItineraryData({
                     // 🎯 NEW: Store actual artist information for proper display
                     artistId: req.artistId,
                     artistName: req.artist?.name || 'Unknown Artist',
-                    billingPosition: bid.billingPosition,
+                    billingPosition: mapBillingPosition(bid.billingPosition),
                     lineupPosition: bid.lineupPosition,
                     setLength: bid.setLength,
                     otherActs: bid.otherActs,

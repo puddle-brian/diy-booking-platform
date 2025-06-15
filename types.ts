@@ -40,9 +40,9 @@ export interface Show {
   promotedAt?: string; // When promotion happened
   originalBidId?: string; // Link back to the venue bid that created this
   
-  // 🎯 BILLING ORDER - Lineup position (only relevant for confirmed shows)
+  // 🎯 BILLING POSITION - Simplified lineup position for confirmed shows
   billingOrder?: {
-    position: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+    position: 'headliner' | 'co-headliner' | 'support' | 'local-support';
     lineupPosition?: number; // 1 = headliner, 2 = direct support, etc.
     setLength?: number; // minutes
     otherActs?: string[]; // names of other acts on the bill
@@ -209,8 +209,8 @@ export interface VenueBid {
     details?: string;
   };
   
-  // 🎯 BILLING ORDER - What type of show the venue is offering
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  // 🎯 BILLING POSITION - Simplified 4-option system for better UX
+  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
   lineupPosition?: number; // 1 = headliner, 2 = direct support, etc.
   setLength?: number; // minutes
   otherActs?: string; // names of other acts on the bill
@@ -281,8 +281,8 @@ export interface VenueOffer {
   };
   merchandiseSplit?: string; // "90/10" (artist/venue)
   
-  // Show Details (consistent with VenueBid)
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  // Show Details (consistent with VenueBid) - Updated to simplified system
+  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
   lineupPosition?: number; // 1 = headliner, 2 = support, etc.
   setLength?: number; // Minutes
   otherActs?: string; // Other acts on the bill

@@ -51,7 +51,7 @@ interface VenueBid {
   declinedReason?: string;
   cancelledAt?: string;
   cancelledReason?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
   lineupPosition?: number;
   setLength?: number;
   otherActs?: string;
@@ -89,7 +89,7 @@ interface VenueOffer {
     door?: number;
   };
   merchandiseSplit?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener';
+  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
   lineupPosition?: number;
   setLength?: number;
   otherActs?: string;

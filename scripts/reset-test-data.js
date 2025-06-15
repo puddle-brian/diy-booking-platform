@@ -2,6 +2,74 @@ const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
+// 🎵 Helper functions for realistic test data generation
+
+function weightedRandom(options, weights) {
+  const random = Math.random();
+  let weightSum = 0;
+  
+  for (let i = 0; i < options.length; i++) {
+    weightSum += weights[i];
+    if (random <= weightSum) {
+      return options[i];
+    }
+  }
+  return options[options.length - 1];
+}
+
+function getBillingMessage(venueName, billingPosition, amount, capacity) {
+  const messages = {
+    'headliner': [
+      `Hey Lightning Bolt! We'd love to have you headline at ${venueName}. $${amount} guarantee with full production support and ${capacity || 'intimate'} capacity crowd that loves experimental music.`,
+      `${venueName} calling! We can offer you the headlining spot for $${amount}. Our ${capacity || 'passionate'} person space is perfect for your sound.`,
+      `Headlining offer from ${venueName}: $${amount} guarantee. We'll handle promotion and have a killer sound system ready for you.`
+    ],
+    'co-headliner': [
+      `Co-headlining opportunity at ${venueName}! $${amount} guarantee to share the bill with another established act. Perfect fit for our ${capacity || 'mid-size'} venue.`,
+      `${venueName} here - interested in co-headlining with us? $${amount} split billing with strong local promotion support.`
+    ],
+    'support': [
+      `Support slot at ${venueName} - $${amount} to open for a killer headliner. Great exposure for ${capacity || 'engaged'} person audience.`,
+      `Opening act opportunity: $${amount} at ${venueName}. Perfect way to reach new fans in our market.`
+    ],
+    'local-support': [
+      `Local support slot at ${venueName} - $${amount} to help build the scene. Our ${capacity || 'community-focused'} space loves discovering new acts.`,
+      `${venueName} community slot: $${amount} to play with touring acts and connect with local music lovers.`
+    ]
+  };
+  
+  const positionMessages = messages[billingPosition];
+  return positionMessages[Math.floor(Math.random() * positionMessages.length)];
+}
+
+function getBillingNotes(billingPosition) {
+  const notes = {
+    'headliner': [
+      'Full headlining slot with complete production support',
+      'Top billing with sound/lights handled',
+      'Headline act - venue will handle all promotion'
+    ],
+    'co-headliner': [
+      'Shared top billing with touring act',
+      'Co-headline - equal promotion and stage time',
+      'Split headlining duties'
+    ],
+    'support': [
+      'Direct support for established headliner',
+      'Opening for touring headliner',
+      'Support slot with headliner promotion'
+    ],
+    'local-support': [
+      'Local opener building community',
+      'Community support slot',
+      'Local act supporting touring bands'
+    ]
+  };
+  
+  const positionNotes = notes[billingPosition];
+  return Math.random() > 0.5 ? positionNotes[Math.floor(Math.random() * positionNotes.length)] : null;
+}
+
 async function resetTestData() {
   console.log('🧹 Starting test data reset...');
   
@@ -91,20 +159,41 @@ async function resetTestData() {
         
         console.log(`  💰 Creating bid from ${venue.name} for $${guaranteeAmount}...`);
 
+        // 🎵 Enhanced billing positions using new simplified system
+        const billingOptions = ['headliner', 'support', 'local-support', 'co-headliner'];
+        const billingWeights = [0.6, 0.2, 0.15, 0.05]; // Mostly headliners, some support
+        const selectedBilling = weightedRandom(billingOptions, billingWeights);
+        
+        // Set appropriate set lengths based on billing position
+        const setLengthByPosition = {
+          'headliner': Math.floor(Math.random() * 30) + 60, // 60-90 minutes
+          'co-headliner': Math.floor(Math.random() * 20) + 55, // 55-75 minutes  
+          'support': Math.floor(Math.random() * 15) + 30, // 30-45 minutes
+          'local-support': Math.floor(Math.random() * 10) + 20 // 20-30 minutes
+        };
+
+        // Generate realistic other acts based on billing position
+        const otherActsByPosition = {
+          'headliner': ['Local Opener A', 'Regional Support Band'],
+          'co-headliner': ['Third Act TBD'],
+          'support': ['Lightning Bolt (headliner)', 'Local Opener'],
+          'local-support': ['Lightning Bolt (headliner)', 'Touring Support Act']
+        };
+
         const bid = await prisma.showRequestBid.create({
           data: {
             showRequestId: showRequest.id,
             venueId: venue.id,
             bidderId: systemUser.id,
             amount: guaranteeAmount,
-            message: `Hey! We'd love to have Lightning Bolt play at ${venue.name}. We think you'd be a great fit for our ${venue.capacity || 'intimate'} capacity space.`,
-            status: j === 0 ? 'PENDING' : (Math.random() > 0.7 ? 'HOLD' : 'PENDING'), // First bid pending, others random
+            message: getBillingMessage(venue.name, selectedBilling, guaranteeAmount, venue.capacity),
+            status: j === 0 ? 'PENDING' : (Math.random() > 0.7 ? 'HOLD' : 'PENDING'),
             proposedDate: requestDate,
-            billingPosition: 'headliner',
-            lineupPosition: 1,
-            setLength: Math.floor(Math.random() * 30) + 45, // 45-75 minutes
-            billingNotes: Math.random() > 0.5 ? 'Headlining slot with full production support' : null,
-            otherActs: Math.random() > 0.5 ? 'Local opener TBD' : null
+            billingPosition: selectedBilling,
+            lineupPosition: selectedBilling === 'headliner' ? 1 : (selectedBilling === 'co-headliner' ? 1 : 2),
+            setLength: setLengthByPosition[selectedBilling],
+            billingNotes: getBillingNotes(selectedBilling),
+            otherActs: otherActsByPosition[selectedBilling].join(', ')
           }
         });
 
@@ -112,24 +201,31 @@ async function resetTestData() {
       }
     }
 
-    // Create a few venue-initiated show requests (offers) as well
+    // Create a few venue-initiated show requests (offers) with diverse billing positions
     console.log('🏢 Creating venue-initiated show requests...');
+    
+    const venueOfferScenarios = [
+      { billing: 'headliner', baseAmount: 600 },
+      { billing: 'support', baseAmount: 300 },
+      { billing: 'co-headliner', baseAmount: 500 }
+    ];
     
     for (let i = 0; i < 3; i++) {
       const venue = venues[i];
+      const scenario = venueOfferScenarios[i];
       const requestDate = new Date();
       requestDate.setDate(requestDate.getDate() + 60 + (i * 15));
-      const amount = Math.floor(Math.random() * 600) + 400; // $400-$1000
+      const amount = scenario.baseAmount + Math.floor(Math.random() * 200); // Add some variation
       
-      console.log(`🏢 Creating venue offer from ${venue.name}...`);
+      console.log(`🏢 Creating ${scenario.billing} offer from ${venue.name}...`);
 
       const venueOffer = await prisma.showRequest.create({
         data: {
           artistId: lightningBolt.id,
           venueId: venue.id,
           createdById: systemUser.id,
-          title: `${lightningBolt.name} at ${venue.name}`,
-          description: `${venue.name} would love to host Lightning Bolt for an unforgettable show!`,
+          title: `${lightningBolt.name} at ${venue.name} (${scenario.billing})`,
+          description: `${venue.name} would love to host Lightning Bolt for an unforgettable ${scenario.billing} show!`,
           requestedDate: requestDate,
           initiatedBy: 'VENUE',
           status: 'OPEN',
@@ -138,11 +234,12 @@ async function resetTestData() {
           amount: amount,
           capacity: venue.capacity,
           ageRestriction: 'ALL_AGES',
-          message: `Hey Lightning Bolt! We're huge fans and would love to have you play at ${venue.name}. We can offer $${amount} guarantee and think our audience would absolutely love your sound.`
+          billingPosition: scenario.billing,
+          message: getBillingMessage(venue.name, scenario.billing, amount, venue.capacity)
         }
       });
 
-      console.log(`✅ Created venue offer: ${venueOffer.title} ($${amount})`);
+      console.log(`✅ Created ${scenario.billing} offer: ${venueOffer.title} ($${amount})`);
     }
 
     console.log('✅ Test data reset completed successfully!');
@@ -154,7 +251,10 @@ async function resetTestData() {
     console.log(`\n📊 Summary:`);
     console.log(`   - ${totalRequests} total show requests`);
     console.log(`   - ${totalBids} total bids`);
-    console.log(`   - Lightning Bolt now has multiple venues bidding on their requests!`);
+    console.log(`   - 🎵 Realistic billing positions: headliner, support, local-support, co-headliner`);
+    console.log(`   - 💰 Varied financial offers based on billing position`);
+    console.log(`   - 🎭 Complete lineup information with set lengths and other acts`);
+    console.log(`   - Lightning Bolt now has venues offering different roles and experiences!`);
 
   } catch (error) {
     console.error('❌ Error resetting test data:', error);

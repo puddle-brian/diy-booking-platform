@@ -59,8 +59,8 @@ export default function VenueBidForm({
       type: 'floor-space' as 'floor-space' | 'couch' | 'private-room',
       details: ''
     },
-    // Billing order fields
-    billingPosition: 'headliner' as 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener',
+    // 🎵 Billing position - updated to simplified 4-option system with smart default
+    billingPosition: 'headliner' as 'headliner' | 'co-headliner' | 'support' | 'local-support',
     lineupPosition: '1',
     setLength: '60',
     otherActs: '',
@@ -551,28 +551,34 @@ export default function VenueBidForm({
           />
         </div>
 
-        {/* Billing & Lineup Information */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3">
-            Billing & Lineup Information
+        {/* Billing Position - Clean, professional section */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <label className="block text-sm font-medium text-blue-900 mb-3">
+            Billing Position *
           </label>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-600 mb-1">Billing Position</label>
+              <label className="block text-sm text-blue-800 mb-1">What role are you offering?</label>
               <select
+                required
                 value={bidForm.billingPosition}
                 onChange={(e) => setBidForm(prev => ({ 
                   ...prev, 
-                  billingPosition: e.target.value as 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener'
+                  billingPosition: e.target.value as 'headliner' | 'co-headliner' | 'support' | 'local-support'
                 }))}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
               >
                 <option value="headliner">Headliner</option>
+                <option value="support">Support</option>
+                <option value="local-support">Local Support</option>
                 <option value="co-headliner">Co-Headliner</option>
-                <option value="direct-support">Direct Support</option>
-                <option value="opener">Opener</option>
-                <option value="local-opener">Local Opener</option>
               </select>
+              <p className="text-xs text-blue-600 mt-1">
+                {bidForm.billingPosition === 'headliner' && 'Main draw, top billing, longest set'}
+                {bidForm.billingPosition === 'support' && 'Opening act, shorter set time'}
+                {bidForm.billingPosition === 'local-support' && 'Local opener, builds community'}
+                {bidForm.billingPosition === 'co-headliner' && 'Shared top billing with touring act'}
+              </p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-1">Set Length (minutes)</label>

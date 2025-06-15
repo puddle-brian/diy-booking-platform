@@ -175,9 +175,8 @@ export function ShowTimelineItem({
       // ✅ IMPROVED: More robust support act detection
       const isSupportAct = (
         offer.billingPosition === 'SUPPORT' ||
-        offer.billingPosition === 'direct-support' ||
-        offer.billingPosition === 'opener' ||
-        offer.billingPosition === 'local-opener' ||
+        offer.billingPosition === 'support' ||
+        offer.billingPosition === 'local-support' ||
         offer.title?.includes('(Support)')
       );
       
@@ -497,10 +496,9 @@ export function ShowTimelineItem({
                         .filter(offer => {
                           // ✅ IMPROVED: More robust support act detection
                           const isSupportAct = (
-                            offer.billingPosition === 'SUPPORT' ||
-                            offer.billingPosition === 'direct-support' ||
-                            offer.billingPosition === 'opener' ||
-                            offer.billingPosition === 'local-opener' ||
+                                      offer.billingPosition === 'SUPPORT' ||
+          offer.billingPosition === 'support' ||
+          offer.billingPosition === 'local-support' ||
                             offer.title?.includes('(Support)')
                           );
                           
@@ -557,10 +555,11 @@ export function ShowTimelineItem({
                                   <span>{supportOffer.artistName || 'Unknown Artist'}</span>
                                 )}
                                 <span className="text-xs text-gray-500 ml-2">
-                                  • {supportOffer.billingPosition === 'SUPPORT' ? 'Support' : 
-                                      supportOffer.billingPosition === 'direct-support' ? 'Direct Support' :
-                                      supportOffer.billingPosition === 'opener' ? 'Opener' :
-                                      supportOffer.billingPosition === 'local-opener' ? 'Local Opener' : 'Support'}
+                                                            • {supportOffer.billingPosition === 'SUPPORT' ? '🎸 Support' :
+                          supportOffer.billingPosition === 'support' ? '🎸 Support' :
+                          supportOffer.billingPosition === 'local-support' ? '🏠 Local Support' :
+                          supportOffer.billingPosition === 'headliner' ? '🌟 Headliner' :
+                          supportOffer.billingPosition === 'co-headliner' ? '⭐ Co-Headliner' : '🎸 Support'}
                                   {supportOffer.setLength && ` • ${supportOffer.setLength}min`}
                                 </span>
                               </div>
