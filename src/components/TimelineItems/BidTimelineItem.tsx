@@ -101,6 +101,44 @@ export function BidTimelineItem({
   const currentStatus = effectiveStatus || bid.status;
   const statusBadge = getStatusBadge(currentStatus, isFrozenByHold, (bid as any).holdState);
 
+  // 🎵 Helper function to generate billing position badge with status-matched colors
+  const getBillingPositionBadge = (billingPosition: string, bidStatus: string) => {
+    const abbreviations: Record<string, string> = {
+      'headliner': 'HL',
+      'co-headliner': 'CH', 
+      'support': 'SP',
+      'local-support': 'LS'
+    };
+
+    const abbr = abbreviations[billingPosition] || billingPosition.toUpperCase().slice(0, 2);
+
+    // Match colors to bid status
+    let colorClass = '';
+    switch (bidStatus.toLowerCase()) {
+      case 'pending':
+        colorClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
+        break;
+      case 'accepted':
+        colorClass = 'bg-green-100 text-green-800 border-green-300';
+        break;
+      case 'declined':
+      case 'rejected':
+        colorClass = 'bg-red-100 text-red-800 border-red-300';
+        break;
+      case 'confirmed':
+        colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
+        break;
+      default:
+        colorClass = 'bg-gray-100 text-gray-800 border-gray-300';
+    }
+
+    return (
+      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border ${colorClass} ml-2 flex-shrink-0`}>
+        {abbr}
+      </span>
+    );
+  };
+
   // 🎨 Dynamic row styling based on hold state
   const getRowStyling = () => {
     if (isFrozenByHold && (bid as any).holdState === 'HELD') {
@@ -174,40 +212,48 @@ export function BidTimelineItem({
 
       {/* Venue column - w-[19%] */}
       <td className="px-4 py-1.5 w-[19%]">
-        <div className="text-sm font-medium text-gray-900 truncate">
-          {venueId ? (
-            // When viewing as venue, show artist information
-            (bid as any).artistId && (bid as any).artistId !== 'external-artist' ? (
-              <a 
-                href={`/artists/${(bid as any).artistId}`}
-                className="text-blue-600 hover:text-blue-800 hover:underline"
-                title="View artist page"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {(bid as any).artistName || 'Unknown Artist'}
-              </a>
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
+            {venueId ? (
+              // When viewing as venue, show artist information
+              (bid as any).artistId && (bid as any).artistId !== 'external-artist' ? (
+                <a 
+                  href={`/artists/${(bid as any).artistId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                  title="View artist page"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {(bid as any).artistName || 'Unknown Artist'}
+                </a>
+              ) : (
+                <span>{(bid as any).artistName || 'Unknown Artist'}</span>
+              )
             ) : (
-              <span>{(bid as any).artistName || 'Unknown Artist'}</span>
-            )
-          ) : (
-            // When viewing as artist, show venue information (original behavior)
-            bid.venueId && bid.venueId !== 'external-venue' ? (
-              <a 
-                href={`/venues/${bid.venueId}`}
-                className="text-blue-600 hover:text-blue-800 hover:underline"
-                title="View venue page"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {bid.venueName}
-              </a>
-            ) : (
-              <span>{bid.venueName}</span>
-            )
+              // When viewing as artist, show venue information (original behavior)
+              bid.venueId && bid.venueId !== 'external-venue' ? (
+                <a 
+                  href={`/venues/${bid.venueId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                  title="View venue page"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {bid.venueName}
+                </a>
+              ) : (
+                <span>{bid.venueName}</span>
+              )
+            )}
+          </div>
+          {/* 🎵 Billing Position Badge - Right Aligned */}
+          {(bid as any).billingPosition && (
+            <div className="flex-shrink-0">
+              {getBillingPositionBadge((bid as any).billingPosition, currentStatus)}
+            </div>
           )}
         </div>
       </td>
 
-      {/* Status column - w-[10%] */}
+            {/* Status column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <span className={statusBadge.className}>
           {statusBadge.text}
@@ -279,7 +325,7 @@ export function BidTimelineItem({
               venueId={venueId}
               venueName={venueName}
               requestBids={venueBids}
-              onMakeOffer={(req, _existingBid) => onMakeOffer(req, bid)}
+              onMakeOffer={(req, _existingBid) => onMakeOffer(req as any, bid)}
             />
           )}
           

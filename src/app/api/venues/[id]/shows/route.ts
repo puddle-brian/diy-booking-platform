@@ -59,7 +59,7 @@ export async function GET(
     const allShows = [
       ...shows.map(show => ({
         id: show.id,
-        billingPosition: (show.billingOrder as any)?.position,
+        billingPosition: (show as any).billingPosition || null,
         artistName: show.artist?.name,
         type: 'show'
       })),

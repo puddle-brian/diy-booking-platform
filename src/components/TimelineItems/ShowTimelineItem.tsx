@@ -148,6 +148,40 @@ const getShowStatusBadge = (status: string) => {
   }
 };
 
+// 🎵 Helper function to generate billing position badge for confirmed shows
+const getBillingPositionBadge = (billingPosition: string, showStatus: string) => {
+  const abbreviations: Record<string, string> = {
+    'headliner': 'HL',
+    'co-headliner': 'CH', 
+    'support': 'SP',
+    'local-support': 'LS'
+  };
+
+  const abbr = abbreviations[billingPosition] || billingPosition.toUpperCase().slice(0, 2);
+
+  // Match colors to show status (confirmed shows are typically green/blue)
+  let colorClass = '';
+  switch (showStatus.toLowerCase()) {
+    case 'confirmed':
+      colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
+      break;
+    case 'pending':
+      colorClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
+      break;
+    case 'hold':
+      colorClass = 'bg-violet-100 text-violet-800 border-violet-300';
+      break;
+    default:
+      colorClass = 'bg-gray-100 text-gray-800 border-gray-300';
+  }
+
+  return (
+    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border ${colorClass} ml-2 flex-shrink-0`}>
+      {abbr}
+    </span>
+  );
+};
+
 export function ShowTimelineItem({
   show,
   permissions,
@@ -255,8 +289,8 @@ export function ShowTimelineItem({
         </td>
 
         <td className="px-4 py-3 w-[19%]">
-          <div className="flex items-center space-x-2">
-            <div className="text-sm font-medium text-gray-900 truncate">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
               {(() => {
                 // Determine what to show based on PAGE CONTEXT, not viewer type
                 const showVenueInfo = artistId; // If we're on an artist page, show venue info
@@ -305,30 +339,39 @@ export function ShowTimelineItem({
               })()}
             </div>
             
-            {/* Support act count badges - show on both venue and artist pages */}
-            {(venueId || artistId) && (supportActsCounts.confirmed > 0 || supportActsCounts.pending > 0) && (
-              <div className="flex items-center space-x-1">
-                {/* Confirmed support acts badge (green) */}
-                {supportActsCounts.confirmed > 0 && (
-                  <span 
-                    className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800"
-                    title={`${supportActsCounts.confirmed} confirmed support act${supportActsCounts.confirmed !== 1 ? 's' : ''}`}
-                  >
-                    +{supportActsCounts.confirmed}
-                  </span>
-                )}
-                
-                {/* Pending support acts badge (orange) */}
-                {supportActsCounts.pending > 0 && (
-                  <span 
-                    className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800"
-                    title={`${supportActsCounts.pending} pending support act offer${supportActsCounts.pending !== 1 ? 's' : ''}`}
-                  >
-                    +{supportActsCounts.pending}
-                  </span>
-                )}
-              </div>
-            )}
+            <div className="flex items-center space-x-1 flex-shrink-0">
+              {/* 🎵 Billing Position Badge for main show */}
+              {(show as any).billingPosition && (
+                <div>
+                  {getBillingPositionBadge((show as any).billingPosition, show.status)}
+                </div>
+              )}
+              
+              {/* Support act count badges - show on both venue and artist pages */}
+              {(venueId || artistId) && (supportActsCounts.confirmed > 0 || supportActsCounts.pending > 0) && (
+                <>
+                  {/* Confirmed support acts badge (green) */}
+                  {supportActsCounts.confirmed > 0 && (
+                    <span 
+                      className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800"
+                      title={`${supportActsCounts.confirmed} confirmed support act${supportActsCounts.confirmed !== 1 ? 's' : ''}`}
+                    >
+                      +{supportActsCounts.confirmed}
+                    </span>
+                  )}
+                  
+                  {/* Pending support acts badge (orange) */}
+                  {supportActsCounts.pending > 0 && (
+                    <span 
+                      className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800"
+                      title={`${supportActsCounts.pending} pending support act offer${supportActsCounts.pending !== 1 ? 's' : ''}`}
+                    >
+                      +{supportActsCounts.pending}
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </td>
 
@@ -427,20 +470,25 @@ export function ShowTimelineItem({
                         </td>
 
                         <td className="px-4 py-1.5 w-[19%]">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {show.artistId && show.artistId !== 'external-artist' ? (
-                              <a 
-                                href={`/artists/${show.artistId}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                                title="View artist page"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {show.artistName || 'Unknown Artist'}
-                              </a>
-                            ) : (
-                              <span>{show.artistName || 'Unknown Artist'}</span>
-                            )}
-                            <span className="text-xs text-gray-500 ml-2">• Headliner</span>
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
+                              {show.artistId && show.artistId !== 'external-artist' ? (
+                                <a 
+                                  href={`/artists/${show.artistId}`}
+                                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                                  title="View artist page"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {show.artistName || 'Unknown Artist'}
+                                </a>
+                              ) : (
+                                <span>{show.artistName || 'Unknown Artist'}</span>
+                              )}
+                            </div>
+                            {/* 🎵 Billing Position Badge for headliner */}
+                            <div className="flex-shrink-0">
+                              {getBillingPositionBadge((show as any).billingPosition || 'headliner', show.status)}
+                            </div>
                           </div>
                         </td>
 
@@ -540,28 +588,30 @@ export function ShowTimelineItem({
                               </div>
                             </td>
 
-                            <td className="px-4 py-1 w-[19%]">
-                              <div className="text-sm font-medium text-gray-900 truncate">
-                                {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
-                                  <a 
-                                    href={`/artists/${supportOffer.artistId}`}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    title="View artist page"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {supportOffer.artistName || 'Unknown Artist'}
-                                  </a>
-                                ) : (
-                                  <span>{supportOffer.artistName || 'Unknown Artist'}</span>
-                                )}
-                                <span className="text-xs text-gray-500 ml-2">
-                                                            • {supportOffer.billingPosition === 'SUPPORT' ? '🎸 Support' :
-                          supportOffer.billingPosition === 'support' ? '🎸 Support' :
-                          supportOffer.billingPosition === 'local-support' ? '🏠 Local Support' :
-                          supportOffer.billingPosition === 'headliner' ? '🌟 Headliner' :
-                          supportOffer.billingPosition === 'co-headliner' ? '⭐ Co-Headliner' : '🎸 Support'}
-                                  {supportOffer.setLength && ` • ${supportOffer.setLength}min`}
-                                </span>
+                                                        <td className="px-4 py-1 w-[19%]">
+                              <div className="flex items-center justify-between">
+                                <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
+                                  {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
+                                    <a 
+                                      href={`/artists/${supportOffer.artistId}`}
+                                      className="text-blue-600 hover:text-blue-800 hover:underline"
+                                      title="View artist page"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {supportOffer.artistName || 'Unknown Artist'}
+                                    </a>
+                                  ) : (
+                                    <span>{supportOffer.artistName || 'Unknown Artist'}</span>
+                                  )}
+                                  {/* Show set length if available */}
+                                  {supportOffer.setLength && (
+                                    <span className="text-xs text-gray-500 ml-2">• {supportOffer.setLength}min</span>
+                                  )}
+                                </div>
+                                {/* 🎵 Billing Position Badge for support acts */}
+                                <div className="flex-shrink-0">
+                                  {getBillingPositionBadge(supportOffer.billingPosition, supportOffer.status)}
+                                </div>
                               </div>
                             </td>
 
