@@ -3,7 +3,7 @@ import { Show, VenueBid, LineupPosition } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
-import { LineupInvitationModal } from '../modals/LineupInvitationModal';
+import { AddSupportActModal } from '../modals/AddSupportActModal';
 import { BidActionButtons } from '../ActionButtons/BidActionButtons';
 
 // 🧹 CLEANUP: Removed LineupBid interface - unified offer system
@@ -34,9 +34,15 @@ export function ShowTimelineItem({
   onShowDetail
 }: ShowTimelineItemProps) {
   // 🧹 CLEANUP: Removed all lineup functionality - unified offer system handles invitations
+  const [isAddSupportActModalOpen, setIsAddSupportActModalOpen] = useState(false);
   
   // Simple show title without lineup complexity
   const showTitle = show.artistName || 'Unknown Show';
+
+  const handleSupportActOfferSuccess = (offer: any) => {
+    console.log('✅ Support act offer created:', offer);
+    // TODO: Refresh shows data to display new support act
+  };
 
   return (
     <>
@@ -256,8 +262,7 @@ export function ShowTimelineItem({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  // TODO: Open unified venue offer modal for support act
-                  console.log('🎯 TODO: Open support act invitation modal');
+                  setIsAddSupportActModalOpen(true);
                 }}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-4 rounded border-2 border-dashed border-green-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
               >
@@ -270,6 +275,17 @@ export function ShowTimelineItem({
           </tr>
         </>
       )}
+
+      {/* Add Support Act Modal */}
+      <AddSupportActModal
+        isOpen={isAddSupportActModalOpen}
+        onClose={() => setIsAddSupportActModalOpen(false)}
+        showId={show.id}
+        showDate={show.date}
+        venueName={show.venueName || 'Unknown Venue'}
+        venueId={show.venueId || venueId || ''}
+        onSuccess={handleSupportActOfferSuccess}
+      />
     </>
   );
 } 
