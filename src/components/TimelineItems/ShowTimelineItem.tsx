@@ -186,7 +186,7 @@ export function ShowTimelineItem({
   return (
     <>
       <tr 
-        className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150 cursor-pointer !border-t-2 !border-t-green-400 !border-b-2 !border-b-green-400"
+        className="border-b border-gray-200 hover:bg-green-50 transition-colors duration-150 cursor-pointer border-l-4 border-l-green-500 bg-green-50/30"
         onClick={() => onToggleExpansion(show.id)}
       >
         <td className="px-4 py-3 w-[3%]">
@@ -343,11 +343,11 @@ export function ShowTimelineItem({
         <>
           {/* Column Headers Row */}
           <tr>
-            <td colSpan={10} className="px-0 py-0">
-              <div className="bg-green-50 border-l-4 border-green-400">
+                          <td colSpan={10} className="px-0 py-0 relative border-l-4 border-l-green-500">
+                <div className="bg-green-50/50">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1000px] table-fixed">
-                    <thead className="bg-green-100">
+                    <thead className="bg-green-100/60">
                       <tr className="text-left text-xs font-medium text-green-700">
                         <th className="px-2 py-1.5 w-[3%]"></th>
                         <th className="px-4 py-1.5 w-[12%]">Date</th>
