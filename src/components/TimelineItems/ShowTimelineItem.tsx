@@ -15,6 +15,7 @@ interface ShowTimelineItemProps {
   isDeleting: boolean;
   artistId?: string; // Page context: if present, we're on an artist page
   venueId?: string;  // Page context: if present, we're on a venue page
+  venueOffers?: any[]; // For displaying support acts in venue timeline
   onToggleExpansion: (showId: string) => void;
   onDeleteShow: (showId: string, showName: string) => void;
   onShowDocument: (show: Show) => void;
@@ -28,6 +29,7 @@ export function ShowTimelineItem({
   isDeleting,
   artistId,
   venueId,
+  venueOffers = [],
   onToggleExpansion,
   onDeleteShow,
   onShowDocument,
@@ -41,7 +43,10 @@ export function ShowTimelineItem({
 
   const handleSupportActOfferSuccess = (offer: any) => {
     console.log('✅ Support act offer created:', offer);
-    // TODO: Refresh shows data to display new support act
+    // Close modal and let parent component handle refresh
+    setIsAddSupportActModalOpen(false);
+    // The offer will appear in artist timeline automatically via VenueOffer → TourRequest conversion
+    // For venue timeline, we can add it to lineup expansion in future enhancement
   };
 
   return (
@@ -254,7 +259,94 @@ export function ShowTimelineItem({
             </td>
           </tr>
 
-          {/* TODO: Support act rows will go here */}
+          {/* Support act rows */}
+          {venueOffers
+            .filter(offer => 
+              offer.billingPosition === 'SUPPORT' &&
+              offer.proposedDate.split('T')[0] === show.date.split('T')[0] &&
+              offer.venueId === (show.venueId || venueId)
+            )
+            .map((supportOffer, index) => (
+              <tr key={`support-${supportOffer.id}`} className="bg-orange-50 hover:bg-orange-100">
+                <td className="px-2 py-1.5 w-[3%]">
+                  <div className="flex items-center justify-center text-gray-400">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
+                    </svg>
+                  </div>
+                </td>
+
+                <td className="px-4 py-1.5 w-[12%]">
+                  <ItineraryDate
+                    date={supportOffer.proposedDate}
+                    className="text-sm font-medium text-orange-900"
+                  />
+                </td>
+
+                <td className="px-4 py-1.5 w-[14%]">
+                  <div className="text-sm text-orange-900 truncate">
+                    {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
+                  </div>
+                </td>
+
+                <td className="px-4 py-1.5 w-[19%]">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
+                      <a 
+                        href={`/artists/${supportOffer.artistId}`}
+                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                        title="View artist page"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {supportOffer.artistName || 'Unknown Artist'}
+                      </a>
+                    ) : (
+                      <span>{supportOffer.artistName || 'Unknown Artist'}</span>
+                    )}
+                    <span className="text-xs text-gray-500 ml-2">• Support</span>
+                  </div>
+                </td>
+
+                <td className="px-4 py-1.5 w-[10%]">
+                  <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                    {supportOffer.status === 'pending' ? 'Pending' : 
+                     supportOffer.status === 'accepted' ? 'Confirmed' :
+                     supportOffer.status === 'declined' ? 'Declined' : 'Unknown'}
+                  </span>
+                </td>
+
+                <td className="px-4 py-1.5 w-[7%]">
+                  <div className="text-xs text-gray-600">{show.capacity || '-'}</div>
+                </td>
+
+                <td className="px-4 py-1.5 w-[7%]">
+                  <div className="text-xs text-gray-600 whitespace-nowrap">
+                    {show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
+                  </div>
+                </td>
+
+                <td className="px-4 py-1.5 w-[10%]">
+                  <div className="text-xs text-gray-600">
+                    {permissions.canSeeFinancialDetails(show) ? 
+                      (supportOffer.amount ? `$${supportOffer.amount}` : 
+                       supportOffer.doorDeal ? 'Door split' : 'TBD') : '-'}
+                  </div>
+                </td>
+
+                <td className="px-4 py-1.5 w-[8%]">
+                  <div className="flex items-center space-x-1">
+                    {/* Future: Support act document actions */}
+                  </div>
+                </td>
+
+                <td className="px-4 py-1.5 w-[10%]">
+                  <div className="flex items-center space-x-1">
+                    {/* Future: Support act management actions */}
+                  </div>
+                </td>
+              </tr>
+            ))
+          }
 
           {/* Add Support Act button row */}
           <tr className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150">

@@ -147,7 +147,6 @@ export function AddSupportActModal({
       }
 
       onSuccess(result);
-      onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create support act offer');
     } finally {

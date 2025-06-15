@@ -1232,6 +1232,7 @@ export default function TabbedTourItinerary({
                     isDeleting={state.deleteShowLoading === show.id}
                     artistId={artistId}
                     venueId={venueId}
+                    venueOffers={filteredVenueOffers}
                     onToggleExpansion={toggleShowExpansion}
                     onDeleteShow={handleDeleteShow}
                     onShowDocument={handleShowDocumentModal}
