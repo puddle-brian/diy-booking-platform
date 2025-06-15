@@ -167,9 +167,9 @@ export function ShowTimelineItem({
   // 🧹 CLEANUP: Removed all lineup functionality - unified offer system handles invitations
   const [isAddSupportActModalOpen, setIsAddSupportActModalOpen] = useState(false);
   
-  // Calculate support acts counts for venue pages
+  // Calculate support acts counts for both venue and artist pages
   const supportActsCounts = useMemo(() => {
-    if (!venueId || !venueOffers.length) return { confirmed: 0, pending: 0 };
+    if ((!venueId && !artistId) || !venueOffers.length) return { confirmed: 0, pending: 0 };
     
     const supportOffers = venueOffers.filter(offer => {
       // ✅ IMPROVED: More robust support act detection
@@ -306,8 +306,8 @@ export function ShowTimelineItem({
               })()}
             </div>
             
-            {/* Support act count badges - only show on venue pages */}
-            {venueId && (supportActsCounts.confirmed > 0 || supportActsCounts.pending > 0) && (
+            {/* Support act count badges - show on both venue and artist pages */}
+            {(venueId || artistId) && (supportActsCounts.confirmed > 0 || supportActsCounts.pending > 0) && (
               <div className="flex items-center space-x-1">
                 {/* Confirmed support acts badge (green) */}
                 {supportActsCounts.confirmed > 0 && (
@@ -380,8 +380,8 @@ export function ShowTimelineItem({
         </td>
       </tr>
 
-      {/* 🎯 VENUE-SIDE EXPANSION: Show lineup details when viewing from venue perspective */}
-      {isExpanded && venueId && (
+      {/* 🎯 UNIFIED EXPANSION: Show lineup details for both venue and artist perspectives */}
+      {isExpanded && (venueId || artistId) && (
         <>
           {/* Column Headers Row */}
           <tr>
