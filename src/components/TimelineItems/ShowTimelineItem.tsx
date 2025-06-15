@@ -387,7 +387,9 @@ export function ShowTimelineItem({
         </td>
 
         <td className="px-4 py-3 w-[7%]">
-          <div className="text-xs text-gray-600">{show.capacity || '-'}</div>
+          <div className="text-xs text-gray-600">
+            {venueId ? '' : (show.capacity || '-')}
+          </div>
         </td>
 
         <td className="px-4 py-3 w-[7%]">
@@ -398,7 +400,7 @@ export function ShowTimelineItem({
 
         <td className="px-4 py-3 w-[10%]">
           <div className="text-xs text-gray-600">
-            {permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : '-') : '-'}
+            {venueId ? '' : (permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : '-') : '-')}
           </div>
         </td>
 
