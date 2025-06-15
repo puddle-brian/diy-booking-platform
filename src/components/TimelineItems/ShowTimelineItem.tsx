@@ -438,7 +438,7 @@ export function ShowTimelineItem({
                         <th className="px-4 py-1.5 w-[14%]">Location</th>
                         <th className="px-4 py-1.5 w-[19%]">Artist</th>
                         <th className="px-4 py-1.5 w-[10%]">Status</th>
-                        <th className="px-4 py-1.5 w-[7%]">Capacity</th>
+                        <th className="px-4 py-1.5 w-[7%]">Position</th>
                         <th className="px-4 py-1.5 w-[7%]">Age</th>
                         <th className="px-4 py-1.5 w-[10%]">Payment</th>
                         <th className="px-4 py-1.5 w-[8%]">Details</th>
@@ -470,25 +470,19 @@ export function ShowTimelineItem({
                         </td>
 
                         <td className="px-4 py-1.5 w-[19%]">
-                          <div className="flex items-center justify-between">
-                            <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
-                              {show.artistId && show.artistId !== 'external-artist' ? (
-                                <a 
-                                  href={`/artists/${show.artistId}`}
-                                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                                  title="View artist page"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {show.artistName || 'Unknown Artist'}
-                                </a>
-                              ) : (
-                                <span>{show.artistName || 'Unknown Artist'}</span>
-                              )}
-                            </div>
-                            {/* 🎵 Billing Position Badge for headliner */}
-                            <div className="flex-shrink-0">
-                              {getBillingPositionBadge((show as any).billingPosition || 'headliner', show.status)}
-                            </div>
+                          <div className="text-sm font-medium text-gray-900 truncate">
+                            {show.artistId && show.artistId !== 'external-artist' ? (
+                              <a 
+                                href={`/artists/${show.artistId}`}
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                                title="View artist page"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {show.artistName || 'Unknown Artist'}
+                              </a>
+                            ) : (
+                              <span>{show.artistName || 'Unknown Artist'}</span>
+                            )}
                           </div>
                         </td>
 
@@ -504,7 +498,9 @@ export function ShowTimelineItem({
                         </td>
 
                         <td className="px-4 py-1.5 w-[7%]">
-                          <div className="text-xs text-gray-600">{show.capacity || '-'}</div>
+                          <div className="flex justify-center">
+                            {getBillingPositionBadge((show as any).billingPosition || 'headliner', show.status)}
+                          </div>
                         </td>
 
                         <td className="px-4 py-1.5 w-[7%]">
@@ -589,29 +585,23 @@ export function ShowTimelineItem({
                             </td>
 
                                                         <td className="px-4 py-1 w-[19%]">
-                              <div className="flex items-center justify-between">
-                                <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
-                                  {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
-                                    <a 
-                                      href={`/artists/${supportOffer.artistId}`}
-                                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                                      title="View artist page"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {supportOffer.artistName || 'Unknown Artist'}
-                                    </a>
-                                  ) : (
-                                    <span>{supportOffer.artistName || 'Unknown Artist'}</span>
-                                  )}
-                                  {/* Show set length if available */}
-                                  {supportOffer.setLength && (
-                                    <span className="text-xs text-gray-500 ml-2">• {supportOffer.setLength}min</span>
-                                  )}
-                                </div>
-                                {/* 🎵 Billing Position Badge for support acts */}
-                                <div className="flex-shrink-0">
-                                  {getBillingPositionBadge(supportOffer.billingPosition, supportOffer.status)}
-                                </div>
+                              <div className="text-sm font-medium text-gray-900 truncate">
+                                {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
+                                  <a 
+                                    href={`/artists/${supportOffer.artistId}`}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    title="View artist page"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {supportOffer.artistName || 'Unknown Artist'}
+                                  </a>
+                                ) : (
+                                  <span>{supportOffer.artistName || 'Unknown Artist'}</span>
+                                )}
+                                {/* Show set length if available */}
+                                {supportOffer.setLength && (
+                                  <span className="text-xs text-gray-500 ml-2">• {supportOffer.setLength}min</span>
+                                )}
                               </div>
                             </td>
 
@@ -624,7 +614,9 @@ export function ShowTimelineItem({
                             </td>
 
                             <td className="px-4 py-1 w-[7%]">
-                              <div className="text-xs text-gray-600">{show.capacity || '-'}</div>
+                              <div className="flex justify-center">
+                                {getBillingPositionBadge(supportOffer.billingPosition, supportOffer.status)}
+                              </div>
                             </td>
 
                             <td className="px-4 py-1 w-[7%]">

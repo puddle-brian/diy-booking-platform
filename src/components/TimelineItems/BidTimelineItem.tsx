@@ -211,9 +211,8 @@ export function BidTimelineItem({
       </td>
 
       {/* Venue column - w-[19%] */}
-      <td className="px-4 py-1.5 w-[19%]">
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
+              <td className="px-4 py-1.5 w-[19%]">
+          <div className="text-sm font-medium text-gray-900 truncate">
             {venueId ? (
               // When viewing as venue, show artist information
               (bid as any).artistId && (bid as any).artistId !== 'external-artist' ? (
@@ -244,14 +243,7 @@ export function BidTimelineItem({
               )
             )}
           </div>
-          {/* 🎵 Billing Position Badge - Right Aligned */}
-          {(bid as any).billingPosition && (
-            <div className="flex-shrink-0">
-              {getBillingPositionBadge((bid as any).billingPosition, currentStatus)}
-            </div>
-          )}
-        </div>
-      </td>
+        </td>
 
             {/* Status column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
@@ -260,11 +252,23 @@ export function BidTimelineItem({
         </span>
       </td>
 
-      {/* Capacity column - w-[7%] */}
+      {/* Capacity/Position column - w-[7%] - Context sensitive */}
       <td className="px-4 py-1.5 w-[7%]">
-        <div className="text-xs text-gray-600">
-          {bid.capacity || '-'}
-        </div>
+        {venueId ? (
+          // Venue view: Show billing position instead of capacity (venue knows their own capacity)
+          (bid as any).billingPosition ? (
+            <div className="flex justify-center">
+              {getBillingPositionBadge((bid as any).billingPosition, currentStatus)}
+            </div>
+          ) : (
+            <div className="text-xs text-gray-600 text-center">-</div>
+          )
+        ) : (
+          // Artist view: Show venue capacity (important for artist decision-making)
+          <div className="text-xs text-gray-600">
+            {bid.capacity || '-'}
+          </div>
+        )}
       </td>
 
       {/* Age column - w-[7%] */}
@@ -310,6 +314,13 @@ export function BidTimelineItem({
                 />
               )}
             </>
+          )}
+          
+          {/* 🎵 Billing Position Badge for Artist View - in Details column */}
+          {!venueId && (bid as any).billingPosition && (
+            <div className="ml-1">
+              {getBillingPositionBadge((bid as any).billingPosition, currentStatus)}
+            </div>
           )}
         </div>
       </td>
