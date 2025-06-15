@@ -101,6 +101,7 @@ interface ShowTimelineItemProps {
   onShowDetail: (show: Show) => void;
   onSupportActAdded?: (offer: any) => void; // NEW: For optimistic updates
   onSupportActDocument?: (offer: any) => void; // NEW: For support act documents
+  onSupportActAction?: (offer: any, action: string) => void; // NEW: For support act actions
 }
 
 export function ShowTimelineItem({
@@ -116,7 +117,8 @@ export function ShowTimelineItem({
   onShowDocument,
   onShowDetail,
   onSupportActAdded,
-  onSupportActDocument
+  onSupportActDocument,
+  onSupportActAction
 }: ShowTimelineItemProps) {
   // 🧹 CLEANUP: Removed all lineup functionality - unified offer system handles invitations
   const [isAddSupportActModalOpen, setIsAddSupportActModalOpen] = useState(false);
@@ -371,7 +373,10 @@ export function ShowTimelineItem({
                 offer.venueName === show.venueName
               );
               
-              return isSupportAct && isSameDate && isVenueMatch;
+              // ✅ NEW: Filter out declined offers - they shouldn't clutter the timeline
+              const isActiveOffer = offer.status !== 'declined' && offer.status !== 'DECLINED';
+              
+              return isSupportAct && isSameDate && isVenueMatch && isActiveOffer;
             })
             .map((supportOffer, index) => (
               <tr key={`support-${supportOffer.id}`} className="bg-orange-50 hover:bg-orange-100">
@@ -466,7 +471,23 @@ export function ShowTimelineItem({
 
                 <td className="px-4 py-1.5 w-[10%]">
                   <div className="flex items-center space-x-1">
-                    {/* Future: Support act management actions */}
+                    {/* Support act management actions */}
+                    {permissions.actualViewerType === 'venue' && permissions.isOwner && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Remove ${supportOffer.artistName || 'this artist'} from the lineup?`)) {
+                            onSupportActAction?.(supportOffer, 'delete');
+                          }
+                        }}
+                        className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+                        title="Remove from lineup"
+                      >
+                        <svg className="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
