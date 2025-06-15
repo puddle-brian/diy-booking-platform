@@ -124,15 +124,18 @@ export function AddSupportActModal({
       // Convert parsed offer to legacy format
       const legacyOffer = parsedOfferToLegacyFormat(offerData);
       
-      const response = await fetch(`/api/venues/${venueId}/offers`, {
+      // 🎯 UNIFIED SYSTEM: Use new ShowRequest endpoint instead of old VenueOffer endpoint
+      const response = await fetch('/api/show-requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           artistId: selectedArtist.id,
+          venueId: venueId,
           title: `${selectedArtist.name} - ${new Date(showDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName} (Support)`,
-          proposedDate: extractDateString(showDate), // Extract YYYY-MM-DD to avoid timezone issues
+          requestedDate: extractDateString(showDate), // Extract YYYY-MM-DD to avoid timezone issues
+          initiatedBy: 'VENUE',
           amount: legacyOffer.amount,
           doorDeal: legacyOffer.doorDeal,
           billingPosition: 'SUPPORT',

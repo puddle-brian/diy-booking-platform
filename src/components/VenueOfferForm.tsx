@@ -44,17 +44,21 @@ export default function VenueOfferForm({
       // Convert parsed offer to legacy format
       const legacyOffer = parsedOfferToLegacyFormat(formData.offerData);
       
-      const response = await fetch(`/api/venues/${venueId}/offers`, {
+      // 🎯 UNIFIED SYSTEM: Use new ShowRequest endpoint instead of old VenueOffer endpoint
+      const response = await fetch('/api/show-requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           artistId: formData.artistId,
+          venueId: venueId,
           title: `${formData.artistName} - ${new Date(formData.proposedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName}`,
-          proposedDate: formData.proposedDate,
+          requestedDate: formData.proposedDate,
+          initiatedBy: 'VENUE',
           amount: legacyOffer.amount,
           doorDeal: legacyOffer.doorDeal,
+          capacity: formData.capacity,
           ageRestriction: formData.ageRestriction,
           message: formData.message,
         }),
