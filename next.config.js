@@ -30,8 +30,8 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
   
-  // Disable SWC minification in development to prevent issues
-  swcMinify: false,
+  // SWC minification is enabled by default in Next.js 15
+  // swcMinify option has been removed
 }
 
 module.exports = nextConfig; 
