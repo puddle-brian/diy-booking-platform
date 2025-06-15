@@ -37,22 +37,50 @@ export async function GET(request: NextRequest) {
     
     console.log('🎯 Activities API: Fetching activities', { limit, venueId });
     
-    // TODO: Implement real activity fetching from database
-    // For now, return empty array to prevent errors
-    const activities: any[] = [];
+    // Try to authenticate user, but fall back to empty array if no auth (for now)
+    const authResult = await authenticateUser(request);
     
-    // If needed for testing, you can return mock data:
-    // const activities = [
-    //   {
-    //     id: '1',
-    //     type: 'message',
-    //     title: 'New Message',
-    //     summary: 'You have a new message from a venue',
-    //     actionText: 'Read',
-    //     timestamp: new Date().toISOString(),
-    //     isRead: false
-    //   }
-    // ];
+    let activities: any[] = [];
+    
+    if (authResult.success && authResult.user) {
+      console.log(`🎯 Activities API: Fetching for user ${authResult.user.id}`);
+      
+      // Fetch real activity notifications from database
+      const dbActivities = await prisma.activityNotification.findMany({
+        where: {
+          userId: authResult.user.id,
+          // Only show non-expired notifications
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: new Date() } }
+          ]
+        },
+        orderBy: {
+          createdAt: 'desc'
+        },
+        take: limit
+      });
+
+      console.log(`🎯 Activities API: Found ${dbActivities.length} notifications in database`);
+
+      // Transform database activities to ActivityFeed format
+      activities = dbActivities.map(activity => ({
+        id: activity.id,
+        type: activity.type.toLowerCase().replace('_', '-'), // Convert HOLD_REQUEST to hold-request
+        title: activity.title,
+        summary: activity.summary,
+        fullContent: activity.fullContent,
+        actionText: getActionTextForType(activity.type),
+        actionUrl: activity.actionUrl,
+        timestamp: activity.createdAt.toISOString(),
+        isRead: activity.isRead,
+        metadata: activity.metadata || {}
+      }));
+
+      console.log(`🎯 Activities API: Transformed ${activities.length} activities`);
+    } else {
+      console.log('🎯 Activities API: No authentication, returning empty activities');
+    }
     
     return NextResponse.json(activities);
   } catch (error) {
@@ -67,49 +95,49 @@ export async function GET(request: NextRequest) {
 // POST /api/activities - Create a new activity notification (internal use)
 export async function POST(request: NextRequest) {
   try {
-    // TODO: Fix Prisma client model access issue after database sync
-    // For now, return not implemented to prevent errors
-    return NextResponse.json({ error: 'Activity creation not yet implemented' }, { status: 501 });
+    const authResult = await authenticateUser(request);
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error }, { status: 401 });
+    }
 
-    // const authResult = await authenticateUser(request);
-    // if (!authResult.success) {
-    //   return NextResponse.json({ error: authResult.error }, { status: 401 });
-    // }
+    const body = await request.json();
+    const {
+      userId,
+      type,
+      title,
+      summary,
+      fullContent,
+      entityType,
+      entityId,
+      actionUrl,
+      metadata,
+      expiresAt
+    } = body;
 
-    // const body = await request.json();
-    // const {
-    //   userId,
-    //   type,
-    //   title,
-    //   summary,
-    //   fullContent,
-    //   entityType,
-    //   entityId,
-    //   actionUrl,
-    //   metadata,
-    //   expiresAt
-    // } = body;
+    console.log('🎯 Activities API: Creating activity notification', { type, title, userId });
 
-    // // Create the activity notification
-    // const activity = await prisma.activityNotification.create({
-    //   data: {
-    //     userId,
-    //     type: type as any, // Cast to ActivityType enum
-    //     title,
-    //     summary,
-    //     fullContent,
-    //     entityType: entityType as any,
-    //     entityId,
-    //     actionUrl,
-    //     metadata,
-    //     expiresAt: expiresAt ? new Date(expiresAt) : null
-    //   }
-    // });
+    // Create the activity notification
+    const activity = await prisma.activityNotification.create({
+      data: {
+        userId,
+        type: type as any, // Cast to ActivityType enum
+        title,
+        summary,
+        fullContent,
+        entityType: entityType as any,
+        entityId,
+        actionUrl,
+        metadata,
+        expiresAt: expiresAt ? new Date(expiresAt) : null
+      }
+    });
 
-    // return NextResponse.json(activity, { status: 201 });
+    console.log('✅ Activities API: Created activity notification', activity.id);
+
+    return NextResponse.json(activity, { status: 201 });
 
   } catch (error) {
-    console.error('Error creating activity:', error);
+    console.error('❌ Activities API: Error creating activity:', error);
     return NextResponse.json({ error: 'Failed to create activity' }, { status: 500 });
   }
 }
