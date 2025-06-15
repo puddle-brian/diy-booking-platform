@@ -1550,49 +1550,12 @@ export default function TabbedTourItinerary({
                                         </td>
                   <td className="px-4 py-1.5 w-[8%]">
                     <div className="flex items-center space-x-1">
-                      {/* Show document icon for venues and artists (only when 0 bids) */}
-                      {(venueId || (artistId && requestBids.length === 0 && permissions.canViewRequestDocument(request, requestBids))) && (
-                        <DocumentActionButton
-                          type="request"
-                          request={request}
-                          permissions={permissions}
-                          artistId={artistId}
-                          venueId={venueId}
-                          requestBids={requestBids}
-                          onRequestDocument={handleTourRequestDocumentModal}
-                          onBidDocument={handleBidDocumentModal}
-                        />
-                      )}
+                      {/* Document button moved to individual bid rows in expanded view */}
                     </div>
                   </td>
-                  <td className="px-4 py-1.5 w-[10%]">
+                                        <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          <MakeOfferActionButton
-                            request={request}
-                            permissions={permissions}
-                            venueId={venueId}
-                            venueName={venueName}
-                            requestBids={requestBids}
-                            onMakeOffer={(request, existingBid) => {
-                              // Extract the appropriate date from the request
-                              const requestWithDates = request as any;
-                              const preSelectedDate = requestWithDates.requestDate || requestWithDates.startDate || null;
-                              
-                              actions.openUniversalOffer(
-                                {
-                                  id: request.artistId,
-                                  name: request.artistName
-                                },
-                                {
-                                  id: request.id,
-                                  title: request.title,
-                                  artistName: request.artistName
-                                },
-                                preSelectedDate,
-                                existingBid
-                              );
-                            }}
-                          />
+                          {/* Make/Edit Offer buttons moved to individual bid rows in expanded view */}
 
                           <DeleteActionButton
                             request={request}
@@ -1656,6 +1619,7 @@ export default function TabbedTourItinerary({
                                           venueOffers={venueOffers as any}
                                           venueBids={venueBids}
                                           venueId={venueId}
+                                          venueName={venueName}
                                           artistId={artistId}
                                           venues={venues}
                                           effectiveStatus={getEffectiveBidStatus(bid)}
@@ -1667,6 +1631,25 @@ export default function TabbedTourItinerary({
                                           onDeclineBid={(bid) => handleBidAction(bid, 'decline')}
                                           onOfferAction={handleOfferAction}
                                           onBidAction={handleBidAction}
+                                          onMakeOffer={(request, existingBid) => {
+                                            // Extract the appropriate date from the request
+                                            const requestWithDates = request as any;
+                                            const preSelectedDate = requestWithDates.requestDate || requestWithDates.startDate || null;
+                                            
+                                            actions.openUniversalOffer(
+                                              {
+                                                id: request.artistId,
+                                                name: request.artistName
+                                              },
+                                              {
+                                                id: request.id,
+                                                title: request.title,
+                                                artistName: request.artistName
+                                              },
+                                              preSelectedDate,
+                                              existingBid
+                                            );
+                                          }}
                                           isFrozenByHold={isFrozenByHold}
                                           activeHoldInfo={isFrozenByHold ? {
                                             id: (bid as any).frozenByHoldId || '',
@@ -1677,6 +1660,8 @@ export default function TabbedTourItinerary({
                                         />
                                       );
                                     })}
+                                    
+
                                 </tbody>
                               </table>
                             </div>

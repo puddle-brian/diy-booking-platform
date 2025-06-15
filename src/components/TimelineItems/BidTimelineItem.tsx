@@ -2,7 +2,7 @@ import React from 'react';
 import { VenueBid, TourRequest, VenueOffer } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
-import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
+import { DeleteActionButton, DocumentActionButton, MakeOfferActionButton } from '../ActionButtons';
 import { InlineOfferDisplay } from '../OfferDisplay';
 
 interface BidTimelineItemProps {
@@ -14,6 +14,7 @@ interface BidTimelineItemProps {
   venueOffers: VenueOffer[];
   venueBids: VenueBid[];
   venueId?: string;
+  venueName?: string;
   artistId?: string;  // Add artistId to determine viewer type
   venues?: Array<{ id: string; name: string; city: string; state: string; }>;
   effectiveStatus?: string; // Override bid.status for optimistic updates
@@ -25,6 +26,7 @@ interface BidTimelineItemProps {
   onDeclineBid?: (bid: VenueBid) => void;
   onOfferAction?: (offer: VenueOffer, action: string) => Promise<void>;
   onBidAction?: (bid: VenueBid, action: string, reason?: string) => Promise<void>;
+  onMakeOffer?: (request: TourRequest, existingBid?: VenueBid) => void;
   // NEW: Hold state management
   isFrozenByHold?: boolean;
   activeHoldInfo?: {
@@ -44,6 +46,7 @@ export function BidTimelineItem({
   venueOffers,
   venueBids,
   venueId,
+  venueName,
   artistId,
   venues,
   effectiveStatus,
@@ -55,6 +58,7 @@ export function BidTimelineItem({
   onDeclineBid,
   onOfferAction,
   onBidAction,
+  onMakeOffer,
   isFrozenByHold = false,
   activeHoldInfo
 }: BidTimelineItemProps) {
@@ -240,8 +244,8 @@ export function BidTimelineItem({
       {/* Details column - w-[8%] */}
       <td className="px-4 py-1.5 w-[8%]">
         <div className="flex items-center space-x-1">
-          {/* ✅ FIX: Only show document icon in bid rows when viewer is an artist */}
-          {permissions.actualViewerType === 'artist' && (
+          {/* ✅ FIX: Show document icon in bid rows for both artists and venues */}
+          {(permissions.actualViewerType === 'artist' || permissions.actualViewerType === 'venue') && (
             <>
               {/* Show greyed out document icon for frozen bids */}
               {isFrozenByHold && (bid as any).holdState === 'FROZEN' ? (
@@ -267,6 +271,18 @@ export function BidTimelineItem({
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1.5 w-[10%]">
         <div className="flex items-center space-x-1">
+          {/* Make/Edit Offer button for venues viewing their own bid */}
+          {venueId && bid.venueId === venueId && request && onMakeOffer && (
+            <MakeOfferActionButton
+              request={request as any}
+              permissions={permissions}
+              venueId={venueId}
+              venueName={venueName}
+              requestBids={venueBids}
+              onMakeOffer={(req, existingBid) => onMakeOffer(req, existingBid)}
+            />
+          )}
+          
           {/* ❄️ FROZEN: Show just snowflake icon when bid is frozen by hold (but NOT when it's held) */}
           {isFrozenByHold && (bid as any).holdState === 'FROZEN' ? (
             <div className="flex items-center justify-center">

@@ -149,32 +149,14 @@ export function TourRequestTimelineItem({
 
       <td className="px-4 py-3 w-[8%]">
         <div className="flex items-center space-x-1">
-          <DocumentActionButton
-            type="request"
-            request={request}
-            permissions={permissions}
-            artistId={request.artistId}
-            venueId={venueId}
-            requestBids={venueBids}
-            onRequestDocument={() => onRequestDocument(request)}
-            onBidDocument={onBidDocument}
-          />
+          {/* Document button moved to individual bid rows in expanded view */}
         </div>
       </td>
 
       <td className="px-4 py-3 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Make Offer Button - For venues on requests where they can engage */}
-          {permissions.canMakeOfferOnRequest(request, venueBids) && (
-            <MakeOfferActionButton
-              request={request}
-              permissions={permissions}
-              venueId={venueId}
-              requestBids={venueBids}
-              onMakeOffer={() => onMakeOffer(request)}
-            />
-          )}
-
+          {/* Make/Edit Offer buttons moved to individual bid rows in expanded view */}
+          
           {/* Delete/Cancel Button - Only show when edit button is not available */}
           {permissions.canDeleteRequest(request, venueBids) && (
             <DeleteActionButton
