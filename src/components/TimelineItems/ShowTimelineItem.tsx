@@ -105,6 +105,49 @@ interface ShowTimelineItemProps {
   onSupportActAction?: (offer: any, action: string) => void; // NEW: For support act actions
 }
 
+// Utility function for consistent timeline border styling
+const getTimelineBorderClass = (status: string) => {
+  const normalizedStatus = status?.toLowerCase();
+  switch (normalizedStatus) {
+    case 'confirmed':
+      return 'border-l-4 border-l-green-500 bg-green-50/30';
+    case 'accepted':
+      return 'border-l-4 border-l-green-400 bg-green-50/20';
+    case 'hold':
+      return 'border-l-4 border-l-violet-400 bg-violet-50/30';
+    case 'pending':
+    default:
+      return ''; // No border for non-confirmed items
+  }
+};
+
+// Utility function for status badge styling
+const getShowStatusBadge = (status: string) => {
+  const normalizedStatus = status?.toLowerCase();
+  switch (normalizedStatus) {
+    case 'confirmed':
+      return {
+        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800',
+        text: 'Confirmed'
+      };
+    case 'pending':
+      return {
+        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800',
+        text: 'Open'
+      };
+    case 'hold':
+      return {
+        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-700',
+        text: 'Hold'
+      };
+    default:
+      return {
+        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800',
+        text: status || 'Unknown'
+      };
+  }
+};
+
 export function ShowTimelineItem({
   show,
   permissions,
@@ -180,10 +223,10 @@ export function ShowTimelineItem({
   return (
     <>
       <tr 
-        className="border-b border-gray-200 hover:bg-green-50 transition-colors duration-150 cursor-pointer border-l-4 border-l-green-500 bg-green-50/30"
+        className="border-b border-gray-200 hover:bg-green-50 transition-colors duration-150 cursor-pointer"
         onClick={() => onToggleExpansion(show.id)}
       >
-        <td className="px-4 py-3 w-[3%]">
+        <td className={`px-4 py-3 w-[3%] ${getTimelineBorderClass(show.status)}`}>
           <button
             className="text-gray-400 hover:text-gray-600 transition-colors"
             title={isExpanded ? "Collapse" : "Expand"}
@@ -291,9 +334,14 @@ export function ShowTimelineItem({
         </td>
 
         <td className="px-4 py-3 w-[10%]">
-          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            Confirmed
-          </span>
+          {(() => {
+            const statusBadge = getShowStatusBadge(show.status);
+            return (
+              <span className={statusBadge.className}>
+                {statusBadge.text}
+              </span>
+            );
+          })()}
         </td>
 
         <td className="px-4 py-3 w-[7%]">
@@ -337,7 +385,7 @@ export function ShowTimelineItem({
         <>
           {/* Column Headers Row */}
           <tr>
-                          <td colSpan={10} className="px-0 py-0 relative border-l-4 border-l-green-500">
+                          <td colSpan={10} className={`px-0 py-0 relative ${getTimelineBorderClass(show.status).split(' ').filter(c => c.startsWith('border-l')).join(' ')}`}>
                 <div className="bg-green-50/50">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1000px] table-fixed">
@@ -398,9 +446,14 @@ export function ShowTimelineItem({
                         </td>
 
                         <td className="px-4 py-1.5 w-[10%]">
-                          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                            Confirmed
-                          </span>
+                          {(() => {
+                            const statusBadge = getShowStatusBadge(show.status);
+                            return (
+                              <span className={statusBadge.className}>
+                                {statusBadge.text}
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         <td className="px-4 py-1.5 w-[7%]">

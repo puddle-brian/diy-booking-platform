@@ -53,6 +53,22 @@ interface TabbedTourItineraryProps {
   viewerType?: 'artist' | 'venue' | 'public';
 }
 
+// Utility function for consistent timeline border styling
+const getTimelineBorderClass = (status: string) => {
+  const normalizedStatus = status?.toLowerCase();
+  switch (normalizedStatus) {
+    case 'confirmed':
+      return 'border-l-4 border-l-green-500 bg-green-50/30';
+    case 'accepted':
+      return 'border-l-4 border-l-green-400 bg-green-50/20';
+    case 'hold':
+      return 'border-l-4 border-l-violet-400 bg-violet-50/30';
+    case 'pending':
+    default:
+      return ''; // No border for non-confirmed items
+  }
+};
+
 interface TimelineEntry {
   type: 'show' | 'tour-request';
   date: string;
@@ -930,8 +946,8 @@ export default function TabbedTourItinerary({
     switch (effectiveStatus) {
       case 'pending':
         return {
-          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800',
-          text: 'Pending'
+          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800',
+          text: 'Open'
         };
 
       case 'accepted':
@@ -1320,14 +1336,58 @@ export default function TabbedTourItinerary({
                   requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
                 }
 
+                // Determine status for border styling
+                const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
+                  bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
+                );
+                const hasActiveHold = requestBids.some((bid: VenueBid) => 
+                  (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
+                );
+                const isHeldBidRequest = (request as any).isHeldBid;
+                
+                let requestStatus: 'confirmed' | 'pending' | 'hold' | 'accepted' = 'pending';
+                if (hasAcceptedBid) {
+                  requestStatus = 'accepted';
+                } else if (hasActiveHold || isHeldBidRequest) {
+                  requestStatus = 'hold';
+                }
+                
+                const borderClass = getTimelineBorderClass(requestStatus);
+
+                // Generate class names safely
+                const baseClasses = "cursor-pointer transition-colors duration-150 hover:shadow-sm";
+                const hoverClass = requestStatus === 'accepted' ? 'bg-green-50/30 hover:bg-green-100' :
+                                  requestStatus === 'hold' ? 'bg-violet-50/30 hover:bg-violet-100' :
+                                  'hover:bg-blue-50';
+                const rowClassName = `${baseClasses} ${hoverClass}`;
+                
+                // Pre-calculate text colors
+                const textColorClass = requestStatus === 'accepted' ? 'text-green-900' :
+                                      requestStatus === 'hold' ? 'text-violet-900' :
+                                      'text-blue-900';
+                
+                // Pre-calculate expanded section classes
+                const expandedBgClass = requestStatus === 'accepted' ? 'bg-green-50 border-l-4 border-green-400' :
+                                       requestStatus === 'hold' ? 'bg-violet-50 border-l-4 border-violet-400' :
+                                       'bg-yellow-50 border-l-4 border-yellow-400';
+                const expandedHeaderClass = requestStatus === 'accepted' ? 'bg-green-100' :
+                                           requestStatus === 'hold' ? 'bg-violet-100' :
+                                           'bg-yellow-100';
+                const expandedTextClass = requestStatus === 'accepted' ? 'text-left text-xs font-medium text-green-700' :
+                                         requestStatus === 'hold' ? 'text-left text-xs font-medium text-violet-700' :
+                                         'text-left text-xs font-medium text-yellow-700';
+                const expandedDividerClass = requestStatus === 'accepted' ? 'divide-y divide-green-200' :
+                                            requestStatus === 'hold' ? 'divide-y divide-violet-200' :
+                                            'divide-y divide-yellow-200';
+
                 return (
                   <React.Fragment key={`request-${request.id}`}>
                     <tr 
-                      className="bg-blue-50 cursor-pointer transition-colors duration-150 hover:bg-blue-100 hover:shadow-sm border-l-4 border-blue-400 hover:border-blue-500"
+                      className="cursor-pointer transition-colors duration-150 hover:shadow-sm"
                       onClick={() => toggleRequestExpansion(request.id)}
                       title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
                     >
-                      <td className="px-2 py-1.5 w-[3%]">
+                      <td className={`px-2 py-1.5 w-[3%] ${borderClass}`}>
                         <div className="flex items-center justify-center text-gray-400">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -1340,11 +1400,11 @@ export default function TabbedTourItinerary({
                           startDate={request.startDate}
                           endDate={request.endDate}
                           isSingleDate={request.isSingleDate}
-                          className="text-sm font-medium text-blue-900"
+                          className={`text-sm font-medium ${textColorClass}`}
                         />
                       </td>
                       <td className="px-4 py-1.5 w-[14%]">
-                        <div className="text-sm text-blue-900 truncate">{request.location}</div>
+                        <div className={`text-sm truncate ${textColorClass}`}>{request.location}</div>
                       </td>
                       <td className="px-4 py-1.5 w-[19%]">
                         <div className="text-sm font-medium text-gray-900 truncate">
@@ -1514,13 +1574,9 @@ export default function TabbedTourItinerary({
                       <td className="px-4 py-1.5 w-[7%]"></td>
                       <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          <div className="text-xs">
-                            <span className={requestBids.length > 0 ? "text-blue-600 font-medium" : "text-gray-400"}>
-                              {requestBids.length} bid{requestBids.length !== 1 ? 's' : ''}
-                            </span>
-                          </div>
+                          {/* Offers column - content moved to venue column to avoid redundancy */}
                         </div>
-                                        </td>
+                      </td>
                   <td className="px-4 py-1.5 w-[8%]">
                     <div className="flex items-center space-x-1">
                       {/* Document button moved to individual bid rows in expanded view */}
@@ -1550,11 +1606,11 @@ export default function TabbedTourItinerary({
                     {state.expandedRequests.has(request.id) && requestBids.length > 0 && permissions.canExpandRequest(request) && (
                       <tr>
                         <td colSpan={10} className="px-0 py-0">
-                          <div className="bg-yellow-50 border-l-4 border-yellow-400">
+                          <div className={expandedBgClass}>
                             <div className="overflow-x-auto">
                               <table className="w-full min-w-[1000px] table-fixed">
-                                <thead className="bg-yellow-100">
-                                  <tr className="text-left text-xs font-medium text-yellow-700">
+                                <thead className={expandedHeaderClass}>
+                                  <tr className={expandedTextClass}>
                                     <th className="px-2 py-1.5 w-[3%]"></th>
                                     <th className="px-4 py-1.5 w-[12%]">Date</th>
                                     <th className="px-4 py-1.5 w-[14%]">Location</th>
@@ -1567,7 +1623,7 @@ export default function TabbedTourItinerary({
                                     <th className="px-4 py-1.5 w-[10%]">Actions</th>
                                   </tr>
                                 </thead>
-                                <tbody className="divide-y divide-yellow-200">
+                                <tbody className={expandedDividerClass}>
                                                                     {requestBids
                                     .filter((bid: VenueBid) => {
                                       // Apply status filtering
