@@ -55,13 +55,15 @@ export default function ArtistOffersList({ artistId, artistName }: ArtistOffersL
   const handleOfferAction = async (offerId: string, action: 'accept' | 'decline', reason?: string) => {
     setActionLoading(offerId);
     try {
-      const response = await fetch(`/api/venues/[id]/offers/${offerId}`, {
+      // Use the new unified ShowRequest API
+      const response = await fetch(`/api/show-requests/${offerId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          action,
+          action: action === 'decline' ? 'decline' : action,
+          status: action === 'decline' ? 'DECLINED' : 'CONFIRMED',
           reason
         }),
       });

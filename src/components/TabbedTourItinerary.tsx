@@ -12,7 +12,7 @@ import LocationVenueAutocomplete from './LocationVenueAutocomplete';
 import UnifiedShowRequestForm from './UnifiedShowRequestForm';
 import TechnicalRequirementsTable from './TechnicalRequirementsTable';
 import HospitalityRiderTable from './HospitalityRiderTable';
-import VenueOfferForm from './VenueOfferForm';
+
 import { InlineOfferDisplay } from './OfferDisplay';
 import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from './OfferInput';
 import ShowDocumentModal from './ShowDocumentModal';
@@ -498,23 +498,8 @@ export default function TabbedTourItinerary({
         // This was a ShowRequest from the new system
         response = showRequestResponse;
         console.log(`✅ Successfully updated ShowRequest ${offer.id} via new unified API`);
-      } else if (showRequestResponse.status === 404) {
-        // Not found as ShowRequest, try the old VenueOffer API
-        console.log(`🔄 ShowRequest not found, trying VenueOffer API for ${offer.id}`);
-        
-        response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action }),
-        });
-
-        if (response.ok) {
-          console.log(`✅ Successfully updated VenueOffer ${offer.id} via legacy API`);
-        }
       } else {
-        // Some other error with ShowRequest API
+        // Some other error with ShowRequest API  
         response = showRequestResponse;
       }
 
@@ -616,11 +601,12 @@ export default function TabbedTourItinerary({
               }
               
               if (acceptedOffer) {
-                await fetch(`/api/venues/${acceptedOffer.venueId}/offers/${acceptedOffer.id}`, {
+                await fetch(`/api/show-requests/${acceptedOffer.id}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ 
                     action: 'decline',
+                    status: 'DECLINED',
                     reason: `Switched to ${bid.venueName} for same date`
                   }),
                 });
@@ -802,21 +788,6 @@ export default function TabbedTourItinerary({
         // This was a ShowRequest from the new system
         response = showRequestResponse;
         console.log(`✅ Successfully updated ShowRequest ${offer.id} via new unified API`);
-      } else if (showRequestResponse.status === 404) {
-        // Not found as ShowRequest, try the old VenueOffer API
-        console.log(`🔄 ShowRequest not found, trying VenueOffer API for ${offer.id}`);
-        
-        response = await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ action }),
-        });
-
-        if (response.ok) {
-          console.log(`✅ Successfully updated VenueOffer ${offer.id} via legacy API`);
-        }
       } else {
         // Some other error with ShowRequest API
         response = showRequestResponse;
@@ -908,22 +879,24 @@ export default function TabbedTourItinerary({
               }
               
               if (acceptedOffer) {
-                await fetch(`/api/venues/${acceptedOffer.venueId}/offers/${acceptedOffer.id}`, {
+                await fetch(`/api/show-requests/${acceptedOffer.id}`, {
                   method: 'PUT',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ 
                     action: 'decline',
+                    status: 'DECLINED',
                     reason: `Switched to ${offer.venueName} for same date`
                   }),
                 });
               }
               
               // Accept the new offer
-              await fetch(`/api/venues/${offer.venueId}/offers/${offer.id}`, {
+              await fetch(`/api/show-requests/${offer.id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                  action: 'accept'
+                  action: 'accept',
+                  status: 'CONFIRMED'
                 }),
               });
               
@@ -1248,7 +1221,7 @@ export default function TabbedTourItinerary({
                         // Delete the support act offer
                         actions.setDeleteLoading(offer.id);
                         try {
-                          const response = await fetch(`/api/venues/${venueId}/offers/${offer.id}`, {
+                          const response = await fetch(`/api/show-requests/${offer.id}`, {
                             method: 'DELETE',
                           });
                           
@@ -1531,7 +1504,7 @@ export default function TabbedTourItinerary({
                             
                             return (
                               <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                {requestBids.length > 0 ? 'Bidding' : 'Requested'}
+                                Open
                               </span>
                             );
                           })()}

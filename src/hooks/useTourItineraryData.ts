@@ -627,84 +627,8 @@ export function useTourItineraryData({
             }));
           setVenueOffers(legacyVenueOffers);
           
-          // 🎯 FALLBACK: Also fetch from old VenueOffer table for support acts and other offers not yet migrated
-          const oldVenueOffersResponse = await fetch(`/api/venues/${venueId}/offers?t=${timestamp}`);
-          if (oldVenueOffersResponse.ok) {
-            const oldVenueOffersData = await oldVenueOffersResponse.json();
-            console.log('🎯 Fetched old venue offers for venue:', oldVenueOffersData.length);
-            
-            // Convert old venue offers to legacy format and merge with existing
-            const oldLegacyVenueOffers: VenueOffer[] = oldVenueOffersData.map((offer: any) => ({
-              id: offer.id,
-              venueId: offer.venueId,
-              venueName: offer.venueName || offer.venue?.name || venueName || 'Unknown Venue',
-              artistId: offer.artistId,
-              artistName: offer.artistName || offer.artist?.name || 'Unknown Artist',
-              title: offer.title,
-              description: offer.description,
-              proposedDate: offer.proposedDate,
-              alternativeDates: offer.alternativeDates || [],
-              message: offer.message,
-              amount: offer.amount,
-              doorDeal: offer.doorDeal,
-              ticketPrice: offer.ticketPrice,
-              merchandiseSplit: offer.merchandiseSplit,
-              billingPosition: offer.billingPosition,
-              lineupPosition: offer.lineupPosition,
-              setLength: offer.setLength,
-              otherActs: offer.otherActs,
-              billingNotes: offer.billingNotes,
-              capacity: offer.capacity,
-              ageRestriction: offer.ageRestriction,
-              equipmentProvided: offer.equipmentProvided,
-              loadIn: offer.loadIn,
-              soundcheck: offer.soundcheck,
-              doorsOpen: offer.doorsOpen,
-              showTime: offer.showTime,
-              curfew: offer.curfew,
-              promotion: offer.promotion,
-              lodging: offer.lodging,
-              additionalTerms: offer.additionalTerms,
-              status: offer.status.toLowerCase(),
-              createdAt: offer.createdAt,
-              updatedAt: offer.updatedAt,
-              expiresAt: offer.expiresAt,
-              venue: offer.venue,
-              artist: offer.artist
-            }));
-            
-            // Merge old and new venue offers, avoiding duplicates
-            const allVenueOffers = [...legacyVenueOffers];
-            oldLegacyVenueOffers.forEach(oldOffer => {
-              // ✅ IMPROVED: More robust deduplication logic
-              const existsInNew = legacyVenueOffers.some(newOffer => 
-                // Primary match: same IDs
-                (newOffer.id === oldOffer.id) ||
-                // Secondary match: same core booking details
-                (newOffer.venueId === oldOffer.venueId && 
-                 newOffer.artistId === oldOffer.artistId &&
-                 Math.abs(new Date(newOffer.proposedDate).getTime() - new Date(oldOffer.proposedDate).getTime()) < 24 * 60 * 60 * 1000 && // Same day
-                 newOffer.title === oldOffer.title)
-              );
-              
-              if (!existsInNew) {
-                allVenueOffers.push(oldOffer);
-              } else {
-                console.log(`🔍 Skipping duplicate offer: ${oldOffer.title} (found in both systems)`);
-              }
-            });
-            
-            console.log(`🎯 Merged venue offers for venue: ${legacyVenueOffers.length} from new system + ${oldLegacyVenueOffers.filter(oldOffer => 
-              !legacyVenueOffers.some(newOffer => 
-                (newOffer.id === oldOffer.id) ||
-                (newOffer.venueId === oldOffer.venueId && 
-                 newOffer.artistId === oldOffer.artistId &&
-                 Math.abs(new Date(newOffer.proposedDate).getTime() - new Date(oldOffer.proposedDate).getTime()) < 24 * 60 * 60 * 1000 &&
-                 newOffer.title === oldOffer.title)
-              )
-            ).length} unique from old system = ${allVenueOffers.length} total`);
-            setVenueOffers(allVenueOffers);
-          }
+          // All venue offers now come from the unified ShowRequest system
+          setVenueOffers(legacyVenueOffers);
 
           // Get venue's bids on artist-initiated requests (now includes ALL artist requests with venue bids)
           const venueBids: VenueBid[] = [];

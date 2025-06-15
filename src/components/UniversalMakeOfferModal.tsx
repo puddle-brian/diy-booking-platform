@@ -332,28 +332,11 @@ export default function UniversalMakeOfferModal({
         onSuccess({ deleted: true });
         handleClose();
         return;
-      } else if (response.status === 404) {
-        // Not found as ShowRequest, try as VenueOffer
-        console.log('🔄 ShowRequest not found, trying VenueOffer API');
-        
-        response = await fetch(`/api/venues/${selectedVenue.id}/offers/${existingBid.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.ok) {
-          console.log('✅ Successfully deleted VenueOffer');
-          onSuccess({ deleted: true });
-          handleClose();
-          return;
-        }
+      } else {
+        // Failed to delete from ShowRequest API
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete offer');
       }
-
-      // If we get here, both APIs failed
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to delete offer');
     } catch (error) {
       console.error('❌ Error deleting offer:', error);
       throw error;
