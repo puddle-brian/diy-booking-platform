@@ -19,7 +19,6 @@ model User {
   activityNotifications     ActivityNotification[]
   submittedArtists          Artist[]                  @relation("SubmittedArtists")
   ownedArtists              Artist[]                  @relation("OwnedArtists")
-  sentLineupInvitations     Bid[]                     @relation("SentLineupInvitations")  // 🎵 NEW: Lineup invitations sent
   bids                      Bid[]
   conversations             ConversationParticipant[]
   favorites                 Favorite[]
@@ -354,19 +353,12 @@ model Show {
   notes          String?
   showTime       String?
   soundcheck     String?
-  parentShowId   String?         // For support acts, links to headliner show
-  isLineupSlot   Boolean         @default(false) // Is this a support act slot?
-  lineupRole     LineupPosition? // HEADLINER, DIRECT_SUPPORT, etc.
-  billingOrder   Int?            // 1 = headliner, 2 = direct support, etc.
   artistName     String?        // Cached artist name for display
   venueName      String?        // Cached venue name for display  
   city           String?        // Cached city for display
   state          String?        // Cached state for display
   country        String?        // Cached country for display
   holdRequests   HoldRequest[]
-  lineupBids     Bid[]           @relation("LineupBids") // 🎵 NEW: Lineup bids for this show
-  parentShow     Show?           @relation("LineupShows", fields: [parentShowId], references: [id])
-  lineupShows    Show[]          @relation("LineupShows") // Support acts for this show
   artist         Artist          @relation(fields: [artistId], references: [id])
   createdBy      User            @relation(fields: [createdById], references: [id])
   venue          Venue           @relation(fields: [venueId], references: [id])
@@ -376,9 +368,6 @@ model Show {
   @@index([date])
   @@index([status])
   @@index([createdAt])
-  @@index([parentShowId])
-  @@index([isLineupSlot])
-  @@index([billingOrder])
   @@map("shows")
 }
 
@@ -411,16 +400,9 @@ model Bid {
   holdState       BidHoldState @default(AVAILABLE)
   statusHistory   Json         @default("[]")
   unfrozenAt      DateTime?
-  isLineupSlot    Boolean      @default(false)    // Marks this as a lineup invitation
-  parentShowId    String?                         // Links to the confirmed show this is for
-  lineupRole      LineupPosition?                 // HEADLINER, DIRECT_SUPPORT, OPENER, LOCAL_OPENER
-  billingOrder    Int?                            // 1 = headliner, 2 = direct support, etc.
-  invitedByUserId String?                         // Who sent this lineup invitation
   bidder          User         @relation(fields: [bidderId], references: [id])
   tourRequest     TourRequest  @relation(fields: [tourRequestId], references: [id])
   venue           Venue        @relation(fields: [venueId], references: [id])
-  parentShow      Show?        @relation("LineupBids", fields: [parentShowId], references: [id])
-  invitedBy       User?        @relation("SentLineupInvitations", fields: [invitedByUserId], references: [id])
 
   @@index([tourRequestId])
   @@index([venueId])
@@ -429,9 +411,6 @@ model Bid {
   @@index([proposedDate])
   @@index([holdPosition])
   @@index([createdAt])
-  @@index([isLineupSlot])
-  @@index([parentShowId])
-  @@index([billingOrder])
   @@map("bids")
 }
 
@@ -924,16 +903,4 @@ enum ActivityType {
   VENUE_OFFER
 }
 
-enum LineupPosition {
-  HEADLINER
-  DIRECT_SUPPORT
-  OPENER
-  LOCAL_OPENER
-}
 
-enum LineupStatus {
-  INVITED
-  CONFIRMED
-  DECLINED
-  CANCELLED
-}
