@@ -120,6 +120,7 @@ export default function ModularShowDocument({
         startDate: tourRequest.startDate,
         endDate: tourRequest.endDate,
         artistName: tourRequest.artistName,
+        venueName: tourRequest.venueName || tourRequest.location, // Support both venue name and location
         location: tourRequest.location
       });
     }

@@ -8,6 +8,85 @@ import { BidActionButtons } from '../ActionButtons/BidActionButtons';
 
 // 🧹 CLEANUP: Removed LineupBid interface - unified offer system
 
+// Helper functions to convert support offers to synthetic format for document viewing
+function createSyntheticRequest(supportOffer: any) {
+  const offerDate = supportOffer.proposedDate.split('T')[0];
+  
+  return {
+    id: `venue-offer-${supportOffer.id}`,
+    artistId: supportOffer.artistId,
+    artistName: supportOffer.artistName,
+    title: supportOffer.title,
+    description: supportOffer.description || `Support act offer from ${supportOffer.venueName}`,
+    startDate: offerDate,
+    endDate: offerDate,
+    isSingleDate: true,
+    location: supportOffer.venueName,
+    radius: 0,
+    flexibility: 'exact-cities' as const,
+    genres: [],
+    expectedDraw: { min: 0, max: supportOffer.capacity || 0, description: '' },
+    tourStatus: 'exploring-interest' as const,
+    ageRestriction: 'flexible' as const,
+    equipment: { needsPA: false, needsMics: false, needsDrums: false, needsAmps: false, acoustic: false },
+    acceptsDoorDeals: !!supportOffer.doorDeal,
+    merchandising: false,
+    travelMethod: 'van' as const,
+    lodging: 'flexible' as const,
+    status: 'active' as const,
+    priority: 'medium' as const,
+    responses: 1,
+    createdAt: supportOffer.createdAt || new Date().toISOString(),
+    updatedAt: supportOffer.updatedAt || new Date().toISOString(),
+    expiresAt: supportOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+    isVenueInitiated: true,
+    originalOfferId: supportOffer.id,
+    venueId: supportOffer.venueId,
+    venueName: supportOffer.venueName
+  } as any; // Use 'as any' to avoid extensive type definition
+}
+
+function createSyntheticBid(supportOffer: any) {
+  const offerDate = supportOffer.proposedDate.split('T')[0];
+  
+  return {
+    id: `offer-bid-${supportOffer.id}`,
+    showRequestId: `venue-offer-${supportOffer.id}`,
+    venueId: supportOffer.venueId,
+    venueName: supportOffer.venueName,
+    proposedDate: offerDate,
+    guarantee: supportOffer.amount,
+    doorDeal: supportOffer.doorDeal,
+    ticketPrice: supportOffer.ticketPrice || {},
+    capacity: supportOffer.capacity || 0,
+    ageRestriction: supportOffer.ageRestriction || 'all-ages',
+    equipmentProvided: supportOffer.equipmentProvided || {
+      pa: false, mics: false, drums: false, amps: false, piano: false
+    },
+    loadIn: supportOffer.loadIn || '',
+    soundcheck: supportOffer.soundcheck || '',
+    doorsOpen: supportOffer.doorsOpen || '',
+    showTime: supportOffer.showTime || '',
+    curfew: supportOffer.curfew || '',
+    promotion: supportOffer.promotion || {
+      social: false, flyerPrinting: false, radioSpots: false, pressCoverage: false
+    },
+    message: supportOffer.message || '',
+    status: supportOffer.status.toLowerCase(),
+    readByArtist: true,
+    createdAt: supportOffer.createdAt,
+    updatedAt: supportOffer.updatedAt,
+    expiresAt: supportOffer.expiresAt,
+    billingPosition: supportOffer.billingPosition,
+    lineupPosition: supportOffer.lineupPosition,
+    setLength: supportOffer.setLength,
+    otherActs: supportOffer.otherActs,
+    billingNotes: supportOffer.billingNotes,
+    artistId: supportOffer.artistId,
+    artistName: supportOffer.artistName
+  } as any; // Use 'as any' to avoid extensive type definition
+}
+
 interface ShowTimelineItemProps {
   show: Show;
   permissions: ItineraryPermissions;
@@ -20,6 +99,8 @@ interface ShowTimelineItemProps {
   onDeleteShow: (showId: string, showName: string) => void;
   onShowDocument: (show: Show) => void;
   onShowDetail: (show: Show) => void;
+  onSupportActAdded?: (offer: any) => void; // NEW: For optimistic updates
+  onSupportActDocument?: (offer: any) => void; // NEW: For support act documents
 }
 
 export function ShowTimelineItem({
@@ -33,7 +114,9 @@ export function ShowTimelineItem({
   onToggleExpansion,
   onDeleteShow,
   onShowDocument,
-  onShowDetail
+  onShowDetail,
+  onSupportActAdded,
+  onSupportActDocument
 }: ShowTimelineItemProps) {
   // 🧹 CLEANUP: Removed all lineup functionality - unified offer system handles invitations
   const [isAddSupportActModalOpen, setIsAddSupportActModalOpen] = useState(false);
@@ -45,8 +128,9 @@ export function ShowTimelineItem({
     console.log('✅ Support act offer created:', offer);
     // Close modal and let parent component handle refresh
     setIsAddSupportActModalOpen(false);
-    // The offer will appear in artist timeline automatically via VenueOffer → TourRequest conversion
-    // For venue timeline, we can add it to lineup expansion in future enhancement
+    
+    // NEW: Optimistic update - immediately add to parent's venue offers
+    onSupportActAdded?.(offer);
   };
 
   return (
@@ -335,7 +419,19 @@ export function ShowTimelineItem({
 
                 <td className="px-4 py-1.5 w-[8%]">
                   <div className="flex items-center space-x-1">
-                    {/* Future: Support act document actions */}
+                    {/* Support act document actions - specific to the support offer */}
+                    {onSupportActDocument && (
+                      <DocumentActionButton
+                        type="request"
+                        request={createSyntheticRequest(supportOffer)}
+                        permissions={permissions}
+                        artistId={supportOffer.artistId}
+                        venueId={supportOffer.venueId}
+                        requestBids={[createSyntheticBid(supportOffer)]}
+                        onRequestDocument={() => onSupportActDocument(supportOffer)}
+                        onBidDocument={() => onSupportActDocument(supportOffer)}
+                      />
+                    )}
                   </div>
                 </td>
 

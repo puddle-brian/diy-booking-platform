@@ -1237,6 +1237,53 @@ export default function TabbedTourItinerary({
                     onDeleteShow={handleDeleteShow}
                     onShowDocument={handleShowDocumentModal}
                     onShowDetail={handleShowDetailModal}
+                    onSupportActAdded={(offer: any) => {
+                      // Optimistic update: immediately refresh data to show new support act
+                      // This provides the most polished experience with minimal complexity
+                      fetchData();
+                    }}
+                    onSupportActDocument={(offer: any) => {
+                      // Convert support offer to synthetic bid for document modal
+                      // This ensures the VenueOfferModule gets the proper bid data with amounts
+                      const bidDate = offer.proposedDate.split('T')[0];
+                      const syntheticBid = {
+                        id: `offer-bid-${offer.id}`,
+                        showRequestId: `venue-offer-${offer.id}`,
+                        venueId: offer.venueId,
+                        venueName: offer.venueName,
+                        proposedDate: bidDate,
+                        guarantee: offer.amount,
+                        doorDeal: offer.doorDeal,
+                        ticketPrice: offer.ticketPrice || {},
+                        capacity: offer.capacity || 0,
+                        ageRestriction: offer.ageRestriction || 'all-ages',
+                        equipmentProvided: offer.equipmentProvided || {
+                          pa: false, mics: false, drums: false, amps: false, piano: false
+                        },
+                        loadIn: offer.loadIn || '',
+                        soundcheck: offer.soundcheck || '',
+                        doorsOpen: offer.doorsOpen || '',
+                        showTime: offer.showTime || '',
+                        curfew: offer.curfew || '',
+                        promotion: offer.promotion || {
+                          social: false, flyerPrinting: false, radioSpots: false, pressCoverage: false
+                        },
+                        message: offer.message || '',
+                        status: offer.status.toLowerCase(),
+                        readByArtist: true,
+                        createdAt: offer.createdAt,
+                        updatedAt: offer.updatedAt,
+                        expiresAt: offer.expiresAt,
+                        billingPosition: offer.billingPosition,
+                        lineupPosition: offer.lineupPosition,
+                        setLength: offer.setLength,
+                        otherActs: offer.otherActs,
+                        billingNotes: offer.billingNotes,
+                        artistId: offer.artistId,
+                        artistName: offer.artistName
+                      };
+                      handleBidDocumentModal(syntheticBid as any);
+                    }}
                   />
                 );
               } else if (entry.type === 'tour-request') {
