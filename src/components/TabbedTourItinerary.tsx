@@ -1555,19 +1555,20 @@ export default function TabbedTourItinerary({
                   </td>
                                         <td className="px-4 py-1.5 w-[10%]">
                         <div className="flex items-center space-x-2">
-                          {/* Make/Edit Offer buttons moved to individual bid rows in expanded view */}
-
-                          <DeleteActionButton
-                            request={request}
-                            permissions={permissions}
-                            venueId={venueId}
-                            venueOffers={venueOffers as any}
-                            venueBids={venueBids}
-                            isLoading={state.deleteLoading === request.id}
-                            onDeleteRequest={handleDeleteShowRequest}
-                            onOfferAction={(offer, action) => handleOfferAction(offer as any, action)}
-                            onBidAction={(bid, action, reason) => handleBidAction(bid as any, action, reason)}
-                          />
+                          {/* Delete button for venues - consistent with confirmed shows */}
+                          {venueId && (
+                            <DeleteActionButton
+                              request={request}
+                              permissions={permissions}
+                              venueId={venueId}
+                              venueOffers={venueOffers as any}
+                              venueBids={venueBids}
+                              isLoading={state.deleteLoading === request.id}
+                              onDeleteRequest={handleDeleteShowRequest}
+                              onOfferAction={(offer, action) => handleOfferAction(offer as any, action)}
+                              onBidAction={(bid, action, reason) => handleBidAction(bid as any, action, reason)}
+                            />
+                          )}
                         </div>
                       </td>
                     </tr>

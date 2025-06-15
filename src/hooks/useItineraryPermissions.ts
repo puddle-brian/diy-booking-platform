@@ -229,20 +229,13 @@ export function useItineraryPermissions({
         // Artists can always manage their own requests (delete own requests, decline venue offers)
         return editable && request.artistId === artistId;
       } else if (actualViewerType === 'venue') {
-        // ✅ UX IMPROVEMENT: Venues should only see delete when they CAN'T edit
-        // If they have an existing bid (can edit), don't show delete button to avoid clutter
-        if (requestBids) {
-          const hasExistingBid = requestBids.some(bid => bid.venueId === venueId);
-          if (hasExistingBid) {
-            return false; // Show "Edit Offer" instead, not delete
-          }
-        }
-        
-        // ✅ SIMPLIFIED LOGIC: Venues can delete requests where they have ownership but can't edit
+        // ✅ UPDATED: Now that Edit Offer is in child rows, venues can see delete in parent rows
+        // Venues can delete/withdraw from any request they're involved with
         return editable && (
-          // Can delete their own venue-initiated offers (when they don't have a bid to edit)
-          (Boolean(request.isVenueInitiated) && (request as any).venueInitiatedBy === venueId)
-          // Removed isVenueBid condition since those should show "Edit Offer" instead
+          // Can delete their own venue-initiated offers
+          (Boolean(request.isVenueInitiated) && (request as any).venueInitiatedBy === venueId) ||
+          // Can withdraw from requests where they have bids (will withdraw their bid)
+          Boolean(requestBids && requestBids.some(bid => bid.venueId === venueId))
         );
       }
       return false;
