@@ -1675,7 +1675,8 @@ export default function TabbedTourItinerary({
                       </td>
                   <td className="px-4 py-1.5 w-[8%]">
                     <div className="flex items-center space-x-1">
-                      {/* Document button moved to individual bid rows in expanded view */}
+                      {/* Placeholder to maintain consistent row height with child rows that have document buttons */}
+                      <div className="w-6 h-6"></div>
                     </div>
                   </td>
                                         <td className="px-4 py-1.5 w-[10%]">

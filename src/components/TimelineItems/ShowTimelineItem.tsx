@@ -259,7 +259,7 @@ export function ShowTimelineItem({
         className="border-b border-gray-200 hover:bg-green-50 transition-colors duration-150 cursor-pointer"
         onClick={() => onToggleExpansion(show.id)}
       >
-        <td className={`px-4 py-3 w-[3%] ${getTimelineBorderClass(show.status)}`}>
+        <td className={`px-4 py-1 w-[3%] ${getTimelineBorderClass(show.status)}`}>
           <button
             className="text-gray-400 hover:text-gray-600 transition-colors"
             title={isExpanded ? "Collapse" : "Expand"}
@@ -275,7 +275,7 @@ export function ShowTimelineItem({
           </button>
         </td>
 
-        <td className="px-4 py-3 w-[12%]">
+        <td className="px-4 py-1 w-[12%]">
           <ItineraryDate
             date={show.date}
             className="text-sm font-medium text-gray-900"
@@ -283,14 +283,14 @@ export function ShowTimelineItem({
         </td>
 
         {!venueId && (
-          <td className="px-4 py-3 w-[14%]">
+          <td className="px-4 py-1 w-[14%]">
             <div className="text-sm text-gray-900 truncate">
               {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
             </div>
           </td>
         )}
 
-        <td className={`px-4 py-3 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
+        <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
               {(() => {
@@ -377,7 +377,7 @@ export function ShowTimelineItem({
           </div>
         </td>
 
-        <td className="px-4 py-3 w-[10%]">
+        <td className="px-4 py-1 w-[10%]">
           {(() => {
             const statusBadge = getShowStatusBadge(show.status);
             return (
@@ -388,31 +388,32 @@ export function ShowTimelineItem({
           })()}
         </td>
 
-        <td className="px-4 py-3 w-[7%]">
+        <td className="px-4 py-1 w-[7%]">
           <div className="text-xs text-gray-600">
             {venueId ? '' : (show.capacity || '-')}
           </div>
         </td>
 
-        <td className="px-4 py-3 w-[7%]">
+        <td className="px-4 py-1 w-[7%]">
           <div className="text-xs text-gray-600 whitespace-nowrap">
             {show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
           </div>
         </td>
 
-        <td className={`px-4 py-3 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
+        <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
           <div className="text-xs text-gray-600">
             {venueId ? '' : (permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : '-') : '-')}
           </div>
         </td>
 
-        <td className="px-4 py-3 w-[8%]">
+        <td className="px-4 py-1 w-[8%]">
           <div className="flex items-center space-x-1">
-            {/* Document button moved to individual artist rows in expanded view */}
+            {/* Placeholder to maintain consistent row height with child rows that have document buttons */}
+            <div className="w-6 h-6"></div>
           </div>
         </td>
 
-        <td className="px-4 py-3 w-[10%]">
+        <td className="px-4 py-1 w-[10%]">
           {permissions.canEditShow(show) && (
             <DeleteActionButton
               show={show}
@@ -452,23 +453,23 @@ export function ShowTimelineItem({
                     <tbody>
                       {/* Headliner detail row */}
                       <tr className="bg-green-50 hover:bg-green-100">
-                        <td className="px-2 py-1.5 w-[3%]">
+                        <td className="px-2 py-1 w-[3%]">
                           {/* Intentionally blank - child rows are not expandable */}
                         </td>
 
-                        <td className="px-4 py-1.5 w-[12%]">
+                        <td className="px-4 py-1 w-[12%]">
                           {/* Intentionally blank - parent row provides date context */}
                         </td>
 
                         {!venueId && (
-                          <td className="px-4 py-1.5 w-[14%]">
+                          <td className="px-4 py-1 w-[14%]">
                             <div className="text-sm text-green-900 truncate">
                               {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
                             </div>
                           </td>
                         )}
 
-                        <td className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
+                        <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                           <div className="text-sm font-medium text-gray-900 truncate">
                             {show.artistId && show.artistId !== 'external-artist' ? (
                               <a 
@@ -485,7 +486,7 @@ export function ShowTimelineItem({
                           </div>
                         </td>
 
-                        <td className="px-4 py-1.5 w-[10%]">
+                        <td className="px-4 py-1 w-[10%]">
                           {(() => {
                             const statusBadge = getShowStatusBadge(show.status);
                             return (
@@ -496,25 +497,25 @@ export function ShowTimelineItem({
                           })()}
                         </td>
 
-                        <td className="px-4 py-1.5 w-[7%]">
+                        <td className="px-4 py-1 w-[7%]">
                           <div className="flex justify-center">
                             {getBillingPositionBadge((show as any).billingPosition || 'headliner', show.status)}
                           </div>
                         </td>
 
-                        <td className="px-4 py-1.5 w-[7%]">
+                        <td className="px-4 py-1 w-[7%]">
                           <div className="text-xs text-gray-600 whitespace-nowrap">
                             {show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
                           </div>
                         </td>
 
-                        <td className="px-4 py-1.5 w-[10%]">
+                        <td className="px-4 py-1 w-[10%]">
                           <div className="text-xs text-gray-600">
                             {permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : 'Fee TBD') : '-'}
                           </div>
                         </td>
 
-                        <td className="px-4 py-1.5 w-[8%]">
+                        <td className="px-4 py-1 w-[8%]">
                           <div className="flex items-center space-x-1">
                             {permissions.canViewShowDocument(show) && (
                               <DocumentActionButton
@@ -527,14 +528,14 @@ export function ShowTimelineItem({
                           </div>
                         </td>
 
-                        <td className="px-4 py-1.5 w-[10%]">
+                        <td className="px-4 py-1 w-[10%]">
                           <div className="flex items-center space-x-1">
                             {/* Future: Edit headliner details */}
                           </div>
                         </td>
                       </tr>
 
-                      {/* Support act rows - more compact with py-1 instead of py-1.5 */}
+                      {/* Support act rows - standardized height with py-1.5 */}
                       {venueOffers
                         .filter(offer => {
                           // ✅ IMPROVED: More robust support act detection
@@ -562,23 +563,23 @@ export function ShowTimelineItem({
                         })
                         .map((supportOffer, index) => (
                           <tr key={`support-${supportOffer.id}`} className="bg-orange-50 hover:bg-orange-100">
-                            <td className="px-2 py-1 w-[3%]">
+                            <td className="px-2 py-1.5 w-[3%]">
                               {/* Intentionally blank - child rows are not expandable */}
                             </td>
 
-                            <td className="px-4 py-1 w-[12%]">
+                            <td className="px-4 py-1.5 w-[12%]">
                               {/* Intentionally blank - parent row provides date context */}
                             </td>
 
                             {!venueId && (
-                              <td className="px-4 py-1 w-[14%]">
+                              <td className="px-4 py-1.5 w-[14%]">
                                 <div className="text-sm text-orange-900 truncate">
                                   {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
                                 </div>
                               </td>
                             )}
 
-                            <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
+                            <td className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                               <div className="text-sm font-medium text-gray-900 truncate">
                                 {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
                                   <a 
@@ -599,7 +600,7 @@ export function ShowTimelineItem({
                               </div>
                             </td>
 
-                            <td className="px-4 py-1 w-[10%]">
+                            <td className="px-4 py-1.5 w-[10%]">
                               <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
                                 {supportOffer.status === 'pending' ? 'Pending' : 
                                  supportOffer.status === 'accepted' ? 'Confirmed' :
@@ -607,19 +608,19 @@ export function ShowTimelineItem({
                               </span>
                             </td>
 
-                            <td className="px-4 py-1 w-[7%]">
+                            <td className="px-4 py-1.5 w-[7%]">
                               <div className="flex justify-center">
                                 {getBillingPositionBadge(supportOffer.billingPosition, supportOffer.status)}
                               </div>
                             </td>
 
-                            <td className="px-4 py-1 w-[7%]">
+                            <td className="px-4 py-1.5 w-[7%]">
                               <div className="text-xs text-gray-600 whitespace-nowrap">
                                 {show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
                               </div>
                             </td>
 
-                            <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
+                            <td className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
                               <div className="text-xs text-gray-600">
                                 {permissions.canSeeFinancialDetails(show) ? 
                                   (supportOffer.amount ? `$${supportOffer.amount}` : 
@@ -627,7 +628,7 @@ export function ShowTimelineItem({
                               </div>
                             </td>
 
-                            <td className="px-4 py-1 w-[8%]">
+                            <td className="px-4 py-1.5 w-[8%]">
                               <div className="flex items-center space-x-1">
                                 {/* Support act document actions - specific to the support offer */}
                                 {onSupportActDocument && (
@@ -645,7 +646,7 @@ export function ShowTimelineItem({
                               </div>
                             </td>
 
-                            <td className="px-4 py-1 w-[10%]">
+                            <td className="px-4 py-1.5 w-[10%]">
                               <div className="flex items-center space-x-1">
                                 {/* Support act delete button - standardized design */}
                                 {permissions.actualViewerType === 'venue' && permissions.isOwner && onSupportActAction && (

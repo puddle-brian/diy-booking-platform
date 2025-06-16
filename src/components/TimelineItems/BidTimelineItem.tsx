@@ -151,18 +151,18 @@ export function BidTimelineItem({
   return (
     <tr className={getRowStyling()}>
       {/* Expansion toggle column - w-[3%] - Empty for child rows */}
-      <td className="px-2 py-1.5 w-[3%]">
+      <td className="px-2 py-1 w-[3%]">
         {/* Intentionally blank - child rows are not expandable */}
       </td>
 
       {/* Date column - w-[12%] - Empty for child rows to show hierarchy */}
-      <td className="px-4 py-1.5 w-[12%]">
+      <td className="px-4 py-1 w-[12%]">
         {/* Intentionally blank - parent row provides date context */}
       </td>
 
       {/* Location column - w-[14%] - Hidden for venue views */}
       {!venueId && (
-        <td className="px-4 py-1.5 w-[14%]">
+        <td className="px-4 py-1 w-[14%]">
           <div className={`text-sm truncate ${
             isFrozenByHold && (bid as any).holdState === 'HELD' ? 'text-violet-700' :
             'text-yellow-900'
@@ -203,7 +203,7 @@ export function BidTimelineItem({
       )}
 
       {/* Venue/Artist column - w-[26%] for venue views, w-[19%] for artist views */}
-      <td className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
+      <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
           <div className="text-sm font-medium text-gray-900 truncate">
             {venueId ? (
               // When viewing as venue, show artist information
@@ -238,14 +238,14 @@ export function BidTimelineItem({
         </td>
 
             {/* Status column - w-[10%] */}
-      <td className="px-4 py-1.5 w-[10%]">
+      <td className="px-4 py-1 w-[10%]">
         <span className={statusBadge.className}>
           {statusBadge.text}
         </span>
       </td>
 
       {/* Capacity/Position column - w-[7%] - Context sensitive */}
-      <td className="px-4 py-1.5 w-[7%]">
+      <td className="px-4 py-1 w-[7%]">
         {venueId ? (
           // Venue view: Show billing position instead of capacity (venue knows their own capacity)
           (bid as any).billingPosition ? (
@@ -264,14 +264,14 @@ export function BidTimelineItem({
       </td>
 
       {/* Age column - w-[7%] */}
-      <td className="px-4 py-1.5 w-[7%]">
+      <td className="px-4 py-1 w-[7%]">
         <div className="text-xs text-gray-600 whitespace-nowrap">
           {bid.ageRestriction || '-'}
         </div>
       </td>
 
       {/* Offers column - w-[15%] for venue views, w-[10%] for artist views */}
-      <td className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
+      <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
         <div className="text-xs text-gray-600">
           {permissions.canSeeFinancialDetails(undefined, bid, request) ? (
             <InlineOfferDisplay 
@@ -284,15 +284,15 @@ export function BidTimelineItem({
       </td>
 
       {/* Details column - w-[8%] */}
-      <td className="px-4 py-1.5 w-[8%]">
+      <td className="px-4 py-1 w-[8%]">
         <div className="flex items-center space-x-1">
           {/* ✅ FIX: Show document icon in bid rows for both artists and venues */}
           {(permissions.actualViewerType === 'artist' || permissions.actualViewerType === 'venue') && (
             <>
               {/* Show greyed out document icon for frozen bids */}
               {isFrozenByHold && (bid as any).holdState === 'FROZEN' ? (
-                <div className="inline-flex items-center justify-center w-8 h-8 text-gray-400 bg-gray-100 border border-gray-200 rounded-lg opacity-50 cursor-not-allowed" title="Document access temporarily frozen by active hold">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="inline-flex items-center justify-center w-6 h-6 text-gray-400 bg-gray-100 border border-gray-200 rounded-lg opacity-50 cursor-not-allowed" title="Document access temporarily frozen by active hold">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
@@ -318,7 +318,7 @@ export function BidTimelineItem({
       </td>
 
       {/* Actions column - w-[10%] */}
-      <td className="px-4 py-1.5 w-[10%]">
+      <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
           {/* Make/Edit Offer button for venues viewing their own bid */}
           {venueId && bid.venueId === venueId && request && onMakeOffer && (

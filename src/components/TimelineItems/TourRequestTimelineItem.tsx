@@ -100,7 +100,7 @@ export function TourRequestTimelineItem({
       className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
       onClick={() => onToggleExpansion(request.id)}
     >
-      <td className="px-4 py-3 w-[3%]">
+      <td className="px-4 py-1 w-[3%]">
         <button
           className="text-gray-400 hover:text-gray-600 transition-colors"
           title={isExpanded ? "Collapse" : "Expand"}
@@ -116,7 +116,7 @@ export function TourRequestTimelineItem({
         </button>
       </td>
 
-      <td className="px-4 py-3 w-[12%]">
+      <td className="px-4 py-1 w-[12%]">
         <ItineraryDate
           date={request.requestDate || request.startDate}
           endDate={request.endDate}
@@ -125,38 +125,38 @@ export function TourRequestTimelineItem({
       </td>
 
       {!venueId && (
-        <td className="px-4 py-3 w-[14%]">
+        <td className="px-4 py-1 w-[14%]">
           <div className="text-sm text-gray-900 truncate">
             {request.location || '-'}
           </div>
         </td>
       )}
 
-      <td className={`px-4 py-3 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
+      <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
         <div className="text-sm font-medium text-gray-900 truncate">
           {request.title}
         </div>
       </td>
 
-      <td className="px-4 py-3 w-[10%]">
+      <td className="px-4 py-1 w-[10%]">
         <span className={statusBadge.className}>
           {statusBadge.text}
         </span>
       </td>
 
-      <td className="px-4 py-3 w-[7%]">
+      <td className="px-4 py-1 w-[7%]">
         <div className="text-xs text-gray-600">
           {request.expectedDraw?.max || '-'}
         </div>
       </td>
 
-      <td className="px-4 py-3 w-[7%]">
+      <td className="px-4 py-1 w-[7%]">
         <div className="text-xs text-gray-600">
           {request.ageRestriction?.toLowerCase().replace('_', '-') || 'flexible'}
         </div>
       </td>
 
-      <td className={`px-4 py-3 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
+      <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
         <div className="text-xs text-gray-600">
           {request.guaranteeRange ? 
             `$${request.guaranteeRange.min}-${request.guaranteeRange.max}` : 
@@ -165,13 +165,14 @@ export function TourRequestTimelineItem({
         </div>
       </td>
 
-      <td className="px-4 py-3 w-[8%]">
+      <td className="px-4 py-1 w-[8%]">
         <div className="flex items-center space-x-1">
-          {/* Document button moved to individual bid rows in expanded view */}
+          {/* Placeholder to maintain consistent row height with child rows that have document buttons */}
+          <div className="w-6 h-6"></div>
         </div>
       </td>
 
-      <td className="px-4 py-3 w-[10%]">
+      <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
           {/* Make/Edit Offer buttons moved to individual bid rows in expanded view */}
           
