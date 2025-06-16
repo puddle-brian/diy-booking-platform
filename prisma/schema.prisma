@@ -251,6 +251,7 @@ model ShowRequest {
   createdBy         User              @relation(fields: [createdById], references: [id])
   venue             Venue?            @relation(fields: [venueId], references: [id])
 
+  @@unique([artistId, venueId, requestedDate], name: "unique_artist_venue_date")
   @@index([artistId])
   @@index([venueId])
   @@index([requestedDate])

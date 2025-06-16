@@ -27,7 +27,7 @@ interface ItineraryState {
   selectedDocumentShow: Show | null;
   selectedDocumentBid: VenueBid | null;
   selectedDocumentTourRequest: TourRequest | null;
-  offerTargetArtist: { id: string; name: string } | null | undefined;
+  offerTargetArtist: { id: string; name: string } | null;
   offerTourRequest: { id: string; title: string; artistName: string } | null;
   offerPreSelectedDate: string | null;
   offerExistingBid: any;
@@ -65,7 +65,7 @@ type ItineraryAction =
   | { type: 'CLOSE_SHOW_DETAIL' }
   | { type: 'OPEN_DOCUMENT_MODAL'; show?: Show; bid?: VenueBid; request?: TourRequest }
   | { type: 'CLOSE_DOCUMENT_MODAL' }
-  | { type: 'OPEN_UNIVERSAL_OFFER'; artist?: { id: string; name: string }; tourRequest?: { id: string; title: string; artistName: string }; preSelectedDate?: string; existingBid?: any }
+  | { type: 'OPEN_UNIVERSAL_OFFER'; artist: { id: string; name: string }; tourRequest?: { id: string; title: string; artistName: string }; preSelectedDate?: string; existingBid?: any }
   | { type: 'CLOSE_UNIVERSAL_OFFER' }
   
   // Loading actions
@@ -213,7 +213,7 @@ function itineraryReducer(state: ItineraryState, action: ItineraryAction): Itine
       return {
         ...state,
         showUniversalOfferModal: true,
-        offerTargetArtist: action.artist || null,
+        offerTargetArtist: action.artist,
         offerTourRequest: action.tourRequest || null,
         offerPreSelectedDate: action.preSelectedDate || null,
         offerExistingBid: action.existingBid || null
@@ -371,7 +371,7 @@ export function useItineraryState() {
     closeDocumentModal: () => 
       dispatch({ type: 'CLOSE_DOCUMENT_MODAL' }),
     
-    openUniversalOffer: (artist?: { id: string; name: string }, tourRequest?: { id: string; title: string; artistName: string }, preSelectedDate?: string, existingBid?: any) => 
+    openUniversalOffer: (artist: { id: string; name: string }, tourRequest?: { id: string; title: string; artistName: string }, preSelectedDate?: string, existingBid?: any) => 
       dispatch({ type: 'OPEN_UNIVERSAL_OFFER', artist, tourRequest, preSelectedDate, existingBid }),
     
     closeUniversalOffer: () => 

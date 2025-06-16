@@ -143,13 +143,11 @@ interface VenueOffer {
 }
 
 interface TimelineEntry {
-  type: 'show' | 'tour-request' | 'venue-bid';
+  type: 'show' | 'tour-request';
   date: string;
   endDate?: string;
   data: Show | TourRequest | VenueBid;
   parentTourRequest?: TourRequest;
-  id: string;
-  sortKey: string;
 }
 
 interface MonthGroup {
@@ -164,271 +162,234 @@ interface MonthGroup {
  */
 export function createTimelineEntries(
   shows: Show[],
-  tourRequests: TourRequest[],
+  tourRequests: TourRequest[], 
   venueOffers: VenueOffer[],
-  venueBids: VenueBid[],
+  venueBids: VenueBid[] = [],
   artistId?: string,
   venueId?: string
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   
-  // Helper function to extract date string from various date formats
-  const extractDateString = (date: string | Date): string => {
-    if (typeof date === 'string') {
-      return date.split('T')[0]; // Extract YYYY-MM-DD part
-    }
-    return date.toISOString().split('T')[0];
-  };
-
-  // Add shows
+  // Add confirmed shows only
   shows.forEach(show => {
-    entries.push({
-      id: `show-${show.id}`,
-      type: 'show' as const,
-      date: extractDateString(show.date),
-      data: show,
-      sortKey: `${extractDateString(show.date)}-show-${show.id}`
-    });
+    // Only add shows that are actually confirmed (handle both case variations)
+    const status = show.status?.toLowerCase();
+    if (status === 'confirmed' || status === 'accepted') {
+      entries.push({
+        type: 'show',
+        date: show.date,
+        data: show
+      });
+    }
   });
-
-  // Add tour requests
-  tourRequests.forEach(request => {
-    entries.push({
-      id: `tour-request-${request.id}`,
-      type: 'tour-request' as const,
-      date: extractDateString(request.startDate),
-      data: request,
-      sortKey: `${extractDateString(request.startDate)}-tour-request-${request.id}`
-    });
-  });
-
-  // 🎯 NEW: Unified venue timeline creation for venue pages
-  if (venueId) {
-    // Create a map to track all venue activities by date
-    const venueActivitiesByDate = new Map<string, {
-      offers: VenueOffer[];
-      bids: VenueBid[];
-    }>();
-
-    // Group venue offers by date
-    const filteredOffers = venueOffers.filter(offer => offer.status !== 'declined');
-    filteredOffers.forEach(offer => {
-      const offerDate = extractDateString(offer.proposedDate);
-      if (!venueActivitiesByDate.has(offerDate)) {
-        venueActivitiesByDate.set(offerDate, { offers: [], bids: [] });
+  
+  // 🎯 UNIFIED SYSTEM: Convert venue offers to synthetic tour requests with bids
+  // This creates a consistent UX where all booking opportunities are tour-request rows
+  venueOffers.forEach(offer => {
+    const status = offer.status.toLowerCase();
+    
+    // 🎯 ENHANCED FILTERING: Ensure declined/rejected offers disappear completely from UI
+    if (!['cancelled', 'declined', 'rejected', 'expired'].includes(status)) {
+      // 🎯 FIX: When viewing artist pages, only show offers FOR that specific artist
+      if (artistId && offer.artistId !== artistId) {
+        return; // Skip offers for other artists when viewing a specific artist page
       }
-      venueActivitiesByDate.get(offerDate)!.offers.push(offer);
-    });
-
-    // Group venue bids by date
-    const filteredBids = venueBids.filter(bid => bid.status !== 'declined');
-    filteredBids.forEach(bid => {
-      const bidDate = extractDateString(bid.proposedDate);
-      if (!venueActivitiesByDate.has(bidDate)) {
-        venueActivitiesByDate.set(bidDate, { offers: [], bids: [] });
-      }
-      venueActivitiesByDate.get(bidDate)!.bids.push(bid);
-    });
-
-    // 🔍 DEBUG: Log unified venue activities
-    console.log('🔍 DEBUG: Unified venue activities by date:');
-    console.log('🔍 Total dates with venue activities:', venueActivitiesByDate.size);
-    console.log('🔍 Activities by date:', Array.from(venueActivitiesByDate.entries()).map(([date, activities]) => ({
-      date,
-      offers: activities.offers.length,
-      bids: activities.bids.length,
-      total: activities.offers.length + activities.bids.length
-    })));
-
-    // Create unified timeline entries for each date
-    venueActivitiesByDate.forEach((activities, activityDate) => {
-      const { offers, bids } = activities;
       
-      if (offers.length > 0) {
-        // Create grouped venue offer entry
-        const primaryOffer = offers[0];
-        const groupedOfferEntry: TimelineEntry = {
-          id: `venue-offers-${activityDate}`,
-          type: 'tour-request' as const,
-          date: activityDate,
-          data: {
-            id: `venue-offers-${activityDate}`,
-            artistId: primaryOffer.artistId,
-            title: offers.length > 1 
-              ? `${offers.length} offers for ${activityDate}`
-              : primaryOffer.title,
-            artistName: offers.length > 1 
-              ? `${offers.length} artists` 
-              : primaryOffer.artistName,
-            description: offers.length > 1 
-              ? `Multiple venue offers for ${activityDate}`
-              : primaryOffer.description || `Offer from ${primaryOffer.venueName}`,
-            startDate: activityDate,
-            endDate: activityDate,
-            location: primaryOffer.venue?.location ? 
-              `${primaryOffer.venue.location.city}, ${primaryOffer.venue.location.stateProvince}` : 
-              primaryOffer.venueName || 'Unknown Location',
+      // 🎯 FIX: Consistent date handling - extract date string to avoid timezone issues  
+      const offerDate = extractDateString(offer.proposedDate);
+      
+      // Create synthetic tour request from venue offer
+      const syntheticRequest: TourRequest = {
+        id: `venue-offer-${offer.id}`, // Prefix to distinguish synthetic requests
+        artistId: offer.artistId,
+        artistName: offer.artistName || offer.artist?.name || 'Unknown Artist',
+        title: offer.title,
+        description: offer.description || `Offer from ${offer.venueName}`,
+        startDate: offerDate, // 🎯 FIX: Use consistent date without timezone
+        endDate: offerDate, // Single date for offers
+        isSingleDate: true,
+        location: offer.venue?.location ? 
+          `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
+          offer.venueName || 'Unknown Location',
+        radius: 0, // Not applicable for venue offers
+        flexibility: 'exact-cities' as const,
+        genres: [], // Could be enhanced with venue/artist genre matching
+        expectedDraw: {
+          min: 0,
+          max: offer.capacity || 0,
+          description: `Venue capacity: ${offer.capacity || 'Unknown'}`
+        },
+        tourStatus: 'exploring-interest' as const,
+        ageRestriction: (offer.ageRestriction as any) || 'flexible',
+        equipment: {
+          needsPA: false,
+          needsMics: false, 
+          needsDrums: false,
+          needsAmps: false,
+          acoustic: false
+        },
+        // 🎯 FIX: Don't set guaranteeRange for venue offers - they have specific amounts, not ranges
+        acceptsDoorDeals: !!offer.doorDeal,
+        merchandising: false,
+        travelMethod: 'van' as const,
+        lodging: 'flexible' as const,
+        status: 'active' as const, // Always active for display
+        priority: 'medium' as const,
+        responses: 1, // Always 1 since there's exactly one offer/bid
+        createdAt: offer.createdAt || new Date().toISOString(),
+        updatedAt: offer.updatedAt || new Date().toISOString(),
+        expiresAt: offer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        
+        // 🎯 VENUE-INITIATED FLAGS: Mark as venue-initiated for ownership control
+        isVenueInitiated: true,
+        venueInitiatedBy: offer.venueId,
+        originalOfferId: offer.id,
+        // 🎯 FIX: Add venue information for proper display in artist timelines
+        venueId: offer.venueId,
+        venueName: offer.venueName
+      } as TourRequest & { 
+        isVenueInitiated?: boolean; 
+        venueInitiatedBy?: string; 
+        originalOfferId?: string; 
+      };
+      
+      entries.push({
+        type: 'tour-request',
+        date: offerDate, // 🎯 FIX: Use consistent date without timezone
+        data: syntheticRequest
+      });
+    } else {
+      console.log('🚫 Filtering out venue offer with status:', status);
+    }
+  });
+  
+  // ✅ SIMPLE: No synthetic request promotion - held bids stay in their natural rows
+  
+  // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view ONLY
+  // 🎯 FIX: Only create synthetic venue bid requests when viewing venue pages, not when venue users view artist pages
+  if (venueId && !artistId && venueBids.length > 0) {
+    console.log(`🎯 Processing ${venueBids.length} venue bids for venue timeline`);
+    
+    // 🎯 FIX: Group bids by showRequestId to avoid creating duplicate request rows
+    const uniqueRequestIds = new Set<string>();
+    
+    venueBids.forEach(bid => {
+      const status = bid.status.toLowerCase();
+      
+      // Only show active bid statuses (same filtering as venue offers)
+      if (!['cancelled', 'declined', 'rejected', 'expired'].includes(status)) {
+        // 🎯 KEY FIX: Only create timeline entries for bids that belong to the current venue
+        if (bid.venueId === venueId && !uniqueRequestIds.has(bid.showRequestId)) {
+          uniqueRequestIds.add(bid.showRequestId);
+          
+          console.log(`🎯 Creating timeline entry for venue bid: ${bid.venueName} -> ${bid.location || 'Unknown Location'} on ${bid.proposedDate.split('T')[0]}`);
+          
+          const bidDate = bid.proposedDate.split('T')[0];
+          
+                      // Create synthetic tour request from venue bid to show in venue timeline
+            const syntheticBidRequest: TourRequest = {
+              id: `venue-bid-${bid.id}`, // Use first bid ID for this request
+              artistId: bid.artistId || 'unknown', // 🎯 FIX: Use stored artist ID
+              artistName: bid.artistName || bid.location || 'Unknown Artist', // 🎯 FIX: Use stored artist name
+            title: `Bid on Artist Request`, // Generic title since we don't have full request info
+            description: bid.message || `Bid placed by ${bid.venueName}`,
+            startDate: bidDate,
+            endDate: bidDate,
+            isSingleDate: true,
+            location: bid.location || 'Unknown Location',
             radius: 0,
-            flexibility: 'exact-cities' as const,
+            targetLocations: [bid.location || 'Unknown Location'],
             genres: [],
+            initiatedBy: 'ARTIST' as const,
+            flexibility: 'exact-cities' as const,
             expectedDraw: {
               min: 0,
-              max: primaryOffer.capacity || 0,
-              description: `Venue capacity: ${primaryOffer.capacity || 'Unknown'}`
+              max: bid.capacity || 0,
+              description: `Venue capacity: ${bid.capacity || 'Unknown'}`
             },
             tourStatus: 'exploring-interest' as const,
-            ageRestriction: (primaryOffer.ageRestriction as any) || 'flexible',
             equipment: {
               needsPA: false,
-              needsMics: false, 
+              needsMics: false,
               needsDrums: false,
               needsAmps: false,
               acoustic: false
             },
-            acceptsDoorDeals: offers.some(offer => !!offer.doorDeal),
-            merchandising: false,
+            guaranteeRange: {
+              min: bid.guarantee || 0,
+              max: bid.guarantee || 0
+            },
+            acceptsDoorDeals: true,
+            merchandising: true,
+            ageRestriction: 'all-ages' as const,
             travelMethod: 'van' as const,
             lodging: 'flexible' as const,
-            status: 'active' as const,
             priority: 'medium' as const,
-            responses: offers.length,
-            createdAt: primaryOffer.createdAt || new Date().toISOString(),
-            updatedAt: Math.max(...offers.map(o => new Date(o.updatedAt || o.createdAt || new Date()).getTime())).toString(),
-            expiresAt: primaryOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-            isVenueInitiated: true,
-            originalOfferIds: offers.map(o => o.id),
-            venueId: primaryOffer.venueId,
-            venueName: primaryOffer.venueName
+            technicalRequirements: [],
+            hospitalityRequirements: [],
+            notes: bid.message || '',
+            status: 'active' as const,
+            requestedDate: bidDate,
+            responses: 1,
+            createdAt: bid.createdAt,
+            updatedAt: bid.updatedAt,
+            expiresAt: bid.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            // 🎯 Mark as venue bid synthetic request with metadata for proper handling
+            isVenueBid: true,
+            originalBidId: bid.id,
+            originalShowRequestId: bid.showRequestId,
+            bidStatus: bid.status,
+            bidAmount: bid.guarantee
           } as TourRequest & { 
-            isVenueInitiated: boolean; 
-            originalOfferIds: string[];
-            venueId: string;
-            venueName: string;
-          },
-          sortKey: `${activityDate}-venue-offers`
-        };
-        entries.push(groupedOfferEntry);
+            isVenueBid: boolean; 
+            originalBidId: string; 
+            originalShowRequestId: string;
+            bidStatus: string; 
+            bidAmount?: number;
+          };
+          
+          entries.push({
+            type: 'tour-request',
+            date: bidDate,
+            data: syntheticBidRequest
+          });
+        }
       }
-      
-      // Add venue bids as separate entries (they don't group with offers)
-      bids.forEach(bid => {
-        entries.push({
-          id: `venue-bid-${bid.id}`,
-          type: 'venue-bid' as const,
-          date: activityDate,
-          data: bid,
-          sortKey: `${activityDate}-venue-bid-${bid.id}`
-        });
-      });
-    });
-
-    console.log('🎯 Created unified venue timeline entries:', entries.filter(e => 
-      e.type === 'tour-request' || e.type === 'venue-bid'
-    ).length);
-
-  } else {
-    // 🎯 ARTIST VIEW: Original logic for artist pages
-    // Group offers by date
-    const offersByDate = new Map<string, VenueOffer[]>();
-    const filteredOffers = venueOffers.filter(offer => offer.status !== 'declined');
-    filteredOffers.forEach(offer => {
-      const offerDate = extractDateString(offer.proposedDate);
-      if (!offersByDate.has(offerDate)) {
-        offersByDate.set(offerDate, []);
-      }
-      offersByDate.get(offerDate)!.push(offer);
-    });
-
-    // Create one timeline entry per date, with grouped offers
-    offersByDate.forEach((offersForDate, offerDate) => {
-      const primaryOffer = offersForDate[0];
-      
-      const groupedEntry: TimelineEntry = {
-        id: `venue-offers-${offerDate}`,
-        type: 'tour-request' as const,
-        date: offerDate,
-        data: {
-          id: `venue-offers-${offerDate}`,
-          artistId: primaryOffer.artistId,
-          title: offersForDate.length > 1 
-            ? `${offersForDate.length} venue offers for ${offerDate}`
-            : primaryOffer.title,
-          artistName: offersForDate.length > 1 
-            ? `${offersForDate.length} venues` 
-            : primaryOffer.venueName || 'Venue',
-          description: offersForDate.length > 1 
-            ? `Multiple venue offers for ${offerDate}`
-            : primaryOffer.description || `Offer from ${primaryOffer.venueName}`,
-          startDate: offerDate,
-          endDate: offerDate,
-          location: primaryOffer.venue?.location ? 
-            `${primaryOffer.venue.location.city}, ${primaryOffer.venue.location.stateProvince}` : 
-            primaryOffer.venueName || 'Unknown Location',
-          radius: 0,
-          flexibility: 'exact-cities' as const,
-          genres: [],
-          expectedDraw: {
-            min: 0,
-            max: primaryOffer.capacity || 0,
-            description: `Venue capacity: ${primaryOffer.capacity || 'Unknown'}`
-          },
-          tourStatus: 'exploring-interest' as const,
-          ageRestriction: (primaryOffer.ageRestriction as any) || 'flexible',
-          equipment: {
-            needsPA: false,
-            needsMics: false, 
-            needsDrums: false,
-            needsAmps: false,
-            acoustic: false
-          },
-          acceptsDoorDeals: offersForDate.some(offer => !!offer.doorDeal),
-          merchandising: false,
-          travelMethod: 'van' as const,
-          lodging: 'flexible' as const,
-          status: 'active' as const,
-          priority: 'medium' as const,
-          responses: offersForDate.length,
-          createdAt: primaryOffer.createdAt || new Date().toISOString(),
-          updatedAt: Math.max(...offersForDate.map(o => new Date(o.updatedAt || o.createdAt || new Date()).getTime())).toString(),
-          expiresAt: primaryOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          isVenueInitiated: true,
-          originalOfferIds: offersForDate.map(o => o.id),
-          venueId: primaryOffer.venueId,
-          venueName: primaryOffer.venueName
-        } as TourRequest & { 
-          isVenueInitiated: boolean; 
-          originalOfferIds: string[];
-          venueId: string;
-          venueName: string;
-        },
-        sortKey: `${offerDate}-venue-offers`
-      };
-      
-      entries.push(groupedEntry);
-    });
-
-    // Add venue bids for artist view
-    const filteredBids = venueBids.filter(bid => bid.status !== 'declined');
-    filteredBids.forEach(bid => {
-      console.log(`🎯 Creating timeline entry for venue bid: ${bid.venueName} -> ${bid.artistName} on ${extractDateString(bid.proposedDate)}`);
-      entries.push({
-        id: `venue-bid-${bid.id}`,
-        type: 'venue-bid' as const,
-        date: extractDateString(bid.proposedDate),
-        data: bid,
-        sortKey: `${extractDateString(bid.proposedDate)}-venue-bid-${bid.id}`
-      });
     });
   }
-
-  // Sort entries by date and type
-  entries.sort((a, b) => {
-    const dateComparison = a.date.localeCompare(b.date);
-    if (dateComparison !== 0) return dateComparison;
-    return a.sortKey.localeCompare(b.sortKey);
-  });
-
-  return entries;
+  
+  if (artistId) {
+    // Add regular artist-initiated tour requests  
+    tourRequests.forEach(request => {
+      if (request.status === 'active') {
+        entries.push({
+          type: 'tour-request',
+          date: request.startDate,
+          endDate: request.endDate,
+          data: request
+        });
+      }
+    });
+  }
+  
+  // 🎯 NEW: Also add tourRequests to venue timelines (for venue-specific artist requests)
+  if (venueId && !artistId) {
+    // Add tour requests that are specifically targeted at this venue
+    tourRequests.forEach(request => {
+      if (request.status === 'active') {
+        console.log(`🎯 Adding venue-specific request to timeline: ${request.artistName} -> ${request.title} on ${request.startDate}`);
+        entries.push({
+          type: 'tour-request',
+          date: request.startDate,
+          endDate: request.endDate,
+          data: request
+        });
+      }
+    });
+  }
+  
+  // Sort by date
+  return entries.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 /**
