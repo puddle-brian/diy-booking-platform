@@ -1199,12 +1199,12 @@ export default function TabbedTourItinerary({
             <tr className="text-left text-xs font-medium text-gray-600">
               <th className="px-2 py-1.5 w-[3%]"></th>
               <th className="px-4 py-1.5 w-[12%]">Date</th>
-              <th className="px-4 py-1.5 w-[14%]">Location</th>
-              <th className="px-4 py-1.5 w-[19%]">{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
+              {!venueId && <th className="px-4 py-1.5 w-[14%]">Location</th>}
+              <th className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
               <th className="px-4 py-1.5 w-[10%]">Status</th>
               <th className="px-4 py-1.5 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
               <th className="px-4 py-1.5 w-[7%]">Age</th>
-              <th className="px-4 py-1.5 w-[10%]">Offers</th>
+              <th className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
               <th className="px-4 py-1.5 w-[8%]">details</th>
               <th className="px-4 py-1.5 w-[10%]">Actions</th>
             </tr>
@@ -1213,7 +1213,7 @@ export default function TabbedTourItinerary({
             {/* Empty state */}
             {activeMonthEntries.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={venueId ? 9 : 10} className="px-6 py-8 text-center text-gray-500">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl">📅</span>
                   </div>
@@ -1473,10 +1473,12 @@ export default function TabbedTourItinerary({
                           className={`text-sm font-medium ${textColorClass}`}
                         />
                       </td>
-                      <td className="px-4 py-1.5 w-[14%]">
-                        <div className={`text-sm truncate ${textColorClass}`}>{request.location}</div>
-                      </td>
-                      <td className="px-4 py-1.5 w-[19%]">
+                      {!venueId && (
+                        <td className="px-4 py-1.5 w-[14%]">
+                          <div className={`text-sm truncate ${textColorClass}`}>{request.location}</div>
+                        </td>
+                      )}
+                      <td className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                         <div className="text-sm font-medium text-gray-900 truncate">
                           {(() => {
                             if (artistId) {
@@ -1666,7 +1668,7 @@ export default function TabbedTourItinerary({
                       </td>
                       <td className="px-4 py-1.5 w-[7%]"></td>
                       <td className="px-4 py-1.5 w-[7%]"></td>
-                      <td className="px-4 py-1.5 w-[10%]">
+                      <td className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
                         <div className="flex items-center space-x-2">
                           {/* Offers column - content moved to venue column to avoid redundancy */}
                         </div>
@@ -1699,20 +1701,20 @@ export default function TabbedTourItinerary({
                     {/* Expanded Bids Section */}
                     {state.expandedRequests.has(request.id) && requestBids.length > 0 && permissions.canExpandRequest(request) && (
                       <tr>
-                        <td colSpan={10} className="px-0 py-0">
+                        <td colSpan={venueId ? 9 : 10} className="px-0 py-0">
                           <div className={expandedBgClass}>
                             <div className="overflow-x-auto">
                               <table className="w-full min-w-[1000px] table-fixed">
                                 <thead className={expandedHeaderClass}>
                                   <tr className={expandedTextClass}>
                                     <th className="px-2 py-1.5 w-[3%]"></th>
-                                    <th className="px-4 py-1.5 w-[12%]">Date</th>
-                                    <th className="px-4 py-1.5 w-[14%]">Location</th>
-                                    <th className="px-4 py-1.5 w-[19%]">{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
+                                    <th className="px-4 py-1.5 w-[12%]"></th>
+                                    {!venueId && <th className="px-4 py-1.5 w-[14%]">Location</th>}
+                                    <th className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
                                     <th className="px-4 py-1.5 w-[10%]">Status</th>
                                     <th className="px-4 py-1.5 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
                                     <th className="px-4 py-1.5 w-[7%]">Age</th>
-                                    <th className="px-4 py-1.5 w-[10%]">Offers</th>
+                                    <th className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
                                     <th className="px-4 py-1.5 w-[8%]">Details</th>
                                     <th className="px-4 py-1.5 w-[10%]">Actions</th>
                                   </tr>
@@ -1962,7 +1964,7 @@ export default function TabbedTourItinerary({
             {/* Add Date Row */}
             {stableMonthTabs.every(tab => tab.count === 0) && editable && (
               <tr>
-                <td colSpan={10} className="px-6 py-3">
+                <td colSpan={venueId ? 9 : 10} className="px-6 py-3">
                   <button
                     onClick={() => {
                       if (artistId) {

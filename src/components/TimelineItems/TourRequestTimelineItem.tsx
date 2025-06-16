@@ -124,13 +124,15 @@ export function TourRequestTimelineItem({
         />
       </td>
 
-      <td className="px-4 py-3 w-[14%]">
-        <div className="text-sm text-gray-900 truncate">
-          {request.location || '-'}
-        </div>
-      </td>
+      {!venueId && (
+        <td className="px-4 py-3 w-[14%]">
+          <div className="text-sm text-gray-900 truncate">
+            {request.location || '-'}
+          </div>
+        </td>
+      )}
 
-      <td className="px-4 py-3 w-[19%]">
+      <td className={`px-4 py-3 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
         <div className="text-sm font-medium text-gray-900 truncate">
           {request.title}
         </div>
@@ -154,7 +156,7 @@ export function TourRequestTimelineItem({
         </div>
       </td>
 
-      <td className="px-4 py-3 w-[10%]">
+      <td className={`px-4 py-3 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
         <div className="text-xs text-gray-600">
           {request.guaranteeRange ? 
             `$${request.guaranteeRange.min}-${request.guaranteeRange.max}` : 

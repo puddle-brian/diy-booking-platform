@@ -282,13 +282,15 @@ export function ShowTimelineItem({
           />
         </td>
 
-        <td className="px-4 py-3 w-[14%]">
-          <div className="text-sm text-gray-900 truncate">
-            {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
-          </div>
-        </td>
+        {!venueId && (
+          <td className="px-4 py-3 w-[14%]">
+            <div className="text-sm text-gray-900 truncate">
+              {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
+            </div>
+          </td>
+        )}
 
-        <td className="px-4 py-3 w-[19%]">
+        <td className={`px-4 py-3 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
               {(() => {
@@ -398,7 +400,7 @@ export function ShowTimelineItem({
           </div>
         </td>
 
-        <td className="px-4 py-3 w-[10%]">
+        <td className={`px-4 py-3 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
           <div className="text-xs text-gray-600">
             {venueId ? '' : (permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : '-') : '-')}
           </div>
@@ -429,20 +431,20 @@ export function ShowTimelineItem({
         <>
           {/* Column Headers Row */}
           <tr>
-                          <td colSpan={10} className={`px-0 py-0 relative ${getTimelineBorderClass(show.status).split(' ').filter(c => c.startsWith('border-l')).join(' ')}`}>
+            <td colSpan={venueId ? 9 : 10} className={`px-0 py-0 relative ${getTimelineBorderClass(show.status).split(' ').filter(c => c.startsWith('border-l')).join(' ')}`}>
                 <div className="bg-green-50/50">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-[1000px] table-fixed">
                     <thead className="bg-green-100/60">
                       <tr className="text-left text-xs font-medium text-green-700">
                         <th className="px-2 py-1.5 w-[3%]"></th>
-                        <th className="px-4 py-1.5 w-[12%]">Date</th>
-                        <th className="px-4 py-1.5 w-[14%]">Location</th>
-                        <th className="px-4 py-1.5 w-[19%]">Artist</th>
+                        <th className="px-4 py-1.5 w-[12%]"></th>
+                        {!venueId && <th className="px-4 py-1.5 w-[14%]">Location</th>}
+                        <th className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>Artist</th>
                         <th className="px-4 py-1.5 w-[10%]">Status</th>
                         <th className="px-4 py-1.5 w-[7%]">Position</th>
                         <th className="px-4 py-1.5 w-[7%]">Age</th>
-                        <th className="px-4 py-1.5 w-[10%]">Payment</th>
+                        <th className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Payment</th>
                         <th className="px-4 py-1.5 w-[8%]">Details</th>
                         <th className="px-4 py-1.5 w-[10%]">Actions</th>
                       </tr>
@@ -451,27 +453,22 @@ export function ShowTimelineItem({
                       {/* Headliner detail row */}
                       <tr className="bg-green-50 hover:bg-green-100">
                         <td className="px-2 py-1.5 w-[3%]">
-                          <div className="flex items-center justify-center text-gray-400">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
-                            </svg>
-                          </div>
+                          {/* Intentionally blank - child rows are not expandable */}
                         </td>
 
                         <td className="px-4 py-1.5 w-[12%]">
-                          <ItineraryDate
-                            date={show.date}
-                            className="text-sm font-medium text-green-900"
-                          />
+                          {/* Intentionally blank - parent row provides date context */}
                         </td>
 
-                        <td className="px-4 py-1.5 w-[14%]">
-                          <div className="text-sm text-green-900 truncate">
-                            {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
-                          </div>
-                        </td>
+                        {!venueId && (
+                          <td className="px-4 py-1.5 w-[14%]">
+                            <div className="text-sm text-green-900 truncate">
+                              {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
+                            </div>
+                          </td>
+                        )}
 
-                        <td className="px-4 py-1.5 w-[19%]">
+                        <td className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                           <div className="text-sm font-medium text-gray-900 truncate">
                             {show.artistId && show.artistId !== 'external-artist' ? (
                               <a 
@@ -566,27 +563,22 @@ export function ShowTimelineItem({
                         .map((supportOffer, index) => (
                           <tr key={`support-${supportOffer.id}`} className="bg-orange-50 hover:bg-orange-100">
                             <td className="px-2 py-1 w-[3%]">
-                              <div className="flex items-center justify-center text-gray-400">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
-                                </svg>
-                              </div>
+                              {/* Intentionally blank - child rows are not expandable */}
                             </td>
 
                             <td className="px-4 py-1 w-[12%]">
-                              <ItineraryDate
-                                date={supportOffer.proposedDate}
-                                className="text-sm font-medium text-orange-900"
-                              />
+                              {/* Intentionally blank - parent row provides date context */}
                             </td>
 
-                            <td className="px-4 py-1 w-[14%]">
-                              <div className="text-sm text-orange-900 truncate">
-                                {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
-                              </div>
-                            </td>
+                            {!venueId && (
+                              <td className="px-4 py-1 w-[14%]">
+                                <div className="text-sm text-orange-900 truncate">
+                                  {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
+                                </div>
+                              </td>
+                            )}
 
-                                                        <td className="px-4 py-1 w-[19%]">
+                            <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                               <div className="text-sm font-medium text-gray-900 truncate">
                                 {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
                                   <a 
@@ -627,7 +619,7 @@ export function ShowTimelineItem({
                               </div>
                             </td>
 
-                            <td className="px-4 py-1 w-[10%]">
+                            <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
                               <div className="text-xs text-gray-600">
                                 {permissions.canSeeFinancialDetails(show) ? 
                                   (supportOffer.amount ? `$${supportOffer.amount}` : 

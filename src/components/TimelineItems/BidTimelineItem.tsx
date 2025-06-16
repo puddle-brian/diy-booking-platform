@@ -150,68 +150,60 @@ export function BidTimelineItem({
 
   return (
     <tr className={getRowStyling()}>
-      {/* Expansion toggle column - w-[3%] */}
+      {/* Expansion toggle column - w-[3%] - Empty for child rows */}
       <td className="px-2 py-1.5 w-[3%]">
-        <div className="flex items-center justify-center text-gray-400">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
-          </svg>
-        </div>
+        {/* Intentionally blank - child rows are not expandable */}
       </td>
 
-      {/* Date column - w-[12%] */}
+      {/* Date column - w-[12%] - Empty for child rows to show hierarchy */}
       <td className="px-4 py-1.5 w-[12%]">
-        <ItineraryDate
-          date={bid.proposedDate}
-          className={`text-sm font-medium ${
+        {/* Intentionally blank - parent row provides date context */}
+      </td>
+
+      {/* Location column - w-[14%] - Hidden for venue views */}
+      {!venueId && (
+        <td className="px-4 py-1.5 w-[14%]">
+          <div className={`text-sm truncate ${
             isFrozenByHold && (bid as any).holdState === 'HELD' ? 'text-violet-700' :
             'text-yellow-900'
-          }`}
-        />
-      </td>
+          }`}>
+            {(() => {
+              // Look up venue location from venues array
+              if (venues && bid.venueId) {
+                const venue = venues.find(v => v.id === bid.venueId);
+                if (venue && venue.city && venue.state) {
+                  return `${venue.city}, ${venue.state}`;
+                }
+              }
+              
+              // Fallback: try to parse location from venueName if it contains a clear pattern
+              // Some venues might include location like "Venue Name - City, State"
+              const venueNameParts = bid.venueName.split(' - ');
+              if (venueNameParts.length > 1) {
+                const lastPart = venueNameParts[venueNameParts.length - 1];
+                // Check if it looks like "City, State" pattern
+                if (lastPart.includes(',') && lastPart.match(/,\s*[A-Z]{2}$/)) {
+                  return lastPart;
+                }
+              }
+              
+              // Check if venue name ends with state abbreviation pattern (e.g. "lost bag, providence RI")
+              if (bid.venueName.match(/,\s*[a-z]+\s+[A-Z]{2}$/i)) {
+                const parts = bid.venueName.split(',');
+                if (parts.length >= 2) {
+                  return parts.slice(-2).join(',').trim();
+                }
+              }
+              
+              // Show dash when no location data is available
+              return '-';
+            })()}
+          </div>
+        </td>
+      )}
 
-      {/* Location column - w-[14%] */}
-      <td className="px-4 py-1.5 w-[14%]">
-        <div className={`text-sm truncate ${
-          isFrozenByHold && (bid as any).holdState === 'HELD' ? 'text-violet-700' :
-          'text-yellow-900'
-        }`}>
-          {(() => {
-            // Look up venue location from venues array
-            if (venues && bid.venueId) {
-              const venue = venues.find(v => v.id === bid.venueId);
-              if (venue && venue.city && venue.state) {
-                return `${venue.city}, ${venue.state}`;
-              }
-            }
-            
-            // Fallback: try to parse location from venueName if it contains a clear pattern
-            // Some venues might include location like "Venue Name - City, State"
-            const venueNameParts = bid.venueName.split(' - ');
-            if (venueNameParts.length > 1) {
-              const lastPart = venueNameParts[venueNameParts.length - 1];
-              // Check if it looks like "City, State" pattern
-              if (lastPart.includes(',') && lastPart.match(/,\s*[A-Z]{2}$/)) {
-                return lastPart;
-              }
-            }
-            
-            // Check if venue name ends with state abbreviation pattern (e.g. "lost bag, providence RI")
-            if (bid.venueName.match(/,\s*[a-z]+\s+[A-Z]{2}$/i)) {
-              const parts = bid.venueName.split(',');
-              if (parts.length >= 2) {
-                return parts.slice(-2).join(',').trim();
-              }
-            }
-            
-            // Show dash when no location data is available
-            return '-';
-          })()}
-        </div>
-      </td>
-
-      {/* Venue column - w-[19%] */}
-              <td className="px-4 py-1.5 w-[19%]">
+      {/* Venue/Artist column - w-[26%] for venue views, w-[19%] for artist views */}
+      <td className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
           <div className="text-sm font-medium text-gray-900 truncate">
             {venueId ? (
               // When viewing as venue, show artist information
@@ -278,8 +270,8 @@ export function BidTimelineItem({
         </div>
       </td>
 
-      {/* Offers column - w-[10%] */}
-      <td className="px-4 py-1.5 w-[10%]">
+      {/* Offers column - w-[15%] for venue views, w-[10%] for artist views */}
+      <td className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
         <div className="text-xs text-gray-600">
           {permissions.canSeeFinancialDetails(undefined, bid, request) ? (
             <InlineOfferDisplay 
