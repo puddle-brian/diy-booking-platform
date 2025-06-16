@@ -118,7 +118,7 @@ export function useItineraryPermissions({
       if (actualViewerType === 'venue' && venueId) {
         // Can expand if this is a venue-initiated offer from THEIR venue
         if (request.isVenueInitiated) {
-          // Check both venueInitiatedBy and venueId for grouped offers
+          // Check both venueInitiatedBy (legacy) and venueId (new grouped offers)
           return (request as any).venueInitiatedBy === venueId || (request as any).venueId === venueId;
         }
         // For regular requests, they can expand if they have a bid (checked in component)
