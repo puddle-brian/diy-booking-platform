@@ -685,7 +685,7 @@ export function ShowTimelineItem({
                       e.stopPropagation();
                       setIsAddSupportActModalOpen(true);
                     }}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-4 rounded border-2 border-dashed border-green-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
+                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-1.5 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
