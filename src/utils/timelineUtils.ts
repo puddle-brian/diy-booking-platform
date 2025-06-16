@@ -396,7 +396,7 @@ export function createTimelineEntries(
  * Groups timeline entries by month
  */
 export function groupEntriesByMonth(entries: TimelineEntry[]): MonthGroup[] {
-  const monthGroups: { [key: string]: MonthGroup } = {};
+  const monthGroups: { [key: string]: MonthGroup & { uniqueDates: Set<string> } } = {};
   
   entries.forEach(entry => {
     // 🎯 FIX: Use timezone-safe date parsing to avoid month shifting
@@ -427,21 +427,35 @@ export function groupEntriesByMonth(entries: TimelineEntry[]): MonthGroup[] {
       month: 'long' 
     });
     
+    // Extract date string for uniqueness tracking
+    const dateString = entry.date.split('T')[0]; // Gets "2025-08-15" from "2025-08-15" or "2025-08-15T10:00:00Z"
+    
     if (!monthGroups[monthKey]) {
       monthGroups[monthKey] = {
         monthKey,
         monthLabel,
         entries: [],
-        count: 0
+        count: 0,
+        uniqueDates: new Set<string>()
       };
     }
     
     monthGroups[monthKey].entries.push(entry);
-    monthGroups[monthKey].count++;
+    
+    // 🎯 FIX: Only increment count for unique dates
+    if (!monthGroups[monthKey].uniqueDates.has(dateString)) {
+      monthGroups[monthKey].uniqueDates.add(dateString);
+      monthGroups[monthKey].count++;
+    }
   });
   
-  // Sort months chronologically
-  return Object.values(monthGroups).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+  // Sort months chronologically and remove the uniqueDates helper
+  return Object.values(monthGroups).map(group => ({
+    monthKey: group.monthKey,
+    monthLabel: group.monthLabel,
+    entries: group.entries,
+    count: group.count
+  })).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 }
 
 /**
