@@ -1708,7 +1708,7 @@ export default function TabbedTourItinerary({
                                     <th className="px-2 py-1.5 w-[3%]"></th>
                                     <th className="px-4 py-1.5 w-[12%]">Date</th>
                                     <th className="px-4 py-1.5 w-[14%]">Location</th>
-                                    <th className="px-4 py-1.5 w-[19%]">Venue</th>
+                                    <th className="px-4 py-1.5 w-[19%]">{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
                                     <th className="px-4 py-1.5 w-[10%]">Status</th>
                                     <th className="px-4 py-1.5 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
                                     <th className="px-4 py-1.5 w-[7%]">Age</th>
