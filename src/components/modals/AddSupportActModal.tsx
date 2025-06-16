@@ -2,15 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import OfferInput, { ParsedOffer, parsedOfferToLegacyFormat } from '../OfferInput';
 import { extractDateString, formatDisplayDate } from '../../utils/dateUtils';
-
-interface Artist {
-  id: string;
-  name: string;
-  city: string;
-  state: string;
-  artistType: string;
-  genres: string[];
-}
+import { Artist } from '../../../types/index';
 
 interface AddSupportActModalProps {
   isOpen: boolean;
@@ -38,6 +30,8 @@ export function AddSupportActModal({
   const [showDropdown, setShowDropdown] = useState(false);
   const [offerData, setOfferData] = useState<ParsedOffer | null>(null);
   const [message, setMessage] = useState('');
+  const [billingPosition, setBillingPosition] = useState<'headliner' | 'co-headliner' | 'support' | 'local-support'>('support');
+  const [setLength, setSetLength] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingArtists, setIsLoadingArtists] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +45,8 @@ export function AddSupportActModal({
       setSearchTerm('');
       setOfferData(null);
       setMessage('');
+      setBillingPosition('support'); // Default to support for "Add Support Act"
+      setSetLength('');
       setError('');
     }
   }, [isOpen]);
@@ -96,7 +92,7 @@ export function AddSupportActModal({
       artist.city.toLowerCase().includes(searchTermLower) ||
       artist.state.toLowerCase().includes(searchTermLower) ||
       `${artist.city}, ${artist.state}`.toLowerCase().includes(searchTermLower) ||
-      artist.genres.some(genre => genre.toLowerCase().includes(searchTermLower))
+      artist.genres.some((genre: string) => genre.toLowerCase().includes(searchTermLower))
     ).slice(0, 8); // Limit to 8 results like other components
 
     setFilteredArtists(filtered);
@@ -133,12 +129,13 @@ export function AddSupportActModal({
         body: JSON.stringify({
           artistId: selectedArtist.id,
           venueId: venueId,
-          title: `${selectedArtist.name} - ${new Date(showDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName} (Support)`,
+          title: `${selectedArtist.name} - ${new Date(showDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${venueName} (${billingPosition.charAt(0).toUpperCase() + billingPosition.slice(1)})`,
           requestedDate: extractDateString(showDate), // Extract YYYY-MM-DD to avoid timezone issues
           initiatedBy: 'VENUE',
           amount: legacyOffer.amount,
           doorDeal: legacyOffer.doorDeal,
-          billingPosition: 'SUPPORT',
+          billingPosition: billingPosition.toUpperCase(), // 🎵 FIX: Use user-selected billing position instead of hardcoded 'SUPPORT'
+          setLength: setLength ? parseInt(setLength) : undefined, // 🎵 ADD: Include set length
           message: message,
           // TODO: Add parentShowId and showRole fields when schema is enhanced
         }),
@@ -255,6 +252,57 @@ export function AddSupportActModal({
                     onChange={setOfferData}
                     placeholder="e.g., $200 guarantee or 60/40 door split after $100 expenses"
                   />
+                </div>
+              )}
+
+              {/* 🎵 ADD: Billing Position Module - matches OfferFormCore styling */}
+              {selectedArtist && (
+                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <h4 className="text-base font-semibold text-blue-900">Billing Position *</h4>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        What role are you offering?
+                      </label>
+                      <select
+                        required
+                        value={billingPosition}
+                        onChange={(e) => setBillingPosition(e.target.value as any)}
+                        className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <option value="support">Support</option>
+                        <option value="local-support">Local Support</option>
+                        <option value="headliner">Headliner</option>
+                        <option value="co-headliner">Co-Headliner</option>
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-blue-800 mb-2">
+                        Set Length (minutes)
+                      </label>
+                      <input
+                        type="number"
+                        value={setLength}
+                        onChange={(e) => setSetLength(e.target.value)}
+                        placeholder="e.g. 30"
+                        min="15"
+                        max="180"
+                        className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-blue-600 mt-2">
+                    {billingPosition === 'headliner' && 'Main draw, top billing, longest set (typically 45-90 min)'}
+                    {billingPosition === 'support' && 'Opening act, shorter set time (typically 30-45 min)'}
+                    {billingPosition === 'local-support' && 'Local opener, builds community (typically 20-30 min)'}
+                    {billingPosition === 'co-headliner' && 'Shared top billing with touring act (typically 45-75 min)'}
+                  </p>
                 </div>
               )}
 
