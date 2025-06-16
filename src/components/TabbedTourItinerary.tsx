@@ -1749,129 +1749,206 @@ export default function TabbedTourItinerary({
                                       );
                                     })}
                                     
-                                    {/* 🎯 DATE GROUPING: Render same-date siblings as child rows (following ShowTimelineItem pattern) */}
+                                    {/* 🎯 DATE GROUPING: Render same-date siblings as their actual timeline entries (like ShowTimelineItem) */}
                                     {sameDateSiblings.map((siblingEntry) => {
-                                      const siblingRequest = siblingEntry.data as TourRequest & { 
-                                        isVenueInitiated?: boolean; 
-                                        originalOfferId?: string; 
-                                        venueInitiatedBy?: string;
-                                        isVenueBid?: boolean;
-                                        originalBidId?: string;
-                                        originalShowRequestId?: string;
-                                        bidStatus?: string;
-                                        bidAmount?: number;
-                                      };
-                                      
-                                      // Determine proper status for child rows using same logic as parent
-                                      let siblingBids: VenueBid[] = [];
-                                      if (siblingRequest.isVenueInitiated && siblingRequest.originalOfferId) {
-                                        const originalOffer = venueOffers.find(offer => offer.id === siblingRequest.originalOfferId);
-                                        if (originalOffer) {
-                                          const syntheticBid: VenueBid = {
-                                            id: `offer-bid-${originalOffer.id}`,
-                                            showRequestId: siblingRequest.id,
-                                            venueId: originalOffer.venueId,
-                                            venueName: originalOffer.venueName || 'Unknown Venue',
-                                            proposedDate: originalOffer.proposedDate.split('T')[0],
-                                            guarantee: originalOffer.amount,
-                                            status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
-                                            readByArtist: true,
-                                            createdAt: originalOffer.createdAt,
-                                            updatedAt: originalOffer.updatedAt,
-                                            expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                                            message: originalOffer.message || '',
-                                            artistId: originalOffer.artistId,
-                                            artistName: originalOffer.artistName,
-                                          } as VenueBid & { artistId?: string; artistName?: string };
-                                          siblingBids = [syntheticBid];
+                                      // Render the actual timeline entry type (request, bid, etc.) as child row
+                                      if (siblingEntry.type === 'tour-request') {
+                                        const siblingRequest = siblingEntry.data as TourRequest & { 
+                                          isVenueInitiated?: boolean; 
+                                          originalOfferId?: string; 
+                                          venueInitiatedBy?: string;
+                                          isVenueBid?: boolean;
+                                          originalBidId?: string;
+                                          originalShowRequestId?: string;
+                                          bidStatus?: string;
+                                          bidAmount?: number;
+                                        };
+                                        
+                                        // Get bids for this sibling request (same logic as parent)
+                                        let siblingBids: VenueBid[] = [];
+                                        if (siblingRequest.isVenueInitiated && siblingRequest.originalOfferId) {
+                                          const originalOffer = venueOffers.find(offer => offer.id === siblingRequest.originalOfferId);
+                                          if (originalOffer) {
+                                            const syntheticBid: VenueBid = {
+                                              id: `offer-bid-${originalOffer.id}`,
+                                              showRequestId: siblingRequest.id,
+                                              venueId: originalOffer.venueId,
+                                              venueName: originalOffer.venueName || 'Unknown Venue',
+                                              proposedDate: originalOffer.proposedDate.split('T')[0],
+                                              guarantee: originalOffer.amount,
+                                              doorDeal: originalOffer.doorDeal ? {
+                                                split: originalOffer.doorDeal.split,
+                                                minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
+                                              } : undefined,
+                                              status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
+                                              readByArtist: true,
+                                              createdAt: originalOffer.createdAt,
+                                              updatedAt: originalOffer.updatedAt,
+                                              expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                              message: originalOffer.message || '',
+                                              artistId: originalOffer.artistId,
+                                              artistName: originalOffer.artistName,
+                                              billingPosition: originalOffer.billingPosition,
+                                              setLength: originalOffer.setLength,
+                                            } as VenueBid & { artistId?: string; artistName?: string };
+                                            siblingBids = [syntheticBid];
+                                          }
+                                        } else if (siblingRequest.isVenueBid && siblingRequest.originalShowRequestId) {
+                                          siblingBids = venueBids.filter(bid => 
+                                            bid.showRequestId === siblingRequest.originalShowRequestId && 
+                                            !declinedBids.has(bid.id)
+                                          );
+                                        } else {
+                                          siblingBids = venueBids.filter(bid => bid.showRequestId === siblingRequest.id && !declinedBids.has(bid.id));
                                         }
-                                      } else if (siblingRequest.isVenueBid && siblingRequest.originalShowRequestId) {
-                                        siblingBids = venueBids.filter(bid => 
-                                          bid.showRequestId === siblingRequest.originalShowRequestId && 
-                                          !declinedBids.has(bid.id)
-                                        );
-                                      } else {
-                                        siblingBids = venueBids.filter(bid => bid.showRequestId === siblingRequest.id && !declinedBids.has(bid.id));
-                                      }
 
-                                      const hasAcceptedBid = siblingBids.some((bid: VenueBid) => 
-                                        bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
-                                      );
-                                      const hasActiveHold = siblingBids.some((bid: VenueBid) => 
-                                        (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
-                                      );
-                                      const isHeldBidRequest = (siblingRequest as any).isHeldBid;
-                                      
-                                      let siblingStatus: 'confirmed' | 'pending' | 'hold' | 'accepted' = 'pending';
-                                      if (hasAcceptedBid) {
-                                        siblingStatus = 'accepted';
-                                      } else if (hasActiveHold || isHeldBidRequest) {
-                                        siblingStatus = 'hold';
+                                        const hasAcceptedBid = siblingBids.some((bid: VenueBid) => 
+                                          bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
+                                        );
+                                        const hasActiveHold = siblingBids.some((bid: VenueBid) => 
+                                          (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
+                                        );
+                                        
+                                        let siblingStatus: 'confirmed' | 'pending' | 'hold' | 'accepted' = 'pending';
+                                        if (hasAcceptedBid) {
+                                          siblingStatus = 'accepted';
+                                        } else if (hasActiveHold) {
+                                          siblingStatus = 'hold';
+                                        }
+
+                                        // Use yellow styling for child rows (like support acts in ShowTimelineItem)
+                                        const childRowBg = siblingStatus === 'accepted' ? 'bg-green-50 hover:bg-green-100' :
+                                                          siblingStatus === 'hold' ? 'bg-violet-50 hover:bg-violet-100' :
+                                                          'bg-yellow-50 hover:bg-yellow-100';
+                                        const childTextColor = siblingStatus === 'accepted' ? 'text-green-900' :
+                                                              siblingStatus === 'hold' ? 'text-violet-900' :
+                                                              'text-yellow-900';
+                                        
+                                        return (
+                                          <tr key={`sibling-${siblingRequest.id}`} className={`${childRowBg} transition-colors duration-150`}>
+                                            <td className="px-2 py-1 w-[3%]">
+                                              <div className="flex items-center justify-center text-gray-400">
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
+                                                </svg>
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-1 w-[12%]">
+                                              <ItineraryDate
+                                                startDate={siblingRequest.startDate}
+                                                endDate={siblingRequest.endDate}
+                                                isSingleDate={siblingRequest.isSingleDate}
+                                                className={`text-sm font-medium ${childTextColor}`}
+                                              />
+                                            </td>
+                                            <td className="px-4 py-1 w-[14%]">
+                                              <div className={`text-sm ${childTextColor} truncate`}>{siblingRequest.location}</div>
+                                            </td>
+                                            <td className="px-4 py-1 w-[19%]">
+                                              <div className="text-sm font-medium text-gray-900 truncate">
+                                                {(() => {
+                                                  if (artistId) {
+                                                    // For artist pages, show venue information
+                                                    if (siblingRequest.isVenueInitiated) {
+                                                      const requestAsVenueRequest = siblingRequest as TourRequest & { venueId?: string; venueName?: string };
+                                                      if (requestAsVenueRequest.venueId && requestAsVenueRequest.venueId !== 'external-venue') {
+                                                        return (
+                                                          <a 
+                                                            href={`/venues/${requestAsVenueRequest.venueId}`}
+                                                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                            title="View venue page"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                          >
+                                                            {requestAsVenueRequest.venueName}
+                                                          </a>
+                                                        );
+                                                      } else {
+                                                        return <span>{requestAsVenueRequest.venueName}</span>;
+                                                      }
+                                                    } else {
+                                                      return <span className="text-gray-500 text-sm">Open call</span>;
+                                                    }
+                                                  } else {
+                                                    // For venue pages, show artist name as clickable link
+                                                    if (siblingRequest.artistId && siblingRequest.artistId !== 'external-artist') {
+                                                      return (
+                                                        <a 
+                                                          href={`/artists/${siblingRequest.artistId}`}
+                                                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                                                          title="View artist page"
+                                                          onClick={(e) => e.stopPropagation()}
+                                                        >
+                                                          {siblingRequest.artistName}
+                                                        </a>
+                                                      );
+                                                    } else {
+                                                      return <span>{siblingRequest.artistName}</span>;
+                                                    }
+                                                  }
+                                                })()}
+                                                {/* Show billing position if available */}
+                                                {siblingBids.length > 0 && siblingBids[0].billingPosition && (
+                                                  <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border ml-2 flex-shrink-0 ${
+                                                    siblingStatus === 'accepted' ? 'bg-green-100 text-green-800 border-green-300' :
+                                                    siblingStatus === 'hold' ? 'bg-violet-100 text-violet-800 border-violet-300' :
+                                                    'bg-yellow-100 text-yellow-800 border-yellow-300'
+                                                  }`}>
+                                                    {siblingBids[0].billingPosition === 'support' ? 'SP' : 
+                                                     siblingBids[0].billingPosition === 'headliner' ? 'HL' : 
+                                                     siblingBids[0].billingPosition?.toUpperCase().slice(0, 2)}
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-1 w-[10%]">
+                                              <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                                                siblingStatus === 'accepted' ? 'bg-green-100 text-green-800' :
+                                                siblingStatus === 'hold' ? 'bg-violet-100 text-violet-800' :
+                                                'bg-yellow-100 text-yellow-800'
+                                              }`}>
+                                                {siblingStatus === 'accepted' ? 'Confirmed' :
+                                                 siblingStatus === 'hold' ? 'Hold' : 'Pending'}
+                                              </span>
+                                            </td>
+                                            <td className="px-4 py-1 w-[7%]">
+                                              <div className="text-xs text-gray-600">
+                                                {siblingBids.length > 0 && siblingBids[0].billingPosition ? 
+                                                  siblingBids[0].billingPosition.charAt(0).toUpperCase() + siblingBids[0].billingPosition.slice(1) : '-'}
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-1 w-[7%]">
+                                              <div className="text-xs text-gray-600">
+                                                all-ages
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-1 w-[10%]">
+                                              <div className="text-xs text-gray-600">
+                                                {siblingBids.length > 0 && permissions.canSeeFinancialDetails(undefined, siblingBids[0], siblingRequest) ? 
+                                                  (siblingBids[0].guarantee ? `$${siblingBids[0].guarantee}` : 
+                                                   siblingBids[0].doorDeal ? 'Door split' : 'TBD') : '-'}
+                                              </div>
+                                            </td>
+                                            <td className="px-4 py-1 w-[8%]">
+                                              <button
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleTourRequestDocumentModal(siblingRequest);
+                                                }}
+                                                className="inline-flex items-center justify-center w-8 h-8 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                                                title="View/edit request document"
+                                              >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                              </button>
+                                            </td>
+                                            <td className="px-4 py-1 w-[10%]">
+                                              {/* Future: Delete action for child entries */}
+                                            </td>
+                                          </tr>
+                                        );
                                       }
-                                      
-                                      // Use proper status badge
-                                      const statusBadge = siblingStatus === 'accepted' ? (
-                                        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                                          Confirmed
-                                        </span>
-                                      ) : siblingStatus === 'hold' ? (
-                                        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-800">
-                                          Hold
-                                        </span>
-                                      ) : (
-                                        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
-                                          Pending
-                                        </span>
-                                      );
-                                      
-                                      return (
-                                        <tr key={`sibling-${siblingRequest.id}`} className="bg-yellow-50 hover:bg-yellow-100 border-l-4 border-yellow-400">
-                                          <td className="px-2 py-1 w-[3%]">
-                                            <div className="flex items-center justify-center text-gray-400">
-                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
-                                              </svg>
-                                            </div>
-                                          </td>
-                                          <td className="px-4 py-1 w-[12%]">
-                                            <ItineraryDate
-                                              startDate={siblingRequest.startDate}
-                                              endDate={siblingRequest.endDate}
-                                              isSingleDate={siblingRequest.isSingleDate}
-                                              className="text-sm font-medium text-yellow-900"
-                                            />
-                                          </td>
-                                          <td className="px-4 py-1 w-[14%]">
-                                            <div className="text-sm text-yellow-900 truncate">{siblingRequest.location}</div>
-                                          </td>
-                                          <td className="px-4 py-1 w-[19%]">
-                                            <div className="text-sm font-medium text-yellow-900 truncate">
-                                              {artistId ? 'Venue Info' : siblingRequest.artistName}
-                                            </div>
-                                          </td>
-                                          <td className="px-4 py-1 w-[10%]">
-                                            {statusBadge}
-                                          </td>
-                                          <td className="px-4 py-1 w-[7%]"></td>
-                                          <td className="px-4 py-1 w-[7%]"></td>
-                                          <td className="px-4 py-1 w-[10%]"></td>
-                                          <td className="px-4 py-1 w-[8%]">
-                                            <button
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleTourRequestDocumentModal(siblingRequest);
-                                              }}
-                                              className="inline-flex items-center justify-center w-8 h-8 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                                              title="View/edit request document"
-                                            >
-                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                              </svg>
-                                            </button>
-                                          </td>
-                                          <td className="px-4 py-1 w-[10%]"></td>
-                                        </tr>
-                                      );
+                                      return null; // Skip non-tour-request entries for now
                                     })}
 
                                 </tbody>
