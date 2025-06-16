@@ -45,7 +45,12 @@ export function AddSupportActModal({
       setSearchTerm('');
       setOfferData(null);
       setMessage('');
-      setBillingPosition('support'); // Default to support for "Add Support Act"
+      
+      // 🎯 SMART DEFAULT: Set billing position based on context
+      // If this is an existing confirmed show, default to support
+      // If this is an open date, default to headliner
+      setBillingPosition('support'); // Can be made smarter later based on existing lineup
+      
       setSetLength('');
       setError('');
     }
@@ -164,10 +169,10 @@ export function AddSupportActModal({
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="w-full">
               <h3 className="text-lg leading-6 font-medium text-gray-900 mb-2">
-                Add Support Act
+                Add Artist to Show
               </h3>
               <p className="text-sm text-gray-600 mb-6">
-                Invite an artist to play support on {formatDisplayDate(showDate)} at {venueName}. This will create a venue offer that appears in both your timeline and the artist's itinerary.
+                Invite an artist to perform on {formatDisplayDate(showDate)} at {venueName}. Choose their billing position and set terms for the offer.
               </p>
 
               {error && (
@@ -329,7 +334,7 @@ export function AddSupportActModal({
               disabled={isSubmitting || !selectedArtist || !offerData}
               className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Sending...' : 'Send Support Act Offer'}
+              {isSubmitting ? 'Sending...' : 'Send Artist Offer'}
             </button>
             <button
               type="button"

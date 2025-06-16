@@ -1945,7 +1945,7 @@ export default function TabbedTourItinerary({
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                   </svg>
-                                  <span>Add Another Artist</span>
+                                  <span>Add Artist</span>
                                 </button>
                               </div>
                             )}
@@ -2291,7 +2291,7 @@ export default function TabbedTourItinerary({
         </div>
       )}
 
-      {/* Add Another Artist Modal */}
+      {/* Add Artist Modal */}
       <AddSupportActModal
         isOpen={isAddAnotherArtistModalOpen}
         onClose={() => {
