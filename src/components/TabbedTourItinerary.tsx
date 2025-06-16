@@ -1324,15 +1324,8 @@ export default function TabbedTourItinerary({
                 
                                                     if (request.isVenueInitiated && request.originalOfferId) {
                     
-                    // 🐛 DEBUG: Let's see what's happening with venue-initiated requests
-                    console.log(`🔍 VENUE INITIATED DEBUG:`, {
-                      requestId: request.id,
-                      startDate: request.startDate,
-                      artistId: request.artistId,
-                      originalOfferId: request.originalOfferId,
-                      totalTourRequests: tourRequests.length,
-                      totalVenueBids: venueBids.length
-                    });
+                    // 🐛 FIX: Even for venue-initiated requests, we need to find ALL competing bids
+                    // The venue offer might be one of several competing bids for the same date/artist
                     
                     // Look for other requests with the same date/artist to find the original artist request
                     const potentialOriginalRequests = tourRequests.filter((sr: TourRequest) => 
@@ -1341,29 +1334,14 @@ export default function TabbedTourItinerary({
                       sr.artistId === request.artistId
                     );
                     
-                    console.log(`🔍 POTENTIAL ORIGINALS:`, potentialOriginalRequests.map(r => ({
-                      id: r.id,
-                      title: r.title,
-                      startDate: r.startDate,
-                      isVenueInitiated: (r as any).isVenueInitiated
-                    })));
-                    
                     if (potentialOriginalRequests.length > 0) {
                       const originalShowRequestId = potentialOriginalRequests[0].id;
-                      console.log(`🔍 FOUND ORIGINAL REQUEST: ${originalShowRequestId}`);
                       
                       // Find ALL bids for the original request (this will include competing venues)
                       requestBids = venueBids.filter(bid => 
                         bid.showRequestId === originalShowRequestId && 
                         !declinedBids.has(bid.id)
                       );
-                      
-                      console.log(`🔍 FOUND ${requestBids.length} COMPETING BIDS:`, requestBids.map(b => ({
-                        id: b.id,
-                        venueId: b.venueId,
-                        venueName: b.venueName,
-                        showRequestId: b.showRequestId
-                      })));
                     } else {
                     // Fallback: Create synthetic bid for just this venue
                     const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
@@ -1505,10 +1483,6 @@ export default function TabbedTourItinerary({
                               // For artist pages, show venue information
                               if (request.isVenueInitiated) {
                                 // 🐛 FIX: For venue-initiated offers, check if there are competing venues
-                                console.log(`🔍 VENUE INITIATED DISPLAY: requestBids.length = ${requestBids.length}`, {
-                                  requestId: request.id,
-                                  requestBids: requestBids.map(b => ({ id: b.id, venueName: b.venueName }))
-                                });
                                 
                                 if (requestBids.length > 1) {
                                   // Show count when there are competing venues
@@ -1560,11 +1534,6 @@ export default function TabbedTourItinerary({
                                   return <span className="text-gray-500 text-sm">No bids yet</span>;
                                 } else {
                                   // Show venue information based on bid activity
-                                  console.log(`🔍 VENUE DISPLAY DEBUG: requestBids.length = ${requestBids.length}`, {
-                                    requestId: request.id,
-                                    isVenueInitiated: request.isVenueInitiated,
-                                    requestBids: requestBids.map(b => ({ id: b.id, venueName: b.venueName }))
-                                  });
                                   
                                   if (requestBids.length === 1) {
                                     // Show the single venue name as clickable link
@@ -1683,8 +1652,8 @@ export default function TabbedTourItinerary({
                             );
                           })()}
                           
-                          {/* 🎯 DATE GROUPING: Show count badge for same-date siblings (following ShowTimelineItem pattern) */}
-                          {isFirstOfDate && sameDateSiblings.length > 0 && (
+                          {/* 🎯 DATE GROUPING: Show count badge for same-date siblings, but not for venue-initiated requests that show competitor counts */}
+                          {isFirstOfDate && sameDateSiblings.length > 0 && !request.isVenueInitiated && (
                             <span 
                               className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800"
                               title={`${sameDateSiblings.length + 1} entries on ${entryDate}`}
