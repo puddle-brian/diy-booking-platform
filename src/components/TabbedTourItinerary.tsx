@@ -1320,54 +1320,99 @@ export default function TabbedTourItinerary({
                 // Get bids for this request
                 let requestBids: VenueBid[] = [];
                 
-                if (request.isVenueInitiated && request.originalOfferId) {
-                  // For synthetic requests from venue offers, convert the venue offer to a bid format
-                  const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                  if (originalOffer) {
-                    const bidDate = originalOffer.proposedDate.split('T')[0];
+
+                
+                                                    if (request.isVenueInitiated && request.originalOfferId) {
                     
-                    const syntheticBid: VenueBid = {
-                      id: `offer-bid-${originalOffer.id}`,
-                      showRequestId: request.id,
-                      venueId: originalOffer.venueId,
-                      venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
-                      proposedDate: bidDate,
-                      guarantee: originalOffer.amount,
-                      doorDeal: originalOffer.doorDeal ? {
-                        split: originalOffer.doorDeal.split,
-                        minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
-                      } : undefined,
-                      ticketPrice: originalOffer.ticketPrice || {},
-                      capacity: originalOffer.capacity || originalOffer.venue?.capacity || 0,
-                      ageRestriction: originalOffer.ageRestriction || 'all-ages',
-                      equipmentProvided: originalOffer.equipmentProvided || {
-                        pa: false, mics: false, drums: false, amps: false, piano: false
-                      },
-                      loadIn: originalOffer.loadIn || '',
-                      soundcheck: originalOffer.soundcheck || '',
-                      doorsOpen: originalOffer.doorsOpen || '',
-                      showTime: originalOffer.showTime || '',
-                      curfew: originalOffer.curfew || '',
-                      promotion: originalOffer.promotion || {
-                        social: false, flyerPrinting: false, radioSpots: false, pressCoverage: false
-                      },
-                      message: originalOffer.message || '',
-                      status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
-                      readByArtist: true,
-                      createdAt: originalOffer.createdAt,
-                      updatedAt: originalOffer.updatedAt,
-                      expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                      billingPosition: originalOffer.billingPosition,
-                      lineupPosition: originalOffer.lineupPosition,
-                      setLength: originalOffer.setLength,
-                      otherActs: originalOffer.otherActs,
-                      billingNotes: originalOffer.billingNotes,
-                      // Add missing artist information for show document headers
-                      artistId: originalOffer.artistId,
-                      artistName: originalOffer.artistName,
-                    } as VenueBid & { artistId?: string; artistName?: string };
+                    // 🐛 DEBUG: Let's see what's happening with venue-initiated requests
+                    console.log(`🔍 VENUE INITIATED DEBUG:`, {
+                      requestId: request.id,
+                      startDate: request.startDate,
+                      artistId: request.artistId,
+                      originalOfferId: request.originalOfferId,
+                      totalTourRequests: tourRequests.length,
+                      totalVenueBids: venueBids.length
+                    });
                     
-                    requestBids = [syntheticBid];
+                    // Look for other requests with the same date/artist to find the original artist request
+                    const potentialOriginalRequests = tourRequests.filter((sr: TourRequest) => 
+                      !(sr as any).isVenueInitiated && 
+                      sr.startDate === request.startDate &&
+                      sr.artistId === request.artistId
+                    );
+                    
+                    console.log(`🔍 POTENTIAL ORIGINALS:`, potentialOriginalRequests.map(r => ({
+                      id: r.id,
+                      title: r.title,
+                      startDate: r.startDate,
+                      isVenueInitiated: (r as any).isVenueInitiated
+                    })));
+                    
+                    if (potentialOriginalRequests.length > 0) {
+                      const originalShowRequestId = potentialOriginalRequests[0].id;
+                      console.log(`🔍 FOUND ORIGINAL REQUEST: ${originalShowRequestId}`);
+                      
+                      // Find ALL bids for the original request (this will include competing venues)
+                      requestBids = venueBids.filter(bid => 
+                        bid.showRequestId === originalShowRequestId && 
+                        !declinedBids.has(bid.id)
+                      );
+                      
+                      console.log(`🔍 FOUND ${requestBids.length} COMPETING BIDS:`, requestBids.map(b => ({
+                        id: b.id,
+                        venueId: b.venueId,
+                        venueName: b.venueName,
+                        showRequestId: b.showRequestId
+                      })));
+                    } else {
+                    // Fallback: Create synthetic bid for just this venue
+                    const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
+                    if (originalOffer) {
+                      const bidDate = originalOffer.proposedDate.split('T')[0];
+                      
+                      const syntheticBid: VenueBid = {
+                        id: `offer-bid-${originalOffer.id}`,
+                        showRequestId: request.id,
+                        venueId: originalOffer.venueId,
+                        venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
+                        proposedDate: bidDate,
+                        guarantee: originalOffer.amount,
+                        doorDeal: originalOffer.doorDeal ? {
+                          split: originalOffer.doorDeal.split,
+                          minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
+                        } : undefined,
+                        ticketPrice: originalOffer.ticketPrice || {},
+                        capacity: originalOffer.capacity || originalOffer.venue?.capacity || 0,
+                        ageRestriction: originalOffer.ageRestriction || 'all-ages',
+                        equipmentProvided: originalOffer.equipmentProvided || {
+                          pa: false, mics: false, drums: false, amps: false, piano: false
+                        },
+                        loadIn: originalOffer.loadIn || '',
+                        soundcheck: originalOffer.soundcheck || '',
+                        doorsOpen: originalOffer.doorsOpen || '',
+                        showTime: originalOffer.showTime || '',
+                        curfew: originalOffer.curfew || '',
+                        promotion: originalOffer.promotion || {
+                          social: false, flyerPrinting: false, radioSpots: false, pressCoverage: false
+                        },
+                        message: originalOffer.message || '',
+                        status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
+                        readByArtist: true,
+                        createdAt: originalOffer.createdAt,
+                        updatedAt: originalOffer.updatedAt,
+                        expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                        billingPosition: originalOffer.billingPosition,
+                        lineupPosition: originalOffer.lineupPosition,
+                        setLength: originalOffer.setLength,
+                        otherActs: originalOffer.otherActs,
+                        billingNotes: originalOffer.billingNotes,
+                        // Add missing artist information for show document headers
+                        artistId: originalOffer.artistId,
+                        artistName: originalOffer.artistName,
+                      } as VenueBid & { artistId?: string; artistName?: string };
+                      
+                      requestBids = [syntheticBid];
+                    }
                   }
                 // ✅ No special synthetic held bid handling - all bids show in their natural request rows
                 } else if (request.isVenueBid && request.originalShowRequestId) {
@@ -1459,21 +1504,36 @@ export default function TabbedTourItinerary({
                             if (artistId) {
                               // For artist pages, show venue information
                               if (request.isVenueInitiated) {
-                                // For venue-initiated offers, show the venue name as clickable link
-                                const requestAsVenueRequest = request as TourRequest & { venueId?: string; venueName?: string };
-                                if (requestAsVenueRequest.venueId && requestAsVenueRequest.venueId !== 'external-venue') {
+                                // 🐛 FIX: For venue-initiated offers, check if there are competing venues
+                                console.log(`🔍 VENUE INITIATED DISPLAY: requestBids.length = ${requestBids.length}`, {
+                                  requestId: request.id,
+                                  requestBids: requestBids.map(b => ({ id: b.id, venueName: b.venueName }))
+                                });
+                                
+                                if (requestBids.length > 1) {
+                                  // Show count when there are competing venues
                                   return (
-                                    <a 
-                                      href={`/venues/${requestAsVenueRequest.venueId}`}
-                                      className="text-blue-600 hover:text-blue-800 hover:underline"
-                                      title="View venue page"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {requestAsVenueRequest.venueName}
-                                    </a>
+                                    <span className="text-gray-600 text-sm">
+                                      {requestBids.length} competing venues
+                                    </span>
                                   );
                                 } else {
-                                  return <span>{requestAsVenueRequest.venueName}</span>;
+                                  // Show single venue name when no competition
+                                  const requestAsVenueRequest = request as TourRequest & { venueId?: string; venueName?: string };
+                                  if (requestAsVenueRequest.venueId && requestAsVenueRequest.venueId !== 'external-venue') {
+                                    return (
+                                      <a 
+                                        href={`/venues/${requestAsVenueRequest.venueId}`}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        title="View venue page"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {requestAsVenueRequest.venueName}
+                                      </a>
+                                    );
+                                  } else {
+                                    return <span>{requestAsVenueRequest.venueName}</span>;
+                                  }
                                 }
                               } else {
                                 // For artist-initiated requests, show bid count or venue-specific info
@@ -1500,6 +1560,12 @@ export default function TabbedTourItinerary({
                                   return <span className="text-gray-500 text-sm">No bids yet</span>;
                                 } else {
                                   // Show venue information based on bid activity
+                                  console.log(`🔍 VENUE DISPLAY DEBUG: requestBids.length = ${requestBids.length}`, {
+                                    requestId: request.id,
+                                    isVenueInitiated: request.isVenueInitiated,
+                                    requestBids: requestBids.map(b => ({ id: b.id, venueName: b.venueName }))
+                                  });
+                                  
                                   if (requestBids.length === 1) {
                                     // Show the single venue name as clickable link
                                     const singleBid = requestBids[0];
@@ -1518,6 +1584,7 @@ export default function TabbedTourItinerary({
                                       return <span>{singleBid.venueName}</span>;
                                     }
                                   } else {
+
                                     // Show count for multiple competing venues
                                     return (
                                       <span className="text-gray-600 text-sm">
