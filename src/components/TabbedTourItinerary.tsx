@@ -1239,6 +1239,24 @@ export default function TabbedTourItinerary({
             
             {/* Render entries for active month */}
             {activeMonthEntries.map((entry, index) => {
+              // 🎯 SIBLING DETECTION: Check if this entry should be hidden (same date siblings)
+              const entryDate = extractDateFromEntry(entry);
+              const sameDateSiblings = activeMonthEntries.filter(otherEntry => 
+                otherEntry !== entry && 
+                extractDateFromEntry(otherEntry) === entryDate &&
+                otherEntry.type === entry.type
+              );
+              
+              // Hide entries that are NOT the first occurrence of their date
+              const isFirstOfDate = activeMonthEntries.findIndex(otherEntry => 
+                extractDateFromEntry(otherEntry) === entryDate &&
+                otherEntry.type === entry.type
+              ) === index;
+              
+              if (!isFirstOfDate) {
+                return null; // Hide sibling entries - they'll be shown as children of the first entry
+              }
+              
               if (entry.type === 'show') {
                 const show = entry.data as Show;
                 
@@ -1598,6 +1616,16 @@ export default function TabbedTourItinerary({
                               </span>
                             );
                           })()}
+                          
+                          {/* 🎯 SIBLING COUNT BADGES: Show count of same-date siblings (following confirmed shows pattern) */}
+                          {sameDateSiblings.length > 0 && (
+                            <span 
+                              className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800"
+                              title={`${sameDateSiblings.length + 1} entries on ${entryDate}`}
+                            >
+                              +{sameDateSiblings.length}
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-1.5 w-[7%]"></td>
@@ -1633,7 +1661,7 @@ export default function TabbedTourItinerary({
                     </tr>
 
                     {/* Expanded Bids Section */}
-                    {state.expandedRequests.has(request.id) && requestBids.length > 0 && permissions.canExpandRequest(request) && (
+                    {state.expandedRequests.has(request.id) && (requestBids.length > 0 || sameDateSiblings.length > 0) && permissions.canExpandRequest(request) && (
                       <tr>
                         <td colSpan={10} className="px-0 py-0">
                           <div className={expandedBgClass}>
@@ -1721,6 +1749,65 @@ export default function TabbedTourItinerary({
                                       );
                                     })}
                                     
+                                    {/* 🎯 SIBLING TIMELINE ENTRIES: Render same-date siblings as child rows (following confirmed shows pattern) */}
+                                    {sameDateSiblings.map((siblingEntry, siblingIndex) => {
+                                      const siblingRequest = siblingEntry.data as TourRequest & {
+                                        isVenueInitiated?: boolean;
+                                        originalOfferId?: string;
+                                        venueInitiatedBy?: string;
+                                        isVenueBid?: boolean;
+                                        originalBidId?: string;
+                                        originalShowRequestId?: string;
+                                        bidStatus?: string;
+                                        bidAmount?: number;
+                                      };
+                                      
+                                      return (
+                                        <tr key={`sibling-${siblingRequest.id}-${siblingIndex}`} className="bg-gray-50 hover:bg-gray-100">
+                                          <td className="px-2 py-1 w-[3%]">
+                                            <div className="flex items-center justify-center text-gray-400">
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
+                                              </svg>
+                                            </div>
+                                          </td>
+                                          <td className="px-4 py-1 w-[12%]">
+                                            <ItineraryDate
+                                              startDate={siblingRequest.startDate}
+                                              endDate={siblingRequest.endDate}
+                                              isSingleDate={siblingRequest.isSingleDate}
+                                              className="text-sm font-medium text-gray-900"
+                                            />
+                                          </td>
+                                          <td className="px-4 py-1 w-[14%]">
+                                            <div className="text-sm text-gray-900 truncate">{siblingRequest.location}</div>
+                                          </td>
+                                          <td className="px-4 py-1 w-[19%]">
+                                            <div className="text-sm font-medium text-gray-900 truncate">
+                                              {artistId ? (
+                                                // Show venue info for artist pages
+                                                siblingRequest.isVenueInitiated && (siblingRequest as any).venueName ? (
+                                                  <span>{(siblingRequest as any).venueName}</span>
+                                                ) : siblingRequest.artistName
+                                              ) : (
+                                                // Show artist info for venue pages
+                                                siblingRequest.artistName
+                                              )}
+                                            </div>
+                                          </td>
+                                          <td className="px-4 py-1 w-[10%]">
+                                            <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
+                                              Same Date
+                                            </span>
+                                          </td>
+                                          <td className="px-4 py-1 w-[7%]"></td>
+                                          <td className="px-4 py-1 w-[7%]"></td>
+                                          <td className="px-4 py-1 w-[10%]"></td>
+                                          <td className="px-4 py-1 w-[8%]"></td>
+                                          <td className="px-4 py-1 w-[10%]"></td>
+                                        </tr>
+                                      );
+                                    })}
 
                                 </tbody>
                               </table>
