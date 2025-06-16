@@ -1239,6 +1239,22 @@ export default function TabbedTourItinerary({
             
             {/* Render entries for active month */}
             {activeMonthEntries.map((entry, index) => {
+              // 🎯 DATE GROUPING: Check for same-date siblings (following ShowTimelineItem pattern)
+              const entryDate = extractDateFromEntry(entry);
+              const sameDateSiblings = activeMonthEntries.filter(otherEntry => 
+                otherEntry !== entry && 
+                extractDateFromEntry(otherEntry) === entryDate
+              );
+              
+              // Only show count badge on first occurrence of each date
+              const isFirstOfDate = activeMonthEntries.findIndex(otherEntry => 
+                extractDateFromEntry(otherEntry) === entryDate
+              ) === index;
+              
+              // Hide non-first entries - they'll be shown as children when parent is expanded
+              if (!isFirstOfDate) {
+                return null;
+              }
               
               if (entry.type === 'show') {
                 const show = entry.data as Show;
@@ -1599,6 +1615,16 @@ export default function TabbedTourItinerary({
                               </span>
                             );
                           })()}
+                          
+                          {/* 🎯 DATE GROUPING: Show count badge for same-date siblings (following ShowTimelineItem pattern) */}
+                          {isFirstOfDate && sameDateSiblings.length > 0 && (
+                            <span 
+                              className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800"
+                              title={`${sameDateSiblings.length + 1} entries on ${entryDate}`}
+                            >
+                              +{sameDateSiblings.length}
+                            </span>
+                          )}
 
                         </div>
                       </td>
@@ -1720,6 +1746,131 @@ export default function TabbedTourItinerary({
                                             reason: 'Bid locked by active hold'
                                           } : undefined}
                                         />
+                                      );
+                                    })}
+                                    
+                                    {/* 🎯 DATE GROUPING: Render same-date siblings as child rows (following ShowTimelineItem pattern) */}
+                                    {sameDateSiblings.map((siblingEntry) => {
+                                      const siblingRequest = siblingEntry.data as TourRequest & { 
+                                        isVenueInitiated?: boolean; 
+                                        originalOfferId?: string; 
+                                        venueInitiatedBy?: string;
+                                        isVenueBid?: boolean;
+                                        originalBidId?: string;
+                                        originalShowRequestId?: string;
+                                        bidStatus?: string;
+                                        bidAmount?: number;
+                                      };
+                                      
+                                      // Determine proper status for child rows using same logic as parent
+                                      let siblingBids: VenueBid[] = [];
+                                      if (siblingRequest.isVenueInitiated && siblingRequest.originalOfferId) {
+                                        const originalOffer = venueOffers.find(offer => offer.id === siblingRequest.originalOfferId);
+                                        if (originalOffer) {
+                                          const syntheticBid: VenueBid = {
+                                            id: `offer-bid-${originalOffer.id}`,
+                                            showRequestId: siblingRequest.id,
+                                            venueId: originalOffer.venueId,
+                                            venueName: originalOffer.venueName || 'Unknown Venue',
+                                            proposedDate: originalOffer.proposedDate.split('T')[0],
+                                            guarantee: originalOffer.amount,
+                                            status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
+                                            readByArtist: true,
+                                            createdAt: originalOffer.createdAt,
+                                            updatedAt: originalOffer.updatedAt,
+                                            expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                                            message: originalOffer.message || '',
+                                            artistId: originalOffer.artistId,
+                                            artistName: originalOffer.artistName,
+                                          } as VenueBid & { artistId?: string; artistName?: string };
+                                          siblingBids = [syntheticBid];
+                                        }
+                                      } else if (siblingRequest.isVenueBid && siblingRequest.originalShowRequestId) {
+                                        siblingBids = venueBids.filter(bid => 
+                                          bid.showRequestId === siblingRequest.originalShowRequestId && 
+                                          !declinedBids.has(bid.id)
+                                        );
+                                      } else {
+                                        siblingBids = venueBids.filter(bid => bid.showRequestId === siblingRequest.id && !declinedBids.has(bid.id));
+                                      }
+
+                                      const hasAcceptedBid = siblingBids.some((bid: VenueBid) => 
+                                        bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
+                                      );
+                                      const hasActiveHold = siblingBids.some((bid: VenueBid) => 
+                                        (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
+                                      );
+                                      const isHeldBidRequest = (siblingRequest as any).isHeldBid;
+                                      
+                                      let siblingStatus: 'confirmed' | 'pending' | 'hold' | 'accepted' = 'pending';
+                                      if (hasAcceptedBid) {
+                                        siblingStatus = 'accepted';
+                                      } else if (hasActiveHold || isHeldBidRequest) {
+                                        siblingStatus = 'hold';
+                                      }
+                                      
+                                      // Use proper status badge
+                                      const statusBadge = siblingStatus === 'accepted' ? (
+                                        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                          Confirmed
+                                        </span>
+                                      ) : siblingStatus === 'hold' ? (
+                                        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-800">
+                                          Hold
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                          Pending
+                                        </span>
+                                      );
+                                      
+                                      return (
+                                        <tr key={`sibling-${siblingRequest.id}`} className="bg-yellow-50 hover:bg-yellow-100 border-l-4 border-yellow-400">
+                                          <td className="px-2 py-1 w-[3%]">
+                                            <div className="flex items-center justify-center text-gray-400">
+                                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7l4-4 4 4m0 6l-4 4-4-4" />
+                                              </svg>
+                                            </div>
+                                          </td>
+                                          <td className="px-4 py-1 w-[12%]">
+                                            <ItineraryDate
+                                              startDate={siblingRequest.startDate}
+                                              endDate={siblingRequest.endDate}
+                                              isSingleDate={siblingRequest.isSingleDate}
+                                              className="text-sm font-medium text-yellow-900"
+                                            />
+                                          </td>
+                                          <td className="px-4 py-1 w-[14%]">
+                                            <div className="text-sm text-yellow-900 truncate">{siblingRequest.location}</div>
+                                          </td>
+                                          <td className="px-4 py-1 w-[19%]">
+                                            <div className="text-sm font-medium text-yellow-900 truncate">
+                                              {artistId ? 'Venue Info' : siblingRequest.artistName}
+                                            </div>
+                                          </td>
+                                          <td className="px-4 py-1 w-[10%]">
+                                            {statusBadge}
+                                          </td>
+                                          <td className="px-4 py-1 w-[7%]"></td>
+                                          <td className="px-4 py-1 w-[7%]"></td>
+                                          <td className="px-4 py-1 w-[10%]"></td>
+                                          <td className="px-4 py-1 w-[8%]">
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleTourRequestDocumentModal(siblingRequest);
+                                              }}
+                                              className="inline-flex items-center justify-center w-8 h-8 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                                              title="View/edit request document"
+                                            >
+                                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                              </svg>
+                                            </button>
+                                          </td>
+                                          <td className="px-4 py-1 w-[10%]"></td>
+                                        </tr>
                                       );
                                     })}
 
