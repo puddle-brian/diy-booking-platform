@@ -242,7 +242,6 @@ export async function GET(request: NextRequest) {
         showTime: show.showTime,
         curfew: show.curfew,
         notes: show.notes,
-        billingOrder: show.billingOrder,
         createdAt: show.createdAt.toISOString(),
         updatedAt: show.updatedAt.toISOString(),
         createdBy: show.createdBy.username
@@ -465,7 +464,6 @@ export async function POST(request: NextRequest) {
       showTime: newShow.showTime,
       curfew: newShow.curfew,
       notes: newShow.notes,
-      billingOrder: newShow.billingOrder,
       createdAt: newShow.createdAt.toISOString(),
       updatedAt: newShow.updatedAt.toISOString(),
       createdBy: newShow.createdBy.username

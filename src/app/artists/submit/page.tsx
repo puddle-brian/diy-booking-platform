@@ -356,7 +356,7 @@ export default function SubmitArtist() {
           artistDetails: formData.artistDetails,
           images: formData.images,
           website: formData.website,
-          socialHandles: formData.socialHandles,
+          socialLinks: formData.socialHandles,
           artistType: formData.artistType,
         }}
         onChange={handleAdditionalDetailsChange}

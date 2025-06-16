@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: venueId } = params;
+    const { id: venueId } = await params;
     const { searchParams } = new URL(request.url);
     const date = searchParams.get('date');
 

@@ -41,7 +41,7 @@ export async function GET(
         email: venue.contactEmail,
         phone: venue.contactPhone,
         website: venue.website,
-        social: (venue.socialHandles as any)?.social
+        social: ''
       },
       description: venue.description,
       images: venue.images || [],
@@ -94,7 +94,7 @@ export async function PUT(
         contactEmail: updatedData.contact?.email,
         contactPhone: updatedData.contact?.phone,
         website: updatedData.contact?.website,
-        socialHandles: updatedData.contact?.social ? { social: updatedData.contact.social } : undefined,
+
         equipment: updatedData.equipment,
         features: updatedData.features,
         pricing: updatedData.pricing,
@@ -128,7 +128,7 @@ export async function PUT(
         email: updatedVenue.contactEmail,
         phone: updatedVenue.contactPhone,
         website: updatedVenue.website,
-        social: (updatedVenue.socialHandles as any)?.social
+        social: ''
       },
       description: updatedVenue.description,
       images: updatedVenue.images || [],

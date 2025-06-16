@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
         contactEmail: venueData.contact?.email,
         contactPhone: venueData.contact?.phone,
         website: venueData.contact?.website,
-        socialHandles: venueData.contact?.social ? { social: venueData.contact.social } : undefined,
+
         equipment: venueData.equipment,
         features: venueData.features || [],
         pricing: venueData.pricing,

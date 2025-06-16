@@ -625,7 +625,6 @@ export async function PUT(
               createdById: bid.bidderId,
               // Add detailed schedule if available
               guarantee: bid.amount,
-              billingOrder: bid.billingPosition ? { lineup: [{ position: bid.billingPosition, artist: showRequest.artist.name }] } : undefined,
               notes: `Confirmed show from accepted bid. ${bid.billingPosition || 'performer'} slot.`
             }
           });

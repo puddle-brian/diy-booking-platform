@@ -482,7 +482,7 @@ export default function EditArtist({ params }: { params: Promise<{ id: string }>
           artistDetails: formData.artistDetails,
           images: formData.images,
           website: formData.website,
-          socialHandles: formData.socialHandles,
+                        socialLinks: formData.socialHandles,
           artistType: formData.artistType,
         }}
         onChange={handleAdditionalDetailsChange}
