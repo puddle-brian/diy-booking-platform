@@ -21,6 +21,7 @@ import MakeOfferButton from './MakeOfferButton';
 import { ItineraryDate } from './DateDisplay';
 import OfferFormCore from './OfferFormCore';
 import { useAlert } from './UniversalAlertModal';
+import { AddSupportActModal } from './modals/AddSupportActModal';
 
 // Import our new custom hooks and utilities
 import { useTourItineraryData } from '../hooks/useTourItineraryData';
@@ -237,6 +238,11 @@ export default function TabbedTourItinerary({
   const [selectedDocumentShow, setSelectedDocumentShow] = useState<Show | null>(null);
   const [selectedDocumentBid, setSelectedDocumentBid] = useState<VenueBid | null>(null);
   const [selectedDocumentTourRequest, setSelectedDocumentTourRequest] = useState<TourRequest | null>(null);
+  
+  // Add Another Artist Modal state
+  const [isAddAnotherArtistModalOpen, setIsAddAnotherArtistModalOpen] = useState(false);
+  const [addAnotherArtistDate, setAddAnotherArtistDate] = useState<string>('');
+  const [addAnotherArtistShowId, setAddAnotherArtistShowId] = useState<string>('');
   
   // Universal Make Offer Modal state - now managed by centralized state
 
@@ -1070,6 +1076,30 @@ export default function TabbedTourItinerary({
     setShowDocumentModal(true);
   };
 
+  // Handle successful offer creation from AddSupportActModal
+  const handleAddAnotherArtistSuccess = (offer: any) => {
+    setIsAddAnotherArtistModalOpen(false);
+    setAddAnotherArtistDate('');
+    setAddAnotherArtistShowId('');
+    // Refresh data to show the new offer
+    fetchData();
+    showSuccess('Artist Offer Sent', 'Your offer has been sent to the artist and will appear in their itinerary.');
+  };
+
+  // Helper function to extract date from any timeline entry
+  const extractDateFromEntry = (entry: any): string => {
+    // For shows
+    if (entry.date) return entry.date;
+    // For tour requests
+    if (entry.requestDate) return entry.requestDate;
+    if (entry.startDate) return entry.startDate;
+    // For venue offers
+    if (entry.proposedDate) return entry.proposedDate;
+    // For venue bids
+    if (entry.proposedDate) return entry.proposedDate;
+    return '';
+  };
+
   if (loading) {
     return (
       <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
@@ -1695,6 +1725,28 @@ export default function TabbedTourItinerary({
                                 </tbody>
                               </table>
                             </div>
+                            
+                            {/* Add Another Artist Button - shows on any expanded row for venue owners */}
+                            {permissions.actualViewerType === 'venue' && permissions.isOwner && (
+                              <div className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150 px-4 py-2 border-t border-gray-200">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // Extract date from the current timeline entry
+                                    const extractedDate = extractDateFromEntry(request);
+                                    setAddAnotherArtistDate(extractedDate);
+                                    setAddAnotherArtistShowId(request.id);
+                                    setIsAddAnotherArtistModalOpen(true);
+                                  }}
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-1.5 px-4 rounded border-2 border-dashed border-green-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                  </svg>
+                                  <span>Add Another Artist</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -2036,6 +2088,21 @@ export default function TabbedTourItinerary({
           )}
         </div>
       )}
+
+      {/* Add Another Artist Modal */}
+      <AddSupportActModal
+        isOpen={isAddAnotherArtistModalOpen}
+        onClose={() => {
+          setIsAddAnotherArtistModalOpen(false);
+          setAddAnotherArtistDate('');
+          setAddAnotherArtistShowId('');
+        }}
+        showId={addAnotherArtistShowId}
+        showDate={addAnotherArtistDate}
+        venueName={venueName || 'Unknown Venue'}
+        venueId={venueId || ''}
+        onSuccess={handleAddAnotherArtistSuccess}
+      />
 
       {/* Render the Alert Modal */}
       {AlertModal}
