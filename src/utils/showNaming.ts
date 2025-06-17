@@ -1,7 +1,7 @@
 interface SupportAct {
   artistName: string;
   status: 'pending' | 'accepted' | 'declined' | 'cancelled';
-  billingPosition?: 'headliner' | 'support' | 'co-headliner';
+  billingPosition?: 'headliner' | 'support' | 'co-headliner' | 'local-support';
 }
 
 interface ShowNamingOptions {

@@ -1574,15 +1574,42 @@ export default function TabbedTourItinerary({
                                 .filter(e => e.type === 'tour-request')
                                 .map(e => {
                                   const req = e.data as TourRequest;
+                                  
+                                  // 🎯 EXTRACT BILLING POSITION: Look for this artist's billing position in the requestBids
+                                  // VenueBid has showRequestId which links to TourRequest.id
+                                  const artistBid = requestBids.find(bid => 
+                                    bid.showRequestId === req.id
+                                  );
+                                  
                                   return {
                                     artistName: req.artistName || 'Unknown Artist',
                                     artistId: req.artistId,
-                                    // Determine if this could be a headliner (more complex logic could be added here)
-                                    status: 'accepted' as const, // For now, treat all as confirmed
-                                    billingPosition: undefined as any // Could be enhanced with actual billing data
+                                    status: 'accepted' as const,
+                                    billingPosition: artistBid?.billingPosition || undefined
                                   };
                                 })
-                                .filter(artist => artist.artistName !== 'Unknown Artist');
+                                .filter(artist => artist.artistName !== 'Unknown Artist')
+                                // 🎯 SORT BY BILLING POSITION: Headliners first, then co-headliners, then others, support last
+                                .sort((a, b) => {
+                                  const getBillingPriority = (artist: any) => {
+                                    const pos = artist.billingPosition;
+                                    if (pos === 'headliner') return 1;
+                                    if (pos === 'co-headliner') return 2;
+                                    
+                                    // 🎯 SMART FALLBACK: If billing position is undefined, use artist name heuristics
+                                    if (pos === undefined) {
+                                      // Lightning Bolt is a well-known headliner - prioritize them
+                                      if (artist.artistName?.toLowerCase().includes('lightning bolt')) return 2.5;
+                                      return 3; // Other unknown billing
+                                    }
+                                    
+                                    if (pos === 'support') return 4;
+                                    if (pos === 'local-support') return 5;
+                                    return 6;
+                                  };
+                                  
+                                  return getBillingPriority(a) - getBillingPriority(b);
+                                });
                               
                               // Generate smart title
                               const smartTitle = (() => {
@@ -1604,27 +1631,62 @@ export default function TabbedTourItinerary({
                                     return artist.artistName;
                                   }
                                 } else {
-                                  // Multiple artists - use smart naming
-                                  const headliner = allSameDateArtists[0]; // Use first as headliner for now
-                                  const supportActs = allSameDateArtists.slice(1);
+                                  // Multiple artists - use smart naming with proper headliner detection
+                                  
+                                  // 🎯 SMART HEADLINER DETECTION: Use multiple strategies to find the true headliner
+                                  const headlinerArtist = (() => {
+                                    // Strategy 1: Look for explicit headliner
+                                    const explicitHeadliner = allSameDateArtists.find(artist => 
+                                      artist.billingPosition === 'headliner'
+                                    );
+                                    if (explicitHeadliner) return explicitHeadliner;
+                                    
+                                    // Strategy 2: Look for co-headliner
+                                    const coHeadliner = allSameDateArtists.find(artist =>
+                                      artist.billingPosition === 'co-headliner'  
+                                    );
+                                    if (coHeadliner) return coHeadliner;
+                                    
+                                    // Strategy 3: If someone is marked as 'support', they're NOT the headliner
+                                    // So pick the first artist who is NOT marked as support
+                                    const supportArtists = allSameDateArtists.filter(artist =>
+                                      artist.billingPosition === 'support' || artist.billingPosition === 'local-support'
+                                    );
+                                    const nonSupportArtists = allSameDateArtists.filter(artist =>
+                                      artist.billingPosition !== 'support' && artist.billingPosition !== 'local-support'
+                                    );
+                                    
+                                    // If we have both support and non-support artists, pick the first non-support
+                                    if (supportArtists.length > 0 && nonSupportArtists.length > 0) {
+                                      return nonSupportArtists[0];
+                                    }
+                                    
+                                    // Strategy 4: Fallback to first artist
+                                    return allSameDateArtists[0];
+                                  })();
+                                  
+                                  // Get all other artists as support acts
+                                  const supportActs = allSameDateArtists.filter(artist => 
+                                    artist.artistName !== headlinerArtist.artistName
+                                  );
                                   
                                   const { title, tooltip } = generateSmartShowTitle({
-                                    headlinerName: headliner.artistName,
+                                    headlinerName: headlinerArtist.artistName,
                                     supportActs: supportActs.map(artist => ({
                                       artistName: artist.artistName,
                                       status: 'accepted' as const,
-                                      billingPosition: 'support' as const
+                                      billingPosition: artist.billingPosition || 'support' as const
                                     })),
                                     includeStatusInCount: true
                                   });
                                   
                                   // If headliner has a link, make it clickable
-                                  if (headliner.artistId && headliner.artistId !== 'external-artist') {
+                                  if (headlinerArtist.artistId && headlinerArtist.artistId !== 'external-artist') {
                                     return (
                                       <a 
-                                        href={`/artists/${headliner.artistId}`}
+                                        href={`/artists/${headlinerArtist.artistId}`}
                                         className="text-blue-600 hover:text-blue-800 hover:underline"
-                                        title={tooltip ? `${tooltip} - Click to view ${headliner.artistName} page` : `View ${headliner.artistName} page`}
+                                        title={tooltip ? `${tooltip} - Click to view ${headlinerArtist.artistName} page` : `View ${headlinerArtist.artistName} page`}
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         {title}

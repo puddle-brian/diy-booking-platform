@@ -244,9 +244,17 @@ export function ShowTimelineItem({
   
   // 🎯 SMART SHOW TITLE: Universal naming system with support act intelligence
   const smartShowTitle = useMemo(() => {
-    const headlinerName = show.artistName || 'Unknown Show';
+    // Get all artists for this specific show date and venue (main show + support offers)
+    const allShowArtists = [];
     
-    // Get support acts for this specific show date and venue
+    // Add the main show artist
+    allShowArtists.push({
+      artistName: show.artistName || 'Unknown Artist',
+      status: 'accepted' as const,
+      billingPosition: (show as any).billingPosition as 'headliner' | 'support' | 'co-headliner'
+    });
+    
+    // Add support acts for this show date
     const supportActsForThisShow = venueOffers?.filter(offer => {
       const offerDate = offer.proposedDate?.split('T')[0];
       const showDate = show.date?.split('T')[0];
@@ -257,22 +265,34 @@ export function ShowTimelineItem({
              offer.status !== 'cancelled';
     }) || [];
     
-    // Convert to format expected by smart naming function
-    const supportActs = supportActsForThisShow.map(offer => ({
-      artistName: offer.artistName || 'Unknown Artist',
-      status: offer.status as 'pending' | 'accepted' | 'declined' | 'cancelled',
-      billingPosition: offer.billingPosition as 'headliner' | 'support' | 'co-headliner'
-    }));
+    // Add support acts to all artists
+    supportActsForThisShow.forEach(offer => {
+      allShowArtists.push({
+        artistName: offer.artistName || 'Unknown Artist',
+        status: offer.status as 'pending' | 'accepted' | 'declined' | 'cancelled',
+        billingPosition: offer.billingPosition as 'headliner' | 'support' | 'co-headliner'
+      });
+    });
+    
+    // 🎯 HEADLINER DETECTION: Find the actual headliner based on billingPosition
+    const headlinerArtist = allShowArtists.find(artist => 
+      artist.billingPosition === 'headliner'
+    ) || allShowArtists[0]; // Fallback to first artist if no explicit headliner
+    
+    // Get all other artists as support acts
+    const supportActs = allShowArtists.filter(artist => 
+      artist.artistName !== headlinerArtist.artistName
+    );
     
     // Generate smart title with tooltip
     const { title, tooltip } = generateSmartShowTitle({
-      headlinerName,
+      headlinerName: headlinerArtist.artistName,
       supportActs,
       includeStatusInCount: true // Include pending support acts in count
     });
     
     return { title, tooltip };
-  }, [show.artistName, show.date, venueOffers]);
+  }, [show.artistName, show.date, venueOffers, (show as any).billingPosition]);
   
   // Use smart title for display
   const showTitle = smartShowTitle.title;
