@@ -42,7 +42,7 @@ import {
 // Import action button components
 import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
 import { ShowTimelineItem, TourRequestTimelineItem, BidTimelineItem } from './TimelineItems';
-import { generateSmartShowTitle } from '../utils/showNaming';
+import { generateSmartShowTitle, getBillingPriority } from '../utils/showNaming';
 
 interface TabbedTourItineraryProps {
   artistId?: string;
@@ -1589,25 +1589,8 @@ export default function TabbedTourItinerary({
                                   };
                                 })
                                 .filter(artist => artist.artistName !== 'Unknown Artist')
-                                // 🎯 SORT BY BILLING POSITION: Headliners first, then co-headliners, then others, support last
+                                // 🎯 SORT BY BILLING POSITION: Use centralized billing priority function
                                 .sort((a, b) => {
-                                  const getBillingPriority = (artist: any) => {
-                                    const pos = artist.billingPosition;
-                                    if (pos === 'headliner') return 1;
-                                    if (pos === 'co-headliner') return 2;
-                                    
-                                    // 🎯 SMART FALLBACK: If billing position is undefined, use artist name heuristics
-                                    if (pos === undefined) {
-                                      // Lightning Bolt is a well-known headliner - prioritize them
-                                      if (artist.artistName?.toLowerCase().includes('lightning bolt')) return 2.5;
-                                      return 3; // Other unknown billing
-                                    }
-                                    
-                                    if (pos === 'support') return 4;
-                                    if (pos === 'local-support') return 5;
-                                    return 6;
-                                  };
-                                  
                                   return getBillingPriority(a) - getBillingPriority(b);
                                 });
                               
@@ -1633,42 +1616,14 @@ export default function TabbedTourItinerary({
                                 } else {
                                   // Multiple artists - use smart naming with proper headliner detection
                                   
-                                  // 🎯 SMART HEADLINER DETECTION: Use multiple strategies to find the true headliner
-                                  const headlinerArtist = (() => {
-                                    // Strategy 1: Look for explicit headliner
-                                    const explicitHeadliner = allSameDateArtists.find(artist => 
-                                      artist.billingPosition === 'headliner'
-                                    );
-                                    if (explicitHeadliner) return explicitHeadliner;
-                                    
-                                    // Strategy 2: Look for co-headliner
-                                    const coHeadliner = allSameDateArtists.find(artist =>
-                                      artist.billingPosition === 'co-headliner'  
-                                    );
-                                    if (coHeadliner) return coHeadliner;
-                                    
-                                    // Strategy 3: If someone is marked as 'support', they're NOT the headliner
-                                    // So pick the first artist who is NOT marked as support
-                                    const supportArtists = allSameDateArtists.filter(artist =>
-                                      artist.billingPosition === 'support' || artist.billingPosition === 'local-support'
-                                    );
-                                    const nonSupportArtists = allSameDateArtists.filter(artist =>
-                                      artist.billingPosition !== 'support' && artist.billingPosition !== 'local-support'
-                                    );
-                                    
-                                    // If we have both support and non-support artists, pick the first non-support
-                                    if (supportArtists.length > 0 && nonSupportArtists.length > 0) {
-                                      return nonSupportArtists[0];
-                                    }
-                                    
-                                    // Strategy 4: Fallback to first artist
-                                    return allSameDateArtists[0];
-                                  })();
+                                  // 🎯 SMART HEADLINER DETECTION: Use centralized billing priority to find the true headliner
+                                  const sortedArtists = [...allSameDateArtists].sort((a, b) => {
+                                    return getBillingPriority(a) - getBillingPriority(b);
+                                  });
+                                  const headlinerArtist = sortedArtists[0];
                                   
-                                  // Get all other artists as support acts
-                                  const supportActs = allSameDateArtists.filter(artist => 
-                                    artist.artistName !== headlinerArtist.artistName
-                                  );
+                                  // Get all other artists as support acts (already in correct billing order)
+                                  const supportActs = sortedArtists.slice(1);
                                   
                                   const { title, tooltip } = generateSmartShowTitle({
                                     headlinerName: headlinerArtist.artistName,
@@ -1956,23 +1911,8 @@ export default function TabbedTourItinerary({
                                       }
                                     }
                                     
-                                    // Sort all bids by billing position using the same logic as title system
+                                    // Sort all bids by billing position using centralized billing priority function
                                     const sortedBids = allBids.sort((a, b) => {
-                                      const getBillingPriority = (item: typeof a) => {
-                                        const pos = item.billingPosition;
-                                        if (pos === 'headliner') return 1;
-                                        if (pos === 'co-headliner') return 2;
-                                        if (pos === undefined) {
-                                          if (item.artistName?.toLowerCase().includes('lightning bolt')) {
-                                            return 2.5;
-                                          }
-                                          return 3;
-                                        }
-                                        if (pos === 'support') return 4;
-                                        if (pos === 'local-support') return 5;
-                                        return 6;
-                                      };
-                                      
                                       return getBillingPriority(a) - getBillingPriority(b);
                                     });
                                     

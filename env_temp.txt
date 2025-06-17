@@ -1,0 +1,5 @@
+CLOUDINARY_CLOUD_NAME=dfytetsz3
+CLOUDINARY_API_KEY=659739423488389
+CLOUDINARY_API_SECRET=RS5dQ8HNUGcYzjlq-6AjXn9L0EY
+DATABASE_URL=postgresql://neondb_owner:npg_OQVt6Dl7NThf@ep-hidden-cloud-a5kd9imo-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+NEXTAUTH_URL=http://localhost:3000

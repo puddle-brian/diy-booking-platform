@@ -12,6 +12,31 @@ interface ShowNamingOptions {
 }
 
 /**
+ * 🎯 CENTRALIZED BILLING PRIORITY FUNCTION
+ * Single source of truth for billing order across parent rows and child rows
+ * 
+ * Priority order:
+ * 1. headliner
+ * 2. co-headliner  
+ * 3. undefined positions (fallback for legacy data)
+ * 4. support
+ * 5. local-support
+ * 6. fallback
+ */
+export function getBillingPriority(item: {
+  artistName?: string;
+  billingPosition?: string;
+}): number {
+  const pos = item.billingPosition;
+  if (pos === 'headliner') return 1;
+  if (pos === 'co-headliner') return 2;
+  if (pos === undefined) return 3; // All undefined positions treated equally
+  if (pos === 'support') return 4;
+  if (pos === 'local-support') return 5;
+  return 6;
+}
+
+/**
  * Universal Show Naming System
  * Creates consistent, intelligent show titles across all contexts
  * 
