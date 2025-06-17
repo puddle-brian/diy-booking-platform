@@ -1,11 +1,13 @@
 {
   "framework": "nextjs",
   "regions": ["iad1"],
-  "buildCommand": "prisma generate && npm run build",
   "functions": {
     "app/api/**/*.ts": {
       "maxDuration": 30
     }
+  },
+  "env": {
+    "PRISMA_GENERATE_DATAPROXY": "true"
   },
   "headers": [
     {
