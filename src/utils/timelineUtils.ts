@@ -143,11 +143,11 @@ interface VenueOffer {
 }
 
 interface TimelineEntry {
-  type: 'show' | 'tour-request';
+  type: 'show' | 'show-request'; // 🎯 PHASE 3: Updated to 'show-request'
   date: string;
   endDate?: string;
-  data: Show | TourRequest | VenueBid;
-  parentTourRequest?: TourRequest;
+  data: Show | any | VenueBid; // 🎯 PHASE 3: Using 'any' for ShowRequest
+  parentTourRequest?: any; // 🎯 PHASE 3: Will be ShowRequest instead of TourRequest
 }
 
 interface MonthGroup {
@@ -162,7 +162,7 @@ interface MonthGroup {
  */
 export function createTimelineEntries(
   shows: Show[],
-  tourRequests: TourRequest[], 
+  tourRequests: any[], // 🎯 PHASE 3: Now accepts ShowRequest[] instead of TourRequest[]
   venueOffers: VenueOffer[],
   venueBids: VenueBid[] = [],
   artistId?: string,
@@ -254,7 +254,7 @@ export function createTimelineEntries(
       };
       
       entries.push({
-        type: 'tour-request',
+        type: 'show-request', // 🎯 PHASE 3: Updated to 'show-request'
         date: offerDate, // 🎯 FIX: Use consistent date without timezone
         data: syntheticRequest
       });
@@ -349,7 +349,7 @@ export function createTimelineEntries(
           };
           
           entries.push({
-            type: 'tour-request',
+            type: 'show-request', // 🎯 PHASE 3: Updated to 'show-request'
             date: bidDate,
             data: syntheticBidRequest
           });
@@ -359,13 +359,12 @@ export function createTimelineEntries(
   }
   
   if (artistId) {
-    // Add regular artist-initiated tour requests  
+    // Add regular artist-initiated show requests  
     tourRequests.forEach(request => {
-      if (request.status === 'active') {
+      if (request.status === 'OPEN') { // 🎯 PHASE 3: ShowRequest uses 'OPEN' not 'active'
         entries.push({
-          type: 'tour-request',
-          date: request.startDate,
-          endDate: request.endDate,
+          type: 'show-request', // 🎯 PHASE 3: Updated to 'show-request'
+          date: request.requestedDate?.split('T')[0] || request.startDate, // 🎯 PHASE 3: Use requestedDate from ShowRequest
           data: request
         });
       }
@@ -374,14 +373,13 @@ export function createTimelineEntries(
   
   // 🎯 NEW: Also add tourRequests to venue timelines (for venue-specific artist requests)
   if (venueId && !artistId) {
-    // Add tour requests that are specifically targeted at this venue
+    // Add show requests that are specifically targeted at this venue
     tourRequests.forEach(request => {
-      if (request.status === 'active') {
-        console.log(`🎯 Adding venue-specific request to timeline: ${request.artistName} -> ${request.title} on ${request.startDate}`);
+      if (request.status === 'OPEN') { // 🎯 PHASE 3: ShowRequest uses 'OPEN' not 'active'
+        console.log(`🎯 Adding venue-specific request to timeline: ${request.artist?.name} -> ${request.title} on ${request.requestedDate}`);
         entries.push({
-          type: 'tour-request',
-          date: request.startDate,
-          endDate: request.endDate,
+          type: 'show-request', // 🎯 PHASE 3: Updated to 'show-request'
+          date: request.requestedDate?.split('T')[0], // 🎯 PHASE 3: Use requestedDate from ShowRequest
           data: request
         });
       }

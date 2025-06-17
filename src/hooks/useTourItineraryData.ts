@@ -169,7 +169,7 @@ interface UseTourItineraryDataProps {
 
 interface UseTourItineraryDataReturn {
   shows: Show[];
-  tourRequests: TourRequest[];
+  tourRequests: any[]; // 🎯 PHASE 3: Now returns ShowRequest[] instead of TourRequest[]
   venueBids: VenueBid[];
   venueOffers: VenueOffer[];
   loading: boolean;
@@ -228,73 +228,12 @@ export function useTourItineraryData({
           const showRequestsData = await showRequestsResponse.json();
           console.log('🎯 Fetched show requests for artist:', showRequestsData.length);
           
-          // Convert ShowRequests back to legacy format for compatibility with existing UI
-          const legacyTourRequests: TourRequest[] = showRequestsData
+          // 🎯 PHASE 3: Return ShowRequests directly instead of converting to legacy format
+          const artistInitiatedRequests = showRequestsData
             .filter((req: any) => req.initiatedBy === 'ARTIST')
-            .filter((req: any) => req.status !== 'CONFIRMED') // 🎯 Hide CONFIRMED requests - they become Shows
-            .map((req: any) => {
-              // 🎯 NEW: Handle venue-specific requests properly  
-              // Venue-specific requests have both initiatedBy='ARTIST' AND venueId set
-              let location = req.targetLocations?.[0] || 'Various Locations';
-              let isVenueSpecific = false;
-              let venueSpecificId = null;
-              let venueSpecificName = null;
-              
-              // Check if this is a venue-specific request (artist-initiated + venueId set)
-              if (req.initiatedBy === 'ARTIST' && req.venueId) {
-                isVenueSpecific = true;
-                venueSpecificId = req.venueId;
-                venueSpecificName = req.venue?.name || 'Unknown Venue';
-                
-                // Use the venue's actual location if available from the API response
-                if (req.venue?.location) {
-                  location = `${req.venue.location.city}, ${req.venue.location.stateProvince}`;
-                } else {
-                  // Fallback to venue name if location not available
-                  location = venueSpecificName;
-                }
-              }
-              
-              return {
-                id: req.id,
-                artistId: req.artistId,
-                artistName: req.artist?.name || 'Unknown Artist',
-                title: req.title,
-                description: req.description,
-                startDate: req.requestedDate.split('T')[0], // Convert to date string
-                endDate: req.requestedDate.split('T')[0],   // Single date for show requests
-                isSingleDate: true,
-                location: location,
-                radius: 50,
-                flexibility: 'exact-cities' as const,
-                genres: req.genres || [],
-                expectedDraw: { min: 0, max: 0, description: '' },
-                tourStatus: 'exploring-interest' as const,
-                ageRestriction: 'flexible' as const,
-                equipment: {
-                  needsPA: false,
-                  needsMics: false,
-                  needsDrums: false,
-                  needsAmps: false,
-                  acoustic: false
-                },
-                acceptsDoorDeals: true,
-                merchandising: true,
-                travelMethod: 'van' as const,
-                lodging: 'flexible' as const,
-                status: req.status === 'OPEN' ? 'active' : 'completed',
-                priority: 'medium' as const,
-                responses: req.bids?.length || 0,
-                createdAt: req.createdAt,
-                updatedAt: req.updatedAt,
-                expiresAt: req.expiresAt,
-                // 🎯 NEW: Add venue-specific metadata for display logic
-                isVenueSpecific: isVenueSpecific,
-                venueSpecificId: venueSpecificId,
-                venueSpecificName: venueSpecificName
-              };
-            });
-          setTourRequests(legacyTourRequests);
+            .filter((req: any) => req.status !== 'CONFIRMED'); // Hide CONFIRMED requests - they become Shows
+          
+          setTourRequests(artistInitiatedRequests);
 
           // Convert ShowRequestBids to legacy VenueBid format
           const allBids: VenueBid[] = [];

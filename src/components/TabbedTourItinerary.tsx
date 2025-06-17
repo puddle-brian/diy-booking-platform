@@ -72,11 +72,11 @@ const getTimelineBorderClass = (status: string) => {
 };
 
 interface TimelineEntry {
-  type: 'show' | 'tour-request';
+  type: 'show' | 'show-request'; // 🎯 PHASE 3: Changed 'tour-request' to 'show-request'
   date: string;
   endDate?: string;
-  data: Show | TourRequest | VenueBid;
-  parentTourRequest?: TourRequest;
+  data: Show | any | VenueBid; // 🎯 PHASE 3: Using 'any' for ShowRequest instead of TourRequest
+  parentTourRequest?: any; // 🎯 PHASE 3: Will be ShowRequest instead of TourRequest
 }
 
 // @ts-nocheck
@@ -1306,8 +1306,8 @@ export default function TabbedTourItinerary({
                     }}
                   />
                 );
-              } else if (entry.type === 'tour-request') {
-                const request = entry.data as TourRequest & { 
+              } else if (entry.type === 'show-request') { // 🎯 PHASE 3: Updated to 'show-request'
+                const request = entry.data as any & { // 🎯 PHASE 3: Now working with ShowRequest data
                   isVenueInitiated?: boolean; 
                   originalOfferId?: string; 
                   venueInitiatedBy?: string;
@@ -1468,9 +1468,9 @@ export default function TabbedTourItinerary({
                       </td>
                       <td className="px-4 py-1 w-[12%]">
                         <ItineraryDate
-                          startDate={request.startDate}
-                          endDate={request.endDate}
-                          isSingleDate={request.isSingleDate}
+                          startDate={request.requestedDate?.split('T')[0] || request.startDate} // 🎯 PHASE 3: Use requestedDate from ShowRequest
+                          endDate={request.requestedDate?.split('T')[0] || request.endDate}
+                          isSingleDate={true} // 🎯 PHASE 3: ShowRequests are always single date
                           className={`text-sm font-medium ${textColorClass}`}
                         />
                       </td>
@@ -1571,7 +1571,7 @@ export default function TabbedTourItinerary({
                               
                               // Get all artists for this date (current + same-date siblings)
                               const allSameDateArtists = [entry, ...sameDateSiblings]
-                                .filter(e => e.type === 'tour-request')
+                                                                          .filter(e => e.type === 'show-request') // 🎯 PHASE 3: Updated to 'show-request'
                                 .map(e => {
                                   const req = e.data as TourRequest;
                                   
@@ -1828,7 +1828,7 @@ export default function TabbedTourItinerary({
                                     // Add sibling bids
                                     if (sameDateSiblings.length > 0) {
                                       for (const siblingEntry of sameDateSiblings) {
-                                        if (siblingEntry.type === 'tour-request') {
+                                        if (siblingEntry.type === 'show-request') { // 🎯 PHASE 3: Updated to 'show-request'
                                           const siblingRequest = siblingEntry.data as TourRequest & { 
                                             isVenueInitiated?: boolean; 
                                             originalOfferId?: string; 
