@@ -74,7 +74,8 @@ export async function POST(request: NextRequest) {
           initiatedBy: 'ARTIST',
           status: 'OPEN',
           targetLocations: [location],
-          genres: artistGenres
+          genres: artistGenres,
+          billingPosition: 'headliner' // 🎵 FIX: Artists usually request headliner spots
         }
       });
 
@@ -137,6 +138,7 @@ export async function POST(request: NextRequest) {
           amount: amount,
           capacity: venue.capacity,
           ageRestriction: 'ALL_AGES',
+          billingPosition: 'headliner', // 🎵 FIX: Venues usually offer headliner spots
           message: `Hey Lightning Bolt! We're huge fans and would love to have you play at ${venue.name}. We can offer $${amount} guarantee and think our audience would absolutely love your sound.`
         }
       });

@@ -143,7 +143,8 @@ async function resetTestData() {
           initiatedBy: 'ARTIST',
           status: 'OPEN',
           targetLocations: [location],
-          genres: artistGenres
+          genres: artistGenres,
+          billingPosition: 'headliner' // 🎵 FIX: Artists usually request headliner spots
         }
       });
 
