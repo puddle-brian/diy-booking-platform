@@ -1197,16 +1197,16 @@ export default function TabbedTourItinerary({
         <table className="w-full min-w-[1000px] table-fixed">
           <thead className="bg-gray-50">
             <tr className="text-left text-xs font-medium text-gray-600">
-              <th className="px-2 py-1.5 w-[3%]"></th>
-              <th className="px-4 py-1.5 w-[12%]">Date</th>
-              {!venueId && <th className="px-4 py-1.5 w-[14%]">Location</th>}
-              <th className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
-              <th className="px-4 py-1.5 w-[10%]">Status</th>
-              <th className="px-4 py-1.5 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
-              <th className="px-4 py-1.5 w-[7%]">Age</th>
-              <th className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
-              <th className="px-4 py-1.5 w-[8%]">details</th>
-              <th className="px-4 py-1.5 w-[10%]">Actions</th>
+              <th className="px-2 py-1 w-[3%]"></th>
+              <th className="px-4 py-1 w-[12%]">Date</th>
+              {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
+              <th className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
+              <th className="px-4 py-1 w-[10%]">Status</th>
+              <th className="px-4 py-1 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
+              <th className="px-4 py-1 w-[7%]">Age</th>
+              <th className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
+              <th className="px-4 py-1 w-[8%]">details</th>
+              <th className="px-4 py-1 w-[10%]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -1457,7 +1457,7 @@ export default function TabbedTourItinerary({
                       onClick={() => toggleRequestExpansion(request.id)}
                       title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
                     >
-                      <td className={`px-2 py-1.5 w-[3%] ${borderClass}`}>
+                      <td className={`px-2 py-1 w-[3%] ${borderClass}`}>
                         <div className="flex items-center justify-center text-gray-400">
                           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
@@ -1465,7 +1465,7 @@ export default function TabbedTourItinerary({
                           </svg>
                         </div>
                       </td>
-                      <td className="px-4 py-1.5 w-[12%]">
+                      <td className="px-4 py-1 w-[12%]">
                         <ItineraryDate
                           startDate={request.startDate}
                           endDate={request.endDate}
@@ -1474,11 +1474,11 @@ export default function TabbedTourItinerary({
                         />
                       </td>
                       {!venueId && (
-                        <td className="px-4 py-1.5 w-[14%]">
+                        <td className="px-4 py-1 w-[14%]">
                           <div className={`text-sm truncate ${textColorClass}`}>{request.location}</div>
                         </td>
                       )}
-                      <td className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
+                      <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                         <div className="text-sm font-medium text-gray-900 truncate">
                           {(() => {
                             if (artistId) {
@@ -1601,7 +1601,7 @@ export default function TabbedTourItinerary({
                           })()}
                         </div>
                       </td>
-                      <td className="px-4 py-1.5 w-[10%]">
+                      <td className="px-4 py-1 w-[10%]">
                         <div className="flex items-center space-x-1">
                           {(() => {
                             // If viewing as a venue, show venue's specific bid status
@@ -1666,20 +1666,20 @@ export default function TabbedTourItinerary({
 
                         </div>
                       </td>
-                      <td className="px-4 py-1.5 w-[7%]"></td>
-                      <td className="px-4 py-1.5 w-[7%]"></td>
-                      <td className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
+                      <td className="px-4 py-1 w-[7%]"></td>
+                      <td className="px-4 py-1 w-[7%]"></td>
+                      <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
                         <div className="flex items-center space-x-2">
                           {/* Offers column - content moved to venue column to avoid redundancy */}
                         </div>
                       </td>
-                  <td className="px-4 py-1.5 w-[8%]">
+                  <td className="px-4 py-1 w-[8%]">
                     <div className="flex items-center space-x-1">
                       {/* Placeholder to maintain consistent row height with child rows that have document buttons */}
                       <div className="w-6 h-6"></div>
                     </div>
                   </td>
-                                        <td className="px-4 py-1.5 w-[10%]">
+                                        <td className="px-4 py-1 w-[10%]">
                         <div className="flex items-center space-x-2">
                           {/* Delete button for venues - consistent with confirmed shows */}
                           {venueId && (
@@ -1708,16 +1708,16 @@ export default function TabbedTourItinerary({
                               <table className="w-full min-w-[1000px] table-fixed">
                                 <thead className={expandedHeaderClass}>
                                   <tr className={expandedTextClass}>
-                                    <th className="px-2 py-1.5 w-[3%]"></th>
-                                    <th className="px-4 py-1.5 w-[12%]"></th>
-                                    {!venueId && <th className="px-4 py-1.5 w-[14%]">Location</th>}
-                                    <th className={`px-4 py-1.5 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
-                                    <th className="px-4 py-1.5 w-[10%]">Status</th>
-                                    <th className="px-4 py-1.5 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
-                                    <th className="px-4 py-1.5 w-[7%]">Age</th>
-                                    <th className={`px-4 py-1.5 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
-                                    <th className="px-4 py-1.5 w-[8%]">Details</th>
-                                    <th className="px-4 py-1.5 w-[10%]">Actions</th>
+                                    <th className="px-2 py-1 w-[3%]"></th>
+                                    <th className="px-4 py-1 w-[12%]"></th>
+                                    {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
+                                    <th className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
+                                    <th className="px-4 py-1 w-[10%]">Status</th>
+                                    <th className="px-4 py-1 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
+                                    <th className="px-4 py-1 w-[7%]">Age</th>
+                                    <th className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
+                                    <th className="px-4 py-1 w-[8%]">Details</th>
+                                    <th className="px-4 py-1 w-[10%]">Actions</th>
                                   </tr>
                                 </thead>
                                 <tbody className={expandedDividerClass}>
@@ -1943,7 +1943,7 @@ export default function TabbedTourItinerary({
                                     setAddAnotherArtistShowId(request.id);
                                     setIsAddAnotherArtistModalOpen(true);
                                   }}
-                                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-1.5 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
+                                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-1 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
