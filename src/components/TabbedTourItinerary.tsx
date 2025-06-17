@@ -42,6 +42,7 @@ import {
 // Import action button components
 import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
 import { ShowTimelineItem, TourRequestTimelineItem, BidTimelineItem } from './TimelineItems';
+import { generateSmartShowTitle } from '../utils/showNaming';
 
 interface TabbedTourItineraryProps {
   artistId?: string;
@@ -1566,21 +1567,80 @@ export default function TabbedTourItinerary({
                                 }
                               }
                             } else if (venueId) {
-                              // For venue pages, show artist as clickable link
-                              if (request.artistId && request.artistId !== 'external-artist') {
-                                return (
-                                  <a 
-                                    href={`/artists/${request.artistId}`}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    title="View artist page"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {request.artistName}
-                                  </a>
-                                );
-                              } else {
-                                return request.artistName;
-                              }
+                              // 🎯 SMART ARTIST DISPLAY: For venue pages, show intelligent artist lineup
+                              
+                              // Get all artists for this date (current + same-date siblings)
+                              const allSameDateArtists = [entry, ...sameDateSiblings]
+                                .filter(e => e.type === 'tour-request')
+                                .map(e => {
+                                  const req = e.data as TourRequest;
+                                  return {
+                                    artistName: req.artistName || 'Unknown Artist',
+                                    artistId: req.artistId,
+                                    // Determine if this could be a headliner (more complex logic could be added here)
+                                    status: 'accepted' as const, // For now, treat all as confirmed
+                                    billingPosition: undefined as any // Could be enhanced with actual billing data
+                                  };
+                                })
+                                .filter(artist => artist.artistName !== 'Unknown Artist');
+                              
+                              // Generate smart title
+                              const smartTitle = (() => {
+                                if (allSameDateArtists.length === 1) {
+                                  // Just one artist - use regular display
+                                  const artist = allSameDateArtists[0];
+                                  if (artist.artistId && artist.artistId !== 'external-artist') {
+                                    return (
+                                      <a 
+                                        href={`/artists/${artist.artistId}`}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        title="View artist page"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {artist.artistName}
+                                      </a>
+                                    );
+                                  } else {
+                                    return artist.artistName;
+                                  }
+                                } else {
+                                  // Multiple artists - use smart naming
+                                  const headliner = allSameDateArtists[0]; // Use first as headliner for now
+                                  const supportActs = allSameDateArtists.slice(1);
+                                  
+                                  const { title, tooltip } = generateSmartShowTitle({
+                                    headlinerName: headliner.artistName,
+                                    supportActs: supportActs.map(artist => ({
+                                      artistName: artist.artistName,
+                                      status: 'accepted' as const,
+                                      billingPosition: 'support' as const
+                                    })),
+                                    includeStatusInCount: true
+                                  });
+                                  
+                                  // If headliner has a link, make it clickable
+                                  if (headliner.artistId && headliner.artistId !== 'external-artist') {
+                                    return (
+                                      <a 
+                                        href={`/artists/${headliner.artistId}`}
+                                        className="text-blue-600 hover:text-blue-800 hover:underline"
+                                        title={tooltip ? `${tooltip} - Click to view ${headliner.artistName} page` : `View ${headliner.artistName} page`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {title}
+                                      </a>
+                                    );
+                                  } else {
+                                    return (
+                                      <span title={tooltip || undefined}>
+                                        {title}
+                                      </span>
+                                    );
+                                  }
+                                }
+                              })();
+                              
+                              return smartTitle;
                             } else {
                               // For public/general view, show artist name
                               if (request.artistId && request.artistId !== 'external-artist') {

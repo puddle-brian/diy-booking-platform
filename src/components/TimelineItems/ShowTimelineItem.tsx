@@ -6,6 +6,7 @@ import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
 import { AddSupportActModal } from '../modals/AddSupportActModal';
 import { BidActionButtons } from '../ActionButtons/BidActionButtons';
 import { isSameDate } from '../../utils/dateUtils';
+import { generateSmartShowTitle } from '../../utils/showNaming';
 
 // 🧹 CLEANUP: Removed LineupBid interface - unified offer system
 
@@ -241,8 +242,40 @@ export function ShowTimelineItem({
     return { confirmed, pending };
   }, [venueId, venueOffers, show.date, show.venueId, show.venueName]);
   
-  // Simple show title without support act indicators (badges will be separate)
-  const showTitle = show.artistName || 'Unknown Show';
+  // 🎯 SMART SHOW TITLE: Universal naming system with support act intelligence
+  const smartShowTitle = useMemo(() => {
+    const headlinerName = show.artistName || 'Unknown Show';
+    
+    // Get support acts for this specific show date and venue
+    const supportActsForThisShow = venueOffers?.filter(offer => {
+      const offerDate = offer.proposedDate?.split('T')[0];
+      const showDate = show.date?.split('T')[0];
+      
+      // Match by date and venue context
+      return offerDate === showDate && 
+             offer.status !== 'declined' && 
+             offer.status !== 'cancelled';
+    }) || [];
+    
+    // Convert to format expected by smart naming function
+    const supportActs = supportActsForThisShow.map(offer => ({
+      artistName: offer.artistName || 'Unknown Artist',
+      status: offer.status as 'pending' | 'accepted' | 'declined' | 'cancelled',
+      billingPosition: offer.billingPosition as 'headliner' | 'support' | 'co-headliner'
+    }));
+    
+    // Generate smart title with tooltip
+    const { title, tooltip } = generateSmartShowTitle({
+      headlinerName,
+      supportActs,
+      includeStatusInCount: true // Include pending support acts in count
+    });
+    
+    return { title, tooltip };
+  }, [show.artistName, show.date, venueOffers]);
+  
+  // Use smart title for display
+  const showTitle = smartShowTitle.title;
 
   const handleSupportActOfferSuccess = (offer: any) => {
     console.log('✅ Support act offer created:', offer);
@@ -315,25 +348,33 @@ export function ShowTimelineItem({
                     return show.venueName || 'TBA';
                   }
                 } else if (showArtistInfo) {
-                  // Show artist information (we're on a venue page) - use show title
+                  // Show artist information (we're on a venue page) - use smart show title
                   if (show.artistId && show.artistId !== 'external-artist') {
                     return (
                       <a 
                         href={`/artists/${show.artistId}`}
                         className="text-blue-600 hover:text-blue-800 hover:underline"
-                        title="View artist page"
+                        title={smartShowTitle.tooltip ? `${smartShowTitle.tooltip} - Click to view artist page` : "View artist page"}
                         onClick={(e) => e.stopPropagation()}
                       >
                         {showTitle}
                       </a>
                     );
                   } else {
-                    return showTitle;
+                    return (
+                      <span title={smartShowTitle.tooltip || undefined}>
+                        {showTitle}
+                      </span>
+                    );
                   }
                 } else {
                   // Fallback: general pages, use viewer type logic
                   if (permissions.actualViewerType === 'venue') {
-                    return showTitle;
+                    return (
+                      <span title={smartShowTitle.tooltip || undefined}>
+                        {showTitle}
+                      </span>
+                    );
                   } else {
                     return show.venueName || 'TBA';
                   }

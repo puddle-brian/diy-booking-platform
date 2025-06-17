@@ -8,33 +8,33 @@ datasource db {
 }
 
 model User {
-  id                        String                    @id @default(cuid())
-  email                     String                    @unique
-  username                  String                    @unique
-  passwordHash              String?
-  role                      Role                      @default(USER)
-  verified                  Boolean                   @default(false)
-  createdAt                 DateTime                  @default(now())
-  updatedAt                 DateTime                  @updatedAt
-  activityNotifications     ActivityNotification[]
-  submittedArtists          Artist[]                  @relation("SubmittedArtists")
-  ownedArtists              Artist[]                  @relation("OwnedArtists")
-  bids                      Bid[]
-  conversations             ConversationParticipant[]
-  favorites                 Favorite[]
-  requestedHolds            HoldRequest[]             @relation("RequestedHolds")
-  respondedHolds            HoldRequest[]             @relation("RespondedHolds")
-  memberships               Membership[]
-  receivedMessages          Message[]                 @relation("ReceivedMessages")
-  sentMessages              Message[]                 @relation("SentMessages")
-  submittedInfrastructure   SceneInfrastructure[]
-  sceneReports              SceneReport[]
-  showRequestBids           ShowRequestBid[]
-  showRequests              ShowRequest[]
-  shows                     Show[]
-  tourRequests              TourRequest[]
-  venueOffers               VenueOffer[]
-  submittedVenues           Venue[]
+  id                      String                    @id @default(cuid())
+  email                   String                    @unique
+  username                String                    @unique
+  passwordHash            String?
+  role                    Role                      @default(USER)
+  verified                Boolean                   @default(false)
+  createdAt               DateTime                  @default(now())
+  updatedAt               DateTime                  @updatedAt
+  activityNotifications   ActivityNotification[]
+  ownedArtists            Artist[]                  @relation("OwnedArtists")
+  submittedArtists        Artist[]                  @relation("SubmittedArtists")
+  bids                    Bid[]
+  conversations           ConversationParticipant[]
+  favorites               Favorite[]
+  requestedHolds          HoldRequest[]             @relation("RequestedHolds")
+  respondedHolds          HoldRequest[]             @relation("RespondedHolds")
+  memberships             Membership[]
+  receivedMessages        Message[]                 @relation("ReceivedMessages")
+  sentMessages            Message[]                 @relation("SentMessages")
+  submittedInfrastructure SceneInfrastructure[]
+  sceneReports            SceneReport[]
+  showRequestBids         ShowRequestBid[]
+  showRequests            ShowRequest[]
+  shows                   Show[]
+  tourRequests            TourRequest[]
+  venueOffers             VenueOffer[]
+  submittedVenues         Venue[]
 
   @@index([email])
   @@index([role])
@@ -73,7 +73,6 @@ model Venue {
   contactEmail       String?
   contactPhone       String?
   website            String?
-  socialLinks        Json?                // Renamed from socialHandles to match Artist model
   equipment          Json?
   features           String[]
   pricing            Json?
@@ -88,6 +87,7 @@ model Venue {
   postalCode         String?
   streetAddress      String?
   artistTypesWelcome String[]
+  socialLinks        Json?
   bids               Bid[]
   sceneReports       SceneReport[]
   showRequestBids    ShowRequestBid[]
@@ -109,42 +109,39 @@ model Venue {
 }
 
 model Artist {
-  id               String                @id @default(cuid())
+  id               String           @id @default(cuid())
   name             String
-  locationId       String                // Restored: Artist location
+  locationId       String
+  artistType       ArtistType?
   genres           String[]
-  artistType       ArtistType?           // Made optional to avoid breaking existing data
-  members          Int?                  // Restored: Band member count
-  yearFormed       Int?                  // Restored: Formation year
-  description      String?
+  members          Int?
+  yearFormed       Int?
+  tourStatus       TourStatus?
   contactEmail     String?
-  contactPhone     String?
   website          String?
-  socialLinks      Json?                 // Renamed from socialHandles
-  tourStatus       TourStatus?           // Made optional to avoid breaking existing data
-  equipmentNeeds   Json?                 // Restored: Equipment requirements
-  images           String[]              // Restored: Artist images
-  verified         Boolean               @default(false)  // Restored: Verification status
-  submittedById    String?               // Restored: Who submitted this artist
-  profileImage     String?
-  profileCoverText String?
-  recentUpdates    Json?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  equipmentNeeds   Json?
+  description      String?
+  images           String[]
+  verified         Boolean          @default(false)
+  submittedById    String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  contactPhone     String?
   ownerId          String?
-  
-  // Relations
+  profileCoverText String?
+  profileImage     String?
+  recentUpdates    Json?
+  socialLinks      Json?
+  templates        ArtistTemplate[]
+  location         Location         @relation(fields: [locationId], references: [id])
+  owner            User?            @relation("OwnedArtists", fields: [ownerId], references: [id])
+  submittedBy      User?            @relation("SubmittedArtists", fields: [submittedById], references: [id])
   sceneReports     SceneReport[]
   showRequestBids  ShowRequestBid[]
-  showRequests     ShowRequest[]         // Restored: Artist show requests
+  showRequests     ShowRequest[]
   shows            Show[]
-
   tourRequests     TourRequest[]
-  templates        ArtistTemplate[]
   venueOffers      VenueOffer[]
-  location         Location              @relation(fields: [locationId], references: [id])  // Restored
-  submittedBy      User?                 @relation("SubmittedArtists", fields: [submittedById], references: [id])  // Restored
-  owner            User?                 @relation("OwnedArtists", fields: [ownerId], references: [id])
 
   @@index([locationId])
   @@index([name])
@@ -251,7 +248,6 @@ model ShowRequest {
   createdBy         User              @relation(fields: [createdById], references: [id])
   venue             Venue?            @relation(fields: [venueId], references: [id])
 
-  @@unique([artistId, venueId, requestedDate], name: "unique_artist_venue_date")
   @@index([artistId])
   @@index([venueId])
   @@index([requestedDate])
@@ -285,16 +281,16 @@ model ShowRequestBid {
   lineupPosition  Int?
   otherActs       String?
   setLength       Int?
+  artistId        String?
   frozenAt        DateTime?
   frozenByHoldId  String?
   holdState       BidHoldState @default(AVAILABLE)
   statusHistory   Json         @default("[]")
   unfrozenAt      DateTime?
+  Artist          Artist?      @relation(fields: [artistId], references: [id])
   bidder          User         @relation(fields: [bidderId], references: [id])
   showRequest     ShowRequest  @relation(fields: [showRequestId], references: [id])
   venue           Venue        @relation(fields: [venueId], references: [id])
-  Artist          Artist?      @relation(fields: [artistId], references: [id])
-  artistId        String?
 
   @@index([showRequestId])
   @@index([venueId])
@@ -316,11 +312,11 @@ model SceneReport {
   reportType ReportType
   rating     Int?
   createdAt  DateTime   @default(now())
+  artistId   String?
+  Artist     Artist?    @relation(fields: [artistId], references: [id])
   author     User       @relation(fields: [authorId], references: [id])
   location   Location?  @relation(fields: [locationId], references: [id])
   venue      Venue?     @relation(fields: [venueId], references: [id])
-  Artist     Artist?    @relation(fields: [artistId], references: [id])
-  artistId   String?
 
   @@index([locationId])
   @@index([venueId])
@@ -339,7 +335,7 @@ model Show {
   artistId       String
   description    String?
   ticketPrice    Float?
-  ageRestriction  AgeRestriction?
+  ageRestriction AgeRestriction?
   status         ShowStatus      @default(CONFIRMED)
   createdById    String
   createdAt      DateTime        @default(now())
@@ -353,11 +349,11 @@ model Show {
   notes          String?
   showTime       String?
   soundcheck     String?
-  artistName     String?        // Cached artist name for display
-  venueName      String?        // Cached venue name for display  
-  city           String?        // Cached city for display
-  state          String?        // Cached state for display
-  country        String?        // Cached country for display
+  artistName     String?
+  city           String?
+  country        String?
+  state          String?
+  venueName      String?
   holdRequests   HoldRequest[]
   artist         Artist          @relation(fields: [artistId], references: [id])
   createdBy      User            @relation(fields: [createdById], references: [id])
@@ -666,7 +662,6 @@ model HoldRequest {
   id              String       @id @default(cuid())
   showId          String?
   showRequestId   String?
-  venueOfferId    String?
   requestedById   String
   respondedById   String?
   duration        Int
@@ -677,11 +672,12 @@ model HoldRequest {
   respondedAt     DateTime?
   startsAt        DateTime?
   expiresAt       DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  venueOfferId    String?
   frozenBidIds    String[]
   frozenOfferIds  String[]
   notifiedParties String[]
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
   requestedBy     User         @relation("RequestedHolds", fields: [requestedById], references: [id])
   respondedBy     User?        @relation("RespondedHolds", fields: [respondedById], references: [id])
   show            Show?        @relation(fields: [showId], references: [id])
@@ -902,5 +898,3 @@ enum ActivityType {
   REVIEW_RECEIVED
   VENUE_OFFER
 }
-
-
