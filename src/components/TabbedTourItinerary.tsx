@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Show, TourRequest, VenueBid, VenueOffer } from '../../types';
+import { Show, VenueBid, VenueOffer } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
 import { TechnicalRequirement, HospitalityRequirement } from '../../types/templates';
 import VenueBidForm from './VenueBidForm';
 import ShowDetailModal from './ShowDetailModal';
-import TourRequestDetailModal from './TourRequestDetailModal';
+// 🎯 PHASE 4: Removed TourRequestDetailModal - no longer needed
 import TemplateSelector from './TemplateSelector';
 import TemplateFormRenderer from './TemplateFormRenderer';
 import LocationVenueAutocomplete from './LocationVenueAutocomplete';
@@ -41,7 +41,7 @@ import {
 
 // Import action button components
 import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
-import { ShowTimelineItem, TourRequestTimelineItem, BidTimelineItem } from './TimelineItems';
+import { ShowTimelineItem, BidTimelineItem } from './TimelineItems'; // 🎯 PHASE 4: Removed TourRequestTimelineItem
 import { generateSmartShowTitle, getBillingPriority } from '../utils/showNaming';
 
 interface TabbedTourItineraryProps {
@@ -214,8 +214,9 @@ export default function TabbedTourItinerary({
   const [deleteShowLoading, setDeleteShowLoading] = useState<string | null>(null);
   const [selectedShowForDetail, setSelectedShowForDetail] = useState<Show | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
-  const [tourRequestDetailModal, setTourRequestDetailModal] = useState(false);
-  const [selectedTourRequest, setSelectedTourRequest] = useState<TourRequest | null>(null);
+  // 🎯 PHASE 4: Removed TourRequest modal state - no longer needed
+  // const [tourRequestDetailModal, setTourRequestDetailModal] = useState(false);
+  // const [selectedTourRequest, setSelectedTourRequest] = useState<any | null>(null);
   
   // Track declined bids locally to avoid flashing
   const [declinedBids, setDeclinedBids] = useState<Set<string>>(new Set());
@@ -238,7 +239,7 @@ export default function TabbedTourItinerary({
   const [showDocumentModal, setShowDocumentModal] = useState(false);
   const [selectedDocumentShow, setSelectedDocumentShow] = useState<Show | null>(null);
   const [selectedDocumentBid, setSelectedDocumentBid] = useState<VenueBid | null>(null);
-  const [selectedDocumentTourRequest, setSelectedDocumentTourRequest] = useState<TourRequest | null>(null);
+  const [selectedDocumentTourRequest, setSelectedDocumentTourRequest] = useState<any | null>(null); // 🎯 PHASE 4: Updated to any for ShowRequest
   
   // Add Another Artist Modal state
   const [isAddAnotherArtistModalOpen, setIsAddAnotherArtistModalOpen] = useState(false);
@@ -267,7 +268,7 @@ export default function TabbedTourItinerary({
   const stableMonthTabs = generateCompactMonthLabels(monthGroups);
 
   // 🎯 UX IMPROVEMENT: Helper function to determine when venues should see offer buttons
-  const shouldShowOfferButton = (request: TourRequest & { isVenueInitiated?: boolean }) => {
+  const shouldShowOfferButton = (request: any & { isVenueInitiated?: boolean }) => { // 🎯 PHASE 4: Updated to any for ShowRequest
     // When viewing artist pages: show for all requests (maximum discoverability!)
     if (artistId) {
       return true;
@@ -327,7 +328,7 @@ export default function TabbedTourItinerary({
   };
 
   // Additional handler functions
-  const handlePlaceBid = (tourRequest: TourRequest) => {
+  const handlePlaceBid = (tourRequest: any) => { // 🎯 PHASE 4: Updated to any for ShowRequest
     if (venueId && venueName) {
       actions.openBidForm(tourRequest);
       return;
@@ -1051,10 +1052,11 @@ export default function TabbedTourItinerary({
     setShowDetailModal(true);
   };
 
-  const handleTourRequestDetailModal = (request: TourRequest) => {
-    setSelectedTourRequest(request);
-    setTourRequestDetailModal(true);
-  };
+  // 🎯 PHASE 4: Removed TourRequest modal handlers - no longer needed
+  // const handleTourRequestDetailModal = (request: any) => {
+  //   setSelectedTourRequest(request);
+  //   setTourRequestDetailModal(true);
+  // };
 
   const handleShowDocumentModal = (show: Show) => {
     setSelectedDocumentShow(show);
@@ -1070,7 +1072,7 @@ export default function TabbedTourItinerary({
     setShowDocumentModal(true);
   };
 
-  const handleTourRequestDocumentModal = (request: TourRequest) => {
+  const handleTourRequestDocumentModal = (request: any) => { // 🎯 PHASE 4: Updated to any for ShowRequest
     setSelectedDocumentTourRequest(request);
     setSelectedDocumentShow(null);
     setSelectedDocumentBid(null);
@@ -1329,7 +1331,7 @@ export default function TabbedTourItinerary({
                     // The venue offer might be one of several competing bids for the same date/artist
                     
                     // Look for other requests with the same date/artist to find the original artist request
-                    const potentialOriginalRequests = tourRequests.filter((sr: TourRequest) => 
+                    const potentialOriginalRequests = tourRequests.filter((sr: any) => 
                       !(sr as any).isVenueInitiated && 
                       sr.startDate === request.startDate &&
                       sr.artistId === request.artistId
@@ -1496,7 +1498,7 @@ export default function TabbedTourItinerary({
                                   );
                                 } else {
                                   // Show single venue name when no competition
-                                  const requestAsVenueRequest = request as TourRequest & { venueId?: string; venueName?: string };
+                                  const requestAsVenueRequest = request as any & { venueId?: string; venueName?: string };
                                   if (requestAsVenueRequest.venueId && requestAsVenueRequest.venueId !== 'external-venue') {
                                     return (
                                       <a 
@@ -1514,7 +1516,7 @@ export default function TabbedTourItinerary({
                                 }
                               } else {
                                 // For artist-initiated requests, show bid count or venue-specific info
-                                const requestAsVenueSpecific = request as TourRequest & { 
+                                const requestAsVenueSpecific = request as any & { 
                                   isVenueSpecific?: boolean; 
                                   venueSpecificId?: string; 
                                   venueSpecificName?: string; 
@@ -1573,7 +1575,7 @@ export default function TabbedTourItinerary({
                               const allSameDateArtists = [entry, ...sameDateSiblings]
                                                                           .filter(e => e.type === 'show-request') // 🎯 PHASE 3: Updated to 'show-request'
                                 .map(e => {
-                                  const req = e.data as TourRequest;
+                                  const req = e.data as any;
                                   
                                   // 🎯 EXTRACT BILLING POSITION: Look for this artist's billing position in the requestBids
                                   // VenueBid has showRequestId which links to TourRequest.id
@@ -1803,7 +1805,7 @@ export default function TabbedTourItinerary({
                                     // Collect all bids from parent and siblings
                                     let allBids: Array<{
                                       bid: VenueBid;
-                                      request: TourRequest;
+                                      request: any;
                                       artistName: string;
                                       billingPosition?: string;
                                     }> = [];
@@ -1829,7 +1831,7 @@ export default function TabbedTourItinerary({
                                     if (sameDateSiblings.length > 0) {
                                       for (const siblingEntry of sameDateSiblings) {
                                         if (siblingEntry.type === 'show-request') { // 🎯 PHASE 3: Updated to 'show-request'
-                                          const siblingRequest = siblingEntry.data as TourRequest & { 
+                                          const siblingRequest = siblingEntry.data as any & { 
                                             isVenueInitiated?: boolean; 
                                             originalOfferId?: string; 
                                             isVenueBid?: boolean;
@@ -2088,22 +2090,8 @@ export default function TabbedTourItinerary({
         />
       )}
 
-      {/* Tour Request Detail Modal */}
-      {tourRequestDetailModal && selectedTourRequest && (
-        <TourRequestDetailModal
-          tourRequest={selectedTourRequest}
-          isOpen={tourRequestDetailModal}
-          onClose={() => {
-            setTourRequestDetailModal(false);
-            setSelectedTourRequest(null);
-          }}
-          onPlaceBid={() => {
-            setTourRequestDetailModal(false);
-            actions.openBidForm(selectedTourRequest);
-          }}
-          viewerType={permissions.actualViewerType}
-        />
-      )}
+      {/* 🎯 PHASE 4: Removed TourRequest Detail Modal - no longer needed */}
+      {/* Tour Request Detail Modal removed - using ShowRequest data directly */}
 
       {/* Show Document Modal */}
       {showDocumentModal && (

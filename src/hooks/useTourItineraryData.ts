@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Show, TourRequest } from '../../types';
+import { Show } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
 
 // 🎵 Helper function to map old billing positions to new simplified system
 function mapBillingPosition(oldPosition: string | undefined): 'headliner' | 'co-headliner' | 'support' | 'local-support' | undefined {
@@ -183,7 +183,7 @@ export function useTourItineraryData({
   venueName 
 }: UseTourItineraryDataProps): UseTourItineraryDataReturn {
   const [shows, setShows] = useState<Show[]>([]);
-  const [tourRequests, setTourRequests] = useState<TourRequest[]>([]);
+  const [tourRequests, setTourRequests] = useState<any[]>([]); // 🎯 PHASE 4: Updated to any for ShowRequest
   const [venueBids, setVenueBids] = useState<VenueBid[]>([]);
   const [venueOffers, setVenueOffers] = useState<VenueOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -489,7 +489,7 @@ export function useTourItineraryData({
           })));
           
           // Convert venue-specific artist requests to legacy TourRequest format
-          const legacyTourRequests: TourRequest[] = venueSpecificArtistRequests.map((req: any) => ({
+          const legacyTourRequests: any[] = venueSpecificArtistRequests.map((req: any) => ({ // 🎯 PHASE 4: Updated to any for ShowRequest
             id: req.id,
             artistId: req.artistId,
             artistName: req.artist?.name || 'Unknown Artist',

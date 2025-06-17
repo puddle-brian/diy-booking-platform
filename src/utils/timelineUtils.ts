@@ -1,4 +1,4 @@
-import { Show, TourRequest } from '../../types';
+import { Show } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
 import { extractDateString } from './dateUtils';
 
 interface VenueBid {
@@ -199,7 +199,7 @@ export function createTimelineEntries(
       const offerDate = extractDateString(offer.proposedDate);
       
       // Create synthetic tour request from venue offer
-      const syntheticRequest: TourRequest = {
+      const syntheticRequest: any = { // 🎯 PHASE 4: Updated to any for ShowRequest
         id: `venue-offer-${offer.id}`, // Prefix to distinguish synthetic requests
         artistId: offer.artistId,
         artistName: offer.artistName || offer.artist?.name || 'Unknown Artist',
@@ -247,7 +247,7 @@ export function createTimelineEntries(
         // 🎯 FIX: Add venue information for proper display in artist timelines
         venueId: offer.venueId,
         venueName: offer.venueName
-      } as TourRequest & { 
+      } as any & { // 🎯 PHASE 4: Updated to any for ShowRequest 
         isVenueInitiated?: boolean; 
         venueInitiatedBy?: string; 
         originalOfferId?: string; 
@@ -287,7 +287,7 @@ export function createTimelineEntries(
           const bidDate = bid.proposedDate.split('T')[0];
           
                       // Create synthetic tour request from venue bid to show in venue timeline
-            const syntheticBidRequest: TourRequest = {
+            const syntheticBidRequest: any = { // 🎯 PHASE 4: Updated to any for ShowRequest
               id: `venue-bid-${bid.id}`, // Use first bid ID for this request
               artistId: bid.artistId || 'unknown', // 🎯 FIX: Use stored artist ID
               artistName: bid.artistName || bid.location || 'Unknown Artist', // 🎯 FIX: Use stored artist name
@@ -340,7 +340,7 @@ export function createTimelineEntries(
             originalShowRequestId: bid.showRequestId,
             bidStatus: bid.status,
             bidAmount: bid.guarantee
-          } as TourRequest & { 
+          } as any & { // 🎯 PHASE 4: Updated to any for ShowRequest 
             isVenueBid: boolean; 
             originalBidId: string; 
             originalShowRequestId: string;
