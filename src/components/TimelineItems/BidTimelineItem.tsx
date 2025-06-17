@@ -322,7 +322,8 @@ export function BidTimelineItem({
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
           {/* Make/Edit Offer button for venues viewing their own bid */}
-          {venueId && bid.venueId === venueId && request && onMakeOffer && (
+          {/* 🎯 BUG FIX: Don't show Edit Offer button for accepted bids - should show Confirm/Cancel instead */}
+          {venueId && bid.venueId === venueId && request && onMakeOffer && currentStatus !== 'accepted' && (
             <MakeOfferActionButton
               request={request as any}
               permissions={permissions}
