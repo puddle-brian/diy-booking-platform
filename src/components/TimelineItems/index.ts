@@ -1,3 +1,4 @@
 export { ShowTimelineItem } from './ShowTimelineItem';
 export { TourRequestTimelineItem } from './TourRequestTimelineItem';
-export { BidTimelineItem } from './BidTimelineItem'; 
+export { BidTimelineItem } from './BidTimelineItem';
+export { BookingRequestTimelineItem } from './BookingRequestTimelineItem'; 
