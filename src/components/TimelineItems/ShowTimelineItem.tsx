@@ -390,30 +390,7 @@ export function ShowTimelineItem({
                 </div>
               )}
               
-              {/* Support act count badges - show on both venue and artist pages */}
-              {(venueId || artistId) && (supportActsCounts.confirmed > 0 || supportActsCounts.pending > 0) && (
-                <>
-                  {/* Confirmed support acts badge (green) */}
-                  {supportActsCounts.confirmed > 0 && (
-                    <span 
-                      className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800"
-                      title={`${supportActsCounts.confirmed} confirmed support act${supportActsCounts.confirmed !== 1 ? 's' : ''}`}
-                    >
-                      +{supportActsCounts.confirmed}
-                    </span>
-                  )}
-                  
-                  {/* Pending support acts badge (orange) */}
-                  {supportActsCounts.pending > 0 && (
-                    <span 
-                      className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800"
-                      title={`${supportActsCounts.pending} pending support act offer${supportActsCounts.pending !== 1 ? 's' : ''}`}
-                    >
-                      +{supportActsCounts.pending}
-                    </span>
-                  )}
-                </>
-              )}
+              {/* 🧹 REMOVED: Legacy support act count badges - now handled by smart show naming */}
             </div>
           </div>
         </td>
