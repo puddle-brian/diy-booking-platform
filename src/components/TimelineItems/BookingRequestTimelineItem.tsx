@@ -2,6 +2,7 @@ import React from 'react';
 import { ShowRequest, Show, Artist, Venue } from '@prisma/client';
 import { formatDisplayDate } from '@/utils/dateUtils';
 import { ItineraryDate } from '../DateDisplay';
+import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 
 // Extended types to include relations for timeline display
 type ShowRequestWithRelations = ShowRequest & {
@@ -105,13 +106,9 @@ export const BookingRequestTimelineItem: React.FC<BookingRequestTimelineItemProp
     };
   };
 
-  // Age restriction display (normalized format)
+  // Age restriction display (normalized format using centralized utility)
   const displayAgeRestriction = (ageRestriction: any): string => {
-    if (!ageRestriction) return 'flexible';
-    
-    // Handle both string and enum formats consistently
-    const restriction = typeof ageRestriction === 'string' ? ageRestriction : ageRestriction.toString();
-    return restriction.toLowerCase().replace('_', ' ');
+    return formatAgeRestriction(ageRestriction);
   };
 
   const statusBadge = getStatusBadge();

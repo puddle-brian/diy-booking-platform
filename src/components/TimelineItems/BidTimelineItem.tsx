@@ -1,13 +1,14 @@
 import React from 'react';
-import { VenueBid, TourRequest, VenueOffer } from '../../../types';
+import { VenueBid, VenueOffer } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton, DocumentActionButton, MakeOfferActionButton } from '../ActionButtons';
 import { InlineOfferDisplay } from '../OfferDisplay';
+import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 
 interface BidTimelineItemProps {
   bid: VenueBid;
-  request?: TourRequest;
+  request?: any; // Legacy TourRequest, transitioning to ShowRequest system
   permissions: ItineraryPermissions;
   isExpanded: boolean;
   isDeleting: boolean;
@@ -26,7 +27,7 @@ interface BidTimelineItemProps {
   onDeclineBid?: (bid: VenueBid) => void;
   onOfferAction?: (offer: VenueOffer, action: string) => Promise<void>;
   onBidAction?: (bid: VenueBid, action: string, reason?: string) => Promise<void>;
-  onMakeOffer?: (request: TourRequest, existingBid?: VenueBid) => void;
+  onMakeOffer?: (request: any, existingBid?: VenueBid) => void; // Legacy TourRequest
   // NEW: Hold state management
   isFrozenByHold?: boolean;
   activeHoldInfo?: {
@@ -266,7 +267,7 @@ export function BidTimelineItem({
       {/* Age column - w-[7%] */}
       <td className="px-4 py-1 w-[7%]">
         <div className="text-xs text-gray-600 whitespace-nowrap">
-          {bid.ageRestriction || '-'}
+          {formatAgeRestriction(bid.ageRestriction)}
         </div>
       </td>
 

@@ -220,7 +220,7 @@ export function createTimelineEntries(
           description: `Venue capacity: ${offer.capacity || 'Unknown'}`
         },
         tourStatus: 'exploring-interest' as const,
-        ageRestriction: (offer.ageRestriction as any) || 'flexible',
+        ageRestriction: (offer.ageRestriction as any) || 'ALL_AGES', // 🎯 PHASE 6.5: Use actual offer age restriction, default to enum value
         equipment: {
           needsPA: false,
           needsMics: false, 
@@ -321,7 +321,7 @@ export function createTimelineEntries(
             },
             acceptsDoorDeals: true,
             merchandising: true,
-            ageRestriction: 'all-ages' as const,
+            ageRestriction: (bid.ageRestriction as any) || 'ALL_AGES', // 🎯 PHASE 6.5: Use actual bid age restriction, default to enum value
             travelMethod: 'van' as const,
             lodging: 'flexible' as const,
             priority: 'medium' as const,

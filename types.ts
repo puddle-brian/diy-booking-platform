@@ -89,70 +89,7 @@ export interface Show {
   createdBy: string; // userId who created/confirmed
 }
 
-export interface TourRequest {
-  id: string;
-  artistId: string;
-  artistName: string;
-  
-  // Tour Details
-  title: string; // e.g. "Seattle Show - June 2025"
-  description: string;
-  
-  // Geography & Timing - ATOMIC: One location per request
-  startDate: string; // For legacy ranges and single dates
-  endDate?: string; // Optional - only for legacy date ranges
-  requestDate?: string; // New single date field
-  isSingleDate?: boolean; // Flag to distinguish single dates from ranges
-  location: string; // Single location: "Seattle, WA" or "Pacific Northwest"
-  radius: number; // Search radius in miles (25, 50, 100, 200, 500, 1000+)
-  flexibility: 'exact-cities' | 'region-flexible' | 'route-flexible';
-  
-  // Artist Info
-  genres: string[];
-  expectedDraw: {
-    min: number;
-    max: number;
-    description: string; // "80-120 in major cities, 40-60 in smaller markets"
-  };
-  tourStatus: 'confirmed-routing' | 'flexible-routing' | 'exploring-interest';
-  
-  // Requirements
-  ageRestriction?: 'all-ages' | '18+' | '21+' | 'flexible';
-  equipment: {
-    needsPA: boolean;
-    needsMics: boolean;
-    needsDrums: boolean;
-    needsAmps: boolean;
-    acoustic: boolean;
-  };
-  
-  // Business
-  guaranteeRange?: {
-    min: number;
-    max: number;
-  };
-  acceptsDoorDeals: boolean;
-  merchandising: boolean;
-  
-  // Logistics
-  travelMethod: 'van' | 'flying' | 'train' | 'other';
-  lodging: 'floor-space' | 'hotel' | 'flexible';
-  
-  // Status & Conflict Resolution
-  status: 'active' | 'completed' | 'cancelled' | 'paused' | 'fulfilled';
-  priority: 'high' | 'medium' | 'low';
-  responses: number; // count of bids received
-  
-  // System
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string; // auto-close after certain period
-  
-  // 🎯 NEW: Venue-specific request metadata
-  isVenueSpecific?: boolean; // true if this is a direct request to a specific venue
-  venueSpecificId?: string; // target venue ID for venue-specific requests  
-  venueSpecificName?: string; // target venue name for venue-specific requests
-}
+// 🎯 PHASE 6: TourRequest interface removed - replaced by unified ShowRequest system
 
 export interface VenueBid {
   id: string;

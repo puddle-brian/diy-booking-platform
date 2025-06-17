@@ -14,12 +14,7 @@ interface Show {
   venueId: string;
 }
 
-interface TourRequest {
-  id: string;
-  artistId: string;
-  isVenueInitiated?: boolean;
-  originalOfferId?: string;
-}
+// 🎯 PHASE 6: TourRequest interface removed - now using ShowRequest (any type for compatibility)
 
 interface UseItineraryPermissionsProps {
   viewerType: 'artist' | 'venue' | 'public';
@@ -35,8 +30,8 @@ export interface ItineraryPermissions {
   isOwner: boolean;
   
   // Privacy controls
-  canExpandRequest: (request: TourRequest) => boolean;
-  canSeeFinancialDetails: (show?: Show, bid?: VenueBid, request?: TourRequest) => boolean;
+  canExpandRequest: (request: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
+  canSeeFinancialDetails: (show?: Show, bid?: VenueBid, request?: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
   
   // Main actions
   canMakeOffers: boolean;
@@ -48,20 +43,20 @@ export interface ItineraryPermissions {
   canEditShow: (show: Show) => boolean;
   
   // Bid actions
-  canAcceptBid: (bid: VenueBid, request?: TourRequest) => boolean;
-  canHoldBid: (bid: VenueBid, request?: TourRequest) => boolean;
-  canDeclineBid: (bid: VenueBid, request?: TourRequest) => boolean;
-  canUndoAcceptBid: (bid: VenueBid, request?: TourRequest) => boolean;
-  canViewBidDocument: (bid: VenueBid, request?: TourRequest) => boolean;
+  canAcceptBid: (bid: VenueBid, request?: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
+  canHoldBid: (bid: VenueBid, request?: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
+  canDeclineBid: (bid: VenueBid, request?: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
+  canUndoAcceptBid: (bid: VenueBid, request?: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
+  canViewBidDocument: (bid: VenueBid, request?: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
   
   // Request actions
-  canDeleteRequest: (request: TourRequest, requestBids?: VenueBid[]) => boolean;
-  canViewRequestDocument: (request: TourRequest, venueBids: VenueBid[]) => boolean;
-  canMakeOfferOnRequest: (request: TourRequest, requestBids?: VenueBid[]) => boolean;
+  canDeleteRequest: (request: any, requestBids?: VenueBid[]) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
+  canViewRequestDocument: (request: any, venueBids: VenueBid[]) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
+  canMakeOfferOnRequest: (request: any, requestBids?: VenueBid[]) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
   
   // Venue-specific permissions
-  canWithdrawBid: (request: TourRequest) => boolean;
-  canCancelOffer: (request: TourRequest) => boolean;
+  canWithdrawBid: (request: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
+  canCancelOffer: (request: any) => boolean; // 🎯 PHASE 6: Changed from TourRequest to any
 }
 
 export function useItineraryPermissions({
@@ -109,7 +104,7 @@ export function useItineraryPermissions({
 
   // Privacy control functions
   const canExpandRequest = useMemo(() => {
-    return (request: TourRequest) => {
+    return (request: any) => {
       // Artists can expand their own requests
       if (actualViewerType === 'artist' && artistId && request.artistId === artistId) {
         return true;
@@ -129,7 +124,7 @@ export function useItineraryPermissions({
   }, [actualViewerType, artistId, venueId]);
 
   const canSeeFinancialDetails = useMemo(() => {
-    return (show?: Show, bid?: VenueBid, request?: TourRequest) => {
+    return (show?: Show, bid?: VenueBid, request?: any) => {
       // Artists can see financial details for their own content
       if (actualViewerType === 'artist' && artistId) {
         if (show?.artistId === artistId) return true;
@@ -178,14 +173,14 @@ export function useItineraryPermissions({
 
   // Bid-related permissions
   const canAcceptBid = useMemo(() => {
-    return (bid: VenueBid, request?: TourRequest) => {
+    return (bid: VenueBid, request?: any) => {
       // Only artists can accept bids, and only on their own requests
       return actualViewerType === 'artist' && editable;
     };
   }, [actualViewerType, editable]);
 
   const canHoldBid = useMemo(() => {
-    return (bid: VenueBid, request?: TourRequest) => {
+    return (bid: VenueBid, request?: any) => {
       // Only artists can hold bids, and only on regular requests (not venue offers)
       if (actualViewerType !== 'artist' || !editable) return false;
       if (Boolean(request?.isVenueInitiated)) return false;
@@ -194,14 +189,14 @@ export function useItineraryPermissions({
   }, [actualViewerType, editable]);
 
   const canDeclineBid = useMemo(() => {
-    return (bid: VenueBid, request?: TourRequest) => {
+    return (bid: VenueBid, request?: any) => {
       // Artists can decline bids on their requests
       return actualViewerType === 'artist' && editable;
     };
   }, [actualViewerType, editable]);
 
   const canUndoAcceptBid = useMemo(() => {
-    return (bid: VenueBid, request?: TourRequest) => {
+    return (bid: VenueBid, request?: any) => {
       // Only artists can undo acceptance, and only on regular requests (not venue offers)
       if (actualViewerType !== 'artist' || !editable) return false;
       if (Boolean(request?.isVenueInitiated)) return false;
@@ -210,7 +205,7 @@ export function useItineraryPermissions({
   }, [actualViewerType, editable]);
 
   const canViewBidDocument = useMemo(() => {
-    return (bid: VenueBid, request?: TourRequest) => {
+    return (bid: VenueBid, request?: any) => {
       // Artists can view bid documents for their own requests
       if (actualViewerType === 'artist' && artistId && request?.artistId === artistId) {
         return true;
@@ -225,7 +220,7 @@ export function useItineraryPermissions({
 
   // Request-related permissions
   const canDeleteRequest = useMemo(() => {
-    return (request: TourRequest, requestBids?: VenueBid[]) => {
+    return (request: any, requestBids?: VenueBid[]) => {
       if (actualViewerType === 'artist') {
         // Artists can always manage their own requests (delete own requests, decline venue offers)
         return editable && request.artistId === artistId;
@@ -244,7 +239,7 @@ export function useItineraryPermissions({
   }, [actualViewerType, editable, artistId, venueId]);
 
   const canViewRequestDocument = useMemo(() => {
-    return (request: TourRequest, venueBids: VenueBid[]) => {
+    return (request: any, venueBids: VenueBid[]) => {
       // Artists can view documents for their own requests
       if (actualViewerType === 'artist' && artistId && request.artistId === artistId) {
         return true;
@@ -262,7 +257,7 @@ export function useItineraryPermissions({
   }, [actualViewerType, artistId, venueId, editable]);
 
   const canMakeOfferOnRequest = useMemo(() => {
-    return (request: TourRequest, requestBids?: VenueBid[]) => {
+    return (request: any, requestBids?: VenueBid[]) => {
       // ✅ SIMPLIFIED LOGIC: Venues can make offers when they can logically engage
       if (actualViewerType === 'venue' && venueId && venueName) {
         // ✅ ELEGANT CONTEXT FIX: When viewing an artist page, venues can engage with ALL requests
@@ -293,14 +288,14 @@ export function useItineraryPermissions({
   }, [actualViewerType, venueId, venueName, artistId]);
 
   const canWithdrawBid = useMemo(() => {
-    return (request: TourRequest) => {
+    return (request: any) => {
       // Venues can withdraw their own bids
       return actualViewerType === 'venue' && editable;
     };
   }, [actualViewerType, editable]);
 
   const canCancelOffer = useMemo(() => {
-    return (request: TourRequest) => {
+    return (request: any) => {
       // Venues can cancel their own offers
       return actualViewerType === 'venue' && editable && Boolean(request.isVenueInitiated);
     };

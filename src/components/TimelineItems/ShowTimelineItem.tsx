@@ -7,6 +7,7 @@ import { AddSupportActModal } from '../modals/AddSupportActModal';
 import { BidActionButtons } from '../ActionButtons/BidActionButtons';
 import { isSameDate } from '../../utils/dateUtils';
 import { generateSmartShowTitle } from '../../utils/showNaming';
+import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 
 // 🧹 CLEANUP: Removed LineupBid interface - unified offer system
 
@@ -434,7 +435,7 @@ export function ShowTimelineItem({
 
         <td className="px-4 py-1 w-[7%]">
           <div className="text-xs text-gray-600 whitespace-nowrap">
-            {show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
+            {formatAgeRestriction(show.ageRestriction)}
           </div>
         </td>
 
@@ -543,7 +544,7 @@ export function ShowTimelineItem({
 
                         <td className="px-4 py-1 w-[7%]">
                           <div className="text-xs text-gray-600 whitespace-nowrap">
-                            {show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
+                            {formatAgeRestriction(show.ageRestriction)}
                           </div>
                         </td>
 
@@ -654,7 +655,7 @@ export function ShowTimelineItem({
 
                             <td className="px-4 py-1 w-[7%]">
                               <div className="text-xs text-gray-600 whitespace-nowrap">
-                                {show.ageRestriction?.toLowerCase().replace('_', '-') || 'all-ages'}
+                                {formatAgeRestriction(show.ageRestriction)}
                               </div>
                             </td>
 

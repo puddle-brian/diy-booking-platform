@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { TourRequest, VenueBid } from '../../types';
+import { VenueBid } from '../../types'; // 🎯 PHASE 6: Removed TourRequest import
 
 interface VenueBidFormProps {
-  tourRequest: TourRequest;
+  tourRequest: any; // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
   venueId: string;
   venueName: string;
   onSuccess: (bid: VenueBid) => void;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useReducer, useCallback, useMemo } from 'react';
-import { Show, TourRequest, VenueBid, VenueOffer } from '../../types';
+import { Show, VenueBid, VenueOffer } from '../../types'; // 🎯 PHASE 6: Removed TourRequest import
 
 // State shape - consolidate all the scattered useState calls
 interface ItineraryState {
@@ -21,12 +21,12 @@ interface ItineraryState {
   showVenueOfferForm: boolean;
   
   // Selected items
-  selectedTourRequest: TourRequest | null;
+  selectedTourRequest: any | null; // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
   selectedBid: VenueBid | null;
   selectedShowForDetail: Show | null;
   selectedDocumentShow: Show | null;
   selectedDocumentBid: VenueBid | null;
-  selectedDocumentTourRequest: TourRequest | null;
+  selectedDocumentTourRequest: any | null; // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
   offerTargetArtist: { id: string; name: string } | null;
   offerTourRequest: { id: string; title: string; artistName: string } | null;
   offerPreSelectedDate: string | null;
@@ -59,11 +59,11 @@ type ItineraryAction =
   | { type: 'TOGGLE_REQUEST_EXPANSION'; requestId: string }
   
   // Modal actions
-  | { type: 'OPEN_BID_FORM'; request: TourRequest }
+  | { type: 'OPEN_BID_FORM'; request: any } // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
   | { type: 'CLOSE_BID_FORM' }
   | { type: 'OPEN_SHOW_DETAIL'; show: Show }
   | { type: 'CLOSE_SHOW_DETAIL' }
-  | { type: 'OPEN_DOCUMENT_MODAL'; show?: Show; bid?: VenueBid; request?: TourRequest }
+  | { type: 'OPEN_DOCUMENT_MODAL'; show?: Show; bid?: VenueBid; request?: any } // 🎯 PHASE 6: Changed from TourRequest to any
   | { type: 'CLOSE_DOCUMENT_MODAL' }
   | { type: 'OPEN_UNIVERSAL_OFFER'; artist: { id: string; name: string }; tourRequest?: { id: string; title: string; artistName: string }; preSelectedDate?: string; existingBid?: any }
   | { type: 'CLOSE_UNIVERSAL_OFFER' }
@@ -90,7 +90,7 @@ type ItineraryAction =
   | { type: 'RESET_ALL_STATE' }
   
   // Tour request detail actions  
-  | { type: 'OPEN_TOUR_REQUEST_DETAIL'; request: TourRequest }
+  | { type: 'OPEN_TOUR_REQUEST_DETAIL'; request: any } // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
   | { type: 'CLOSE_TOUR_REQUEST_DETAIL' };
 
 // Initial state
@@ -353,7 +353,7 @@ export function useItineraryState() {
     toggleRequestExpansion: (requestId: string) => 
       dispatch({ type: 'TOGGLE_REQUEST_EXPANSION', requestId }),
     
-    openBidForm: (request: TourRequest) => 
+    openBidForm: (request: any) => // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
       dispatch({ type: 'OPEN_BID_FORM', request }),
     
     closeBidForm: () => 
@@ -365,7 +365,7 @@ export function useItineraryState() {
     closeShowDetail: () => 
       dispatch({ type: 'CLOSE_SHOW_DETAIL' }),
     
-    openDocumentModal: (params: { show?: Show; bid?: VenueBid; request?: TourRequest }) => 
+    openDocumentModal: (params: { show?: Show; bid?: VenueBid; request?: any }) => // 🎯 PHASE 6: Changed from TourRequest to any
       dispatch({ type: 'OPEN_DOCUMENT_MODAL', ...params }),
     
     closeDocumentModal: () => 
@@ -401,7 +401,7 @@ export function useItineraryState() {
     resetOptimisticState: () => 
       dispatch({ type: 'RESET_OPTIMISTIC_STATE' }),
     
-    openTourRequestDetail: (request: TourRequest) => 
+    openTourRequestDetail: (request: any) => // 🎯 PHASE 6: Changed from TourRequest to any (now ShowRequest)
       dispatch({ type: 'OPEN_TOUR_REQUEST_DETAIL', request }),
     
     closeTourRequestDetail: () => 

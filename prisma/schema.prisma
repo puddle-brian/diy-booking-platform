@@ -197,7 +197,7 @@ model ShowRequest {
   otherActs         String?
   billingNotes      String?
   capacity          Int?
-  ageRestriction    String?
+  ageRestriction    AgeRestriction? // 🎯 PHASE 6.5: Fixed data type consistency with Show model
   equipmentProvided Json?
   loadIn            String?
   soundcheck        String?
