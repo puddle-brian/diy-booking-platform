@@ -236,7 +236,7 @@ function HomeContent() {
       
       // Load tour requests for location-based sorting
       try {
-        const tourRequestsResponse = await fetch('/api/tour-requests?status=active&forVenues=true');
+        const tourRequestsResponse = await fetch('/api/show-requests?initiatedBy=ARTIST&status=OPEN'); // 🎯 PHASE 5: Updated to use show-requests API
         if (tourRequestsResponse.ok) {
           const tourRequestsData = await tourRequestsResponse.json();
           setTourRequests(Array.isArray(tourRequestsData) ? tourRequestsData : []);

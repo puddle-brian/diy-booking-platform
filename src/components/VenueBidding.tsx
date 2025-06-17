@@ -66,7 +66,7 @@ export default function VenueBidding({ venueId, venueName, artistFilter }: Venue
   const loadTourRequests = async () => {
     try {
       // Load all active tour requests that venues can bid on
-      let url = '/api/tour-requests?status=active&forVenues=true';
+      let url = '/api/show-requests?initiatedBy=ARTIST&status=OPEN'; // 🎯 PHASE 5: Updated to use show-requests API
       
       // If artistFilter is provided, add it to the query
       if (artistFilter) {
@@ -104,7 +104,7 @@ export default function VenueBidding({ venueId, venueName, artistFilter }: Venue
 
     setSubmitting(true);
     try {
-      const response = await fetch(`/api/tour-requests/${selectedRequest.id}/bids`, {
+              const response = await fetch(`/api/show-requests/${selectedRequest.id}/bids`, { // 🎯 PHASE 5: Updated to use show-requests API
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

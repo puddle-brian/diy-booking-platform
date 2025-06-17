@@ -19,7 +19,7 @@ model User {
   activityNotifications   ActivityNotification[]
   ownedArtists            Artist[]                  @relation("OwnedArtists")
   submittedArtists        Artist[]                  @relation("SubmittedArtists")
-  bids                    Bid[]
+  // 🎯 PHASE 5: bids removed - replaced by showRequestBids
   conversations           ConversationParticipant[]
   favorites               Favorite[]
   requestedHolds          HoldRequest[]             @relation("RequestedHolds")
@@ -32,7 +32,7 @@ model User {
   showRequestBids         ShowRequestBid[]
   showRequests            ShowRequest[]
   shows                   Show[]
-  tourRequests            TourRequest[]
+  // 🎯 PHASE 5: tourRequests removed - replaced by showRequests
   venueOffers             VenueOffer[]
   submittedVenues         Venue[]
 
@@ -88,7 +88,7 @@ model Venue {
   streetAddress      String?
   artistTypesWelcome String[]
   socialLinks        Json?
-  bids               Bid[]
+  // 🎯 PHASE 5: bids removed - replaced by showRequestBids
   sceneReports       SceneReport[]
   showRequestBids    ShowRequestBid[]
   showRequests       ShowRequest[]
@@ -140,7 +140,7 @@ model Artist {
   showRequestBids  ShowRequestBid[]
   showRequests     ShowRequest[]
   shows            Show[]
-  tourRequests     TourRequest[]
+  // 🎯 PHASE 5: tourRequests removed - replaced by showRequests
   venueOffers      VenueOffer[]
 
   @@index([locationId])
@@ -175,36 +175,7 @@ model SceneInfrastructure {
   @@map("scene_infrastructure")
 }
 
-model TourRequest {
-  id              String        @id @default(cuid())
-  artistId        String
-  createdById     String
-  title           String
-  description     String?
-  startDate       DateTime?
-  endDate         DateTime?
-  targetLocations String[]
-  genres          String[]
-  status          RequestStatus @default(ACTIVE)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  isLegacyRange   Boolean       @default(false)
-  requestDate     DateTime?
-  bids            Bid[]
-  artist          Artist        @relation(fields: [artistId], references: [id])
-  createdBy       User          @relation(fields: [createdById], references: [id])
-
-  @@index([artistId])
-  @@index([createdById])
-  @@index([status])
-  @@index([startDate, endDate])
-  @@index([requestDate])
-  @@index([isLegacyRange])
-  @@index([targetLocations])
-  @@index([genres])
-  @@index([createdAt])
-  @@map("tour_requests")
-}
+// 🎯 PHASE 5: TourRequest model removed - replaced by unified ShowRequest system
 
 model ShowRequest {
   id                String            @id @default(cuid())
@@ -367,48 +338,7 @@ model Show {
   @@map("shows")
 }
 
-model Bid {
-  id              String       @id @default(cuid())
-  tourRequestId   String
-  venueId         String
-  bidderId        String
-  proposedDate    DateTime?
-  message         String?
-  amount          Float?
-  status          BidStatus    @default(PENDING)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  acceptedAt      DateTime?
-  billingNotes    String?
-  billingPosition String?
-  cancelledAt     DateTime?
-  cancelledReason String?
-  declinedAt      DateTime?
-  declinedReason  String?
-  heldAt          DateTime?
-  heldUntil       DateTime?
-  holdPosition    Int?
-  lineupPosition  Int?
-  otherActs       String?
-  setLength       Int?
-  frozenAt        DateTime?
-  frozenByHoldId  String?
-  holdState       BidHoldState @default(AVAILABLE)
-  statusHistory   Json         @default("[]")
-  unfrozenAt      DateTime?
-  bidder          User         @relation(fields: [bidderId], references: [id])
-  tourRequest     TourRequest  @relation(fields: [tourRequestId], references: [id])
-  venue           Venue        @relation(fields: [venueId], references: [id])
-
-  @@index([tourRequestId])
-  @@index([venueId])
-  @@index([bidderId])
-  @@index([status])
-  @@index([proposedDate])
-  @@index([holdPosition])
-  @@index([createdAt])
-  @@map("bids")
-}
+// 🎯 PHASE 5: Legacy Bid model removed - replaced by ShowRequestBid system
 
 model Conversation {
   id           String                    @id @default(cuid())

@@ -186,7 +186,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     try {
       setLoadingTourRequests(true);
       console.log('🔍 Loading tour requests for artist:', id, artist?.name);
-      const response = await fetch(`/api/tour-requests?artistId=${id}&activeOnly=true`);
+              const response = await fetch(`/api/show-requests?artistId=${id}&status=OPEN`); // 🎯 PHASE 5: Updated to use show-requests API
       console.log('📡 Tour requests response:', response.status, response.statusText);
       
       if (response.ok) {
@@ -328,7 +328,7 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
     
     // Refresh tour requests to update bid count
     if (artist) {
-      fetch(`/api/tour-requests?artistId=${artist.id}&activeOnly=true`)
+              fetch(`/api/show-requests?artistId=${artist.id}&status=OPEN`) // 🎯 PHASE 5: Updated to use show-requests API
         .then(response => response.json())
         .then(data => {
           const requests = Array.isArray(data) ? data : (data.requests || []);

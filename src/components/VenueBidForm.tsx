@@ -75,7 +75,7 @@ export default function VenueBidForm({
     setError('');
 
     try {
-      const response = await fetch(`/api/tour-requests/${tourRequest.id}/bids`, {
+              const response = await fetch(`/api/show-requests/${tourRequest.id}/bids`, { // 🎯 PHASE 5: Updated to use show-requests API
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
