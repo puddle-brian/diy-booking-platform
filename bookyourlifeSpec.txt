@@ -286,6 +286,55 @@ Feedback (community feedback system)
 - Show calendar and date management
 - Route planning capabilities
 
+**📋 Unified Itinerary System**
+**Status**: ✅ **FULLY IMPLEMENTED** - Comprehensive tour management for artists and venues
+
+**Core Concept**: 
+The itinerary system provides a unified timeline view where artists and venues can manage all their tour-related activities in one place. Think of it as the central hub for booking workflow - artists see their tour requests, venue offers, and confirmed shows in chronological order, while venues see their bookings, artist applications, and outreach efforts.
+
+**Artist Workflow**:
+1. **Create Tour Requests**: Artists post dates they want to tour with preferred cities/regions
+2. **Review Venue Bids**: Venues bid on tour requests with specific offers (date, guarantee, capacity)
+3. **Manage Venue Offers**: Venues can also proactively offer shows to artists they want to book
+4. **Accept/Decline/Hold**: Simple one-click responses to venue offers and bids
+5. **Confirmed Shows**: Accepted offers become confirmed shows with full details
+6. **Timeline View**: Everything appears in chronological order for easy tour planning
+
+**Venue Workflow**:
+1. **Browse Artist Requests**: See artists seeking shows in their area or timeframe
+2. **Submit Bids**: Make offers on artist tour requests with specific terms
+3. **Create Targeted Offers**: Proactively reach out to artists they want to book
+4. **Manage Responses**: Track which artists accepted, declined, or are considering offers
+5. **Confirmed Bookings**: Successful offers become confirmed shows in their venue calendar
+6. **Timeline View**: All venue activity organized by date for booking management
+
+**Key Features**:
+- **Unified Timeline**: All activities (requests, bids, offers, shows) in one chronological view
+- **Smart Show Titles**: "Artist Name at Venue" or "Headliner + 3 others" for multi-artist shows
+- **Lineup Architecture**: Shows support multiple artists with billing positions (headliner, support, opener)
+- **Hold System**: Artists can place temporary holds on venue offers while deciding
+- **Financial Details**: Guarantees, door deals, and payment terms (visible to relevant parties)
+- **Status Tracking**: Clear indicators for pending, confirmed, cancelled, and completed events
+- **Mobile Optimized**: Touch-friendly interface for touring musicians on the road
+- **Permission System**: Artists see their tour data, venues see their booking data
+- **Document System**: Full show documents with lineup, requirements, and logistics
+
+**Technical Implementation**:
+- **Show Model**: Venue-owned events that can contain multiple artists via ShowLineup table
+- **Unified Data**: Tour requests, venue bids, venue offers, and confirmed shows all feed into itinerary
+- **Real-time Updates**: Immediate status changes and timeline refresh
+- **Responsive Design**: Works seamlessly on mobile devices for touring musicians
+- **Role-based Views**: Artists and venues see relevant information based on their involvement
+
+**Why This Works**:
+- **Simple Mental Model**: Everything is either "seeking shows" or "confirmed shows"
+- **Reduces Confusion**: No separate systems for different types of bookings
+- **Mobile-First**: Designed for musicians who manage tours from their phones
+- **Industry Standard**: Matches how booking actually works in the real world
+- **Scalable**: Works for solo artists, bands, and multi-artist events
+
+The itinerary system eliminates the complexity of managing multiple booking workflows by providing one unified interface where all tour-related activities are organized chronologically. It's simple enough to understand immediately, but powerful enough to handle complex multi-city tours and multi-artist shows.
+
 **📱 User Experience**
 - Mobile-first responsive design
 - Airbnb-style toggle between artist/venue modes
