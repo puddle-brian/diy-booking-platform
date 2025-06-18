@@ -24,14 +24,19 @@ async function backupDatabase() {
       venues: await prisma.venue.findMany(),
       locations: await prisma.location.findMany(),
       shows: await prisma.show.findMany(),
-      tourRequests: await prisma.tourRequest.findMany(),
-      bids: await prisma.bid.findMany(),
+      showRequests: await prisma.showRequest.findMany(),
+      showRequestBids: await prisma.showRequestBid.findMany(),
       memberships: await prisma.membership.findMany(),
       conversations: await prisma.conversation.findMany(),
+      conversationParticipants: await prisma.conversationParticipant.findMany(),
       messages: await prisma.message.findMany(),
       favorites: await prisma.favorite.findMany(),
       mediaEmbeds: await prisma.mediaEmbed.findMany(),
-      feedback: await prisma.feedback.findMany()
+      feedback: await prisma.feedback.findMany(),
+      holdRequests: await prisma.holdRequest.findMany(),
+      venueOffers: await prisma.venueOffer.findMany(),
+      venueOfferTemplates: await prisma.venueOfferTemplate.findMany(),
+      artistTemplates: await prisma.artistTemplate.findMany()
     };
 
     const backupFile = path.join(backupDir, `backup-${timestamp}.json`);
@@ -43,8 +48,8 @@ async function backupDatabase() {
     console.log(`   Artists: ${backup.artists.length}`);
     console.log(`   Venues: ${backup.venues.length}`);
     console.log(`   Shows: ${backup.shows.length}`);
-    console.log(`   Tour Requests: ${backup.tourRequests.length}`);
-    console.log(`   Bids: ${backup.bids.length}`);
+    console.log(`   Show Requests: ${backup.showRequests.length}`);
+    console.log(`   Show Request Bids: ${backup.showRequestBids.length}`);
     console.log(`   Memberships: ${backup.memberships.length}`);
 
     return backupFile;
