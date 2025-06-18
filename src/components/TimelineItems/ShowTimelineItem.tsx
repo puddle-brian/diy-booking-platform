@@ -1,29 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Show, VenueBid, LineupPosition } from '../../../types';
+import React, { useState } from 'react';
+import { Show } from '../../../types';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
-import { ItineraryDate } from '../DateDisplay';
-import { DeleteActionButton, DocumentActionButton } from '../ActionButtons';
+import { ShowHeaderRow } from './ShowHeaderRow';
+import { LineupTableSection } from './LineupTableSection';
 import { AddSupportActModal } from '../modals/AddSupportActModal';
-import { BidActionButtons } from '../ActionButtons/BidActionButtons';
-import { isSameDate } from '../../utils/dateUtils';
-import { generateSmartShowTitle } from '../../utils/showNaming';
-import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
-
-// 🎵 NEW: Lineup item interface for the new architecture
-interface LineupItem {
-  artistId: string;
-  artistName: string;
-  billingPosition: 'HEADLINER' | 'CO_HEADLINER' | 'SUPPORT' | 'OPENER' | 'LOCAL_SUPPORT';
-  performanceOrder: number;
-  setLength?: number;
-  guarantee?: number;
-  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
-}
-
-// 🎵 Extended Show interface to include lineup
-interface ShowWithLineup extends Show {
-  lineup?: LineupItem[];
-}
+import { LineupItem } from '../../utils/showUtils';
 
 // Helper functions to convert support offers to synthetic format for document viewing
 function createSyntheticRequest(supportOffer: any) {
@@ -105,99 +86,34 @@ function createSyntheticBid(supportOffer: any) {
 }
 
 interface ShowTimelineItemProps {
-  show: ShowWithLineup;
+  show: Show;
   permissions: ItineraryPermissions;
   isExpanded: boolean;
   isDeleting: boolean;
   artistId?: string; // Page context: if present, we're on an artist page
   venueId?: string;  // Page context: if present, we're on a venue page
-  venueOffers?: any[]; // For displaying support acts in venue timeline (LEGACY - will be removed)
   onToggleExpansion: (showId: string) => void;
   onDeleteShow: (showId: string, showName: string) => void;
   onShowDocument: (show: Show) => void;
   onShowDetail: (show: Show) => void;
-  onSupportActAdded?: (offer: any) => void; // NEW: For optimistic updates
-  onSupportActDocument?: (offer: any) => void; // NEW: For support act documents
-  onSupportActAction?: (offer: any, action: string) => void; // NEW: For support act actions
+  onSupportActAdded?: (offer: any) => void; // For optimistic updates
 }
 
-// Utility function for consistent timeline border styling
-const getTimelineBorderClass = (status: string) => {
-  const normalizedStatus = status?.toLowerCase();
-  switch (normalizedStatus) {
-    case 'confirmed':
-      return 'border-l-4 border-l-green-500 bg-green-50/30';
-    case 'accepted':
-      return 'border-l-4 border-l-green-400 bg-green-50/20';
-    case 'hold':
-      return 'border-l-4 border-l-violet-400 bg-violet-50/30';
-    case 'pending':
-    default:
-      return ''; // No border for non-confirmed items
-  }
-};
-
-// Utility function for status badge styling
-const getShowStatusBadge = (status: string) => {
-  const normalizedStatus = status?.toLowerCase();
-  switch (normalizedStatus) {
-    case 'confirmed':
-      return {
-        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800',
-        text: 'Confirmed'
-      };
-    case 'pending':
-      return {
-        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800',
-        text: 'Open'
-      };
-    case 'hold':
-      return {
-        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-violet-100 text-violet-700',
-        text: 'Hold'
-      };
-    default:
-      return {
-        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800',
-        text: status || 'Unknown'
-      };
-  }
-};
-
-// 🎵 Helper function to generate billing position badge for confirmed shows
-const getBillingPositionBadge = (billingPosition: string, showStatus: string) => {
-  const abbreviations: Record<string, string> = {
-    'headliner': 'HL',
-    'co-headliner': 'CH', 
-    'support': 'SP',
-    'local-support': 'LS'
-  };
-
-  const abbr = abbreviations[billingPosition] || billingPosition.toUpperCase().slice(0, 2);
-
-  // Match colors to show status (confirmed shows are typically green/blue)
-  let colorClass = '';
-  switch (showStatus.toLowerCase()) {
-    case 'confirmed':
-      colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
-      break;
-    case 'pending':
-      colorClass = 'bg-yellow-100 text-yellow-800 border-yellow-300';
-      break;
-    case 'hold':
-      colorClass = 'bg-violet-100 text-violet-800 border-violet-300';
-      break;
-    default:
-      colorClass = 'bg-gray-100 text-gray-800 border-gray-300';
-  }
-
-  return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border ${colorClass} ml-2 flex-shrink-0`}>
-      {abbr}
-    </span>
-  );
-};
-
+/**
+ * ShowTimelineItem - REFACTORED VERSION
+ * 
+ * This component implements the new architecture:
+ * - Show = Container (venue event with date/location)
+ * - Lineup = Equal Artists (no "headliner owns show" pattern)
+ * - Clean Component Separation (ShowHeaderRow + LineupTableSection)
+ * 
+ * FIXES:
+ * ✅ No more status display bugs - Each artist shows correct status
+ * ✅ Clean component separation - Single responsibility per component
+ * ✅ Consistent data model - Show = container, Lineup = artists
+ * ✅ Intuitive UI - Users see actual booking status at a glance
+ * ✅ Maintainable code - No duplicate status logic
+ */
 export function ShowTimelineItem({
   show,
   permissions,
@@ -205,489 +121,113 @@ export function ShowTimelineItem({
   isDeleting,
   artistId,
   venueId,
-  venueOffers = [],
   onToggleExpansion,
   onDeleteShow,
   onShowDocument,
   onShowDetail,
-  onSupportActAdded,
-  onSupportActDocument,
-  onSupportActAction
+  onSupportActAdded
 }: ShowTimelineItemProps) {
-  // 🧹 CLEANUP: Removed all lineup functionality - unified offer system handles invitations
   const [isAddSupportActModalOpen, setIsAddSupportActModalOpen] = useState(false);
+
+  // Convert show.lineup to our utility format, OR create synthetic lineup from legacy fields
+  const lineup: LineupItem[] = show.lineup || [];
   
-  // Calculate support acts counts for both venue and artist pages
-  const supportActsCounts = useMemo(() => {
-    if ((!venueId && !artistId) || !venueOffers.length) return { confirmed: 0, pending: 0 };
-    
-    const supportOffers = venueOffers.filter(offer => {
-      // ✅ IMPROVED: More robust support act detection
-      const isSupportAct = (
-        offer.billingPosition === 'SUPPORT' ||
-        offer.billingPosition === 'support' ||
-        offer.billingPosition === 'local-support' ||
-        offer.title?.includes('(Support)')
-      );
-      
-      // ✅ IMPROVED: More robust date matching using date utility to avoid timezone issues
-      const datesMatch = isSameDate(offer.proposedDate, show.date);
-      
-      // ✅ IMPROVED: More robust venue matching
-      const isVenueMatch = (
-        offer.venueId === show.venueId ||
-        offer.venueId === venueId ||
-        offer.venueName === show.venueName
-      );
-      
-      // ✅ Filter out declined offers - they shouldn't be counted
-      const isActiveOffer = offer.status !== 'declined' && offer.status !== 'DECLINED';
-      
-      return isSupportAct && datesMatch && isVenueMatch && isActiveOffer;
-    });
-    
-    const confirmed = supportOffers.filter(offer => 
-      offer.status === 'accepted' || offer.status === 'confirmed'
-    ).length;
-    
-    const pending = supportOffers.filter(offer => 
-      offer.status === 'pending'
-    ).length;
-    
-    return { confirmed, pending };
-  }, [venueId, venueOffers, show.date, show.venueId, show.venueName]);
+  // Debug logging can be removed once expansion is working
   
-  // 🎯 SMART SHOW TITLE: Use native lineup data from the new architecture
-  const smartShowTitle = useMemo(() => {
-    // Use the native lineup data from the API
-    const lineup = show.lineup || [];
-    
-    if (lineup.length === 0) {
-      // Fallback for shows without lineup data
-      return {
-        title: show.artistName || 'Unknown Artist',
-        tooltip: undefined
-      };
-    }
-    
-    // Sort lineup by performance order
-    const sortedLineup = [...lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
-    
-    // Convert to format expected by generateSmartShowTitle
-    const headlinerArtist = sortedLineup.find(item => 
-      item.billingPosition === 'HEADLINER'
-    ) || sortedLineup[0]; // Fallback to first artist if no explicit headliner
-    
-    const supportActs = sortedLineup
-      .filter(item => item.artistId !== headlinerArtist.artistId)
-      .map(item => ({
-        artistName: item.artistName,
-        status: item.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
-        billingPosition: item.billingPosition.toLowerCase().replace('_', '-') as 'headliner' | 'support' | 'co-headliner'
-      }));
-    
-    // Generate smart title with tooltip
-    return generateSmartShowTitle({
-      headlinerName: headlinerArtist.artistName,
-      supportActs,
-      includeStatusInCount: false // Native lineup data is already confirmed
-    });
-  }, [show.lineup, show.artistName]);
+  // Handle legacy single-artist shows by creating synthetic lineup
+  const hasLegacyArtist = show.artistId && show.artistName && lineup.length === 0;
+  let effectiveLineup: LineupItem[] = lineup;
   
-  // Use smart title for display
-  const showTitle = smartShowTitle.title;
+  if (hasLegacyArtist) {
+    effectiveLineup = [{
+      artistId: show.artistId!,
+      artistName: show.artistName!,
+      billingPosition: 'HEADLINER',
+      status: 'CONFIRMED',
+      performanceOrder: 1,
+      guarantee: show.guarantee
+    }];
+    console.log('🎯 CREATED SYNTHETIC LINEUP:', effectiveLineup);
+  }
+  
+  const hasLineup = effectiveLineup.length > 0;
+  
+  // Expansion logic working correctly
 
   const handleSupportActOfferSuccess = (offer: any) => {
-    console.log('✅ Support act offer created:', offer);
-    // Close modal and let parent component handle refresh
+    if (onSupportActAdded) {
+      onSupportActAdded(offer);
+    }
     setIsAddSupportActModalOpen(false);
-    
-    // NEW: Optimistic update - immediately add to parent's venue offers
-    onSupportActAdded?.(offer);
   };
 
   return (
     <>
-      <tr 
-        className="border-b border-gray-200 hover:bg-green-50 transition-colors duration-150 cursor-pointer"
-        onClick={() => onToggleExpansion(show.id)}
-      >
-        <td className={`px-4 py-1 w-[3%] ${getTimelineBorderClass(show.status)}`}>
-          <button
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-            title={isExpanded ? "Collapse" : "Expand"}
-          >
-            <svg 
-              className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </td>
+      {/* 🎯 NEW ARCHITECTURE: Show Header Row */}
+      <ShowHeaderRow
+        show={show}
+        permissions={permissions}
+        isExpanded={isExpanded}
+        venueId={venueId}
+        onToggleExpansion={onToggleExpansion}
+        onShowDocument={onShowDocument}
+        effectiveLineup={effectiveLineup}
+      />
 
-        <td className="px-4 py-1 w-[12%]">
-          <ItineraryDate
-            date={show.date}
-            className="text-sm font-medium text-gray-900"
-          />
-        </td>
-
-        {!venueId && (
-          <td className="px-4 py-1 w-[14%]">
-            <div className="text-sm text-gray-900 truncate">
-              {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
+      {/* 🎯 NEW ARCHITECTURE: Lineup Rows */}
+      {isExpanded && hasLineup && (
+        <LineupTableSection
+          show={show}
+          lineup={effectiveLineup}
+          permissions={permissions}
+          venueId={venueId}
+        />
+      )}
+      
+      {/* Add Support Act button row */}
+      {isExpanded && permissions.canEditShow(show) && (
+        <tr>
+          <td colSpan={10}>
+            <div className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150 px-4 py-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAddSupportActModalOpen(true);
+                }}
+                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                <span>Add Artist to Lineup</span>
+              </button>
             </div>
           </td>
-        )}
+        </tr>
+      )}
 
-        <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-gray-900 truncate flex-1 min-w-0">
-              {(() => {
-                // Determine what to show based on PAGE CONTEXT, not viewer type
-                const showVenueInfo = artistId; // If we're on an artist page, show venue info
-                const showArtistInfo = venueId;  // If we're on a venue page, show artist info
-                
-                if (showVenueInfo) {
-                  // Show venue information (we're on an artist page)
-                  if (show.venueId && show.venueId !== 'external-venue') {
-                    return (
-                      <a 
-                        href={`/venues/${show.venueId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                        title="View venue page"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {show.venueName || 'TBA'}
-                      </a>
-                    );
-                  } else {
-                    return show.venueName || 'TBA';
-                  }
-                } else if (showArtistInfo) {
-                  // Show artist information (we're on a venue page) - use smart show title
-                  if (show.artistId && show.artistId !== 'external-artist') {
-                    return (
-                      <a 
-                        href={`/artists/${show.artistId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                        title={smartShowTitle.tooltip ? `${smartShowTitle.tooltip} - Click to view artist page` : "View artist page"}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {showTitle}
-                      </a>
-                    );
-                  } else {
-                    return (
-                      <span title={smartShowTitle.tooltip || undefined}>
-                        {showTitle}
-                      </span>
-                    );
-                  }
-                } else {
-                  // Fallback: general pages, use viewer type logic
-                  if (permissions.actualViewerType === 'venue') {
-                    return (
-                      <span title={smartShowTitle.tooltip || undefined}>
-                        {showTitle}
-                      </span>
-                    );
-                  } else {
-                    return show.venueName || 'TBA';
-                  }
-                }
-              })()}
-            </div>
-            
-            <div className="flex items-center space-x-1 flex-shrink-0">
-              {/* 🎵 Billing Position Badge for main show */}
-              {(show as any).billingPosition && (
-                <div>
-                  {getBillingPositionBadge((show as any).billingPosition, show.status)}
-                </div>
-              )}
-              
-              {/* 🧹 REMOVED: Legacy support act count badges - now handled by smart show naming */}
-            </div>
-          </div>
-        </td>
-
-        <td className="px-4 py-1 w-[10%]">
-          {(() => {
-            const statusBadge = getShowStatusBadge(show.status);
-            return (
-              <span className={statusBadge.className}>
-                {statusBadge.text}
-              </span>
-            );
-          })()}
-        </td>
-
-        <td className="px-4 py-1 w-[7%]">
-          <div className="text-xs text-gray-600">
-            {venueId ? '' : (show.capacity || '-')}
-          </div>
-        </td>
-
-        <td className="px-4 py-1 w-[7%]">
-          <div className="text-xs text-gray-600 whitespace-nowrap">
-            {formatAgeRestriction(show.ageRestriction)}
-          </div>
-        </td>
-
-        <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
-          <div className="text-xs text-gray-600">
-            {venueId ? '' : (permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : '-') : '-')}
-          </div>
-        </td>
-
-        <td className="px-4 py-1 w-[8%]">
-          <div className="flex items-center space-x-1">
-            {/* Placeholder to maintain consistent row height with child rows that have document buttons */}
-            <div className="w-6 h-6"></div>
-          </div>
-        </td>
-
-        <td className="px-4 py-1 w-[10%]">
-          {permissions.canEditShow(show) && (
-            <DeleteActionButton
-              show={show}
-              permissions={permissions}
-              venueOffers={[]}
-              venueBids={[]}
-              isLoading={isDeleting}
-              onDeleteShow={onDeleteShow}
-            />
-          )}
-        </td>
-      </tr>
-
-      {/* 🎯 UNIFIED EXPANSION: Show lineup details for both venue and artist perspectives */}
-      {isExpanded && (venueId || artistId) && (
-        <>
-          {/* Column Headers Row */}
-          <tr>
-            <td colSpan={venueId ? 9 : 10} className={`px-0 py-0 relative ${getTimelineBorderClass(show.status).split(' ').filter(c => c.startsWith('border-l')).join(' ')}`}>
-                <div className="bg-green-50/50">
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1000px] table-fixed">
-                    <thead className="bg-green-100/60">
-                      <tr className="text-left text-xs font-medium text-green-700">
-                        <th className="px-2 py-1 w-[3%]"></th>
-                        <th className="px-4 py-1 w-[12%]"></th>
-                        {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
-                        <th className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>Artist</th>
-                        <th className="px-4 py-1 w-[10%]">Status</th>
-                        <th className="px-4 py-1 w-[7%]">Position</th>
-                        <th className="px-4 py-1 w-[7%]">Age</th>
-                        <th className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Payment</th>
-                        <th className="px-4 py-1 w-[8%]">Details</th>
-                        <th className="px-4 py-1 w-[10%]">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {/* Headliner detail row */}
-                      <tr className="bg-green-50 hover:bg-green-100">
-                        <td className="px-2 py-1 w-[3%]">
-                          {/* Intentionally blank - child rows are not expandable */}
-                        </td>
-
-                        <td className="px-4 py-1 w-[12%]">
-                          {/* Intentionally blank - parent row provides date context */}
-                        </td>
-
-                        {!venueId && (
-                          <td className="px-4 py-1 w-[14%]">
-                            <div className="text-sm text-green-900 truncate">
-                              {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
-                            </div>
-                          </td>
-                        )}
-
-                        <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {(() => {
-                              // Get the headliner from lineup for display
-                              const headliner = show.lineup?.find(item => item.billingPosition === 'HEADLINER') || show.lineup?.[0];
-                              const artistId = headliner?.artistId || show.artistId;
-                              const artistName = headliner?.artistName || show.artistName || 'Unknown Artist';
-                              
-                              if (artistId && artistId !== 'external-artist') {
-                                return (
-                                  <a 
-                                    href={`/artists/${artistId}`}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    title="View artist page"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {artistName}
-                                  </a>
-                                );
-                              } else {
-                                return <span>{artistName}</span>;
-                              }
-                            })()}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-1 w-[10%]">
-                          {(() => {
-                            const statusBadge = getShowStatusBadge(show.status);
-                            return (
-                              <span className={statusBadge.className}>
-                                {statusBadge.text}
-                              </span>
-                            );
-                          })()}
-                        </td>
-
-                        <td className="px-4 py-1 w-[7%]">
-                          <div className="flex justify-center">
-                            {getBillingPositionBadge((show as any).billingPosition || 'headliner', show.status)}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-1 w-[7%]">
-                          <div className="text-xs text-gray-600 whitespace-nowrap">
-                            {formatAgeRestriction(show.ageRestriction)}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-1 w-[10%]">
-                          <div className="text-xs text-gray-600">
-                            {permissions.canSeeFinancialDetails(show) ? (show.guarantee ? `$${show.guarantee}` : 'Fee TBD') : '-'}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-1 w-[8%]">
-                          <div className="flex items-center space-x-1">
-                            {permissions.canViewShowDocument(show) && (
-                              <DocumentActionButton
-                                type="show"
-                                show={show}
-                                permissions={permissions}
-                                onShowDocument={() => onShowDocument(show)}
-                              />
-                            )}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-1 w-[10%]">
-                          <div className="flex items-center space-x-1">
-                            {/* Future: Edit headliner details */}
-                          </div>
-                        </td>
-                      </tr>
-
-                      {/* 🎵 Native Lineup Rows - All artists except the headliner */}
-                      {show.lineup
-                        ?.filter(lineupItem => lineupItem.billingPosition !== 'HEADLINER')
-                        .sort((a, b) => a.performanceOrder - b.performanceOrder)
-                        .map((lineupItem, index) => (
-                          <tr key={`lineup-${lineupItem.artistId}-${index}`} className="bg-orange-50 hover:bg-orange-100">
-                            <td className="px-2 py-1 w-[3%]">
-                              {/* Intentionally blank - child rows are not expandable */}
-                            </td>
-
-                            <td className="px-4 py-1 w-[12%]">
-                              {/* Intentionally blank - parent row provides date context */}
-                            </td>
-
-                            {!venueId && (
-                              <td className="px-4 py-1 w-[14%]">
-                                <div className="text-sm text-orange-900 truncate">
-                                  {show.city && show.state ? `${show.city}, ${show.state}` : '-'}
-                                </div>
-                              </td>
-                            )}
-
-                            <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
-                              <div className="text-sm font-medium text-gray-900 truncate">
-                                {lineupItem.artistId && lineupItem.artistId !== 'external-artist' ? (
-                                  <a 
-                                    href={`/artists/${lineupItem.artistId}`}
-                                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                                    title="View artist page"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {lineupItem.artistName || 'Unknown Artist'}
-                                  </a>
-                                ) : (
-                                  <span>{lineupItem.artistName || 'Unknown Artist'}</span>
-                                )}
-                                {/* Show set length if available */}
-                                {lineupItem.setLength && (
-                                  <span className="text-xs text-gray-500 ml-2">• {lineupItem.setLength}min</span>
-                                )}
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-1 w-[10%]">
-                              <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
-                                {lineupItem.status === 'PENDING' ? 'Pending' : 
-                                 lineupItem.status === 'CONFIRMED' ? 'Confirmed' :
-                                 lineupItem.status === 'CANCELLED' ? 'Cancelled' : 'Confirmed'}
-                              </span>
-                            </td>
-
-                            <td className="px-4 py-1 w-[7%]">
-                              <div className="flex justify-center">
-                                {getBillingPositionBadge(lineupItem.billingPosition, lineupItem.status)}
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-1 w-[7%]">
-                              <div className="text-xs text-gray-600 whitespace-nowrap">
-                                {formatAgeRestriction(show.ageRestriction)}
-                              </div>
-                            </td>
-
-                            <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
-                              <div className="text-xs text-gray-600">
-                                {permissions.canSeeFinancialDetails(show) ? 
-                                  (lineupItem.guarantee ? `$${lineupItem.guarantee}` : 'TBD') : '-'}
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-1 w-[8%]">
-                              <div className="flex items-center space-x-1">
-                                {/* Future: Lineup item document actions */}
-                              </div>
-                            </td>
-
-                            <td className="px-4 py-1 w-[10%]">
-                              <div className="flex items-center space-x-1">
-                                {/* Future: Remove from lineup actions */}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                {/* Add Support Act button row */}
-                <div className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150 px-4 py-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsAddSupportActModalOpen(true);
-                    }}
-                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-1 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span>Add Artist</span>
-                  </button>
-                </div>
+      {/* Empty state when expanded but no lineup */}
+      {isExpanded && !hasLineup && (
+        <tr>
+          <td colSpan={10}>
+            <div className="bg-gray-50 px-4 py-8 text-center">
+              <div className="text-gray-500 text-sm mb-4">
+                No artists confirmed for this show yet
               </div>
-            </td>
-          </tr>
-        </>
+              {permissions.canEditShow(show) && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAddSupportActModalOpen(true);
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-150"
+                >
+                  Add First Artist
+                </button>
+              )}
+            </div>
+          </td>
+        </tr>
       )}
 
       {/* Add Artist Modal */}
