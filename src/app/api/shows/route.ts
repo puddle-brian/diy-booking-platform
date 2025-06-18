@@ -306,13 +306,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Check for date conflicts
+    // Check for date conflicts - check if venue already has a show on this date
     const conflictingShow = await prisma.show.findFirst({
       where: {
-        OR: [
-          { artistId: artist.id },
-          { venueId: venue.id }
-        ],
+        venueId: venue.id,
         date: new Date(body.date),
         status: { not: 'CANCELLED' }
       }
@@ -320,17 +317,16 @@ export async function POST(request: NextRequest) {
     
     if (conflictingShow) {
       return NextResponse.json(
-        { error: 'Date conflict: Artist or venue already has a show on this date' },
+        { error: 'Date conflict: Venue already has a show on this date' },
         { status: 409 }
       );
     }
     
-    // Create new show
-    const newShow = await prisma.show.create({
+    // Create new show with lineup architecture
+    const newShow = await (prisma.show as any).create({
       data: {
         title: body.title || `${artist.name} at ${venue.name}`,
         date: new Date(body.date),
-        artistId: artist.id,
         venueId: venue.id,
         description: body.notes || body.description,
         ticketPrice: body.ticketPrice ? parseFloat(body.ticketPrice) : null,
@@ -338,14 +334,32 @@ export async function POST(request: NextRequest) {
           body.ageRestriction.toUpperCase().replace('-', '_') as AgeRestriction : 
           'ALL_AGES',
         status: (body.status?.toUpperCase() || 'CONFIRMED') as ShowStatus,
-        createdById: userAuth.userId
+        createdById: userAuth.userId,
+        // Create lineup entry for the artist
+        lineup: {
+          create: {
+            artistId: artist.id,
+            billingPosition: 'HEADLINER',
+            performanceOrder: 1,
+            setLength: body.setLength || 75,
+            guarantee: body.guarantee || null,
+            status: 'CONFIRMED'
+          }
+        }
       },
       include: {
-        artist: {
-          select: {
-            id: true,
-            name: true,
-            genres: true
+        lineup: {
+          include: {
+            artist: {
+              select: {
+                id: true,
+                name: true,
+                genres: true
+              }
+            }
+          },
+          orderBy: {
+            performanceOrder: 'asc'
           }
         },
         venue: {
@@ -375,19 +389,22 @@ export async function POST(request: NextRequest) {
       await resolveShowRequestConflicts(newShow);
     }
 
-    console.log(`🎵 New show confirmed: ${newShow.artist.name} at ${newShow.venue.name} on ${newShow.date}`);
+    // Get the headliner from lineup for backwards compatibility
+    const headliner = newShow.lineup?.find((l: any) => l.billingPosition === 'HEADLINER') || newShow.lineup?.[0];
+
+    console.log(`🎵 New show confirmed: ${headliner?.artist?.name} at ${newShow.venue.name} on ${newShow.date}`);
 
     // Transform to match expected format
     const transformedShow = {
       id: newShow.id,
-      artistId: newShow.artistId,
+      artistId: headliner?.artistId || null,
       venueId: newShow.venueId,
       date: newShow.date.toISOString().split('T')[0],
       city: newShow.venue.location.city,
       state: newShow.venue.location.stateProvince || '',
       country: newShow.venue.location.country,
       venueName: newShow.venue.name,
-      artistName: newShow.artist.name,
+      artistName: headliner?.artist?.name || 'TBA',
       title: newShow.title,
       status: newShow.status.toLowerCase(),
       ticketPrice: newShow.ticketPrice ? { door: newShow.ticketPrice } : null,
@@ -399,7 +416,7 @@ export async function POST(request: NextRequest) {
         return 'all-ages';
       })(),
       description: newShow.description,
-      guarantee: newShow.guarantee,
+      guarantee: headliner?.guarantee || null,
       doorDeal: newShow.doorDeal,
       capacity: newShow.capacity,
       loadIn: newShow.loadIn,
@@ -410,7 +427,17 @@ export async function POST(request: NextRequest) {
       notes: newShow.notes,
       createdAt: newShow.createdAt.toISOString(),
       updatedAt: newShow.updatedAt.toISOString(),
-      createdBy: newShow.createdBy.username
+      createdBy: newShow.createdBy.username,
+      // NEW: Include full lineup information
+      lineup: newShow.lineup?.map((lineupEntry: any) => ({
+        artistId: lineupEntry.artistId,
+        artistName: lineupEntry.artist.name,
+        billingPosition: lineupEntry.billingPosition,
+        performanceOrder: lineupEntry.performanceOrder,
+        setLength: lineupEntry.setLength,
+        guarantee: lineupEntry.guarantee,
+        status: lineupEntry.status
+      })) || []
     };
 
     return NextResponse.json(transformedShow, { status: 201 });

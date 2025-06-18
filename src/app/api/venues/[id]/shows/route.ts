@@ -16,8 +16,8 @@ export async function GET(
       return NextResponse.json({ error: 'Date parameter required' }, { status: 400 });
     }
 
-    // Query for confirmed shows on this date
-    const shows = await prisma.show.findMany({
+    // Query for confirmed shows on this date with lineup
+    const shows = await (prisma.show as any).findMany({
       where: {
         venueId: venueId,
         date: {
@@ -27,9 +27,16 @@ export async function GET(
         status: 'CONFIRMED'
       },
       include: {
-        artist: {
-          select: {
-            name: true
+        lineup: {
+          include: {
+            artist: {
+              select: {
+                name: true
+              }
+            }
+          },
+          orderBy: {
+            performanceOrder: 'asc'
           }
         }
       }
@@ -57,12 +64,15 @@ export async function GET(
 
     // Combine and format the response
     const allShows = [
-      ...shows.map(show => ({
-        id: show.id,
-        billingPosition: (show as any).billingPosition || null,
-        artistName: show.artist?.name,
-        type: 'show'
-      })),
+      // Transform shows with lineup to maintain backwards compatibility
+      ...shows.flatMap((show: any) => 
+        show.lineup.map((lineupEntry: any) => ({
+          id: show.id,
+          billingPosition: lineupEntry.billingPosition,
+          artistName: lineupEntry.artist?.name,
+          type: 'show'
+        }))
+      ),
       ...acceptedOffers.map(offer => ({
         id: offer.id,
         billingPosition: offer.billingPosition,
