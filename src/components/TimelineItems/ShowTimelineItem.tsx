@@ -9,7 +9,21 @@ import { isSameDate } from '../../utils/dateUtils';
 import { generateSmartShowTitle } from '../../utils/showNaming';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 
-// 🧹 CLEANUP: Removed LineupBid interface - unified offer system
+// 🎵 NEW: Lineup item interface for the new architecture
+interface LineupItem {
+  artistId: string;
+  artistName: string;
+  billingPosition: 'HEADLINER' | 'CO_HEADLINER' | 'SUPPORT' | 'OPENER' | 'LOCAL_SUPPORT';
+  performanceOrder: number;
+  setLength?: number;
+  guarantee?: number;
+  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+}
+
+// 🎵 Extended Show interface to include lineup
+interface ShowWithLineup extends Show {
+  lineup?: LineupItem[];
+}
 
 // Helper functions to convert support offers to synthetic format for document viewing
 function createSyntheticRequest(supportOffer: any) {
@@ -91,13 +105,13 @@ function createSyntheticBid(supportOffer: any) {
 }
 
 interface ShowTimelineItemProps {
-  show: Show;
+  show: ShowWithLineup;
   permissions: ItineraryPermissions;
   isExpanded: boolean;
   isDeleting: boolean;
   artistId?: string; // Page context: if present, we're on an artist page
   venueId?: string;  // Page context: if present, we're on a venue page
-  venueOffers?: any[]; // For displaying support acts in venue timeline
+  venueOffers?: any[]; // For displaying support acts in venue timeline (LEGACY - will be removed)
   onToggleExpansion: (showId: string) => void;
   onDeleteShow: (showId: string, showName: string) => void;
   onShowDocument: (show: Show) => void;
@@ -243,103 +257,42 @@ export function ShowTimelineItem({
     return { confirmed, pending };
   }, [venueId, venueOffers, show.date, show.venueId, show.venueName]);
   
-  // 🎯 PARSE MULTI-ARTIST LINEUP from notes field
-  const parseLineupFromNotes = (notes: string | null | undefined) => {
-    if (!notes || !notes.includes('LINEUP:')) {
-      return [];
-    }
-    
-    // Extract lineup from notes: "LINEUP: Against Me! (headliner) + The Menzingers + Joyce Manor + Local Opener TBD"
-    const lineupMatch = notes.match(/LINEUP:\s*(.+)/);
-    if (!lineupMatch) return [];
-    
-    const lineupText = lineupMatch[1];
-    const artists = lineupText.split('+').map(artist => artist.trim());
-    
-    // Parse each artist and their billing position
-    return artists.slice(1).map(artistText => { // Skip first artist (headliner)
-      const positionMatch = artistText.match(/(.+?)\s*\((.+?)\)$/);
-      if (positionMatch) {
-        return {
-          artistName: positionMatch[1].trim(),
-          status: 'accepted' as const,
-          billingPosition: positionMatch[2].trim() as any
-        };
-      }
-      return {
-        artistName: artistText.trim(),
-        status: 'accepted' as const,
-        billingPosition: 'support' as const
-      };
-    });
-  };
-
-  // 🎯 SMART SHOW TITLE: Universal naming system with multi-artist lineup support
+  // 🎯 SMART SHOW TITLE: Use native lineup data from the new architecture
   const smartShowTitle = useMemo(() => {
-    // 🎯 FIRST: Try to parse lineup from show notes (for confirmed multi-artist shows)
-    const lineupFromNotes = parseLineupFromNotes(show.notes);
+    // Use the native lineup data from the API
+    const lineup = show.lineup || [];
     
-    if (lineupFromNotes.length > 0) {
-      // Use lineup from notes field
-      const headlinerName = show.artist?.name || show.artistName || 'Unknown Artist';
-      
-      return generateSmartShowTitle({
-        headlinerName,
-        supportActs: lineupFromNotes,
-        includeStatusInCount: false // These are already confirmed
-      });
+    if (lineup.length === 0) {
+      // Fallback for shows without lineup data
+      return {
+        title: show.artistName || 'Unknown Artist',
+        tooltip: undefined
+      };
     }
     
-    // 🎯 FALLBACK: Use venue offers system (for dynamic support act management)
-    // Get all artists for this specific show date and venue (main show + support offers)
-    const allShowArtists = [];
+    // Sort lineup by performance order
+    const sortedLineup = [...lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
     
-    // Add the main show artist
-    allShowArtists.push({
-      artistName: show.artist?.name || show.artistName || 'Unknown Artist',
-      status: 'accepted' as const,
-      billingPosition: (show as any).billingPosition as 'headliner' | 'support' | 'co-headliner'
-    });
+    // Convert to format expected by generateSmartShowTitle
+    const headlinerArtist = sortedLineup.find(item => 
+      item.billingPosition === 'HEADLINER'
+    ) || sortedLineup[0]; // Fallback to first artist if no explicit headliner
     
-    // Add support acts for this show date
-    const supportActsForThisShow = venueOffers?.filter(offer => {
-      const offerDate = offer.proposedDate?.split('T')[0];
-      const showDate = show.date?.split('T')[0];
-      
-      // Match by date and venue context
-      return offerDate === showDate && 
-             offer.status !== 'declined' && 
-             offer.status !== 'cancelled';
-    }) || [];
-    
-    // Add support acts to all artists
-    supportActsForThisShow.forEach(offer => {
-      allShowArtists.push({
-        artistName: offer.artistName || 'Unknown Artist',
-        status: offer.status as 'pending' | 'accepted' | 'declined' | 'cancelled',
-        billingPosition: offer.billingPosition as 'headliner' | 'support' | 'co-headliner'
-      });
-    });
-    
-    // 🎯 HEADLINER DETECTION: Find the actual headliner based on billingPosition
-    const headlinerArtist = allShowArtists.find(artist => 
-      artist.billingPosition === 'headliner'
-    ) || allShowArtists[0]; // Fallback to first artist if no explicit headliner
-    
-    // Get all other artists as support acts
-    const supportActs = allShowArtists.filter(artist => 
-      artist.artistName !== headlinerArtist.artistName
-    );
+    const supportActs = sortedLineup
+      .filter(item => item.artistId !== headlinerArtist.artistId)
+      .map(item => ({
+        artistName: item.artistName,
+        status: item.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
+        billingPosition: item.billingPosition.toLowerCase().replace('_', '-') as 'headliner' | 'support' | 'co-headliner'
+      }));
     
     // Generate smart title with tooltip
-    const { title, tooltip } = generateSmartShowTitle({
+    return generateSmartShowTitle({
       headlinerName: headlinerArtist.artistName,
       supportActs,
-      includeStatusInCount: true // Include pending support acts in count
+      includeStatusInCount: false // Native lineup data is already confirmed
     });
-    
-    return { title, tooltip };
-  }, [show.artistName, show.artist?.name, show.notes, show.date, venueOffers, (show as any).billingPosition]);
+  }, [show.lineup, show.artistName]);
   
   // Use smart title for display
   const showTitle = smartShowTitle.title;
@@ -556,18 +509,27 @@ export function ShowTimelineItem({
 
                         <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                           <div className="text-sm font-medium text-gray-900 truncate">
-                            {show.artistId && show.artistId !== 'external-artist' ? (
-                              <a 
-                                href={`/artists/${show.artistId}`}
-                                className="text-blue-600 hover:text-blue-800 hover:underline"
-                                title="View artist page"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {show.artistName || 'Unknown Artist'}
-                              </a>
-                            ) : (
-                              <span>{show.artistName || 'Unknown Artist'}</span>
-                            )}
+                            {(() => {
+                              // Get the headliner from lineup for display
+                              const headliner = show.lineup?.find(item => item.billingPosition === 'HEADLINER') || show.lineup?.[0];
+                              const artistId = headliner?.artistId || show.artistId;
+                              const artistName = headliner?.artistName || show.artistName || 'Unknown Artist';
+                              
+                              if (artistId && artistId !== 'external-artist') {
+                                return (
+                                  <a 
+                                    href={`/artists/${artistId}`}
+                                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                                    title="View artist page"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {artistName}
+                                  </a>
+                                );
+                              } else {
+                                return <span>{artistName}</span>;
+                              }
+                            })()}
                           </div>
                         </td>
 
@@ -620,34 +582,12 @@ export function ShowTimelineItem({
                         </td>
                       </tr>
 
-                      {/* Support act rows - standardized height with py-1 */}
-                      {venueOffers
-                        .filter(offer => {
-                          // ✅ IMPROVED: More robust support act detection
-                          const isSupportAct = (
-                                      offer.billingPosition === 'SUPPORT' ||
-          offer.billingPosition === 'support' ||
-          offer.billingPosition === 'local-support' ||
-                            offer.title?.includes('(Support)')
-                          );
-                          
-                          // ✅ IMPROVED: More robust date matching using date strings to avoid timezone issues
-                          const datesMatch = isSameDate(offer.proposedDate, show.date);
-                          
-                          // ✅ IMPROVED: More robust venue matching
-                          const isVenueMatch = (
-                            offer.venueId === show.venueId ||
-                            offer.venueId === venueId ||
-                            offer.venueName === show.venueName
-                          );
-                          
-                          // ✅ NEW: Filter out declined offers - they shouldn't clutter the timeline
-                          const isActiveOffer = offer.status !== 'declined' && offer.status !== 'DECLINED';
-                          
-                          return isSupportAct && datesMatch && isVenueMatch && isActiveOffer;
-                        })
-                        .map((supportOffer, index) => (
-                          <tr key={`support-${supportOffer.id}`} className="bg-orange-50 hover:bg-orange-100">
+                      {/* 🎵 Native Lineup Rows - All artists except the headliner */}
+                      {show.lineup
+                        ?.filter(lineupItem => lineupItem.billingPosition !== 'HEADLINER')
+                        .sort((a, b) => a.performanceOrder - b.performanceOrder)
+                        .map((lineupItem, index) => (
+                          <tr key={`lineup-${lineupItem.artistId}-${index}`} className="bg-orange-50 hover:bg-orange-100">
                             <td className="px-2 py-1 w-[3%]">
                               {/* Intentionally blank - child rows are not expandable */}
                             </td>
@@ -666,36 +606,36 @@ export function ShowTimelineItem({
 
                             <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
                               <div className="text-sm font-medium text-gray-900 truncate">
-                                {supportOffer.artistId && supportOffer.artistId !== 'external-artist' ? (
+                                {lineupItem.artistId && lineupItem.artistId !== 'external-artist' ? (
                                   <a 
-                                    href={`/artists/${supportOffer.artistId}`}
+                                    href={`/artists/${lineupItem.artistId}`}
                                     className="text-blue-600 hover:text-blue-800 hover:underline"
                                     title="View artist page"
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    {supportOffer.artistName || 'Unknown Artist'}
+                                    {lineupItem.artistName || 'Unknown Artist'}
                                   </a>
                                 ) : (
-                                  <span>{supportOffer.artistName || 'Unknown Artist'}</span>
+                                  <span>{lineupItem.artistName || 'Unknown Artist'}</span>
                                 )}
                                 {/* Show set length if available */}
-                                {supportOffer.setLength && (
-                                  <span className="text-xs text-gray-500 ml-2">• {supportOffer.setLength}min</span>
+                                {lineupItem.setLength && (
+                                  <span className="text-xs text-gray-500 ml-2">• {lineupItem.setLength}min</span>
                                 )}
                               </div>
                             </td>
 
                             <td className="px-4 py-1 w-[10%]">
                               <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
-                                {supportOffer.status === 'pending' ? 'Pending' : 
-                                 supportOffer.status === 'accepted' ? 'Confirmed' :
-                                 supportOffer.status === 'declined' ? 'Declined' : 'Unknown'}
+                                {lineupItem.status === 'PENDING' ? 'Pending' : 
+                                 lineupItem.status === 'CONFIRMED' ? 'Confirmed' :
+                                 lineupItem.status === 'CANCELLED' ? 'Cancelled' : 'Confirmed'}
                               </span>
                             </td>
 
                             <td className="px-4 py-1 w-[7%]">
                               <div className="flex justify-center">
-                                {getBillingPositionBadge(supportOffer.billingPosition, supportOffer.status)}
+                                {getBillingPositionBadge(lineupItem.billingPosition, lineupItem.status)}
                               </div>
                             </td>
 
@@ -708,46 +648,19 @@ export function ShowTimelineItem({
                             <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
                               <div className="text-xs text-gray-600">
                                 {permissions.canSeeFinancialDetails(show) ? 
-                                  (supportOffer.amount ? `$${supportOffer.amount}` : 
-                                   supportOffer.doorDeal ? 'Door split' : 'TBD') : '-'}
+                                  (lineupItem.guarantee ? `$${lineupItem.guarantee}` : 'TBD') : '-'}
                               </div>
                             </td>
 
                             <td className="px-4 py-1 w-[8%]">
                               <div className="flex items-center space-x-1">
-                                {/* Support act document actions - specific to the support offer */}
-                                {onSupportActDocument && (
-                                  <DocumentActionButton
-                                    type="request"
-                                    request={createSyntheticRequest(supportOffer)}
-                                    permissions={permissions}
-                                    artistId={supportOffer.artistId}
-                                    venueId={supportOffer.venueId}
-                                    requestBids={[createSyntheticBid(supportOffer)]}
-                                    onRequestDocument={() => onSupportActDocument(supportOffer)}
-                                    onBidDocument={() => onSupportActDocument(supportOffer)}
-                                  />
-                                )}
+                                {/* Future: Lineup item document actions */}
                               </div>
                             </td>
 
                             <td className="px-4 py-1 w-[10%]">
                               <div className="flex items-center space-x-1">
-                                {/* Support act delete button - standardized design */}
-                                {permissions.actualViewerType === 'venue' && permissions.isOwner && onSupportActAction && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onSupportActAction(supportOffer, 'delete');
-                                    }}
-                                    className="inline-flex items-center justify-center w-5 h-5 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
-                                    title="Remove support act from lineup"
-                                  >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={3}>
-                                      <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                                    </svg>
-                                  </button>
-                                )}
+                                {/* Future: Remove from lineup actions */}
                               </div>
                             </td>
                           </tr>

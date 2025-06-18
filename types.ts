@@ -31,6 +31,17 @@ export interface Show {
   venueName: string;
   artistName: string;
   
+  // 🎵 NEW: Native lineup support - replaces complex workarounds
+  lineup?: {
+    artistId: string;
+    artistName: string;
+    billingPosition: 'HEADLINER' | 'CO_HEADLINER' | 'SUPPORT' | 'OPENER' | 'LOCAL_SUPPORT';
+    performanceOrder: number;
+    setLength?: number;
+    guarantee?: number;
+    status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+  }[];
+  
   // 🎯 HOLD MANAGEMENT - Booking Details with sophisticated hold tracking
   status: 'hold' | 'confirmed' | 'cancelled' | 'completed' | 'accepted';
   holdPosition?: 'first' | 'second' | 'third'; // Current hold priority
