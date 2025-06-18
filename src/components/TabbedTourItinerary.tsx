@@ -49,10 +49,16 @@ import { MonthTabNavigation } from './MonthTabNavigation';
 import { ItineraryTableHeader } from './ItineraryTableHeader';
 import { ItineraryEmptyState } from './ItineraryEmptyState';
 import { AddDateButtons } from './AddDateButtons';
+import { ExpandedBidsSection } from './TimelineItems/ExpandedBidsSection';
+import { ShowRequestProcessor } from './TimelineItems/ShowRequestProcessor';
+import { ModalContainer } from './ModalContainer';
+import { ItineraryLoadingStates } from './ItineraryLoadingStates';
 import { generateSmartShowTitle, getBillingPriority } from '../utils/showNaming';
 import { BidService } from '../services/BidService';
 import { AddDateFormModal } from './forms/AddDateFormModal';
 import { useModalState } from '../hooks/useModalState';
+import { useTimelineEntryProcessor } from '../hooks/useTimelineEntryProcessor';
+import { useItineraryEventHandlers } from '../hooks/useItineraryEventHandlers';
 
 interface TabbedTourItineraryProps {
   artistId?: string;
@@ -95,16 +101,7 @@ export default function TabbedTourItinerary({
   // 🎯 REFACTORED: Use centralized state management
   const { state, actions, getSavedActiveMonth, isValidSavedMonth } = useItineraryState();
 
-  // 🎯 REFACTORED: Use centralized permissions hook
-  const permissions = useItineraryPermissions({
-    viewerType,
-    editable,
-    artistId,
-    venueId,
-    venueName
-  });
-
-  // 🎯 REFACTORED: Use custom hook for data fetching
+  // 🎯 REFACTORED: Use centralized data fetching
   const {
     shows,
     tourRequests,
@@ -114,6 +111,19 @@ export default function TabbedTourItinerary({
     fetchError,
     fetchData
   } = useTourItineraryData({ artistId, venueId, venueName });
+
+
+
+  // 🎯 REFACTORED: Use centralized permissions hook
+  const permissions = useItineraryPermissions({
+    viewerType,
+    editable,
+    artistId,
+    venueId,
+    venueName
+  });
+
+
 
   // Keep addDateForm as separate state for now (will refactor later)
   const [addDateForm, setAddDateForm] = useState({
@@ -530,42 +540,12 @@ export default function TabbedTourItinerary({
 
 
 
-  if (loading) {
-    return (
-      <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
-        <div className="animate-pulse">
-          <div className="h-4 bg-gray-300 rounded w-1/4 mb-6"></div>
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="border border-gray-200 rounded-lg p-4">
-                <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-300 rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-gray-300 rounded w-full"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (fetchError) {
-    return (
-      <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
-        <div className="text-red-600 text-center">
-          <p>Error loading itinerary: {fetchError}</p>
-          <button 
-            onClick={fetchData}
-            className="mt-2 text-sm underline hover:no-underline"
-          >
-            Try again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
+    <ItineraryLoadingStates
+      loading={loading}
+      fetchError={fetchError}
+      onRetry={fetchData}
+    >
     <div className="bg-white border border-gray-200 shadow-md rounded-xl overflow-hidden">
       {/* Header */}
       {showTitle && (
@@ -698,389 +678,34 @@ export default function TabbedTourItinerary({
                   bidStatus?: string;
                   bidAmount?: number;
                 };
-                
-                // Get bids for this request
-                let requestBids: VenueBid[] = [];
-                
-
-                
-                                                    if (request.isVenueInitiated && request.originalOfferId) {
-                    
-                    // 🐛 FIX: Even for venue-initiated requests, we need to find ALL competing bids
-                    // The venue offer might be one of several competing bids for the same date/artist
-                    
-                    // Look for other requests with the same date/artist to find the original artist request
-                    const potentialOriginalRequests = tourRequests.filter((sr: any) => 
-                      !(sr as any).isVenueInitiated && 
-                      sr.startDate === request.startDate &&
-                      sr.artistId === request.artistId
-                    );
-                    
-                    if (potentialOriginalRequests.length > 0) {
-                      const originalShowRequestId = potentialOriginalRequests[0].id;
-                      
-                      // Find ALL bids for the original request (this will include competing venues)
-                      requestBids = venueBids.filter(bid => 
-                        bid.showRequestId === originalShowRequestId && 
-                        !declinedBids.has(bid.id)
-                      );
-                    } else {
-                    // Fallback: Create synthetic bid for just this venue
-                    const originalOffer = venueOffers.find(offer => offer.id === request.originalOfferId);
-                    if (originalOffer) {
-                      const bidDate = originalOffer.proposedDate.split('T')[0];
-                      
-                      const syntheticBid: VenueBid = {
-                        id: `offer-bid-${originalOffer.id}`,
-                        showRequestId: request.id,
-                        venueId: originalOffer.venueId,
-                        venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
-                        proposedDate: bidDate,
-                        guarantee: originalOffer.amount,
-                        doorDeal: originalOffer.doorDeal ? {
-                          split: originalOffer.doorDeal.split,
-                          minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
-                        } : undefined,
-                        ticketPrice: originalOffer.ticketPrice || {},
-                        capacity: originalOffer.capacity || originalOffer.venue?.capacity || 0,
-                        ageRestriction: originalOffer.ageRestriction || 'all-ages',
-                        equipmentProvided: originalOffer.equipmentProvided || {
-                          pa: false, mics: false, drums: false, amps: false, piano: false
-                        },
-                        loadIn: originalOffer.loadIn || '',
-                        soundcheck: originalOffer.soundcheck || '',
-                        doorsOpen: originalOffer.doorsOpen || '',
-                        showTime: originalOffer.showTime || '',
-                        curfew: originalOffer.curfew || '',
-                        promotion: originalOffer.promotion || {
-                          social: false, flyerPrinting: false, radioSpots: false, pressCoverage: false
-                        },
-                        message: originalOffer.message || '',
-                        status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
-                        readByArtist: true,
-                        createdAt: originalOffer.createdAt,
-                        updatedAt: originalOffer.updatedAt,
-                        expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                        billingPosition: originalOffer.billingPosition,
-                        lineupPosition: originalOffer.lineupPosition,
-                        setLength: originalOffer.setLength,
-                        otherActs: originalOffer.otherActs,
-                        billingNotes: originalOffer.billingNotes,
-                        // Add missing artist information for show document headers
-                        artistId: originalOffer.artistId,
-                        artistName: originalOffer.artistName,
-                      } as VenueBid & { artistId?: string; artistName?: string };
-                      
-                      requestBids = [syntheticBid];
-                    }
-                  }
-                // ✅ No special synthetic held bid handling - all bids show in their natural request rows
-                } else if (request.isVenueBid && request.originalShowRequestId) {
-                  // For synthetic requests from venue bids, use originalShowRequestId to find ALL competing bids
-                  const allBidsOnRequest = venueBids.filter(bid => 
-                    bid.showRequestId === request.originalShowRequestId && 
-                    !declinedBids.has(bid.id)
-                  );
-                  
-                  requestBids = allBidsOnRequest;
-                } else {
-                  // For regular artist-initiated requests, use normal bid filtering
-                  requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
-                }
-
-                // Determine status for border styling
-                const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
-                  bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
-                );
-                const hasActiveHold = requestBids.some((bid: VenueBid) => 
-                  (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
-                );
-                const isHeldBidRequest = (request as any).isHeldBid;
-                
-                let requestStatus: 'confirmed' | 'pending' | 'hold' | 'accepted' = 'pending';
-                if (hasAcceptedBid) {
-                  requestStatus = 'accepted';
-                } else if (hasActiveHold || isHeldBidRequest) {
-                  requestStatus = 'hold';
-                }
-                
-                const borderClass = getTimelineBorderClass(requestStatus);
-
-                // Generate class names safely
-                const baseClasses = "cursor-pointer transition-colors duration-150 hover:shadow-sm";
-                const hoverClass = requestStatus === 'accepted' ? 'bg-green-50/30 hover:bg-green-100' :
-                                  requestStatus === 'hold' ? 'bg-violet-50/30 hover:bg-violet-100' :
-                                  'hover:bg-blue-50';
-                const rowClassName = `${baseClasses} ${hoverClass}`;
-                
-                // Pre-calculate text colors
-                const textColorClass = requestStatus === 'accepted' ? 'text-green-900' :
-                                      requestStatus === 'hold' ? 'text-violet-900' :
-                                      'text-blue-900';
-                
-                // Pre-calculate expanded section classes
-                const expandedBgClass = requestStatus === 'accepted' ? 'bg-green-50 border-l-4 border-green-400' :
-                                       requestStatus === 'hold' ? 'bg-violet-50 border-l-4 border-violet-400' :
-                                       'bg-yellow-50 border-l-4 border-yellow-400';
-                const expandedHeaderClass = requestStatus === 'accepted' ? 'bg-green-100' :
-                                           requestStatus === 'hold' ? 'bg-violet-100' :
-                                           'bg-yellow-100';
-                const expandedTextClass = requestStatus === 'accepted' ? 'text-left text-xs font-medium text-green-700' :
-                                         requestStatus === 'hold' ? 'text-left text-xs font-medium text-violet-700' :
-                                         'text-left text-xs font-medium text-yellow-700';
-                const expandedDividerClass = requestStatus === 'accepted' ? 'divide-y divide-green-200' :
-                                            requestStatus === 'hold' ? 'divide-y divide-violet-200' :
-                                            'divide-y divide-yellow-200';
 
                 return (
-                  <React.Fragment key={`request-${request.id}`}>
-                    <ShowRequestRow
-                      entry={entry}
-                      request={request}
-                      requestBids={requestBids}
-                      sameDateSiblings={sameDateSiblings}
-                      isFirstOfDate={isFirstOfDate}
-                      entryDate={entryDate}
-                      borderClass={borderClass}
-                      textColorClass={textColorClass}
-                      artistId={artistId}
-                      venueId={venueId}
-                      permissions={permissions}
-                      state={state}
-                      handlers={handlers}
-                      getBidStatusBadge={getBidStatusBadge}
-                      toggleRequestExpansion={toggleRequestExpansion}
-                      handleDeleteShowRequest={handleDeleteShowRequest}
-                      handleOfferAction={handleOfferAction}
-                      handleBidAction={handleBidAction}
-                      venueOffers={venueOffers}
-                      venueBids={venueBids}
-                    />
-
-                    {/* Expanded Bids Section */}
-                    {state.expandedRequests.has(request.id) && requestBids.length > 0 && permissions.canExpandRequest(request) && (
-                      <tr>
-                        <td colSpan={venueId ? 9 : 10} className="px-0 py-0">
-                          <div className={expandedBgClass}>
-                            <div className="overflow-x-auto">
-                              <table className="w-full min-w-[1000px] table-fixed">
-                                <thead className={expandedHeaderClass}>
-                                  <tr className={expandedTextClass}>
-                                    <th className="px-2 py-1 w-[3%]"></th>
-                                    <th className="px-4 py-1 w-[12%]"></th>
-                                    {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
-                                    <th className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
-                                    <th className="px-4 py-1 w-[10%]">Status</th>
-                                    <th className="px-4 py-1 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
-                                    <th className="px-4 py-1 w-[7%]">Age</th>
-                                    <th className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
-                                    <th className="px-4 py-1 w-[8%]">Details</th>
-                                    <th className="px-4 py-1 w-[10%]">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody className={expandedDividerClass}>
-                                  {/* Combine parent and sibling bids, then sort by billing position */}
-                                  {(() => {
-                                    // Collect all bids from parent and siblings
-                                    let allBids: Array<{
-                                      bid: VenueBid;
-                                      request: any;
-                                      artistName: string;
-                                      billingPosition?: string;
-                                    }> = [];
-                                    
-                                    // Add parent bids
-                                    const parentBids = requestBids
-                                      .filter((bid: VenueBid) => {
-                                        if (['expired', 'declined', 'rejected'].includes(bid.status) || declinedBids.has(bid.id)) {
-                                          return false;
-                                        }
-                                        return permissions.canSeeFinancialDetails(undefined, bid, request);
-                                      })
-                                      .map((bid: VenueBid) => ({
-                                        bid,
-                                        request,
-                                        artistName: request.artist?.name || request.artistName || 'Unknown',
-                                        billingPosition: bid.billingPosition
-                                      }));
-                                    
-                                    allBids.push(...parentBids);
-                                    
-                                    // Add sibling bids
-                                    if (sameDateSiblings.length > 0) {
-                                      for (const siblingEntry of sameDateSiblings) {
-                                        if (siblingEntry.type === 'show-request') { // 🎯 PHASE 3: Updated to 'show-request'
-                                          const siblingRequest = siblingEntry.data as any & { 
-                                            isVenueInitiated?: boolean; 
-                                            originalOfferId?: string; 
-                                            isVenueBid?: boolean;
-                                            originalShowRequestId?: string;
-                                          };
-                                          
-                                          // Get bids for this sibling request
-                                          let siblingBids: VenueBid[] = [];
-                                          if (siblingRequest.isVenueInitiated && siblingRequest.originalOfferId) {
-                                            const originalOffer = venueOffers.find(offer => offer.id === siblingRequest.originalOfferId);
-                                            if (originalOffer) {
-                                              const syntheticBid: VenueBid = {
-                                                id: `offer-bid-${originalOffer.id}`,
-                                                showRequestId: siblingRequest.id,
-                                                venueId: originalOffer.venueId,
-                                                venueName: originalOffer.venueName || originalOffer.venue?.name || 'Unknown Venue',
-                                                proposedDate: originalOffer.proposedDate.split('T')[0],
-                                                guarantee: originalOffer.amount,
-                                                doorDeal: originalOffer.doorDeal ? {
-                                                  split: originalOffer.doorDeal.split,
-                                                  minimumGuarantee: originalOffer.doorDeal.minimumGuarantee
-                                                } : undefined,
-                                                ticketPrice: originalOffer.ticketPrice || {},
-                                                capacity: originalOffer.capacity || originalOffer.venue?.capacity || 0,
-                                                ageRestriction: originalOffer.ageRestriction || 'all-ages',
-                                                equipmentProvided: originalOffer.equipmentProvided || {
-                                                  pa: false, mics: false, drums: false, amps: false, piano: false
-                                                },
-                                                loadIn: originalOffer.loadIn || '',
-                                                soundcheck: originalOffer.soundcheck || '',
-                                                doorsOpen: originalOffer.doorsOpen || '',
-                                                showTime: originalOffer.showTime || '',
-                                                curfew: originalOffer.curfew || '',
-                                                promotion: originalOffer.promotion || {
-                                                  social: false, flyerPrinting: false, radioSpots: false, pressCoverage: false
-                                                },
-                                                message: originalOffer.message || '',
-                                                status: originalOffer.status.toLowerCase() as 'pending' | 'accepted' | 'declined' | 'cancelled',
-                                                readByArtist: true,
-                                                createdAt: originalOffer.createdAt,
-                                                updatedAt: originalOffer.updatedAt,
-                                                expiresAt: originalOffer.expiresAt || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                                                billingPosition: originalOffer.billingPosition,
-                                                lineupPosition: originalOffer.lineupPosition,
-                                                setLength: originalOffer.setLength,
-                                                otherActs: originalOffer.otherActs,
-                                                billingNotes: originalOffer.billingNotes,
-                                                artistId: originalOffer.artistId,
-                                                artistName: originalOffer.artistName,
-                                              } as VenueBid & { artistId?: string; artistName?: string };
-                                              siblingBids = [syntheticBid];
-                                            }
-                                          } else if (siblingRequest.isVenueBid && siblingRequest.originalShowRequestId) {
-                                            siblingBids = venueBids.filter(bid => 
-                                              bid.showRequestId === siblingRequest.originalShowRequestId && 
-                                              !declinedBids.has(bid.id)
-                                            );
-                                          } else {
-                                            siblingBids = venueBids.filter(bid => bid.showRequestId === siblingRequest.id && !declinedBids.has(bid.id));
-                                          }
-                                          
-                                          // Filter and add sibling bids
-                                          const filteredSiblingBids = siblingBids
-                                            .filter((bid: VenueBid) => {
-                                              if (['expired', 'declined', 'rejected'].includes(bid.status) || declinedBids.has(bid.id)) {
-                                                return false;
-                                              }
-                                              return permissions.canSeeFinancialDetails(undefined, bid, siblingRequest);
-                                            })
-                                            .map((bid: VenueBid) => ({
-                                              bid,
-                                              request: siblingRequest,
-                                              artistName: siblingRequest.artist?.name || siblingRequest.artistName || 'Unknown',
-                                              billingPosition: bid.billingPosition
-                                            }));
-                                          
-                                          allBids.push(...filteredSiblingBids);
-                                        }
-                                      }
-                                    }
-                                    
-                                    // Sort all bids by billing position using centralized billing priority function
-                                    const sortedBids = allBids.sort((a, b) => {
-                                      return getBillingPriority(a) - getBillingPriority(b);
-                                    });
-                                    
-                                    // Render all bids in correct order
-                                    return sortedBids.map(({ bid, request: bidRequest }) => {
-                                      const isFrozenByHold = (bid as any).holdState === 'FROZEN' || (bid as any).holdState === 'HELD';
-                                      
-                                      return (
-                                        <BidTimelineItem
-                                          key={`bid-${bid.id}`}
-                                          bid={bid}
-                                          request={bidRequest}
-                                          permissions={permissions}
-                                          isExpanded={false}
-                                          isDeleting={false}
-                                          venueOffers={venueOffers as any}
-                                          venueBids={venueBids}
-                                          venueId={venueId}
-                                          venueName={venueName}
-                                          artistId={artistId}
-                                          venues={venues}
-                                          effectiveStatus={getEffectiveBidStatus(bid)}
-                                          onToggleExpansion={() => {}}
-                                          onDeleteBid={() => {}}
-                                                                          onShowDocument={handlers.handleBidDocumentModal}
-                                onShowDetail={handlers.handleBidDocumentModal}
-                                          onAcceptBid={(bid) => handleBidAction(bid, 'accept')}
-                                          onDeclineBid={(bid) => handleBidAction(bid, 'decline')}
-                                          onOfferAction={handleOfferAction}
-                                          onBidAction={handleBidAction}
-                                          onMakeOffer={(request, existingBid) => {
-                                            const requestWithDates = request as any;
-                                            const preSelectedDate = requestWithDates.requestDate || requestWithDates.startDate || null;
-                                            
-                                            actions.openUniversalOffer(
-                                              {
-                                                id: request.artistId,
-                                                name: request.artist?.name || request.artistName
-                                              },
-                                              {
-                                                id: request.id,
-                                                title: request.title,
-                                                artistName: request.artist?.name || request.artistName
-                                              },
-                                              preSelectedDate,
-                                              existingBid
-                                            );
-                                          }}
-                                          isFrozenByHold={isFrozenByHold}
-                                          activeHoldInfo={isFrozenByHold ? {
-                                            id: (bid as any).frozenByHoldId || '',
-                                            expiresAt: '',
-                                            requesterName: 'Hold Request',
-                                            reason: 'Bid locked by active hold'
-                                          } : undefined}
-                                        />
-                                      );
-                                    });
-                                  })()}
-                                </tbody>
-                              </table>
-                            </div>
-                            
-                            {/* Add Another Artist Button - shows on any expanded row for venue owners */}
-                            {permissions.actualViewerType === 'venue' && permissions.isOwner && (
-                              <div className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150 px-4 py-2 border-t border-gray-200">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    // Extract date from the current timeline entry
-                                    const extractedDate = extractDateFromEntry(request);
-                                    handlers.openAddAnotherArtistModal(request.id, extractedDate);
-                                  }}
-                                  className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-1 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                  </svg>
-                                  <span>Add Artist</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </React.Fragment>
+                  <ShowRequestProcessor
+                    key={`request-${request.id}`}
+                    entry={entry}
+                    request={request}
+                    venueBids={venueBids}
+                    venueOffers={venueOffers}
+                    declinedBids={declinedBids}
+                    tourRequests={tourRequests}
+                    sameDateSiblings={sameDateSiblings}
+                    isFirstOfDate={isFirstOfDate}
+                    entryDate={entryDate}
+                    artistId={artistId}
+                    venueId={venueId}
+                    venueName={venueName}
+                    permissions={permissions}
+                    state={state}
+                    handlers={handlers}
+                    actions={actions}
+                    getBidStatusBadge={getBidStatusBadge}
+                    toggleRequestExpansion={toggleRequestExpansion}
+                    handleDeleteShowRequest={handleDeleteShowRequest}
+                    handleOfferAction={handleOfferAction}
+                    handleBidAction={handleBidAction}
+                    getEffectiveBidStatus={getEffectiveBidStatus}
+                    venues={venues}
+                  />
                 );
               }
               return null;
@@ -1107,106 +732,65 @@ export default function TabbedTourItinerary({
 
  
 
-      {/* All the modals from original component */}
-      
-      {/* Venue Bid Form Modal */}
-      {state.showBidForm && state.selectedTourRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
-          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <VenueBidForm
-              tourRequest={state.selectedTourRequest}
-              venueId={venueId || 'unknown'}
-              venueName={venueName || 'Unknown Venue'}
-              onSuccess={handleBidSuccess}
-              onCancel={() => {
-                actions.closeBidForm();
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Show Detail Modal */}
-      {modals.showDetailModal && modalData.selectedShowForDetail && (
-        <ShowDetailModal
-          show={modalData.selectedShowForDetail}
-          isOpen={modals.showDetailModal}
-          onClose={handlers.closeShowDetailModal}
-          viewerType={permissions.actualViewerType}
-        />
-      )}
-
-      {/* 🎯 PHASE 4: Removed TourRequest Detail Modal - no longer needed */}
-      {/* Tour Request Detail Modal removed - using ShowRequest data directly */}
-
-      {/* Show Document Modal */}
-      {modals.showDocumentModal && (
-        <ShowDocumentModal
-          show={modalData.selectedDocumentShow || undefined}
-          bid={modalData.selectedDocumentBid || undefined}
-          tourRequest={modalData.selectedDocumentTourRequest || undefined}
-          isOpen={modals.showDocumentModal}
-          onClose={handlers.closeShowDocumentModal}
-          viewerType={permissions.actualViewerType}
-          onUpdate={(data) => {
-            console.log('Document updated:', data);
-            fetchData();
-          }}
-        />
-      )}
-
-      {/* Universal Make Offer Modal */}
-      {state.showUniversalOfferModal && (
-        <UniversalMakeOfferModal
-          isOpen={state.showUniversalOfferModal}
-          onClose={() => {
-            actions.closeUniversalOffer();
-          }}
-          onSuccess={(result) => {
-            console.log('Offer/dismissal result:', result);
-            
-            // Handle dismissal by removing from local state
-            if (result.dismissed && result.requestId) {
-              actions.deleteRequestOptimistic(result.requestId);
-            }
-            
-            fetchData();
-          }}
-          preSelectedArtist={state.offerTargetArtist || undefined}
-          preSelectedDate={state.offerPreSelectedDate || undefined}
-          tourRequest={state.offerTourRequest || undefined}
-          existingBid={state.offerExistingBid || undefined}
-        />
-      )}
-
-      {/* Add Date Form Modal */}
-      <AddDateFormModal
-        isOpen={modals.showAddDateForm}
-        onClose={handlers.closeAddDateForm}
-        formType={addDateForm.type}
-        artistId={artistId}
-        artistName={artistName}
+      {/* All Modals */}
+      <ModalContainer
+        // Venue Bid Form Modal
+        showBidForm={state.showBidForm}
+        selectedTourRequest={state.selectedTourRequest}
         venueId={venueId}
         venueName={venueName}
-        loading={addDateLoading}
-        onSuccess={fetchData}
+        onBidSuccess={handleBidSuccess}
+        onCloseBidForm={() => actions.closeBidForm()}
+        
+        // Show Detail Modal
+        showDetailModal={modals.showDetailModal}
+        selectedShowForDetail={modalData.selectedShowForDetail}
+        onCloseShowDetailModal={handlers.closeShowDetailModal}
+        
+        // Show Document Modal
+        showDocumentModal={modals.showDocumentModal}
+        selectedDocumentShow={modalData.selectedDocumentShow}
+        selectedDocumentBid={modalData.selectedDocumentBid}
+        selectedDocumentTourRequest={modalData.selectedDocumentTourRequest}
+        onCloseShowDocumentModal={handlers.closeShowDocumentModal}
+        onDocumentUpdate={fetchData}
+        
+        // Universal Make Offer Modal
+        showUniversalOfferModal={state.showUniversalOfferModal}
+        offerTargetArtist={state.offerTargetArtist}
+                 offerPreSelectedDate={state.offerPreSelectedDate || undefined}
+        offerTourRequest={state.offerTourRequest}
+        offerExistingBid={state.offerExistingBid}
+        onCloseUniversalOffer={() => actions.closeUniversalOffer()}
+        onUniversalOfferSuccess={fetchData}
+        onDeleteRequestOptimistic={actions.deleteRequestOptimistic}
+        
+        // Add Date Form Modal
+        showAddDateForm={modals.showAddDateForm}
+                 addDateFormType={addDateForm.type === 'confirmed' ? 'request' : addDateForm.type}
+        artistId={artistId}
+        artistName={artistName}
+        addDateLoading={addDateLoading}
+        onCloseAddDateForm={handlers.closeAddDateForm}
+        onAddDateSuccess={fetchData}
         onSetActiveMonth={actions.setActiveMonth}
         confirm={confirm}
+        
+        // Add Artist Modal
+        isAddAnotherArtistModalOpen={modals.isAddAnotherArtistModalOpen}
+        addAnotherArtistShowId={modalData.addAnotherArtistShowId}
+        addAnotherArtistDate={modalData.addAnotherArtistDate}
+        onCloseAddAnotherArtistModal={handlers.closeAddAnotherArtistModal}
+        onAddAnotherArtistSuccess={handleAddAnotherArtistSuccess}
+        
+        // Alert Modal
+        AlertModal={AlertModal}
+        
+        // Shared props
+        actualViewerType={permissions.actualViewerType}
+        fetchData={fetchData}
       />
-
-      {/* Add Artist Modal */}
-      <AddSupportActModal
-        isOpen={modals.isAddAnotherArtistModalOpen}
-        onClose={handlers.closeAddAnotherArtistModal}
-        showId={modalData.addAnotherArtistShowId}
-        showDate={modalData.addAnotherArtistDate}
-        venueName={venueName || 'Unknown Venue'}
-        venueId={venueId || ''}
-        onSuccess={handleAddAnotherArtistSuccess}
-      />
-
-      {/* Render the Alert Modal */}
-      {AlertModal}
     </div>
+    </ItineraryLoadingStates>
   );
 } 
