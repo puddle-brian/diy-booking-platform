@@ -139,7 +139,7 @@ model Artist {
   sceneReports     SceneReport[]
   showRequestBids  ShowRequestBid[]
   showRequests     ShowRequest[]
-  shows            Show[]
+  showLineup       ShowLineup[]     // NEW: Artist can be in multiple show lineups
   // 🎯 PHASE 5: tourRequests removed - replaced by showRequests
   venueOffers      VenueOffer[]
 
@@ -303,39 +303,62 @@ model Show {
   title          String
   date           DateTime
   venueId        String
-  artistId       String
   description    String?
   ticketPrice    Float?
   ageRestriction AgeRestriction?
-  status         ShowStatus      @default(CONFIRMED)
+  status         ShowStatus      @default(PENDING)
   createdById    String
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
+  
+  // Show-level details (not artist-specific)
   capacity       Int?
   curfew         String?
   doorDeal       Json?
   doorsOpen      String?
-  guarantee      Float?
   loadIn         String?
   notes          String?
   showTime       String?
   soundcheck     String?
-  artistName     String?
-  city           String?
-  country        String?
-  state          String?
-  venueName      String?
-  holdRequests   HoldRequest[]
-  artist         Artist          @relation(fields: [artistId], references: [id])
-  createdBy      User            @relation(fields: [createdById], references: [id])
+  
+  // Remove artist-specific fields - now in ShowLineup
+  // artistId, artistName, guarantee moved to ShowLineup
+  // city, country, state, venueName are redundant (use venue relation)
+  
   venue          Venue           @relation(fields: [venueId], references: [id])
+  createdBy      User            @relation(fields: [createdById], references: [id])
+  lineup         ShowLineup[]    // NEW: Many-to-many with artists
+  holdRequests   HoldRequest[]
 
   @@index([venueId])
-  @@index([artistId])
   @@index([date])
   @@index([status])
   @@index([createdAt])
+  @@unique([venueId, date]) // One show per venue per date
   @@map("shows")
+}
+
+model ShowLineup {
+  id              String         @id @default(cuid())
+  showId          String
+  artistId        String
+  billingPosition BillingPosition
+  setLength       Int?           // Minutes for this artist's set
+  guarantee       Float?         // Payment for this artist
+  status          LineupStatus   @default(PENDING)
+  performanceOrder Int?          // Order in lineup (1, 2, 3...)
+  notes           String?        // Artist-specific notes
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  show            Show           @relation(fields: [showId], references: [id], onDelete: Cascade)
+  artist          Artist         @relation(fields: [artistId], references: [id])
+  
+  @@unique([showId, artistId]) // Artist can only be in lineup once
+  @@index([showId])
+  @@index([artistId])
+  @@index([billingPosition])
+  @@map("show_lineup")
 }
 
 // 🎯 PHASE 5: Legacy Bid model removed - replaced by ShowRequestBid system
@@ -715,9 +738,9 @@ enum ReportType {
 }
 
 enum ShowStatus {
-  CONFIRMED
-  PENDING
-  CANCELLED
+  CONFIRMED     // Show confirmed with full lineup  
+  PENDING       // Show proposed but not confirmed
+  CANCELLED     // Show cancelled
 }
 
 enum BidStatus {
@@ -827,4 +850,19 @@ enum ActivityType {
   MEMBER_INVITE
   REVIEW_RECEIVED
   VENUE_OFFER
+}
+
+enum BillingPosition {
+  HEADLINER
+  CO_HEADLINER
+  SUPPORT
+  OPENER
+  LOCAL_SUPPORT
+}
+
+enum LineupStatus {
+  PENDING       // Invited but not confirmed
+  CONFIRMED     // Artist confirmed their slot
+  CANCELLED     // Artist cancelled
+  COMPLETED     // Performance finished
 }
