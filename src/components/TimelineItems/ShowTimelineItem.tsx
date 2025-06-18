@@ -243,14 +243,60 @@ export function ShowTimelineItem({
     return { confirmed, pending };
   }, [venueId, venueOffers, show.date, show.venueId, show.venueName]);
   
-  // 🎯 SMART SHOW TITLE: Universal naming system with support act intelligence
+  // 🎯 PARSE MULTI-ARTIST LINEUP from notes field
+  const parseLineupFromNotes = (notes: string | null | undefined) => {
+    if (!notes || !notes.includes('LINEUP:')) {
+      return [];
+    }
+    
+    // Extract lineup from notes: "LINEUP: Against Me! (headliner) + The Menzingers + Joyce Manor + Local Opener TBD"
+    const lineupMatch = notes.match(/LINEUP:\s*(.+)/);
+    if (!lineupMatch) return [];
+    
+    const lineupText = lineupMatch[1];
+    const artists = lineupText.split('+').map(artist => artist.trim());
+    
+    // Parse each artist and their billing position
+    return artists.slice(1).map(artistText => { // Skip first artist (headliner)
+      const positionMatch = artistText.match(/(.+?)\s*\((.+?)\)$/);
+      if (positionMatch) {
+        return {
+          artistName: positionMatch[1].trim(),
+          status: 'accepted' as const,
+          billingPosition: positionMatch[2].trim() as any
+        };
+      }
+      return {
+        artistName: artistText.trim(),
+        status: 'accepted' as const,
+        billingPosition: 'support' as const
+      };
+    });
+  };
+
+  // 🎯 SMART SHOW TITLE: Universal naming system with multi-artist lineup support
   const smartShowTitle = useMemo(() => {
+    // 🎯 FIRST: Try to parse lineup from show notes (for confirmed multi-artist shows)
+    const lineupFromNotes = parseLineupFromNotes(show.notes);
+    
+    if (lineupFromNotes.length > 0) {
+      // Use lineup from notes field
+      const headlinerName = show.artist?.name || show.artistName || 'Unknown Artist';
+      
+      return generateSmartShowTitle({
+        headlinerName,
+        supportActs: lineupFromNotes,
+        includeStatusInCount: false // These are already confirmed
+      });
+    }
+    
+    // 🎯 FALLBACK: Use venue offers system (for dynamic support act management)
     // Get all artists for this specific show date and venue (main show + support offers)
     const allShowArtists = [];
     
     // Add the main show artist
     allShowArtists.push({
-      artistName: show.artistName || 'Unknown Artist',
+      artistName: show.artist?.name || show.artistName || 'Unknown Artist',
       status: 'accepted' as const,
       billingPosition: (show as any).billingPosition as 'headliner' | 'support' | 'co-headliner'
     });
@@ -293,7 +339,7 @@ export function ShowTimelineItem({
     });
     
     return { title, tooltip };
-  }, [show.artistName, show.date, venueOffers, (show as any).billingPosition]);
+  }, [show.artistName, show.artist?.name, show.notes, show.date, venueOffers, (show as any).billingPosition]);
   
   // Use smart title for display
   const showTitle = smartShowTitle.title;

@@ -281,20 +281,98 @@ async function resetTestData() {
       totalRequests++;
     }
 
+    // 🎭 CREATE REALISTIC MULTI-ARTIST CONFIRMED SHOWS
+    console.log('🎭 Creating diverse confirmed multi-artist shows...');
+    
+    const multiArtistShows = [
+      {
+        title: 'Punk & Indie Night',
+        date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
+        venueId: venues[1].id, // Lost Bag
+        headliner: artists.find(a => a.name === 'Against Me!') || artists[0],
+        lineup: ['The Menzingers', 'Joyce Manor', 'Local Opener TBD'],
+        description: 'Three-band punk lineup with Against Me! headlining',
+        ticketPrice: 25,
+        guarantee: 2000
+      },
+      {
+        title: 'Hardcore Showcase',
+        date: new Date(Date.now() + 52 * 24 * 60 * 60 * 1000),
+        venueId: venues[0].id, // Joe's Basement
+        headliner: artists.find(a => a.name === 'Minor Threat') || artists[1],
+        lineup: ['Fugazi', 'The Body', 'Screaming Females'],
+        description: 'Four-band hardcore showcase featuring legendary acts',
+        ticketPrice: 30,
+        guarantee: 2500
+      },
+      {
+        title: 'Indie Rock Festival',
+        date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+        venueId: venues[2].id, // Brillobox
+        headliner: artists.find(a => a.name === 'Dinosaur Jr.') || artists[2],
+        lineup: ['Guided by Voices', 'Sleater-Kinney', 'Bikini Kill', 'Local Support'],
+        description: 'Five-band indie rock festival with classic 90s acts',
+        ticketPrice: 35,
+        guarantee: 3000
+      },
+      {
+        title: 'Folk & Alternative Evening',
+        date: new Date(Date.now() + 67 * 24 * 60 * 60 * 1000),
+        venueId: venues[3].id, // First Avenue
+        headliner: artists.find(a => a.name === 'Ani DiFranco') || artists[3],
+        lineup: ['Henry Rollins (spoken word)', 'The Replacements', 'Opening Act TBD'],
+        description: 'Diverse evening mixing folk, punk, and spoken word',
+        ticketPrice: 28,
+        guarantee: 1800
+      }
+    ];
+
+    let confirmedShowsCreated = 0;
+    
+    for (const showData of multiArtistShows) {
+      if (showData.headliner) {
+        const confirmedShow = await prisma.show.create({
+          data: {
+            title: showData.title,
+            date: showData.date,
+            venueId: showData.venueId,
+            artistId: showData.headliner.id, // Primary artist
+            description: showData.description,
+            ticketPrice: showData.ticketPrice,
+            status: 'CONFIRMED',
+            createdById: systemUser.id,
+            guarantee: showData.guarantee,
+            // 🎯 MULTI-ARTIST LINEUP INFO - This is what creates the multi-band shows!
+            notes: `LINEUP: ${showData.headliner.name} (headliner) + ${showData.lineup.join(' + ')}`,
+            capacity: venues.find(v => v.id === showData.venueId)?.capacity || 200
+          }
+        });
+        
+        console.log(`✅ Created multi-artist show: ${showData.title}`);
+        console.log(`   🎤 Headliner: ${showData.headliner.name}`);
+        console.log(`   🎵 Supporting acts: ${showData.lineup.join(', ')}`);
+        confirmedShowsCreated++;
+      }
+    }
+
     console.log('✅ Test data reset completed successfully!');
     
     // Show summary
     const totalBids = await prisma.showRequestBid.count();
+    const totalShows = await prisma.show.count();
     const uniqueArtists = new Set(artists.map(a => a.name)).size;
     
     console.log(`\n📊 Summary:`);
     console.log(`   - ${totalRequests} total show requests from ${uniqueArtists} different artists`);
     console.log(`   - ${totalBids} total bids with diverse statuses (PENDING/HOLD/ACCEPTED)`);
+    console.log(`   - ${confirmedShowsCreated} confirmed multi-artist shows with full lineups`);
+    console.log(`   - ${totalShows} total shows in database`);
     console.log(`   - 🎵 Realistic billing positions: headliner, support, local-support, co-headliner`);
     console.log(`   - 💰 Varied financial offers based on billing position`);
     console.log(`   - 🎭 Complete lineup information with set lengths and other acts`);
     console.log(`   - 🏙️ Multiple artists competing for IDENTICAL dates in same cities!`);
     console.log(`   - 🎯 Venues see realistic competition with multiple bands bidding for same time slots!`);
+    console.log(`   - 🎪 Multi-artist confirmed shows with 3-5 bands per lineup!`);
 
   } catch (error) {
     console.error('❌ Error resetting test data:', error);
