@@ -637,4 +637,38 @@ export function generateCompactMonthLabels(monthGroups: MonthGroup[]): MonthGrou
   }
   
   return stableMonths;
+}
+
+/**
+ * Utility function for consistent timeline border styling
+ */
+export function getTimelineBorderClass(status: string): string {
+  const normalizedStatus = status?.toLowerCase();
+  switch (normalizedStatus) {
+    case 'confirmed':
+      return 'border-l-4 border-l-green-500 bg-green-50/30';
+    case 'accepted':
+      return 'border-l-4 border-l-green-400 bg-green-50/20';
+    case 'hold':
+      return 'border-l-4 border-l-violet-400 bg-violet-50/30';
+    case 'pending':
+    default:
+      return ''; // No border for non-confirmed items
+  }
+}
+
+/**
+ * Helper function to extract date from any timeline entry
+ */
+export function extractDateFromEntry(entry: any): string {
+  // For shows
+  if (entry.date) return entry.date;
+  // For tour requests
+  if (entry.requestDate) return entry.requestDate;
+  if (entry.startDate) return entry.startDate;
+  // For venue offers
+  if (entry.proposedDate) return entry.proposedDate;
+  // For venue bids
+  if (entry.proposedDate) return entry.proposedDate;
+  return '';
 } 
