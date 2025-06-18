@@ -125,7 +125,7 @@ export async function PUT(
       switch (body.action.toLowerCase()) {
         case 'accept':
           updateData = {
-            status: 'ACCEPTED'
+            status: 'CONFIRMED'
           };
           break;
         case 'decline':

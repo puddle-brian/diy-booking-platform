@@ -686,17 +686,40 @@ export default function TabbedTourItinerary({
     }
     
     try {
-      const response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          bidId: bid.id,
-          action,
-          reason
-        }),
-      });
+      let response;
+      
+      // 🎯 CLEAN FIX: Handle synthetic bids from venue-initiated show requests
+      if (bid.id.startsWith('offer-bid-')) {
+        // This is a synthetic bid from a venue-initiated show request
+        const showRequestId = bid.id.replace('offer-bid-', '');
+        
+        // Map frontend actions to API actions
+        const apiAction = action === 'confirm-accepted' ? 'accept' : action;
+        
+        response = await fetch(`/api/show-requests/${showRequestId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: apiAction,
+            reason
+          }),
+        });
+      } else {
+        // Regular bid - use the original API
+        response = await fetch(`/api/show-requests/${bid.showRequestId}/bids`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            bidId: bid.id,
+            action,
+            reason
+          }),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
