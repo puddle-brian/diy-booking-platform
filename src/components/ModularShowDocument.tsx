@@ -101,10 +101,39 @@ export default function ModularShowDocument({
 
     // Set document metadata
     if (show) {
+      // Generate title from lineup data or use show title
+      const getShowTitle = (show: any): string => {
+        if (show.title) {
+          return show.title;
+        }
+        
+        // Generate from lineup
+        if (show.lineup && show.lineup.length > 0) {
+          const headliner = show.lineup.find((item: any) => item.billingPosition === 'HEADLINER') || show.lineup[0];
+          const artistName = headliner.artistName || 'Unknown Artist';
+          
+          if (show.lineup.length === 1) {
+            return `${artistName} at ${show.venueName}`;
+          } else {
+            return `${artistName} + ${show.lineup.length - 1} others at ${show.venueName}`;
+          }
+        }
+        
+        // Fallback to legacy fields
+        if (show.artistName) {
+          return `${show.artistName} at ${show.venueName}`;
+        }
+        
+        return `Show at ${show.venueName}`;
+      };
+      
+      const headliner = show.lineup?.find((item: any) => item.billingPosition === 'HEADLINER') || show.lineup?.[0];
+      const artistName = headliner?.artistName || show.artistName || 'Unknown Artist';
+      
       setDocumentData({
-        title: `${show.artistName} at ${show.venueName}`,
+        title: getShowTitle(show),
         date: show.date,
-        artistName: show.artistName,
+        artistName,
         venueName: show.venueName
       });
     } else if (bid) {

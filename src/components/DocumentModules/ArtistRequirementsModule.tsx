@@ -830,10 +830,14 @@ export const artistRequirementsModule: ModuleDefinition = {
     // 🎯 ENHANCED: Context-aware data extraction with artistId preservation
     
     if (context.show) {
-      // Confirmed show - extract artist ID for template lookup
+      // Confirmed show - extract artist ID for template lookup from lineup or legacy fields
+      const headliner = context.show.lineup?.find((item: any) => item.billingPosition === 'HEADLINER') || context.show.lineup?.[0];
+      const artistId = headliner?.artistId || context.show.artistId;
+      const artistName = headliner?.artistName || context.show.artistName;
+      
       return {
-        artistId: context.show.artistId,
-        artist: { id: context.show.artistId, name: context.show.artistName },
+        artistId,
+        artist: { id: artistId, name: artistName },
         // Include any existing override data
         technicalRequirements: context.show.technicalRequirements || [],
         hospitalityRequirements: context.show.hospitalityRequirements || [],

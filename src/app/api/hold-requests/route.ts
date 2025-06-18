@@ -506,7 +506,7 @@ export async function GET(request: NextRequest) {
         // EXISTING: General user permission check
         `hr."requestedById" = $1 OR 
         hr."respondedById" = $1 OR
-        s."artistId" = $1 OR
+        s."createdById" = $1 OR
         v."submittedById" = $1 OR
         sr."artistId" = $1 OR
         srv."submittedById" = $1 OR

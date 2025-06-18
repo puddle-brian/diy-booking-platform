@@ -6,6 +6,8 @@ export async function POST(request: NextRequest) {
     
     // Use the comprehensive test data script
     const { resetTestData } = require('../../../../../scripts/reset-test-data');
+    
+    console.log('🔄 Admin API: About to call resetTestData function...');
     await resetTestData();
     
     console.log('✅ Admin API: Comprehensive test data reset completed successfully!');
@@ -16,11 +18,17 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Admin API: Error resetting test data:', error);
+    console.error('❌ Admin API: Detailed error information:');
+    console.error('Error name:', (error as any)?.name);
+    console.error('Error message:', (error as any)?.message);
+    console.error('Error stack:', (error as any)?.stack);
+    console.error('Full error object:', error);
+    
     return NextResponse.json(
       { 
         error: 'Failed to reset test data', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
+        details: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     );

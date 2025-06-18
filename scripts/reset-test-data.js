@@ -19,74 +19,264 @@ function weightedRandom(options, weights) {
 
 function getBillingMessage(venueName, billingPosition, amount, capacity) {
   const messages = {
-    'headliner': [
+    'HEADLINER': [
       `Hey Lightning Bolt! We'd love to have you headline at ${venueName}. $${amount} guarantee with full production support and ${capacity || 'intimate'} capacity crowd that loves experimental music.`,
       `${venueName} calling! We can offer you the headlining spot for $${amount}. Our ${capacity || 'passionate'} person space is perfect for your sound.`,
       `Headlining offer from ${venueName}: $${amount} guarantee. We'll handle promotion and have a killer sound system ready for you.`
     ],
-    'co-headliner': [
+    'CO_HEADLINER': [
       `Co-headlining opportunity at ${venueName}! $${amount} guarantee to share the bill with another established act. Perfect fit for our ${capacity || 'mid-size'} venue.`,
       `${venueName} here - interested in co-headlining with us? $${amount} split billing with strong local promotion support.`
     ],
-    'support': [
+    'SUPPORT': [
       `Support slot at ${venueName} - $${amount} to open for a killer headliner. Great exposure for ${capacity || 'engaged'} person audience.`,
       `Opening act opportunity: $${amount} at ${venueName}. Perfect way to reach new fans in our market.`
     ],
-    'local-support': [
+    'LOCAL_SUPPORT': [
       `Local support slot at ${venueName} - $${amount} to help build the scene. Our ${capacity || 'community-focused'} space loves discovering new acts.`,
       `${venueName} community slot: $${amount} to play with touring acts and connect with local music lovers.`
     ]
   };
   
-  const positionMessages = messages[billingPosition];
+  const positionMessages = messages[billingPosition] || messages['SUPPORT'];
   return positionMessages[Math.floor(Math.random() * positionMessages.length)];
 }
 
 function getBillingNotes(billingPosition) {
   const notes = {
-    'headliner': [
+    'HEADLINER': [
       'Full headlining slot with complete production support',
       'Top billing with sound/lights handled',
       'Headline act - venue will handle all promotion'
     ],
-    'co-headliner': [
+    'CO_HEADLINER': [
       'Shared top billing with touring act',
       'Co-headline - equal promotion and stage time',
       'Split headlining duties'
     ],
-    'support': [
+    'SUPPORT': [
       'Direct support for established headliner',
       'Opening for touring headliner',
       'Support slot with headliner promotion'
     ],
-    'local-support': [
+    'LOCAL_SUPPORT': [
       'Local opener building community',
       'Community support slot',
       'Local act supporting touring bands'
     ]
   };
   
-  const positionNotes = notes[billingPosition];
+  const positionNotes = notes[billingPosition] || notes['SUPPORT'];
   return Math.random() > 0.5 ? positionNotes[Math.floor(Math.random() * positionNotes.length)] : null;
 }
 
+// 🎭 Enhanced function to create realistic multi-artist shows with proper ShowLineup entries
+async function createRealisticMultiArtistShow(showData, venues, artists, systemUser) {
+  console.log(`🎭 Creating realistic multi-artist show: ${showData.title}`);
+  
+  // Find venue
+  const venue = venues.find(v => v.id === showData.venueId);
+  if (!venue) {
+    console.log(`❌ Venue not found for ${showData.title}`);
+    return null;
+  }
+
+  // Create the venue-owned show (new architecture)
+  const show = await prisma.show.create({
+    data: {
+      title: showData.title,
+      date: showData.date,
+      venueId: showData.venueId,
+      description: showData.description,
+      ticketPrice: showData.ticketPrice,
+      status: showData.status || 'CONFIRMED',
+      createdById: systemUser.id,
+      capacity: venue.capacity,
+      doorsOpen: showData.doorsOpen || '7:00 PM',
+      showTime: showData.showTime || '8:00 PM',
+      curfew: showData.curfew || '12:00 AM'
+    }
+  });
+
+  // Create ShowLineup entries for each artist
+  let totalGuarantee = 0;
+  const createdLineupEntries = [];
+
+  for (let i = 0; i < showData.lineup.length; i++) {
+    const lineupEntry = showData.lineup[i];
+    const artist = artists.find(a => a.name === lineupEntry.artistName);
+    
+    if (artist) {
+      const lineupRecord = await prisma.showLineup.create({
+        data: {
+          showId: show.id,
+          artistId: artist.id,
+          billingPosition: lineupEntry.billingPosition,
+          setLength: lineupEntry.setLength,
+          guarantee: lineupEntry.guarantee,
+          status: lineupEntry.status || 'CONFIRMED',
+          performanceOrder: i + 1,
+          notes: lineupEntry.notes
+        }
+      });
+      
+      createdLineupEntries.push(lineupRecord);
+      totalGuarantee += lineupEntry.guarantee || 0;
+      
+      console.log(`  🎤 ${lineupEntry.billingPosition}: ${artist.name} ($${lineupEntry.guarantee}, ${lineupEntry.setLength}min)`);
+    } else {
+      console.log(`  ❌ Artist not found: ${lineupEntry.artistName}`);
+    }
+  }
+
+  console.log(`  💰 Total show guarantee: $${totalGuarantee}`);
+  console.log(`  🏢 Venue: ${venue.name} (${venue.capacity} capacity)`);
+  
+  return { show, lineup: createdLineupEntries };
+}
+
+// 🎯 Enhanced function specifically for creating diverse Lost Bag scenarios
+async function createLostBagDiverseScenarios(venues, artists, systemUser) {
+  console.log('🎯 Creating diverse Lost Bag booking scenarios...');
+  
+  // Find Lost Bag venue
+  const lostBag = venues.find(v => v.name?.toLowerCase().includes('lost bag'));
+  if (!lostBag) {
+    console.log('❌ Lost Bag venue not found - skipping diverse scenarios');
+    return;
+  }
+
+  console.log(`🏠 Found Lost Bag: ${lostBag.name} (ID: ${lostBag.id})`);
+  console.log(`🎸 Available artists: ${artists.map(a => a.name).join(', ')}`);
+
+  // Ensure we have enough artists
+  if (artists.length < 10) {
+    console.log('❌ Not enough artists found - need at least 10 for diverse scenarios');
+    return;
+  }
+
+  // 🎭 Create multiple shows with diverse lineup scenarios using REAL artists
+  const lostBagShows = [
+    {
+      title: 'DIY Punk Festival at Lost Bag',
+      date: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000), // 25 days from now
+      venueId: lostBag.id,
+      description: 'Five-band punk lineup showcasing the best of the underground scene',
+      ticketPrice: 15,
+      status: 'CONFIRMED',
+      doorsOpen: '6:30 PM',
+      showTime: '7:30 PM',
+      curfew: '11:30 PM',
+      lineup: [
+        { artistIndex: 0, billingPosition: 'HEADLINER', setLength: 75, guarantee: 1200, status: 'CONFIRMED', notes: 'Full sound and lighting package' },
+        { artistIndex: 1, billingPosition: 'CO_HEADLINER', setLength: 60, guarantee: 800, status: 'CONFIRMED', notes: 'Direct support, shared top billing' },
+        { artistIndex: 2, billingPosition: 'SUPPORT', setLength: 45, guarantee: 400, status: 'CONFIRMED', notes: 'Perfect fit for this lineup' },
+        { artistIndex: 3, billingPosition: 'SUPPORT', setLength: 35, guarantee: 300, status: 'PENDING', notes: 'Waiting on rider confirmation' },
+        { artistIndex: 4, billingPosition: 'OPENER', setLength: 25, guarantee: 150, status: 'CONFIRMED', notes: 'Local experimental noise duo' }
+      ]
+    },
+    {
+      title: 'Hardcore Matinee at Lost Bag',
+      date: new Date(Date.now() + 32 * 24 * 60 * 60 * 1000), // 32 days from now
+      venueId: lostBag.id,
+      description: 'All-ages hardcore show featuring regional and touring acts',
+      ticketPrice: 12,
+      status: 'CONFIRMED',
+      doorsOpen: '2:00 PM',
+      showTime: '3:00 PM',
+      curfew: '7:00 PM',
+      lineup: [
+        { artistIndex: 5, billingPosition: 'HEADLINER', setLength: 45, guarantee: 800, status: 'CONFIRMED', notes: 'Legendary hardcore act' },
+        { artistIndex: 6, billingPosition: 'CO_HEADLINER', setLength: 45, guarantee: 700, status: 'CONFIRMED', notes: 'Co-headlining set' },
+        { artistIndex: 7, billingPosition: 'SUPPORT', setLength: 30, guarantee: 300, status: 'CONFIRMED', notes: 'Heavy support act' },
+        { artistIndex: 8, billingPosition: 'LOCAL_SUPPORT', setLength: 20, guarantee: 100, status: 'CANCELLED', notes: 'Cancelled due to van issues' }
+      ]
+    },
+    {
+      title: 'Indie Rock Showcase at Lost Bag',
+      date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now  
+      venueId: lostBag.id,
+      description: 'Four-band indie rock showcase',
+      ticketPrice: 20,
+      status: 'CONFIRMED',
+      doorsOpen: '7:00 PM',
+      showTime: '8:00 PM',
+      curfew: '12:00 AM',
+      lineup: [
+        { artistIndex: 9, billingPosition: 'HEADLINER', setLength: 80, guarantee: 1500, status: 'CONFIRMED', notes: 'Full catalog performance' },
+        { artistIndex: 10, billingPosition: 'SUPPORT', setLength: 50, guarantee: 600, status: 'CONFIRMED', notes: 'Direct support slot' },
+        { artistIndex: 11, billingPosition: 'SUPPORT', setLength: 40, guarantee: 500, status: 'PENDING', notes: 'Negotiating rider details' },
+        { artistIndex: 12, billingPosition: 'OPENER', setLength: 35, guarantee: 350, status: 'CONFIRMED', notes: 'Opening the show strong' }
+      ]
+    },
+    {
+      title: 'Lost Bag Late Night Electronic',
+      date: new Date(Date.now() + 38 * 24 * 60 * 60 * 1000), // 38 days from now
+      venueId: lostBag.id,
+      description: 'Late-night electronic and experimental showcase',
+      ticketPrice: 8,
+      status: 'PENDING',
+      doorsOpen: '9:00 PM',
+      showTime: '10:00 PM', 
+      curfew: '2:00 AM',
+      lineup: [
+        { artistIndex: 13, billingPosition: 'HEADLINER', setLength: 60, guarantee: 400, status: 'CONFIRMED', notes: 'Perfect late-night headliner' },
+        { artistIndex: 14, billingPosition: 'SUPPORT', setLength: 45, guarantee: 250, status: 'PENDING', notes: 'Checking tour routing' },
+        { artistIndex: 15, billingPosition: 'OPENER', setLength: 30, guarantee: 150, status: 'CONFIRMED', notes: 'Great opener for experimental night' }
+      ]
+    }
+  ];
+
+  // Create all the Lost Bag shows with proper lineup architecture
+  const createdShows = [];
+  for (const showData of lostBagShows) {
+    // Convert artistIndex to actual artists
+    const lineupWithArtists = showData.lineup.map(entry => ({
+      ...entry,
+      artistName: artists[entry.artistIndex % artists.length]?.name || 'Unknown Artist'
+    }));
+    
+    const showDataWithArtists = {
+      ...showData,
+      lineup: lineupWithArtists
+    };
+    
+    const result = await createRealisticMultiArtistShow(showDataWithArtists, venues, artists, systemUser);
+    if (result) {
+      createdShows.push(result);
+    }
+  }
+
+  console.log(`✅ Created ${createdShows.length} diverse Lost Bag shows with proper lineups`);
+  return createdShows;
+}
+
 async function resetTestData() {
-  console.log('🧹 Starting test data reset...');
+  console.log('🧹 Starting enhanced test data reset with diverse Lost Bag scenarios...');
   
   try {
-    // Clear all show request bids first (due to foreign key constraints)
-    console.log('🗑️ Clearing all show request bids...');
+    // Clear existing data (in correct order due to foreign keys)
+    console.log('🗑️ Clearing existing test data...');
+    
+    // Clear ShowLineup entries first
+    const deletedLineup = await prisma.showLineup.deleteMany();
+    console.log(`✅ Deleted ${deletedLineup.count} show lineup entries`);
+    
+    // Clear shows
+    const deletedShows = await prisma.show.deleteMany();
+    console.log(`✅ Deleted ${deletedShows.count} shows`);
+    
+    // Clear show request bids
     const deletedBids = await prisma.showRequestBid.deleteMany();
     console.log(`✅ Deleted ${deletedBids.count} show request bids`);
 
-    // Clear all show requests
-    console.log('🗑️ Clearing all show requests...');
+    // Clear show requests
     const deletedRequests = await prisma.showRequest.deleteMany();
     console.log(`✅ Deleted ${deletedRequests.count} show requests`);
 
-    console.log('🎯 Generating new test data with unified show requests...');
+    console.log('🎯 Generating enhanced test data with proper lineup architecture...');
 
-    // Get test data
+    // Get system user
     const systemUser = await prisma.user.findFirst({
       where: { email: 'system@diyshows.com' }
     });
@@ -95,7 +285,7 @@ async function resetTestData() {
       throw new Error('System user not found');
     }
 
-    // 🎵 GET MULTIPLE ARTISTS for diverse data (filter out unnamed/unknown artists)
+    // Get artists and venues
     const artists = await prisma.artist.findMany({
       where: {
         name: {
@@ -104,278 +294,203 @@ async function resetTestData() {
           notIn: ['Unknown', 'unknown', 'Unknown Artist', 'unknown artist']
         }
       },
-      take: 20, // Get more artists to ensure we have enough after filtering
+      take: 30, // Get more artists for diverse lineups
       select: { id: true, name: true, genres: true }
     });
 
-    if (artists.length === 0) {
-      throw new Error('No artists found in database');
-    }
-
-    console.log(`🎸 Found ${artists.length} artists for diverse test data`);
-
-    // Get some venues for bidding
     const venues = await prisma.venue.findMany({
-      take: 10,
+      take: 15,
       select: { id: true, name: true, capacity: true }
     });
 
-    console.log(`🏢 Found ${venues.length} venues for test data`);
+    console.log(`🎸 Found ${artists.length} artists and ${venues.length} venues for test data`);
 
-    // 🎯 CREATE OVERLAPPING REQUESTS - Multiple artists targeting same cities/dates
-    const popularCities = [
-      'Boston, MA',
-      'Portland, OR', 
-      'Nashville, TN',
-      'Austin, TX'
+    // 🎯 CREATE DIVERSE LOST BAG SCENARIOS FIRST
+    await createLostBagDiverseScenarios(venues, artists, systemUser);
+
+    // Create some additional multi-artist shows at other venues using real artists
+    const additionalShows = [
+      {
+        title: 'Punk Rock Bowling After-Party',
+        date: new Date(Date.now() + 50 * 24 * 60 * 60 * 1000),
+        venueId: venues[0].id, // First venue (not Lost Bag)
+        description: 'Four-band punk showcase',
+        ticketPrice: 18,
+        status: 'CONFIRMED',
+        lineup: [
+          { artistName: artists[16 % artists.length]?.name || 'Artist 1', billingPosition: 'HEADLINER', setLength: 70, guarantee: 1000, status: 'CONFIRMED' },
+          { artistName: artists[17 % artists.length]?.name || 'Artist 2', billingPosition: 'SUPPORT', setLength: 45, guarantee: 500, status: 'CONFIRMED' },
+          { artistName: artists[18 % artists.length]?.name || 'Artist 3', billingPosition: 'SUPPORT', setLength: 35, guarantee: 300, status: 'CONFIRMED' },
+          { artistName: artists[19 % artists.length]?.name || 'Artist 4', billingPosition: 'OPENER', setLength: 25, guarantee: 150, status: 'CONFIRMED' }
+        ]
+      },
+      {
+        title: 'Experimental Noise Night',
+        date: new Date(Date.now() + 42 * 24 * 60 * 60 * 1000),
+        venueId: venues[2]?.id || venues[0].id,
+        description: 'Experimental and noise showcase',
+        ticketPrice: 10,
+        status: 'CONFIRMED', 
+        lineup: [
+          { artistName: artists[20 % artists.length]?.name || 'Artist 5', billingPosition: 'HEADLINER', setLength: 60, guarantee: 350, status: 'CONFIRMED' },
+          { artistName: artists[21 % artists.length]?.name || 'Artist 6', billingPosition: 'SUPPORT', setLength: 45, guarantee: 200, status: 'CONFIRMED' },
+          { artistName: artists[22 % artists.length]?.name || 'Artist 7', billingPosition: 'OPENER', setLength: 30, guarantee: 150, status: 'CONFIRMED' }
+        ]
+      }
     ];
 
+    // Create additional shows
+    for (const showData of additionalShows) {
+      await createRealisticMultiArtistShow(showData, venues, artists, systemUser);
+    }
+
+    // 🎯 CREATE VENUE OFFERS FOR ARTIST PAGES - This is key for testing artist action buttons!
+    console.log('🎯 Creating venue offers that artists will see and can act on...');
+    
+    // Create venue offers that will show up in artist itineraries with action buttons
+    const venueOfferScenarios = [
+      { venueIndex: 0, artistIndex: 0, billing: 'HEADLINER', amount: 800, status: 'PENDING', daysOut: 30 },
+      { venueIndex: 1, artistIndex: 1, billing: 'SUPPORT', amount: 400, status: 'PENDING', daysOut: 35 },
+      { venueIndex: 2, artistIndex: 2, billing: 'CO_HEADLINER', amount: 650, status: 'PENDING', daysOut: 40 },
+      { venueIndex: 0, artistIndex: 3, billing: 'HEADLINER', amount: 750, status: 'PENDING', daysOut: 45 },
+      { venueIndex: 3, artistIndex: 4, billing: 'SUPPORT', amount: 350, status: 'PENDING', daysOut: 50 },
+      { venueIndex: 1, artistIndex: 5, billing: 'LOCAL_SUPPORT', amount: 200, status: 'PENDING', daysOut: 55 },
+    ];
+
+    let venueOffers = 0;
+    for (const scenario of venueOfferScenarios) {
+      if (scenario.venueIndex < venues.length && scenario.artistIndex < artists.length) {
+        const venue = venues[scenario.venueIndex];
+        const artist = artists[scenario.artistIndex];
+        const offerDate = new Date();
+        offerDate.setDate(offerDate.getDate() + scenario.daysOut);
+
+        // Create venue offer (venue-initiated show request)
+        const venueOffer = await prisma.venueOffer.create({
+          data: {
+            venueId: venue.id,
+            artistId: artist.id,
+            createdById: systemUser.id,
+            title: `${venue.name} Show Offer`,
+            description: `Venue offer for ${scenario.billing} slot`,
+            proposedDate: offerDate,
+            amount: scenario.amount,
+            message: getBillingMessage(venue.name, scenario.billing, scenario.amount, venue.capacity),
+            status: scenario.status,
+            billingPosition: scenario.billing,
+            capacity: venue.capacity,
+            ageRestriction: 'ALL_AGES'
+          }
+        });
+
+        console.log(`  🎤 Created ${scenario.billing} offer: ${venue.name} → ${artist.name} ($${scenario.amount})`);
+        venueOffers++;
+      }
+    }
+
+    // Create some show requests and bids for ongoing booking activity
+    console.log('🎵 Creating show requests and bids for active booking scenarios...');
+    
+    const popularCities = ['Boston, MA', 'Portland, OR', 'Nashville, TN', 'Austin, TX'];
     let totalRequests = 0;
 
-    for (let cityIndex = 0; cityIndex < popularCities.length; cityIndex++) {
+    // Create fewer show requests but with more diverse statuses
+    for (let cityIndex = 0; cityIndex < 2; cityIndex++) { // Reduced from 4 to 2 cities
       const city = popularCities[cityIndex];
+      const sharedDate = new Date();
+      sharedDate.setDate(sharedDate.getDate() + 35 + (cityIndex * 15));
       
-      // 🎯 CREATE SHARED DATES - Multiple artists competing for same dates!
-      const sharedDates = [];
-      for (let dateIndex = 0; dateIndex < 3; dateIndex++) {
-        const sharedDate = new Date();
-        sharedDate.setDate(sharedDate.getDate() + 30 + (cityIndex * 20) + (dateIndex * 10)); // 3 dates per city, 10 days apart
-        sharedDates.push(sharedDate);
-      }
+      // 3 artists competing for same date in same city
+      const competingArtists = artists.slice(cityIndex * 3, (cityIndex * 3) + 3);
       
-      console.log(`🏙️ Creating competing requests for ${city} on ${sharedDates.length} shared dates...`);
-
-      // 6-7 different artists request shows in the same city on the SAME DATES (more competition!)
-      const artistsForCity = artists.slice(cityIndex * 4, (cityIndex * 4) + 7).filter(a => a.name && a.name.trim() !== ''); // Filter out unnamed artists
-      
-      for (let artistIndex = 0; artistIndex < artistsForCity.length; artistIndex++) {
-        const artist = artistsForCity[artistIndex];
-        // 🎯 ENHANCED: More artists competing for same dates (3-4 per date instead of 2)
-        const requestDate = sharedDates[artistIndex % sharedDates.length]; // Cycle through shared dates
+      for (const artist of competingArtists) {
+        if (!artist.name) continue;
         
-        console.log(`🎵 Creating show request for ${artist.name} in ${city} on ${requestDate.toDateString()}...`);
-
-        // Artist-initiated show request
         const showRequest = await prisma.showRequest.create({
           data: {
             artistId: artist.id,
-            venueId: null, // Artist doesn't specify venue initially
             createdById: systemUser.id,
             title: `${artist.name} - ${city}`,
             description: `Looking for a venue in ${city} for a ${artist.genres?.join('/')} show.`,
-            requestedDate: requestDate,
+            requestedDate: sharedDate,
             initiatedBy: 'ARTIST',
             status: 'OPEN',
             targetLocations: [city],
             genres: artist.genres || ['rock', 'indie'],
-            billingPosition: 'headliner' // Artists usually request headliner spots
+            billingPosition: 'headliner'
           }
         });
 
-        console.log(`✅ Created show request: ${showRequest.title}`);
         totalRequests++;
 
-        // Create 2-4 bids from different venues for each request
-        const numBids = Math.floor(Math.random() * 3) + 2; // 2-4 bids
-        const selectedVenues = venues.slice(0, numBids);
-
-        for (let j = 0; j < selectedVenues.length; j++) {
-          const venue = selectedVenues[j];
-          const guaranteeAmount = Math.floor(Math.random() * 800) + 200; // $200-$1000
+        // Create 2-3 bids with diverse statuses
+        const biddingVenues = venues.slice(0, 3);
+        for (let j = 0; j < biddingVenues.length; j++) {
+          const venue = biddingVenues[j];
+          const guaranteeAmount = Math.floor(Math.random() * 600) + 300;
           
-          console.log(`  💰 Creating bid from ${venue.name} for $${guaranteeAmount}...`);
-
-          // 🎵 Enhanced billing positions using weighted system
-          const billingOptions = ['headliner', 'support', 'local-support', 'co-headliner'];
-          const billingWeights = [0.6, 0.2, 0.15, 0.05]; // Mostly headliners, some support
-          const selectedBilling = weightedRandom(billingOptions, billingWeights);
-          
-          // 🎯 DIVERSE BID STATUSES for realistic testing
-          const statusOptions = ['PENDING', 'HOLD', 'ACCEPTED'];
-          const statusWeights = [0.5, 0.3, 0.2]; // More balanced: 50% pending, 30% hold, 20% accepted
+          // More diverse bid statuses
+          const statusOptions = ['PENDING', 'HOLD', 'ACCEPTED', 'REJECTED'];
+          const statusWeights = [0.4, 0.3, 0.2, 0.1];
           const bidStatus = weightedRandom(statusOptions, statusWeights);
           
-          console.log(`    🎯 Bid status selected: ${bidStatus} (from ${statusOptions.join(', ')})`);
+          const billingOptions = ['HEADLINER', 'SUPPORT', 'LOCAL_SUPPORT'];
+          const billingWeights = [0.6, 0.3, 0.1];
+          const selectedBilling = weightedRandom(billingOptions, billingWeights);
           
-          // Set appropriate set lengths based on billing position
-          const setLengthByPosition = {
-            'headliner': Math.floor(Math.random() * 30) + 60, // 60-90 minutes
-            'co-headliner': Math.floor(Math.random() * 20) + 55, // 55-75 minutes  
-            'support': Math.floor(Math.random() * 15) + 30, // 30-45 minutes
-            'local-support': Math.floor(Math.random() * 10) + 20 // 20-30 minutes
-          };
-
-          // Generate realistic other acts based on billing position
-          const otherActsByPosition = {
-            'headliner': ['Local Opener A', 'Regional Support Band'],
-            'co-headliner': ['Third Act TBD'],
-            'support': [`${artist.name} (headliner)`, 'Local Opener'],
-            'local-support': [`${artist.name} (headliner)`, 'Touring Support Act']
-          };
-
-          const bid = await prisma.showRequestBid.create({
+          await prisma.showRequestBid.create({
             data: {
               showRequestId: showRequest.id,
               venueId: venue.id,
               bidderId: systemUser.id,
               amount: guaranteeAmount,
               message: getBillingMessage(venue.name, selectedBilling, guaranteeAmount, venue.capacity),
-              status: bidStatus, // 🎯 DIVERSE STATUSES
-              proposedDate: requestDate,
+              status: bidStatus,
+              proposedDate: sharedDate,
               billingPosition: selectedBilling,
-              lineupPosition: selectedBilling === 'headliner' ? 1 : (selectedBilling === 'co-headliner' ? 1 : 2),
-              setLength: setLengthByPosition[selectedBilling],
-              billingNotes: getBillingNotes(selectedBilling),
-              otherActs: otherActsByPosition[selectedBilling].join(', ')
+              setLength: selectedBilling === 'HEADLINER' ? 75 : (selectedBilling === 'SUPPORT' ? 45 : 30),
+              billingNotes: getBillingNotes(selectedBilling)
             }
           });
-
-          console.log(`  ✅ Created ${bidStatus} bid from ${venue.name}: $${guaranteeAmount}`);
         }
       }
     }
 
-    // 🏢 CREATE VENUE-INITIATED OFFERS TO MULTIPLE ARTISTS
-    console.log('🏢 Creating venue-initiated show requests...');
-    
-    const venueOfferScenarios = [
-      { billing: 'headliner', baseAmount: 600 },
-      { billing: 'support', baseAmount: 300 },
-      { billing: 'co-headliner', baseAmount: 500 },
-      { billing: 'headliner', baseAmount: 800 },
-      { billing: 'support', baseAmount: 250 }
-    ];
-    
-    // Create offers to different artists
-    for (let i = 0; i < Math.min(venueOfferScenarios.length, venues.length); i++) {
-      const venue = venues[i];
-      const artist = artists[i + 10]; // Use different artists for venue offers
-      const scenario = venueOfferScenarios[i];
-      const requestDate = new Date();
-      requestDate.setDate(requestDate.getDate() + 60 + (i * 15));
-      const amount = scenario.baseAmount + Math.floor(Math.random() * 200); // Add some variation
-      
-      console.log(`🏢 Creating ${scenario.billing} offer from ${venue.name} to ${artist.name}...`);
-
-      const venueOffer = await prisma.showRequest.create({
-        data: {
-          artistId: artist.id,
-          venueId: venue.id,
-          createdById: systemUser.id,
-          title: `${artist.name} at ${venue.name} (${scenario.billing})`,
-          description: `${venue.name} would love to host ${artist.name} for an unforgettable ${scenario.billing} show!`,
-          requestedDate: requestDate,
-          initiatedBy: 'VENUE',
-          status: 'OPEN',
-          targetLocations: [venue.name],
-          genres: artist.genres || ['rock', 'indie'],
-          amount: amount,
-          capacity: venue.capacity,
-          ageRestriction: 'ALL_AGES',
-          billingPosition: scenario.billing,
-          message: getBillingMessage(venue.name, scenario.billing, amount, venue.capacity)
-        }
-      });
-
-      console.log(`✅ Created ${scenario.billing} offer: ${venueOffer.title} ($${amount})`);
-      totalRequests++;
-    }
-
-    // 🎭 CREATE REALISTIC MULTI-ARTIST CONFIRMED SHOWS
-    console.log('🎭 Creating diverse confirmed multi-artist shows...');
-    
-    const multiArtistShows = [
-      {
-        title: 'Punk & Indie Night',
-        date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
-        venueId: venues[1].id, // Lost Bag
-        headliner: artists.find(a => a.name === 'Against Me!') || artists[0],
-        lineup: ['The Menzingers', 'Joyce Manor', 'Local Opener TBD'],
-        description: 'Three-band punk lineup with Against Me! headlining',
-        ticketPrice: 25,
-        guarantee: 2000
-      },
-      {
-        title: 'Hardcore Showcase',
-        date: new Date(Date.now() + 52 * 24 * 60 * 60 * 1000),
-        venueId: venues[0].id, // Joe's Basement
-        headliner: artists.find(a => a.name === 'Minor Threat') || artists[1],
-        lineup: ['Fugazi', 'The Body', 'Screaming Females'],
-        description: 'Four-band hardcore showcase featuring legendary acts',
-        ticketPrice: 30,
-        guarantee: 2500
-      },
-      {
-        title: 'Indie Rock Festival',
-        date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-        venueId: venues[2].id, // Brillobox
-        headliner: artists.find(a => a.name === 'Dinosaur Jr.') || artists[2],
-        lineup: ['Guided by Voices', 'Sleater-Kinney', 'Bikini Kill', 'Local Support'],
-        description: 'Five-band indie rock festival with classic 90s acts',
-        ticketPrice: 35,
-        guarantee: 3000
-      },
-      {
-        title: 'Folk & Alternative Evening',
-        date: new Date(Date.now() + 67 * 24 * 60 * 60 * 1000),
-        venueId: venues[3].id, // First Avenue
-        headliner: artists.find(a => a.name === 'Ani DiFranco') || artists[3],
-        lineup: ['Henry Rollins (spoken word)', 'The Replacements', 'Opening Act TBD'],
-        description: 'Diverse evening mixing folk, punk, and spoken word',
-        ticketPrice: 28,
-        guarantee: 1800
-      }
-    ];
-
-    let confirmedShowsCreated = 0;
-    
-    for (const showData of multiArtistShows) {
-      if (showData.headliner) {
-        const confirmedShow = await prisma.show.create({
-          data: {
-            title: showData.title,
-            date: showData.date,
-            venueId: showData.venueId,
-            artistId: showData.headliner.id, // Primary artist
-            description: showData.description,
-            ticketPrice: showData.ticketPrice,
-            status: 'CONFIRMED',
-            createdById: systemUser.id,
-            guarantee: showData.guarantee,
-            // 🎯 MULTI-ARTIST LINEUP INFO - This is what creates the multi-band shows!
-            notes: `LINEUP: ${showData.headliner.name} (headliner) + ${showData.lineup.join(' + ')}`,
-            capacity: venues.find(v => v.id === showData.venueId)?.capacity || 200
-          }
-        });
-        
-        console.log(`✅ Created multi-artist show: ${showData.title}`);
-        console.log(`   🎤 Headliner: ${showData.headliner.name}`);
-        console.log(`   🎵 Supporting acts: ${showData.lineup.join(', ')}`);
-        confirmedShowsCreated++;
-      }
-    }
-
-    console.log('✅ Test data reset completed successfully!');
+    console.log('✅ Enhanced test data reset completed successfully!');
     
     // Show summary
     const totalBids = await prisma.showRequestBid.count();
     const totalShows = await prisma.show.count();
-    const uniqueArtists = new Set(artists.map(a => a.name)).size;
+    const totalLineupEntries = await prisma.showLineup.count();
+    const totalVenueOffers = await prisma.venueOffer.count();
+    const lostBagShows = await prisma.show.count({
+      where: { venue: { name: { contains: 'Lost Bag', mode: 'insensitive' } } }
+    });
     
-    console.log(`\n📊 Summary:`);
-    console.log(`   - ${totalRequests} total show requests from ${uniqueArtists} different artists`);
-    console.log(`   - ${totalBids} total bids with diverse statuses (PENDING/HOLD/ACCEPTED)`);
-    console.log(`   - ${confirmedShowsCreated} confirmed multi-artist shows with full lineups`);
-    console.log(`   - ${totalShows} total shows in database`);
-    console.log(`   - 🎵 Realistic billing positions: headliner, support, local-support, co-headliner`);
-    console.log(`   - 💰 Varied financial offers based on billing position`);
-    console.log(`   - 🎭 Complete lineup information with set lengths and other acts`);
-    console.log(`   - 🏙️ Multiple artists competing for IDENTICAL dates in same cities!`);
-    console.log(`   - 🎯 Venues see realistic competition with multiple bands bidding for same time slots!`);
-    console.log(`   - 🎪 Multi-artist confirmed shows with 3-5 bands per lineup!`);
+    console.log(`\n📊 ENHANCED TEST DATA SUMMARY:`);
+    console.log(`   🎭 ${totalShows} total shows with proper lineup architecture`);
+    console.log(`   🎵 ${totalLineupEntries} individual artist lineup slots`);
+    console.log(`   🏠 ${lostBagShows} diverse Lost Bag shows with 3-5 band lineups`);
+    console.log(`   💰 ${totalBids} venue bids with realistic statuses (PENDING/HOLD/ACCEPTED/DECLINED)`);
+    console.log(`   🎤 ${totalVenueOffers} venue offers for artists to review (PERFECT FOR TESTING ACTION BUTTONS!)`);
+    console.log(`   🎯 ${totalRequests} active show requests creating booking competition`);
+    console.log(`   ✨ Proper ShowLineup architecture with billing positions and guarantees`);
+    console.log(`   🎪 Diverse lineup scenarios: festivals, matinees, late shows, showcases`);
+    console.log(`   📅 Multiple shows on same dates creating realistic venue conflicts`);
+    console.log(`   🔄 Mixed show statuses: CONFIRMED, PENDING, with lineup changes`);
+    console.log(`\n🎯 FOR ARTIST PAGE TESTING:`);
+    console.log(`   👤 Visit any artist page to see their shows, venue offers, and action buttons`);
+    console.log(`   🔘 Test Accept/Decline/Hold buttons on venue offers`);
+    console.log(`   📋 View their confirmed shows in timeline format`);
+    console.log(`   🤝 See their role in multi-artist lineups (HEADLINER, SUPPORT, etc.)`);
+    console.log(`\n🏢 FOR VENUE PAGE TESTING:`);
+    console.log(`   🏠 Visit Lost Bag venue page to see diverse multi-artist shows`);
+    console.log(`   📊 Multiple shows with different statuses and lineups`);
+    console.log(`   🎭 Complex booking scenarios with 3-5 band lineups`);
 
   } catch (error) {
     console.error('❌ Error resetting test data:', error);
+    throw error;
   } finally {
     await prisma.$disconnect();
   }

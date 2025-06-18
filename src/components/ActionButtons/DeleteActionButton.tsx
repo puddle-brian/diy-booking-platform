@@ -23,16 +23,24 @@ interface TourRequest {
   originalOfferId?: string;
 }
 
+interface LineupItem {
+  artistId: string;
+  artistName: string;
+  billingPosition: 'HEADLINER' | 'CO_HEADLINER' | 'SUPPORT' | 'OPENER' | 'LOCAL_SUPPORT';
+  performanceOrder: number;
+  setLength?: number;
+  guarantee?: number;
+  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+}
+
 interface Show {
   id: string;
-  artistId: string;
+  title?: string;
   venueId: string;
-  artistName?: string;
   venueName?: string;
   city?: string;
   state?: string;
   date: string;
-  title?: string;
   notes?: string;
   capacity?: number;
   ageRestriction?: string;
@@ -47,6 +55,10 @@ interface Show {
   curfew?: string;
   status: string;
   createdBy?: string;
+  lineup?: LineupItem[];
+  // Legacy fields for backwards compatibility
+  artistId?: string;
+  artistName?: string;
 }
 
 interface DeleteActionButtonProps {
@@ -83,7 +95,35 @@ export function DeleteActionButton({
 }: DeleteActionButtonProps) {
   // Show delete button logic
   if (show && onDeleteShow) {
-    const showName = `${show.artistName || 'Show'} at ${show.venueName || show.city}`;
+    // Generate smart show name using lineup data
+    const getShowDisplayName = (show: Show): string => {
+      // Try to use the show title first
+      if (show.title) {
+        return show.title;
+      }
+      
+      // Generate name from lineup
+      if (show.lineup && show.lineup.length > 0) {
+        const headliner = show.lineup.find(item => item.billingPosition === 'HEADLINER') || show.lineup[0];
+        const artistName = headliner.artistName || 'Unknown Artist';
+        
+        if (show.lineup.length === 1) {
+          return `${artistName} at ${show.venueName || show.city}`;
+        } else {
+          return `${artistName} + ${show.lineup.length - 1} others at ${show.venueName || show.city}`;
+        }
+      }
+      
+      // Fallback to legacy fields for backwards compatibility
+      if (show.artistName) {
+        return `${show.artistName} at ${show.venueName || show.city}`;
+      }
+      
+      // Final fallback
+      return `Show at ${show.venueName || show.city}`;
+    };
+    
+    const showName = getShowDisplayName(show);
     
     return (
       <button

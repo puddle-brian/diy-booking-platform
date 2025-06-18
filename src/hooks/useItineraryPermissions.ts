@@ -8,10 +8,22 @@ interface VenueBid {
   showRequestId: string;
 }
 
+interface LineupItem {
+  artistId: string;
+  artistName: string;
+  billingPosition: 'HEADLINER' | 'CO_HEADLINER' | 'SUPPORT' | 'OPENER' | 'LOCAL_SUPPORT';
+  performanceOrder: number;
+  setLength?: number;
+  guarantee?: number;
+  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+}
+
 interface Show {
   id: string;
-  artistId: string;
   venueId: string;
+  lineup?: LineupItem[];
+  // Legacy fields for backwards compatibility
+  artistId?: string;
 }
 
 // 🎯 PHASE 6: TourRequest interface removed - now using ShowRequest (any type for compatibility)
@@ -127,7 +139,8 @@ export function useItineraryPermissions({
     return (show?: Show, bid?: VenueBid, request?: any) => {
       // Artists can see financial details for their own content
       if (actualViewerType === 'artist' && artistId) {
-        if (show?.artistId === artistId) return true;
+        // Check if artist is in the lineup or legacy artistId
+        if (show?.lineup?.some(item => item.artistId === artistId) || show?.artistId === artistId) return true;
         if (request?.artistId === artistId) return true;
       }
       // Venues can see financial details for their own content
@@ -143,8 +156,11 @@ export function useItineraryPermissions({
   const canViewShowDocument = useMemo(() => {
     return (show: Show) => {
       // Artists can view documents for their own shows
-      if (actualViewerType === 'artist' && artistId && show.artistId === artistId) {
-        return true;
+      if (actualViewerType === 'artist' && artistId) {
+        // Check if artist is in the lineup or legacy artistId
+        if (show.lineup?.some(item => item.artistId === artistId) || show.artistId === artistId) {
+          return true;
+        }
       }
       // Venues can view documents for shows at their venue
       if (actualViewerType === 'venue' && venueId && show.venueId === venueId) {
@@ -160,8 +176,11 @@ export function useItineraryPermissions({
       if (!isOwner) return false;
       
       // Artists can edit their own shows
-      if (actualViewerType === 'artist' && artistId && show.artistId === artistId) {
-        return true;
+      if (actualViewerType === 'artist' && artistId) {
+        // Check if artist is in the lineup or legacy artistId
+        if (show.lineup?.some(item => item.artistId === artistId) || show.artistId === artistId) {
+          return true;
+        }
       }
       // Venues can edit shows at their venue
       if (actualViewerType === 'venue' && venueId && show.venueId === venueId) {

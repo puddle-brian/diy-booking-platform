@@ -7,6 +7,20 @@ import UserStatus from '../../components/UserStatus';
 import { MobileFeedbackButton } from '../../components/FeedbackWidget';
 import AuthLink from '../../components/AuthLink';
 
+// 🎵 Extended Show interface to include lineup
+interface ShowWithLineup extends Show {
+  title?: string;
+  lineup?: Array<{
+    artistId: string;
+    artistName: string;
+    billingPosition: 'HEADLINER' | 'CO_HEADLINER' | 'SUPPORT' | 'OPENER' | 'LOCAL_SUPPORT';
+    performanceOrder: number;
+    setLength?: number;
+    guarantee?: number;
+    status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+  }>;
+}
+
 // Custom hook for debounced search
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
@@ -24,8 +38,65 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
+// 🎵 LINEUP DISPLAY UTILITIES
+const generateSmartShowTitle = (show: ShowWithLineup): string => {
+  // If show has a custom title, use it
+  if (show.title && !show.title.includes(' at ')) {
+    return show.title;
+  }
+
+  // Use lineup to generate smart title
+  if (show.lineup && show.lineup.length > 0) {
+    const sortedLineup = [...show.lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
+    
+    if (sortedLineup.length === 1) {
+      // Single artist
+      return sortedLineup[0].artistName;
+    } else if (sortedLineup.length === 2) {
+      // Two artists
+      return `${sortedLineup[0].artistName} + ${sortedLineup[1].artistName}`;
+    } else {
+      // Multi-artist: "Headliner + X others"
+      const headliner = sortedLineup[0];
+      const othersCount = sortedLineup.length - 1;
+      return `${headliner.artistName} + ${othersCount} ${othersCount === 1 ? 'other' : 'others'}`;
+    }
+  }
+
+  // Fallback to original artistName
+  return show.artistName || 'TBA';
+};
+
+const getLineupSummary = (show: ShowWithLineup): { 
+  headliner: string; 
+  supportCount: number; 
+  isMultiArtist: boolean;
+  confirmedCount: number;
+} => {
+  if (!show.lineup || show.lineup.length === 0) {
+    return {
+      headliner: show.artistName || 'TBA',
+      supportCount: 0,
+      isMultiArtist: false,
+      confirmedCount: 1
+    };
+  }
+
+  const sortedLineup = [...show.lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
+  const headliner = sortedLineup.find(item => item.billingPosition === 'HEADLINER') || sortedLineup[0];
+  const supportCount = sortedLineup.length - 1;
+  const confirmedCount = sortedLineup.filter(item => item.status === 'CONFIRMED').length;
+
+  return {
+    headliner: headliner?.artistName || 'TBA',
+    supportCount,
+    isMultiArtist: sortedLineup.length > 1,
+    confirmedCount
+  };
+};
+
 export default function ShowsPage() {
-  const [shows, setShows] = useState<Show[]>([]);
+  const [shows, setShows] = useState<ShowWithLineup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchLocation, setSearchLocation] = useState('');
   const [searchDate, setSearchDate] = useState('');
@@ -67,18 +138,29 @@ export default function ShowsPage() {
       if (!show || typeof show !== 'object') return false;
 
       try {
-        // Location search
+        // Location search - now includes lineup artist names
         if (debouncedLocation && debouncedLocation.trim()) {
           const searchTerm = debouncedLocation.toLowerCase().trim();
-          const searchableText = [
+          
+          // Build searchable text including lineup
+          let searchableText = [
             show.artistName || '',
             show.venueName || '',
             show.city || '',
             show.state || '',
             `${show.city || ''}, ${show.state || ''}`
-          ].join(' ').toLowerCase();
+          ];
+
+          // Add lineup artist names to search
+          if (show.lineup && show.lineup.length > 0) {
+            show.lineup.forEach(lineupItem => {
+              searchableText.push(lineupItem.artistName || '');
+            });
+          }
+
+          const searchText = searchableText.join(' ').toLowerCase();
           
-          if (!searchableText.includes(searchTerm)) {
+          if (!searchText.includes(searchTerm)) {
             return false;
           }
         }
@@ -391,13 +473,30 @@ export default function ShowsPage() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{show.artistName}</h3>
+                          <h3 className="text-xl font-bold text-gray-900">{generateSmartShowTitle(show)}</h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(show.status)}`}>
                             {show.status}
                           </span>
                         </div>
                         <p className="text-lg text-gray-700 mb-1">at {show.venueName}</p>
                         <p className="text-sm text-gray-600">{show.city}, {show.state}</p>
+                        
+                        {/* 🎵 NEW: Lineup Summary */}
+                        {(() => {
+                          const lineupSummary = getLineupSummary(show);
+                          return lineupSummary.isMultiArtist ? (
+                            <div className="mt-2 flex items-center gap-2 text-sm">
+                              <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                                {lineupSummary.supportCount + 1} Artists
+                              </span>
+                              {lineupSummary.confirmedCount < (lineupSummary.supportCount + 1) && (
+                                <span className="text-gray-500 text-xs">
+                                  ({lineupSummary.confirmedCount} confirmed)
+                                </span>
+                              )}
+                            </div>
+                          ) : null;
+                        })()}
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-semibold text-gray-900">{formatDate(show.date)}</div>
@@ -449,12 +548,47 @@ export default function ShowsPage() {
 
                     <div className="mt-4 flex items-center justify-between">
                       <div className="flex gap-3">
-                        <Link 
-                          href={`/artists/${show.artistId}`}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          View Artist →
-                        </Link>
+                        {/* 🎵 NEW: Smart Artist Links */}
+                        {(() => {
+                          const lineupSummary = getLineupSummary(show);
+                          
+                          if (lineupSummary.isMultiArtist && show.lineup && show.lineup.length > 0) {
+                            // Multi-artist show - show lineup preview
+                            const sortedLineup = [...show.lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
+                            const displayLineup = sortedLineup.slice(0, 3); // Show first 3
+                            const hasMore = sortedLineup.length > 3;
+                            
+                            return (
+                              <div className="flex flex-wrap gap-2 items-center">
+                                {displayLineup.map((lineupItem, index) => (
+                                  <Link 
+                                    key={lineupItem.artistId}
+                                    href={`/artists/${lineupItem.artistId}`}
+                                    className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2 py-1 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                                  >
+                                    {lineupItem.artistName}
+                                  </Link>
+                                ))}
+                                {hasMore && (
+                                  <span className="text-xs text-gray-500">
+                                    +{sortedLineup.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          } else {
+                            // Single artist show - original link
+                            return (
+                              <Link 
+                                href={`/artists/${show.artistId}`}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                              >
+                                View Artist →
+                              </Link>
+                            );
+                          }
+                        })()}
+                        
                         <Link 
                           href={`/venues/${show.venueId}`}
                           className="text-sm text-blue-600 hover:text-blue-800 font-medium"

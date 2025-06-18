@@ -3,6 +3,7 @@ import { venueOfferModule } from './VenueOfferModule';
 import { artistRequirementsModule } from './ArtistRequirementsModule';
 import { showScheduleModule } from './ShowScheduleModule';
 import { showDocumentMessagingModule } from './ShowDocumentMessagingModule';
+import { lineupModule } from './LineupModule';
 
 // Import registry
 import { moduleRegistry } from './ModuleRegistry';
@@ -22,7 +23,8 @@ import { moduleRegistry } from './ModuleRegistry';
  * - Apply status workflow
  */
 
-// Register all 4 modules
+// Register all 5 modules (including new lineup module)
+moduleRegistry.register(lineupModule); // NEW: Show lineup first - most important info
 moduleRegistry.register(venueOfferModule);
 moduleRegistry.register(artistRequirementsModule);
 moduleRegistry.register(showScheduleModule);
