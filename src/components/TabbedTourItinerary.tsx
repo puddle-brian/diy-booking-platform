@@ -338,7 +338,7 @@ export default function TabbedTourItinerary({
       // Fix the artist parameter to match the expected signature
       actions.openUniversalOffer({
         id: tourRequest.artistId,
-        name: tourRequest.artistName
+                        name: tourRequest.artist?.name || tourRequest.artistName
       });
       return;
     }
@@ -1584,7 +1584,7 @@ export default function TabbedTourItinerary({
                                   );
                                   
                                   return {
-                                    artistName: req.artistName || 'Unknown Artist',
+                                    artistName: req.artist?.name || req.artistName || 'Unknown Artist',
                                     artistId: req.artistId,
                                     status: 'accepted' as const,
                                     billingPosition: artistBid?.billingPosition || undefined
@@ -1598,6 +1598,11 @@ export default function TabbedTourItinerary({
                               
                               // Generate smart title
                               const smartTitle = (() => {
+                                // Safety check for empty artists array
+                                if (!allSameDateArtists || allSameDateArtists.length === 0) {
+                                  return request.artist?.name || request.artistName || 'Unknown Artist';
+                                }
+                                
                                 if (allSameDateArtists.length === 1) {
                                   // Just one artist - use regular display
                                   const artist = allSameDateArtists[0];
@@ -1624,13 +1629,18 @@ export default function TabbedTourItinerary({
                                   });
                                   const headlinerArtist = sortedArtists[0];
                                   
+                                  // Safety check for headliner artist
+                                  if (!headlinerArtist) {
+                                    return 'Unknown Artist';
+                                  }
+                                  
                                   // Get all other artists as support acts (already in correct billing order)
                                   const supportActs = sortedArtists.slice(1);
                                   
                                   const { title, tooltip } = generateSmartShowTitle({
-                                    headlinerName: headlinerArtist.artistName,
+                                    headlinerName: headlinerArtist.artistName || 'Unknown Artist',
                                     supportActs: supportActs.map(artist => ({
-                                      artistName: artist.artistName,
+                                      artistName: artist.artistName || 'Unknown Artist',
                                       status: 'accepted' as const,
                                       billingPosition: artist.billingPosition || 'support' as const
                                     })),
@@ -1643,7 +1653,7 @@ export default function TabbedTourItinerary({
                                       <a 
                                         href={`/artists/${headlinerArtist.artistId}`}
                                         className="text-blue-600 hover:text-blue-800 hover:underline"
-                                        title={tooltip ? `${tooltip} - Click to view ${headlinerArtist.artistName} page` : `View ${headlinerArtist.artistName} page`}
+                                        title={tooltip ? `${tooltip} - Click to view ${headlinerArtist.artistName || 'Unknown Artist'} page` : `View ${headlinerArtist.artistName || 'Unknown Artist'} page`}
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         {title}
@@ -1670,11 +1680,11 @@ export default function TabbedTourItinerary({
                                     title="View artist page"
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    {request.artistName}
+                                    {request.artist?.name || request.artistName}
                                   </a>
                                 );
                               } else {
-                                return request.artistName;
+                                return request.artist?.name || request.artistName;
                               }
                             }
                           })()}
@@ -1821,7 +1831,7 @@ export default function TabbedTourItinerary({
                                       .map((bid: VenueBid) => ({
                                         bid,
                                         request,
-                                        artistName: request.artistName || 'Unknown',
+                                        artistName: request.artist?.name || request.artistName || 'Unknown',
                                         billingPosition: bid.billingPosition
                                       }));
                                     
@@ -1904,7 +1914,7 @@ export default function TabbedTourItinerary({
                                             .map((bid: VenueBid) => ({
                                               bid,
                                               request: siblingRequest,
-                                              artistName: siblingRequest.artistName || 'Unknown',
+                                              artistName: siblingRequest.artist?.name || siblingRequest.artistName || 'Unknown',
                                               billingPosition: bid.billingPosition
                                             }));
                                           
@@ -1952,12 +1962,12 @@ export default function TabbedTourItinerary({
                                             actions.openUniversalOffer(
                                               {
                                                 id: request.artistId,
-                                                name: request.artistName
+                                                name: request.artist?.name || request.artistName
                                               },
                                               {
                                                 id: request.id,
                                                 title: request.title,
-                                                artistName: request.artistName
+                                                artistName: request.artist?.name || request.artistName
                                               },
                                               preSelectedDate,
                                               existingBid

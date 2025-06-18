@@ -454,17 +454,20 @@ export function useTourItineraryData({
           const venueInitiatedData = await venueInitiatedResponse.json();
           const allArtistRequestsData = await allArtistRequestsResponse.json();
           
-          // Combine venue-initiated requests with artist requests that have this venue's bids
-          const artistRequestsWithVenueBids = allArtistRequestsData.filter((req: any) => 
-            req.bids && req.bids.some((bid: any) => bid.venueId === venueId)
+          // 🎯 FIXED: Show ALL open artist requests that venues can bid on
+          // Not just ones they've already bid on - this gives venues full visibility for booking opportunities
+          const availableArtistRequests = allArtistRequestsData.filter((req: any) => 
+            req.status === 'OPEN' && req.initiatedBy === 'ARTIST'
           );
           
-          const combinedShowRequestsData = [...venueInitiatedData, ...artistRequestsWithVenueBids];
+          const combinedShowRequestsData = [...venueInitiatedData, ...availableArtistRequests];
           
+          console.log('🚨 VENUE FILTERING DEBUG - NEW LOGIC ACTIVE 🚨');
           console.log('🎯 Fetched show requests for venue:');
           console.log(`  - Venue-initiated: ${venueInitiatedData.length}`);
-          console.log(`  - Artist requests with venue bids: ${artistRequestsWithVenueBids.length}`);
+          console.log(`  - Available artist requests: ${availableArtistRequests.length}`);
           console.log(`  - Total combined: ${combinedShowRequestsData.length}`);
+          console.log('🚨 AVAILABLE ARTIST REQUESTS:', availableArtistRequests.map((req: any) => req.artist?.name || 'Unknown'));
           
           // 🎯 DEBUG: Log all venue-initiated data
           console.log('🔍 Debug: All venueInitiatedData:', venueInitiatedData.map((req: any) => ({
@@ -475,21 +478,30 @@ export function useTourItineraryData({
             artistName: req.artist?.name
           })));
           
-          // 🎯 NEW: Handle venue-specific artist requests (artist → venue direct requests)
-          const venueSpecificArtistRequests = venueInitiatedData.filter((req: any) => 
-            req.initiatedBy === 'ARTIST' && req.venueId === venueId
-          );
+          // 🎯 FIXED: Show ALL artist requests that venues can engage with
+          // This includes both venue-specific requests AND general location-based requests
+          const allRelevantArtistRequests = [
+            // Direct venue-specific requests (artist → specific venue)
+            ...venueInitiatedData.filter((req: any) => 
+              req.initiatedBy === 'ARTIST' && req.venueId === venueId
+            ),
+            // General artist requests that venues can bid on (artist → location)
+            ...availableArtistRequests
+          ];
           
-          console.log(`  - Venue-specific artist requests: ${venueSpecificArtistRequests.length}`);
-          console.log('🔍 Debug: Venue-specific requests:', venueSpecificArtistRequests.map((req: any) => ({
+          console.log(`  - Direct venue-specific requests: ${venueInitiatedData.filter((req: any) => req.initiatedBy === 'ARTIST' && req.venueId === venueId).length}`);
+          console.log(`  - General artist requests venue can bid on: ${availableArtistRequests.length}`);
+          console.log(`  - Total relevant requests for venue: ${allRelevantArtistRequests.length}`);
+          console.log('🔍 Debug: All relevant requests:', allRelevantArtistRequests.map((req: any) => ({
             id: req.id,
             title: req.title,
             artistName: req.artist?.name,
-            date: req.requestedDate
+            date: req.requestedDate,
+            type: req.venueId === venueId ? 'venue-specific' : 'general-location'
           })));
           
-          // Convert venue-specific artist requests to legacy TourRequest format
-          const legacyTourRequests: any[] = venueSpecificArtistRequests.map((req: any) => ({ // 🎯 PHASE 4: Updated to any for ShowRequest
+          // Convert all relevant artist requests to legacy TourRequest format
+          const legacyTourRequests: any[] = allRelevantArtistRequests.map((req: any) => ({ // 🎯 PHASE 4: Updated to any for ShowRequest
             id: req.id,
             artistId: req.artistId,
             artistName: req.artist?.name || 'Unknown Artist',
@@ -524,8 +536,8 @@ export function useTourItineraryData({
             expiresAt: req.expiresAt
           }));
           
-          console.log('🔄 Debug: Converting venue-specific requests to legacy format:');
-          console.log(`  - Input: ${venueSpecificArtistRequests.length} venue-specific requests`);
+          console.log('🔄 Debug: Converting all relevant requests to legacy format:');
+          console.log(`  - Input: ${allRelevantArtistRequests.length} relevant requests`);
           console.log(`  - Output: ${legacyTourRequests.length} legacy tour requests`);
           console.log('🔍 Debug: Legacy tour requests:', legacyTourRequests.map((req: any) => ({
             id: req.id,
@@ -538,6 +550,13 @@ export function useTourItineraryData({
           
           setTourRequests(legacyTourRequests);
           console.log('✅ Debug: Set tourRequests state with', legacyTourRequests.length, 'requests');
+          console.log('🚨 LEGACY TOUR REQUESTS SAMPLE:', legacyTourRequests.slice(0, 3).map((req: any) => ({
+            id: req.id,
+            artistName: req.artistName,
+            title: req.title,
+            location: req.location,
+            status: req.status
+          })));
           
           // Convert to legacy formats (similar to artist logic but focused on venue perspective)
           const legacyVenueOffers: VenueOffer[] = combinedShowRequestsData

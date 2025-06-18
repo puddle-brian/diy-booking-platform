@@ -95,13 +95,24 @@ async function resetTestData() {
       throw new Error('System user not found');
     }
 
-    const lightningBolt = await prisma.artist.findFirst({
-      where: { name: 'lightning bolt' }
+    // 🎵 GET MULTIPLE ARTISTS for diverse data (filter out unnamed/unknown artists)
+    const artists = await prisma.artist.findMany({
+      where: {
+        name: {
+          not: null,
+          not: '',
+          notIn: ['Unknown', 'unknown', 'Unknown Artist', 'unknown artist']
+        }
+      },
+      take: 20, // Get more artists to ensure we have enough after filtering
+      select: { id: true, name: true, genres: true }
     });
 
-    if (!lightningBolt) {
-      throw new Error('Lightning Bolt artist not found');
+    if (artists.length === 0) {
+      throw new Error('No artists found in database');
     }
+
+    console.log(`🎸 Found ${artists.length} artists for diverse test data`);
 
     // Get some venues for bidding
     const venues = await prisma.venue.findMany({
@@ -109,129 +120,155 @@ async function resetTestData() {
       select: { id: true, name: true, capacity: true }
     });
 
-    console.log(`Found ${venues.length} venues for test data`);
+    console.log(`🏢 Found ${venues.length} venues for test data`);
 
-    // Create artist-initiated show requests with multiple bids
-    const locations = [
+    // 🎯 CREATE OVERLAPPING REQUESTS - Multiple artists targeting same cities/dates
+    const popularCities = [
       'Boston, MA',
       'Portland, OR', 
-      'Atlanta, GA',
       'Nashville, TN',
-      'Austin, TX',
-      'Seattle, WA',
-      'Denver, CO'
+      'Austin, TX'
     ];
 
-    const artistGenres = ['noise rock', 'experimental', 'avant-garde'];
+    let totalRequests = 0;
 
-    for (let i = 0; i < locations.length; i++) {
-      const location = locations[i];
-      const requestDate = new Date();
-      requestDate.setDate(requestDate.getDate() + 30 + (i * 10)); // Spread out over time
+    for (let cityIndex = 0; cityIndex < popularCities.length; cityIndex++) {
+      const city = popularCities[cityIndex];
+      
+      // 🎯 CREATE SHARED DATES - Multiple artists competing for same dates!
+      const sharedDates = [];
+      for (let dateIndex = 0; dateIndex < 3; dateIndex++) {
+        const sharedDate = new Date();
+        sharedDate.setDate(sharedDate.getDate() + 30 + (cityIndex * 20) + (dateIndex * 10)); // 3 dates per city, 10 days apart
+        sharedDates.push(sharedDate);
+      }
+      
+      console.log(`🏙️ Creating competing requests for ${city} on ${sharedDates.length} shared dates...`);
 
-      console.log(`🎵 Creating show request for ${location}...`);
-
-      // Artist-initiated show request
-      const showRequest = await prisma.showRequest.create({
-        data: {
-          artistId: lightningBolt.id,
-          venueId: null, // Artist doesn't specify venue initially
-          createdById: systemUser.id,
-          title: `${lightningBolt.name} - ${location}`,
-          description: `Looking for a venue in ${location} for a ${artistGenres.join('/')} show.`,
-          requestedDate: requestDate,
-          initiatedBy: 'ARTIST',
-          status: 'OPEN',
-          targetLocations: [location],
-          genres: artistGenres,
-          billingPosition: 'headliner' // 🎵 FIX: Artists usually request headliner spots
-        }
-      });
-
-      console.log(`✅ Created show request: ${showRequest.title}`);
-
-      // Create 2-4 bids from different venues for each request
-      const numBids = Math.floor(Math.random() * 3) + 2; // 2-4 bids
-      const selectedVenues = venues.slice(0, numBids);
-
-      for (let j = 0; j < selectedVenues.length; j++) {
-        const venue = selectedVenues[j];
-        const guaranteeAmount = Math.floor(Math.random() * 800) + 200; // $200-$1000
+      // 6-7 different artists request shows in the same city on the SAME DATES (more competition!)
+      const artistsForCity = artists.slice(cityIndex * 4, (cityIndex * 4) + 7).filter(a => a.name && a.name.trim() !== ''); // Filter out unnamed artists
+      
+      for (let artistIndex = 0; artistIndex < artistsForCity.length; artistIndex++) {
+        const artist = artistsForCity[artistIndex];
+        // 🎯 ENHANCED: More artists competing for same dates (3-4 per date instead of 2)
+        const requestDate = sharedDates[artistIndex % sharedDates.length]; // Cycle through shared dates
         
-        console.log(`  💰 Creating bid from ${venue.name} for $${guaranteeAmount}...`);
+        console.log(`🎵 Creating show request for ${artist.name} in ${city} on ${requestDate.toDateString()}...`);
 
-        // 🎵 Enhanced billing positions using new simplified system
-        const billingOptions = ['headliner', 'support', 'local-support', 'co-headliner'];
-        const billingWeights = [0.6, 0.2, 0.15, 0.05]; // Mostly headliners, some support
-        const selectedBilling = weightedRandom(billingOptions, billingWeights);
-        
-        // Set appropriate set lengths based on billing position
-        const setLengthByPosition = {
-          'headliner': Math.floor(Math.random() * 30) + 60, // 60-90 minutes
-          'co-headliner': Math.floor(Math.random() * 20) + 55, // 55-75 minutes  
-          'support': Math.floor(Math.random() * 15) + 30, // 30-45 minutes
-          'local-support': Math.floor(Math.random() * 10) + 20 // 20-30 minutes
-        };
-
-        // Generate realistic other acts based on billing position
-        const otherActsByPosition = {
-          'headliner': ['Local Opener A', 'Regional Support Band'],
-          'co-headliner': ['Third Act TBD'],
-          'support': ['Lightning Bolt (headliner)', 'Local Opener'],
-          'local-support': ['Lightning Bolt (headliner)', 'Touring Support Act']
-        };
-
-        const bid = await prisma.showRequestBid.create({
+        // Artist-initiated show request
+        const showRequest = await prisma.showRequest.create({
           data: {
-            showRequestId: showRequest.id,
-            venueId: venue.id,
-            bidderId: systemUser.id,
-            amount: guaranteeAmount,
-            message: getBillingMessage(venue.name, selectedBilling, guaranteeAmount, venue.capacity),
-            status: j === 0 ? 'PENDING' : (Math.random() > 0.7 ? 'HOLD' : 'PENDING'),
-            proposedDate: requestDate,
-            billingPosition: selectedBilling,
-            lineupPosition: selectedBilling === 'headliner' ? 1 : (selectedBilling === 'co-headliner' ? 1 : 2),
-            setLength: setLengthByPosition[selectedBilling],
-            billingNotes: getBillingNotes(selectedBilling),
-            otherActs: otherActsByPosition[selectedBilling].join(', ')
+            artistId: artist.id,
+            venueId: null, // Artist doesn't specify venue initially
+            createdById: systemUser.id,
+            title: `${artist.name} - ${city}`,
+            description: `Looking for a venue in ${city} for a ${artist.genres?.join('/')} show.`,
+            requestedDate: requestDate,
+            initiatedBy: 'ARTIST',
+            status: 'OPEN',
+            targetLocations: [city],
+            genres: artist.genres || ['rock', 'indie'],
+            billingPosition: 'headliner' // Artists usually request headliner spots
           }
         });
 
-        console.log(`  ✅ Created bid from ${venue.name}: $${guaranteeAmount}`);
+        console.log(`✅ Created show request: ${showRequest.title}`);
+        totalRequests++;
+
+        // Create 2-4 bids from different venues for each request
+        const numBids = Math.floor(Math.random() * 3) + 2; // 2-4 bids
+        const selectedVenues = venues.slice(0, numBids);
+
+        for (let j = 0; j < selectedVenues.length; j++) {
+          const venue = selectedVenues[j];
+          const guaranteeAmount = Math.floor(Math.random() * 800) + 200; // $200-$1000
+          
+          console.log(`  💰 Creating bid from ${venue.name} for $${guaranteeAmount}...`);
+
+          // 🎵 Enhanced billing positions using weighted system
+          const billingOptions = ['headliner', 'support', 'local-support', 'co-headliner'];
+          const billingWeights = [0.6, 0.2, 0.15, 0.05]; // Mostly headliners, some support
+          const selectedBilling = weightedRandom(billingOptions, billingWeights);
+          
+          // 🎯 DIVERSE BID STATUSES for realistic testing
+          const statusOptions = ['PENDING', 'HOLD', 'ACCEPTED'];
+          const statusWeights = [0.5, 0.3, 0.2]; // More balanced: 50% pending, 30% hold, 20% accepted
+          const bidStatus = weightedRandom(statusOptions, statusWeights);
+          
+          console.log(`    🎯 Bid status selected: ${bidStatus} (from ${statusOptions.join(', ')})`);
+          
+          // Set appropriate set lengths based on billing position
+          const setLengthByPosition = {
+            'headliner': Math.floor(Math.random() * 30) + 60, // 60-90 minutes
+            'co-headliner': Math.floor(Math.random() * 20) + 55, // 55-75 minutes  
+            'support': Math.floor(Math.random() * 15) + 30, // 30-45 minutes
+            'local-support': Math.floor(Math.random() * 10) + 20 // 20-30 minutes
+          };
+
+          // Generate realistic other acts based on billing position
+          const otherActsByPosition = {
+            'headliner': ['Local Opener A', 'Regional Support Band'],
+            'co-headliner': ['Third Act TBD'],
+            'support': [`${artist.name} (headliner)`, 'Local Opener'],
+            'local-support': [`${artist.name} (headliner)`, 'Touring Support Act']
+          };
+
+          const bid = await prisma.showRequestBid.create({
+            data: {
+              showRequestId: showRequest.id,
+              venueId: venue.id,
+              bidderId: systemUser.id,
+              amount: guaranteeAmount,
+              message: getBillingMessage(venue.name, selectedBilling, guaranteeAmount, venue.capacity),
+              status: bidStatus, // 🎯 DIVERSE STATUSES
+              proposedDate: requestDate,
+              billingPosition: selectedBilling,
+              lineupPosition: selectedBilling === 'headliner' ? 1 : (selectedBilling === 'co-headliner' ? 1 : 2),
+              setLength: setLengthByPosition[selectedBilling],
+              billingNotes: getBillingNotes(selectedBilling),
+              otherActs: otherActsByPosition[selectedBilling].join(', ')
+            }
+          });
+
+          console.log(`  ✅ Created ${bidStatus} bid from ${venue.name}: $${guaranteeAmount}`);
+        }
       }
     }
 
-    // Create a few venue-initiated show requests (offers) with diverse billing positions
+    // 🏢 CREATE VENUE-INITIATED OFFERS TO MULTIPLE ARTISTS
     console.log('🏢 Creating venue-initiated show requests...');
     
     const venueOfferScenarios = [
       { billing: 'headliner', baseAmount: 600 },
       { billing: 'support', baseAmount: 300 },
-      { billing: 'co-headliner', baseAmount: 500 }
+      { billing: 'co-headliner', baseAmount: 500 },
+      { billing: 'headliner', baseAmount: 800 },
+      { billing: 'support', baseAmount: 250 }
     ];
     
-    for (let i = 0; i < 3; i++) {
+    // Create offers to different artists
+    for (let i = 0; i < Math.min(venueOfferScenarios.length, venues.length); i++) {
       const venue = venues[i];
+      const artist = artists[i + 10]; // Use different artists for venue offers
       const scenario = venueOfferScenarios[i];
       const requestDate = new Date();
       requestDate.setDate(requestDate.getDate() + 60 + (i * 15));
       const amount = scenario.baseAmount + Math.floor(Math.random() * 200); // Add some variation
       
-      console.log(`🏢 Creating ${scenario.billing} offer from ${venue.name}...`);
+      console.log(`🏢 Creating ${scenario.billing} offer from ${venue.name} to ${artist.name}...`);
 
       const venueOffer = await prisma.showRequest.create({
         data: {
-          artistId: lightningBolt.id,
+          artistId: artist.id,
           venueId: venue.id,
           createdById: systemUser.id,
-          title: `${lightningBolt.name} at ${venue.name} (${scenario.billing})`,
-          description: `${venue.name} would love to host Lightning Bolt for an unforgettable ${scenario.billing} show!`,
+          title: `${artist.name} at ${venue.name} (${scenario.billing})`,
+          description: `${venue.name} would love to host ${artist.name} for an unforgettable ${scenario.billing} show!`,
           requestedDate: requestDate,
           initiatedBy: 'VENUE',
           status: 'OPEN',
           targetLocations: [venue.name],
-          genres: artistGenres,
+          genres: artist.genres || ['rock', 'indie'],
           amount: amount,
           capacity: venue.capacity,
           ageRestriction: 'ALL_AGES',
@@ -241,21 +278,23 @@ async function resetTestData() {
       });
 
       console.log(`✅ Created ${scenario.billing} offer: ${venueOffer.title} ($${amount})`);
+      totalRequests++;
     }
 
     console.log('✅ Test data reset completed successfully!');
     
     // Show summary
-    const totalRequests = await prisma.showRequest.count();
     const totalBids = await prisma.showRequestBid.count();
+    const uniqueArtists = new Set(artists.map(a => a.name)).size;
     
     console.log(`\n📊 Summary:`);
-    console.log(`   - ${totalRequests} total show requests`);
-    console.log(`   - ${totalBids} total bids`);
+    console.log(`   - ${totalRequests} total show requests from ${uniqueArtists} different artists`);
+    console.log(`   - ${totalBids} total bids with diverse statuses (PENDING/HOLD/ACCEPTED)`);
     console.log(`   - 🎵 Realistic billing positions: headliner, support, local-support, co-headliner`);
     console.log(`   - 💰 Varied financial offers based on billing position`);
     console.log(`   - 🎭 Complete lineup information with set lengths and other acts`);
-    console.log(`   - Lightning Bolt now has venues offering different roles and experiences!`);
+    console.log(`   - 🏙️ Multiple artists competing for IDENTICAL dates in same cities!`);
+    console.log(`   - 🎯 Venues see realistic competition with multiple bands bidding for same time slots!`);
 
   } catch (error) {
     console.error('❌ Error resetting test data:', error);
@@ -264,4 +303,17 @@ async function resetTestData() {
   }
 }
 
-resetTestData(); 
+// Run the script if called directly
+if (require.main === module) {
+  resetTestData()
+    .then(() => {
+      console.log('✅ Script completed!');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('❌ Script failed:', error);
+      process.exit(1);
+    });
+}
+
+module.exports = { resetTestData }; 
