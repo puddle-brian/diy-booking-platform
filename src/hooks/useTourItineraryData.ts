@@ -693,6 +693,17 @@ export function useTourItineraryData({
       }
 
       console.log('✅ Data fetching completed with unified ShowRequest API');
+      
+      // 🔥 LEGACY SYSTEM PROOF - Will be updated after state changes
+      console.log('🔥 LEGACY SYSTEM PROOF:', {
+        dataSource: 'LEGACY_APIs_/api/show-requests+/api/offers+/api/shows',
+        totalShows: showsData.length,
+        septemberShowFound: showsData.some((s: any) => 
+          s.date?.includes('2024-09-27') || 
+          s.id?.includes('cmc1yvr6y003lw6dg1ypper83')
+        ),
+        sampleShows: showsData.slice(0, 3).map((s: any) => ({ id: s.id, date: s.date }))
+      });
     } catch (error) {
       console.error('Failed to fetch data:', error);
       setFetchError(error instanceof Error ? error.message : 'Unknown error');

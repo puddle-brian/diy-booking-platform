@@ -11,6 +11,7 @@ import {
   BookingContactCard
 } from './ProfileModules';
 import TabbedTourItinerary from '../TabbedTourItinerary';
+import { UnifiedDataToggle } from '../UnifiedDataToggle';
 import MediaSection from '../MediaSection';
 import TeamManagementCard from './TeamManagementCard';
 import { HoldNotificationPanel } from '../HoldNotificationPanel';
@@ -126,6 +127,9 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 
         {/* Primary Content Grid - Most important functionality */}
         <div className="grid gap-6 mb-8">
+          {/* A/B Testing Toggle - PHASE 4.2 */}
+          <UnifiedDataToggle />
+          
           {/* Tour Dates/Booking - HIGHEST PRIORITY */}
           <TabbedTourItinerary
             key={`itinerary-${refreshTrigger}`} // 🔄 NEW: Force re-render when refresh is triggered

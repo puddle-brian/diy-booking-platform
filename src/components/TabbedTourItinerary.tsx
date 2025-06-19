@@ -24,7 +24,7 @@ import { useAlert } from './UniversalAlertModal';
 import { AddSupportActModal } from './modals/AddSupportActModal';
 
 // Import our new custom hooks and utilities
-import { useTourItineraryData } from '../hooks/useTourItineraryData';
+import { useToggleTourItinerary } from '../hooks/useToggleTourItinerary';
 import { useVenueArtistSearch } from '../hooks/useVenueArtistSearch';
 import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
 import { useItineraryState } from '../hooks/useItineraryState';
@@ -103,7 +103,7 @@ export default function TabbedTourItinerary({
   // 🎯 REFACTORED: Use centralized state management
   const { state, actions, getSavedActiveMonth, isValidSavedMonth } = useItineraryState();
 
-  // 🎯 REFACTORED: Use centralized data fetching
+  // 🎯 REFACTORED: Use unified data fetching with A/B testing
   const {
     shows,
     tourRequests,
@@ -111,8 +111,9 @@ export default function TabbedTourItinerary({
     venueOffers,
     loading,
     fetchError,
-    fetchData
-  } = useTourItineraryData({ artistId, venueId, venueName });
+    fetchData,
+    _metadata
+  } = useToggleTourItinerary({ artistId, venueId, venueName });
 
 
 
