@@ -32,6 +32,20 @@ export function LineupTableSection({
         <div className="bg-blue-50/30 border-l-4 border-l-blue-400">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px] table-fixed">
+              <thead className="bg-gray-50">
+                <tr className="text-left text-xs font-medium text-gray-600">
+                  <th className="px-4 py-1 w-[3%]"></th>
+                  <th className="px-4 py-1 w-[12%]">Date</th>
+                  {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
+                  <th className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>Artist</th>
+                  <th className="px-4 py-1 w-[10%]">Status</th>
+                  <th className="px-4 py-1 w-[7%]">Position</th>
+                  <th className="px-4 py-1 w-[7%]">Age</th>
+                  <th className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Financial</th>
+                  <th className="px-4 py-1 w-[8%]">Details</th>
+                  <th className="px-4 py-1 w-[10%]">Actions</th>
+                </tr>
+              </thead>
               <tbody>
                 {sortedLineup.map((lineupItem, index) => (
                   <LineupItemRow
