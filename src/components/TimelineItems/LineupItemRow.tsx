@@ -129,9 +129,33 @@ export function LineupItemRow({
           {permissions.canViewShowDocument(show) && (
             <DocumentActionButton
               type="show"
-              show={show}
+              show={{
+                ...show,
+                // Override the primary artist fields to be the specific lineup item
+                artistId: lineupItem.artistId,
+                artistName: lineupItem.artistName,
+                // Override the lineup to show ONLY this artist as the headliner
+                // This ensures the extractData function will find this artist as the headliner
+                lineup: [{
+                  artistId: lineupItem.artistId,
+                  artistName: lineupItem.artistName,
+                  billingPosition: 'HEADLINER' as const,
+                  performanceOrder: 1,
+                  setLength: lineupItem.setLength,
+                  guarantee: lineupItem.guarantee,
+                  status: lineupItem.status || 'CONFIRMED' as const
+                }]
+              } as Show}
               permissions={permissions}
-              onShowDocument={() => onShowDocument?.(show)}
+              onShowDocument={(artistSpecificShow) => {
+                console.log('🎯 LineupItemRow: Document clicked for artist:', lineupItem.artistName);
+                console.log('🎯 LineupItemRow: Artist-specific show object:', {
+                  artistId: artistSpecificShow.artistId,
+                  artistName: artistSpecificShow.artistName,
+                  lineup: artistSpecificShow.lineup
+                });
+                onShowDocument?.(artistSpecificShow);
+              }}
             />
           )}
         </div>
@@ -142,7 +166,7 @@ export function LineupItemRow({
         <div className="flex items-center space-x-1">
           {permissions.canEditShow(show) && (
             <button
-              className="text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded border border-red-200 hover:border-red-300 transition-colors"
+              className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
               title="Remove from lineup"
               onClick={(e) => {
                 e.stopPropagation();
@@ -150,7 +174,7 @@ export function LineupItemRow({
                 console.log('Remove artist from lineup:', lineupItem.artistName);
               }}
             >
-              Remove
+              ✕
             </button>
           )}
         </div>
