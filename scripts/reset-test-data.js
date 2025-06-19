@@ -74,12 +74,19 @@ async function resetTestData() {
   console.log('🧹 Starting test data reset...');
   
   try {
-    // Clear all show request bids first (due to foreign key constraints)
+    // Clear all data in the correct order (due to foreign key constraints)
+    console.log('🗑️ Clearing all show lineup records...');
+    const deletedLineups = await prisma.showLineup.deleteMany();
+    console.log(`✅ Deleted ${deletedLineups.count} show lineup records`);
+
+    console.log('🗑️ Clearing all show records...');
+    const deletedShows = await prisma.show.deleteMany();
+    console.log(`✅ Deleted ${deletedShows.count} show records`);
+
     console.log('🗑️ Clearing all show request bids...');
     const deletedBids = await prisma.showRequestBid.deleteMany();
     console.log(`✅ Deleted ${deletedBids.count} show request bids`);
 
-    // Clear all show requests
     console.log('🗑️ Clearing all show requests...');
     const deletedRequests = await prisma.showRequest.deleteMany();
     console.log(`✅ Deleted ${deletedRequests.count} show requests`);
@@ -281,98 +288,391 @@ async function resetTestData() {
       totalRequests++;
     }
 
-    // 🎭 CREATE REALISTIC MULTI-ARTIST CONFIRMED SHOWS
-    console.log('🎭 Creating diverse confirmed multi-artist shows...');
+    // 🎯 CREATE COMPREHENSIVE LIGHTNING BOLT TEST DATA
+    console.log('⚡ Creating comprehensive Lightning Bolt test scenarios...');
     
-    const multiArtistShows = [
+    // Find Lightning Bolt specifically (our test case artist)
+    const lightningBolt = artists.find(a => a.name?.toLowerCase().includes('lightning bolt'));
+    
+    if (!lightningBolt) {
+      console.log('⚠️ Lightning Bolt not found, using first available artist');
+      return;
+    }
+    
+    console.log(`🎸 Found Lightning Bolt: ${lightningBolt.name} (ID: ${lightningBolt.id})`);
+    console.log(`🏢 Available venues: ${venues.map(v => v.name).join(', ')}`);
+    console.log(`🎭 Available artists: ${artists.slice(0, 10).map(a => a.name).join(', ')}...`);
+    
+    // Get other artists for lineup diversity (exclude Lightning Bolt)
+    const otherArtists = artists.filter(a => a.id !== lightningBolt.id).slice(0, 15);
+    
+    let confirmedShowsCreated = 0;
+    let lightningBoltRequests = 0;
+    
+    // 🎯 SCENARIO 1: Lightning Bolt as HEADLINER with mixed support act statuses
+    console.log('\n🎯 SCENARIO 1: Lightning Bolt headlining with mixed lineup statuses');
+    
+    const headlinerShows = [
       {
-        title: 'Punk & Indie Night',
-        date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000),
-        venueId: venues[1].id, // Lost Bag
-        headliner: artists.find(a => a.name === 'Against Me!') || artists[0],
-        lineup: ['The Menzingers', 'Joyce Manor', 'Local Opener TBD'],
-        description: 'Three-band punk lineup with Against Me! headlining',
+        title: 'Lightning Bolt + Support at Lost Bag',
+        venue: venues.find(v => v.name?.toLowerCase().includes('lost bag')) || venues[0],
+        date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        supportActs: [
+          { artist: otherArtists[0], status: 'CONFIRMED' },
+          { artist: otherArtists[1], status: 'PENDING' }, // This creates our test case!
+        ],
         ticketPrice: 25,
+        guarantee: 1500
+      },
+      {
+        title: 'Noise Festival Headliner',
+        venue: venues[1] || venues[0],
+        date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
+        supportActs: [
+          { artist: otherArtists[2], status: 'CONFIRMED' },
+          { artist: otherArtists[3], status: 'CONFIRMED' },
+          { artist: otherArtists[4], status: 'PENDING' },
+        ],
+        ticketPrice: 30,
         guarantee: 2000
       },
       {
-        title: 'Hardcore Showcase',
-        date: new Date(Date.now() + 52 * 24 * 60 * 60 * 1000),
-        venueId: venues[0].id, // Joe's Basement
-        headliner: artists.find(a => a.name === 'Minor Threat') || artists[1],
-        lineup: ['Fugazi', 'The Body', 'Screaming Females'],
-        description: 'Four-band hardcore showcase featuring legendary acts',
-        ticketPrice: 30,
-        guarantee: 2500
-      },
-      {
-        title: 'Indie Rock Festival',
-        date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
-        venueId: venues[2].id, // Brillobox
-        headliner: artists.find(a => a.name === 'Dinosaur Jr.') || artists[2],
-        lineup: ['Guided by Voices', 'Sleater-Kinney', 'Bikini Kill', 'Local Support'],
-        description: 'Five-band indie rock festival with classic 90s acts',
-        ticketPrice: 35,
-        guarantee: 3000
-      },
-      {
-        title: 'Folk & Alternative Evening',
-        date: new Date(Date.now() + 67 * 24 * 60 * 60 * 1000),
-        venueId: venues[3].id, // First Avenue
-        headliner: artists.find(a => a.name === 'Ani DiFranco') || artists[3],
-        lineup: ['Henry Rollins (spoken word)', 'The Replacements', 'Opening Act TBD'],
-        description: 'Diverse evening mixing folk, punk, and spoken word',
-        ticketPrice: 28,
-        guarantee: 1800
+        title: 'Experimental Music Showcase',
+        venue: venues[2] || venues[0],
+        date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
+        supportActs: [
+          { artist: otherArtists[5], status: 'CONFIRMED' },
+        ],
+        ticketPrice: 20,
+        guarantee: 1200
       }
     ];
-
-    let confirmedShowsCreated = 0;
     
-    for (const showData of multiArtistShows) {
-      if (showData.headliner) {
-        const confirmedShow = await prisma.show.create({
+    for (const showData of headlinerShows) {
+      console.log(`\n🎤 Creating headliner show: ${showData.title}`);
+      
+      // 1. Create show request
+      const showRequest = await prisma.showRequest.create({
+        data: {
+          artistId: lightningBolt.id,
+          venueId: null,
+          createdById: systemUser.id,
+          title: showData.title,
+          description: `${lightningBolt.name} headlining with ${showData.supportActs.length} support acts`,
+          requestedDate: showData.date,
+          initiatedBy: 'ARTIST',
+          status: 'CONFIRMED',
+          targetLocations: ['Multi-city tour'],
+          genres: lightningBolt.genres || ['experimental', 'noise'],
+          billingPosition: 'headliner'
+        }
+      });
+      
+      // 2. Create winning bid
+      const winningBid = await prisma.showRequestBid.create({
+        data: {
+          showRequestId: showRequest.id,
+          venueId: showData.venue.id,
+          bidderId: systemUser.id,
+          amount: showData.guarantee,
+          message: `Confirmed headliner booking for ${showData.title}`,
+          status: 'ACCEPTED',
+          proposedDate: showData.date,
+          billingPosition: 'headliner',
+          lineupPosition: 1,
+          setLength: 75,
+          billingNotes: 'Headliner slot with full production support'
+        }
+      });
+      
+      // 3. Create show
+      const show = await prisma.show.create({
+        data: {
+          title: showData.title,
+          date: showData.date,
+          venueId: showData.venue.id,
+          description: `${lightningBolt.name} headlining experimental noise show`,
+          ticketPrice: showData.ticketPrice,
+          status: 'CONFIRMED',
+          createdById: systemUser.id,
+          capacity: showData.venue.capacity || 250,
+          notes: `Created from show request: ${showRequest.id}`
+        }
+      });
+      
+      // 4. Add Lightning Bolt to lineup as confirmed headliner
+      await prisma.showLineup.create({
+        data: {
+          showId: show.id,
+          artistId: lightningBolt.id,
+          status: 'CONFIRMED',
+          billingPosition: 'HEADLINER',
+          setLength: 75,
+          performanceOrder: 1,
+          guarantee: showData.guarantee
+        }
+      });
+      
+      // 5. Add support acts with varied statuses
+      for (let i = 0; i < showData.supportActs.length; i++) {
+        const supportAct = showData.supportActs[i];
+        console.log(`     Adding ${supportAct.artist.name} as ${supportAct.status} support`);
+        
+        await prisma.showLineup.create({
           data: {
-            title: showData.title,
-            date: showData.date,
-            venueId: showData.venueId,
-            artistId: showData.headliner.id, // Primary artist
-            description: showData.description,
-            ticketPrice: showData.ticketPrice,
-            status: 'CONFIRMED',
-            createdById: systemUser.id,
-            guarantee: showData.guarantee,
-            // 🎯 MULTI-ARTIST LINEUP INFO - This is what creates the multi-band shows!
-            notes: `LINEUP: ${showData.headliner.name} (headliner) + ${showData.lineup.join(' + ')}`,
-            capacity: venues.find(v => v.id === showData.venueId)?.capacity || 200
+            showId: show.id,
+            artistId: supportAct.artist.id,
+            status: supportAct.status,
+            billingPosition: 'SUPPORT',
+            setLength: 30,
+            performanceOrder: i + 2,
+            guarantee: 200 + (i * 50) // Varied support guarantees
+          }
+        });
+      }
+      
+      confirmedShowsCreated++;
+      console.log(`✅ Created headliner show with ${showData.supportActs.length} support acts`);
+    }
+    
+    // 🎯 SCENARIO 2: Lightning Bolt as SUPPORT ACT with different statuses
+    console.log('\n🎯 SCENARIO 2: Lightning Bolt as support act with different statuses');
+    
+    const supportShows = [
+      {
+        title: 'Indie Rock Night',
+        venue: venues[3] || venues[0],
+        date: new Date(Date.now() + 75 * 24 * 60 * 60 * 1000),
+        headliner: otherArtists[6],
+        lightningBoltStatus: 'CONFIRMED',
+        otherSupport: [{ artist: otherArtists[7], status: 'PENDING' }],
+        guarantee: 800
+      },
+      {
+        title: 'Underground Festival',
+        venue: venues[4] || venues[0],
+        date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+        headliner: otherArtists[8],
+        lightningBoltStatus: 'PENDING', // Lightning Bolt pending!
+        otherSupport: [
+          { artist: otherArtists[9], status: 'CONFIRMED' },
+          { artist: otherArtists[10], status: 'CONFIRMED' }
+        ],
+        guarantee: 600
+      }
+    ];
+    
+    for (const showData of supportShows) {
+      console.log(`\n🎵 Creating support show: ${showData.title} (Lightning Bolt: ${showData.lightningBoltStatus})`);
+      
+      // 1. Create show request (initiated by headliner)
+      const showRequest = await prisma.showRequest.create({
+        data: {
+          artistId: showData.headliner.id,
+          venueId: null,
+          createdById: systemUser.id,
+          title: showData.title,
+          description: `Multi-artist show with ${showData.headliner.name} headlining`,
+          requestedDate: showData.date,
+          initiatedBy: 'ARTIST',
+          status: 'CONFIRMED',
+          targetLocations: ['Local scene'],
+          genres: ['indie', 'rock', 'experimental'],
+          billingPosition: 'headliner'
+        }
+      });
+      
+      // 2. Create winning bid
+      const winningBid = await prisma.showRequestBid.create({
+        data: {
+          showRequestId: showRequest.id,
+          venueId: showData.venue.id,
+          bidderId: systemUser.id,
+          amount: 2000,
+          message: `Multi-artist show booking confirmed`,
+          status: 'ACCEPTED',
+          proposedDate: showData.date,
+          billingPosition: 'headliner',
+          lineupPosition: 1,
+          setLength: 60
+        }
+      });
+      
+      // 3. Create show
+      const show = await prisma.show.create({
+        data: {
+          title: showData.title,
+          date: showData.date,
+          venueId: showData.venue.id,
+          description: `Multi-artist showcase featuring ${showData.headliner.name}`,
+          ticketPrice: 22,
+          status: 'CONFIRMED',
+          createdById: systemUser.id,
+          capacity: showData.venue.capacity || 200,
+          notes: `Created from show request: ${showRequest.id}`
+        }
+      });
+      
+      // 4. Add headliner
+      await prisma.showLineup.create({
+        data: {
+          showId: show.id,
+          artistId: showData.headliner.id,
+          status: 'CONFIRMED',
+          billingPosition: 'HEADLINER',
+          setLength: 60,
+          performanceOrder: 1,
+          guarantee: 1200
+        }
+      });
+      
+      // 5. Add Lightning Bolt as support
+      await prisma.showLineup.create({
+        data: {
+          showId: show.id,
+          artistId: lightningBolt.id,
+          status: showData.lightningBoltStatus, // CONFIRMED or PENDING
+          billingPosition: 'SUPPORT',
+          setLength: 45,
+          performanceOrder: 2,
+          guarantee: showData.guarantee
+        }
+      });
+      
+      // 6. Add other support acts
+      for (let i = 0; i < showData.otherSupport.length; i++) {
+        const supportAct = showData.otherSupport[i];
+        await prisma.showLineup.create({
+          data: {
+            showId: show.id,
+            artistId: supportAct.artist.id,
+            status: supportAct.status,
+            billingPosition: 'SUPPORT',
+            setLength: 30,
+            performanceOrder: i + 3,
+            guarantee: 300
+          }
+        });
+      }
+      
+      confirmedShowsCreated++;
+      console.log(`✅ Created support show (Lightning Bolt: ${showData.lightningBoltStatus})`);
+    }
+    
+    // 🎯 SCENARIO 3: Lightning Bolt OPEN SHOW REQUESTS with diverse venue bids
+    console.log('\n🎯 SCENARIO 3: Lightning Bolt open show requests with diverse bids');
+    
+    const openRequests = [
+      {
+        title: 'Lightning Bolt East Coast Tour',
+        date: new Date(Date.now() + 105 * 24 * 60 * 60 * 1000),
+        targetLocations: ['Boston, MA', 'New York, NY', 'Philadelphia, PA'],
+        description: 'Looking for venues for east coast tour dates'
+      },
+      {
+        title: 'Lightning Bolt Midwest Run',
+        date: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000),
+        targetLocations: ['Chicago, IL', 'Detroit, MI', 'Minneapolis, MN'],
+        description: 'Seeking midwest venues for experimental noise tour'
+      },
+      {
+        title: 'Lightning Bolt West Coast Shows',
+        date: new Date(Date.now() + 135 * 24 * 60 * 60 * 1000),
+        targetLocations: ['Portland, OR', 'Seattle, WA', 'San Francisco, CA'],
+        description: 'West coast tour seeking underground venues'
+      }
+    ];
+    
+    for (const requestData of openRequests) {
+      console.log(`\n📋 Creating open request: ${requestData.title}`);
+      
+      // Create show request
+      const showRequest = await prisma.showRequest.create({
+        data: {
+          artistId: lightningBolt.id,
+          venueId: null,
+          createdById: systemUser.id,
+          title: requestData.title,
+          description: requestData.description,
+          requestedDate: requestData.date,
+          initiatedBy: 'ARTIST',
+          status: 'OPEN', // Open for bids
+          targetLocations: requestData.targetLocations,
+          genres: lightningBolt.genres || ['experimental', 'noise', 'rock'],
+          billingPosition: 'headliner'
+        }
+      });
+      
+      // Create diverse bids from different venues with different statuses
+      const bidStatuses = ['PENDING', 'HOLD', 'ACCEPTED'];
+      const bidAmounts = [800, 1200, 1500, 2000, 2500];
+      
+      for (let i = 0; i < Math.min(venues.length, 5); i++) {
+        const venue = venues[i];
+        const status = bidStatuses[i % bidStatuses.length];
+        const amount = bidAmounts[i % bidAmounts.length];
+        
+        await prisma.showRequestBid.create({
+          data: {
+            showRequestId: showRequest.id,
+            venueId: venue.id,
+            bidderId: systemUser.id,
+            amount: amount,
+            message: `${venue.name} interested in booking Lightning Bolt for $${amount}`,
+            status: status,
+            proposedDate: requestData.date,
+            billingPosition: 'headliner',
+            lineupPosition: 1,
+            setLength: 60,
+            billingNotes: `${status} bid from ${venue.name}`
           }
         });
         
-        console.log(`✅ Created multi-artist show: ${showData.title}`);
-        console.log(`   🎤 Headliner: ${showData.headliner.name}`);
-        console.log(`   🎵 Supporting acts: ${showData.lineup.join(', ')}`);
-        confirmedShowsCreated++;
+        console.log(`     Created ${status} bid from ${venue.name}: $${amount}`);
       }
+      
+      lightningBoltRequests++;
+      console.log(`✅ Created open request with ${Math.min(venues.length, 5)} diverse bids`);
     }
 
-    console.log('✅ Test data reset completed successfully!');
+    console.log('⚡ Lightning Bolt comprehensive test data created successfully!');
     
     // Show summary
     const totalBids = await prisma.showRequestBid.count();
     const totalShows = await prisma.show.count();
-    const uniqueArtists = new Set(artists.map(a => a.name)).size;
+    const totalLineupEntries = await prisma.showLineup.count();
+    const lightningBoltShows = await prisma.showLineup.count({
+      where: { artistId: lightningBolt.id }
+    });
     
-    console.log(`\n📊 Summary:`);
-    console.log(`   - ${totalRequests} total show requests from ${uniqueArtists} different artists`);
+    console.log(`\n📊 Lightning Bolt Test Data Summary:`);
+    console.log(`   - ${totalRequests} total show requests from all artists`);
+    console.log(`   - ${lightningBoltRequests} open Lightning Bolt show requests with competing bids`);
+    console.log(`   - ${confirmedShowsCreated} confirmed shows featuring Lightning Bolt`);
+    console.log(`   - ${lightningBoltShows} total Lightning Bolt lineup entries`);
     console.log(`   - ${totalBids} total bids with diverse statuses (PENDING/HOLD/ACCEPTED)`);
-    console.log(`   - ${confirmedShowsCreated} confirmed multi-artist shows with full lineups`);
     console.log(`   - ${totalShows} total shows in database`);
-    console.log(`   - 🎵 Realistic billing positions: headliner, support, local-support, co-headliner`);
-    console.log(`   - 💰 Varied financial offers based on billing position`);
-    console.log(`   - 🎭 Complete lineup information with set lengths and other acts`);
-    console.log(`   - 🏙️ Multiple artists competing for IDENTICAL dates in same cities!`);
-    console.log(`   - 🎯 Venues see realistic competition with multiple bands bidding for same time slots!`);
-    console.log(`   - 🎪 Multi-artist confirmed shows with 3-5 bands per lineup!`);
+    console.log(`   - ${totalLineupEntries} total lineup entries`);
+    console.log(`\n⚡ Lightning Bolt Scenarios Created:`);
+    console.log(`   🎤 HEADLINER scenarios:`);
+    console.log(`      - Lightning Bolt confirmed headliner with PENDING support acts`);
+    console.log(`      - Lightning Bolt confirmed headliner with mixed support statuses`);
+    console.log(`      - Lightning Bolt confirmed headliner with all confirmed support`);
+    console.log(`   🎵 SUPPORT scenarios:`);
+    console.log(`      - Lightning Bolt CONFIRMED as support act`);
+    console.log(`      - Lightning Bolt PENDING as support act (key test case!)`);
+    console.log(`   📋 OPEN REQUEST scenarios:`);
+    console.log(`      - Multiple open tour requests with diverse venue bids`);
+    console.log(`      - Different bid statuses: PENDING, HOLD, ACCEPTED`);
+    console.log(`      - Varied financial offers: $800-$2500`);
+    console.log(`\n🎯 Timeline Testing Benefits:`);
+    console.log(`   ✅ Shows Lightning Bolt as both headliner AND support`);
+    console.log(`   ✅ Tests CONFIRMED vs PENDING status logic`);
+    console.log(`   ✅ Creates scenarios where Lightning Bolt sees lineup vs competing bids`);
+    console.log(`   ✅ Provides diverse data for comprehensive timeline debugging`);
+    console.log(`   ✅ No duplicate scenarios - each show is unique`);
+    console.log(`   ✅ Proper ShowRequest → ShowRequestBid → Show → ShowLineup workflow`);
+    console.log(`   🐛 BUG FIX: Multiple test cases for Lightning Bolt PENDING status timeline behavior!`);
 
   } catch (error) {
     console.error('❌ Error resetting test data:', error);
