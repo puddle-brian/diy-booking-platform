@@ -9,6 +9,7 @@ interface LineupTableSectionProps {
   lineup: LineupItem[];
   permissions: ItineraryPermissions;
   venueId?: string; // Context: if present, we're on a venue page
+  onShowDocument?: (show: Show) => void; // Handler for show document action
 }
 
 /**
@@ -19,7 +20,8 @@ export function LineupTableSection({
   show,
   lineup,
   permissions,
-  venueId
+  venueId,
+  onShowDocument
 }: LineupTableSectionProps) {
   // Sort lineup by performance order for proper display
   const sortedLineup = [...lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
@@ -39,6 +41,7 @@ export function LineupTableSection({
                     permissions={permissions}
                     venueId={venueId}
                     index={index}
+                    onShowDocument={onShowDocument}
                   />
                 ))}
               </tbody>

@@ -11,6 +11,7 @@ interface LineupItemRowProps {
   permissions: ItineraryPermissions;
   venueId?: string; // Context: if present, we're on a venue page
   index: number; // For display order
+  onShowDocument?: (show: Show) => void; // Handler for show document action
 }
 
 /**
@@ -23,7 +24,8 @@ export function LineupItemRow({
   show,
   permissions,
   venueId,
-  index
+  index,
+  onShowDocument
 }: LineupItemRowProps) {
   const statusBadge = getLineupItemStatusBadge(lineupItem.status);
   const billingBadge = getBillingPositionBadge(lineupItem.billingPosition);
@@ -124,8 +126,14 @@ export function LineupItemRow({
       {/* Document Actions - Artist-specific */}
       <td className="px-4 py-1 w-[8%]">
         <div className="flex items-center space-x-1">
-          {/* Future: Artist-specific documents for this show */}
-          {/* Could show contract, rider, etc. specific to this artist's participation */}
+          {permissions.canViewShowDocument(show) && (
+            <DocumentActionButton
+              type="show"
+              show={show}
+              permissions={permissions}
+              onShowDocument={() => onShowDocument?.(show)}
+            />
+          )}
         </div>
       </td>
 

@@ -190,17 +190,10 @@ export function ShowHeaderRow({
         </div>
       </td>
 
-      {/* Document Actions */}
+      {/* Document Actions - N/A for show header */}
       <td className="px-4 py-1 w-[8%]">
         <div className="flex items-center space-x-1">
-          {permissions.canViewShowDocument(show) && (
-            <DocumentActionButton
-              type="show"
-              show={show}
-              permissions={permissions}
-              onShowDocument={() => onShowDocument(show)}
-            />
-          )}
+          {/* Documents are artist-specific, shown in child rows */}
         </div>
       </td>
 

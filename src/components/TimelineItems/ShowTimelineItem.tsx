@@ -181,6 +181,7 @@ export function ShowTimelineItem({
           lineup={effectiveLineup}
           permissions={permissions}
           venueId={venueId}
+          onShowDocument={onShowDocument}
         />
       )}
       
