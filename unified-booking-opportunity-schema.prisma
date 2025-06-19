@@ -1,0 +1,113 @@
+// Unified BookingOpportunity Schema
+// Replaces: ShowRequest, VenueOffer, and Show.lineup (pending status)
+
+model BookingOpportunity {
+  id              String                 @id @default(cuid())
+  
+  // CORE ENTITIES
+  artistId        String
+  venueId         String
+  
+  // BASIC INFO
+  title           String
+  description     String?
+  proposedDate    DateTime
+  
+  // INITIATION
+  initiatedBy     RequestInitiator       // 'ARTIST' | 'VENUE'  
+  initiatedById   String
+  
+  // STATUS WORKFLOW
+  status          BookingOpportunityStatus @default(OPEN)
+  
+  // FINANCIAL TERMS
+  guarantee       Float?
+  doorDeal        Json?                  // { split: "70/30", minimumGuarantee: 300 }
+  ticketPrice     Json?                  // { advance: 20, door: 25 }
+  merchandiseSplit String?               // "90/10"
+  
+  // PERFORMANCE DETAILS
+  billingPosition BillingPosition?
+  performanceOrder Int?                  // 1 = headliner, 2 = support, etc.
+  setLength       Int?                   // Minutes
+  otherActs       String?                // Other acts on bill
+  billingNotes    String?                // Additional context
+  
+  // VENUE DETAILS
+  capacity        Int?
+  ageRestriction  AgeRestriction?
+  
+  // EQUIPMENT & LOGISTICS
+  equipmentProvided Json?               // { pa: true, mics: true, drums: false }
+  loadIn          String?
+  soundcheck      String?
+  doorsOpen       String?
+  showTime        String?
+  curfew          String?
+  
+  // ADDITIONAL VALUE
+  promotion       Json?                 // { social: true, flyerPrinting: false }
+  lodging         Json?                 // { offered: true, type: "couch" }
+  additionalTerms String?
+  
+  // COMMUNICATION
+  message         String?
+  
+  // METADATA
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  expiresAt       DateTime?
+  
+  // SOURCE TRACKING (for migration and debugging)
+  sourceType      BookingSourceType     // 'SHOW_REQUEST' | 'VENUE_OFFER' | 'SHOW_LINEUP'
+  sourceId        String                // Original record ID
+  
+  // HOLD MANAGEMENT
+  holdState       BidHoldState          @default(AVAILABLE)
+  frozenAt        DateTime?
+  frozenByHoldId  String?
+  unfrozenAt      DateTime?
+  
+  // STATUS HISTORY
+  statusHistory   Json                  @default("[]")
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  declinedReason  String?
+  cancelledAt     DateTime?
+  cancelledReason String?
+  
+  // RELATIONS
+  artist          Artist                @relation(fields: [artistId], references: [id])
+  venue           Venue                 @relation(fields: [venueId], references: [id])
+  initiatedBy     User                  @relation(fields: [initiatedById], references: [id])
+  holdRequests    HoldRequest[]
+  
+  // PREVENT DUPLICATES
+  @@unique([artistId, venueId, proposedDate], name: "unique_opportunity")
+  
+  // INDEXES
+  @@index([artistId])
+  @@index([venueId])
+  @@index([proposedDate])
+  @@index([status])
+  @@index([initiatedBy])
+  @@index([sourceType, sourceId])
+  @@index([createdAt])
+  
+  @@map("booking_opportunities")
+}
+
+enum BookingOpportunityStatus {
+  OPEN          // Just created, awaiting response
+  PENDING       // Under negotiation/consideration
+  CONFIRMED     // Accepted by both parties
+  DECLINED      // Rejected by recipient
+  CANCELLED     // Cancelled by initiator
+  EXPIRED       // Expired due to time limit
+}
+
+enum BookingSourceType {
+  SHOW_REQUEST  // Migrated from ShowRequest
+  VENUE_OFFER   // Migrated from VenueOffer  
+  SHOW_LINEUP   // Migrated from Show.lineup (pending)
+} 

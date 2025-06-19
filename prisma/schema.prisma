@@ -35,6 +35,7 @@ model User {
   // 🎯 PHASE 5: tourRequests removed - replaced by showRequests
   venueOffers             VenueOffer[]
   submittedVenues         Venue[]
+  initiatedBookingOpportunities BookingOpportunity[] @relation("BookingOpportunityInitiator")
 
   @@index([email])
   @@index([role])
@@ -90,13 +91,14 @@ model Venue {
   socialLinks        Json?
   // 🎯 PHASE 5: bids removed - replaced by showRequestBids
   sceneReports       SceneReport[]
-  showRequestBids    ShowRequestBid[]
-  showRequests       ShowRequest[]
-  shows              Show[]
-  offerTemplates     VenueOfferTemplate[]
-  venueOffers        VenueOffer[]
-  location           Location             @relation(fields: [locationId], references: [id])
-  submittedBy        User?                @relation(fields: [submittedById], references: [id])
+  showRequestBids       ShowRequestBid[]
+  showRequests          ShowRequest[]
+  shows                 Show[]
+  offerTemplates        VenueOfferTemplate[]
+  venueOffers           VenueOffer[]
+  bookingOpportunities  BookingOpportunity[] @relation("VenueBookingOpportunities")
+  location              Location             @relation(fields: [locationId], references: [id])
+  submittedBy           User?                @relation(fields: [submittedById], references: [id])
 
   @@index([locationId])
   @@index([venueType])
@@ -136,12 +138,13 @@ model Artist {
   location         Location         @relation(fields: [locationId], references: [id])
   owner            User?            @relation("OwnedArtists", fields: [ownerId], references: [id])
   submittedBy      User?            @relation("SubmittedArtists", fields: [submittedById], references: [id])
-  sceneReports     SceneReport[]
-  showRequestBids  ShowRequestBid[]
-  showRequests     ShowRequest[]
-  showLineup       ShowLineup[]     // NEW: Artist can be in multiple show lineups
+  sceneReports         SceneReport[]
+  showRequestBids      ShowRequestBid[]
+  showRequests         ShowRequest[]
+  showLineup           ShowLineup[]     // NEW: Artist can be in multiple show lineups
   // 🎯 PHASE 5: tourRequests removed - replaced by showRequests
-  venueOffers      VenueOffer[]
+  venueOffers          VenueOffer[]
+  bookingOpportunities BookingOpportunity[] @relation("ArtistBookingOpportunities")
 
   @@index([locationId])
   @@index([name])
@@ -633,9 +636,11 @@ model HoldRequest {
   notifiedParties String[]
   requestedBy     User         @relation("RequestedHolds", fields: [requestedById], references: [id])
   respondedBy     User?        @relation("RespondedHolds", fields: [respondedById], references: [id])
-  show            Show?        @relation(fields: [showId], references: [id])
-  showRequest     ShowRequest? @relation(fields: [showRequestId], references: [id])
-  venueOffer      VenueOffer?  @relation(fields: [venueOfferId], references: [id])
+  show                Show?               @relation(fields: [showId], references: [id])
+  showRequest         ShowRequest?        @relation(fields: [showRequestId], references: [id])
+  venueOffer          VenueOffer?         @relation(fields: [venueOfferId], references: [id])
+  bookingOpportunity  BookingOpportunity? @relation(fields: [bookingOpportunityId], references: [id])
+  bookingOpportunityId String?
 
   @@index([showRequestId, status])
   @@index([status, expiresAt])
@@ -865,4 +870,117 @@ enum LineupStatus {
   CONFIRMED     // Artist confirmed their slot
   CANCELLED     // Artist cancelled
   COMPLETED     // Performance finished
+}
+
+// 🎯 UNIFIED BOOKING OPPORTUNITIES - THE SOLUTION TO TIMELINE CHAOS
+
+model BookingOpportunity {
+  id              String                 @id @default(cuid())
+  
+  // CORE ENTITIES
+  artistId        String
+  venueId         String
+  
+  // BASIC INFO
+  title           String
+  description     String?
+  proposedDate    DateTime
+  
+  // INITIATION
+  initiatedBy     RequestInitiator       // 'ARTIST' | 'VENUE'  
+  initiatedById   String
+  
+  // STATUS WORKFLOW
+  status          BookingOpportunityStatus @default(OPEN)
+  
+  // FINANCIAL TERMS
+  guarantee       Float?
+  doorDeal        Json?                  // { split: "70/30", minimumGuarantee: 300 }
+  ticketPrice     Json?                  // { advance: 20, door: 25 }
+  merchandiseSplit String?               // "90/10"
+  
+  // PERFORMANCE DETAILS
+  billingPosition BillingPosition?
+  performanceOrder Int?                  // 1 = headliner, 2 = support, etc.
+  setLength       Int?                   // Minutes
+  otherActs       String?                // Other acts on bill
+  billingNotes    String?                // Additional context
+  
+  // VENUE DETAILS
+  capacity        Int?
+  ageRestriction  AgeRestriction?
+  
+  // EQUIPMENT & LOGISTICS
+  equipmentProvided Json?               // { pa: true, mics: true, drums: false }
+  loadIn          String?
+  soundcheck      String?
+  doorsOpen       String?
+  showTime        String?
+  curfew          String?
+  
+  // ADDITIONAL VALUE
+  promotion       Json?                 // { social: true, flyerPrinting: false }
+  lodging         Json?                 // { offered: true, type: "couch" }
+  additionalTerms String?
+  
+  // COMMUNICATION
+  message         String?
+  
+  // METADATA
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  expiresAt       DateTime?
+  
+  // SOURCE TRACKING (for migration and debugging)
+  sourceType      BookingSourceType     // 'SHOW_REQUEST' | 'VENUE_OFFER' | 'SHOW_LINEUP'
+  sourceId        String                // Original record ID
+  
+  // HOLD MANAGEMENT
+  holdState       BidHoldState          @default(AVAILABLE)
+  frozenAt        DateTime?
+  frozenByHoldId  String?
+  unfrozenAt      DateTime?
+  
+  // STATUS HISTORY
+  statusHistory   Json                  @default("[]")
+  acceptedAt      DateTime?
+  declinedAt      DateTime?
+  declinedReason  String?
+  cancelledAt     DateTime?
+  cancelledReason String?
+  
+  // RELATIONS
+  artist          Artist                @relation("ArtistBookingOpportunities", fields: [artistId], references: [id])
+  venue           Venue                 @relation("VenueBookingOpportunities", fields: [venueId], references: [id])
+  initiatedByUser User                  @relation("BookingOpportunityInitiator", fields: [initiatedById], references: [id])
+  holdRequests    HoldRequest[]
+  
+  // PREVENT DUPLICATES
+  @@unique([artistId, venueId, proposedDate], name: "unique_opportunity")
+  
+  // INDEXES
+  @@index([artistId])
+  @@index([venueId])
+  @@index([proposedDate])
+  @@index([status])
+  @@index([initiatedBy])
+  @@index([sourceType, sourceId])
+  @@index([createdAt])
+  
+  @@map("booking_opportunities")
+}
+
+enum BookingOpportunityStatus {
+  OPEN          // Just created, awaiting response
+  PENDING       // Under negotiation/consideration
+  CONFIRMED     // Accepted by both parties
+  DECLINED      // Rejected by recipient
+  CANCELLED     // Cancelled by initiator
+  EXPIRED       // Expired due to time limit
+}
+
+enum BookingSourceType {
+  SHOW_REQUEST  // Migrated from ShowRequest
+  VENUE_OFFER   // Migrated from VenueOffer  
+  SHOW_LINEUP   // Migrated from Show.lineup (pending)
 }
