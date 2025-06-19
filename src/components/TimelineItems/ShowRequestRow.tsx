@@ -309,14 +309,7 @@ export function ShowRequestRow({
             );
           })()}
           
-          {isFirstOfDate && sameDateSiblings.length > 0 && !request.isVenueInitiated && (
-            <span 
-              className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800"
-              title={`${sameDateSiblings.length + 1} entries on ${entryDate}`}
-            >
-              +{sameDateSiblings.length}
-            </span>
-          )}
+
         </div>
       </td>
       <td className="px-4 py-1 w-[7%]"></td>

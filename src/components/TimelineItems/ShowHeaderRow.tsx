@@ -160,9 +160,6 @@ export function ShowHeaderRow({
       {/* Billing Position - N/A for show header */}
       <td className="px-4 py-1 w-[7%]">
         <div className="flex justify-center">
-          <span className="text-xs text-gray-400">
-            {hasLineup ? `${lineup.length} artists` : 'No lineup'}
-          </span>
         </div>
       </td>
 
@@ -170,17 +167,16 @@ export function ShowHeaderRow({
       <td className="px-4 py-1 w-[7%]">
         <div className="text-xs text-gray-600 whitespace-nowrap">
           {/* Show-level age restriction would go here if available */}
-          <span className="text-gray-400">—</span>
         </div>
       </td>
 
       {/* Financial - Show-level guarantee */}
       <td className="px-4 py-1 w-[10%]">
         <div className="text-xs text-gray-600">
-          {permissions.canSeeFinancialDetails(show) ? (
-            show.guarantee ? `$${show.guarantee}` : '—'
+          {permissions.canSeeFinancialDetails(show) && show.guarantee ? (
+            `$${show.guarantee}`
           ) : (
-            '—'
+            ''
           )}
         </div>
       </td>

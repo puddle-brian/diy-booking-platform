@@ -12,6 +12,7 @@ import {
   getExpansionTextStyling,
   getExpansionDividerStyling
 } from '../../utils/timelineRowStyling';
+import { UnifiedActionButton } from '../ActionButtons/UnifiedActionButton';
 
 interface ShowRequestProcessorProps {
   entry: any;
@@ -234,20 +235,21 @@ export function ShowRequestProcessor({
               {/* Add Another Artist Button - shows on any expanded row for venue owners */}
               {permissions.actualViewerType === 'venue' && permissions.isOwner && (
                 <div className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150 px-4 py-2 border-t border-gray-200">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
+                  <UnifiedActionButton
+                    variant="secondary"
+                    size="md"
+                    onClick={() => {
                       // Extract date from the current timeline entry
                       const extractedDate = extractDateFromEntry(request);
                       handlers.openAddAnotherArtistModal(request.id, extractedDate);
                     }}
-                    className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-1 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
+                    className="w-full border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 text-gray-700 hover:text-gray-900 hover:border-gray-400 transition-all duration-150 flex items-center justify-center space-x-2"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                     <span>Add Artist</span>
-                  </button>
+                  </UnifiedActionButton>
                 </div>
               )}
             </div>
