@@ -620,70 +620,41 @@ export default function TabbedTourItinerary({
                 return null;
               }
               
-              if (entry.type === 'show') {
-                const show = entry.data as Show;
-                
-                return (
-                  <ShowTimelineItem
-                    key={`show-${show.id}`}
-                    show={show}
-                    permissions={permissions}
-                    isExpanded={state.expandedShows.has(show.id)}
-                    isDeleting={state.deleteShowLoading === show.id}
-                    artistId={artistId}
-                    venueId={venueId}
-                    onToggleExpansion={toggleShowExpansion}
-                    onDeleteShow={handleDeleteShow}
-                    onShowDocument={handlers.handleShowDocumentModal}
-                    onShowDetail={handlers.handleShowDetailModal}
-                    onSupportActAdded={(offer: any) => {
-                      // Optimistic update: immediately refresh data to show new support act
-                      // This provides the most polished experience with minimal complexity
-                      fetchData();
-                    }}
-                  />
-                );
-              } else if (entry.type === 'show-request') { // 🎯 PHASE 3: Updated to 'show-request'
-                const request = entry.data as any & { // 🎯 PHASE 3: Now working with ShowRequest data
-                  isVenueInitiated?: boolean; 
-                  originalOfferId?: string; 
-                  venueInitiatedBy?: string;
-                  isVenueBid?: boolean;
-                  originalBidId?: string;
-                  originalShowRequestId?: string;
-                  bidStatus?: string;
-                  bidAmount?: number;
-                };
-
-                return (
-                  <ShowRequestProcessor
-                    key={`request-${request.id}`}
-                    entry={entry}
-                    request={request}
-                    venueBids={venueBids}
-                    venueOffers={venueOffers}
-                    declinedBids={declinedBids}
-                    tourRequests={tourRequests}
-                    sameDateSiblings={sameDateSiblings}
-                    isFirstOfDate={isFirstOfDate}
-                    entryDate={entryDate}
-                    artistId={artistId}
-                    venueId={venueId}
-                    venueName={venueName}
-                    permissions={permissions}
-                    state={state}
-                    handlers={handlers}
-                    actions={actions}
-                    getBidStatusBadge={getBidStatusBadge}
-                    toggleRequestExpansion={toggleRequestExpansion}
-                    handleDeleteShowRequest={handleDeleteShowRequest}
-                    handleOfferAction={handleOfferAction}
-                    handleBidAction={handleBidAction}
-                    getEffectiveBidStatus={getEffectiveBidStatus}
-                    venues={venues}
-                  />
-                );
-              }
+              // 🎯 PHASE 4: Unified timeline rendering with single TimelineRow component
+              return (
+                <TimelineRow
+                  key={`${entry.type}-${entry.data.id}`}
+                  entry={{...entry, id: entry.data.id}}
+                  permissions={permissions}
+                  state={state}
+                  handlers={handlers}
+                  artistId={artistId}
+                  venueId={venueId}
+                  venueName={venueName}
+                  onToggleExpansion={toggleShowExpansion}
+                  toggleRequestExpansion={toggleRequestExpansion}
+                  onDeleteShow={handleDeleteShow}
+                  onShowDocument={handlers.handleShowDocumentModal}
+                  onShowDetail={handlers.handleShowDetailModal}
+                  onSupportActAdded={(offer: any) => {
+                    fetchData();
+                  }}
+                  venueBids={venueBids}
+                  venueOffers={venueOffers}
+                  declinedBids={declinedBids}
+                  tourRequests={tourRequests}
+                  sameDateSiblings={sameDateSiblings}
+                  isFirstOfDate={isFirstOfDate}
+                  entryDate={entryDate}
+                  actions={actions}
+                  getBidStatusBadge={getBidStatusBadge}
+                  handleDeleteShowRequest={handleDeleteShowRequest}
+                  handleOfferAction={handleOfferAction}
+                  handleBidAction={handleBidAction}
+                  getEffectiveBidStatus={getEffectiveBidStatus}
+                  venues={venues}
+                />
+              );
               return null;
             })}
             
