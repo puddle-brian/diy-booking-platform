@@ -171,6 +171,7 @@ export function ShowTimelineItem({
         permissions={permissions}
         isExpanded={isExpanded}
         venueId={venueId}
+        artistId={artistId}
         onToggleExpansion={onToggleExpansion}
         onShowDocument={onShowDocument}
         onDeleteShow={onDeleteShow}

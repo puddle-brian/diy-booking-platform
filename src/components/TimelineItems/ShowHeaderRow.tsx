@@ -15,6 +15,7 @@ interface ShowHeaderRowProps {
   permissions: ItineraryPermissions;
   isExpanded: boolean;
   venueId?: string; // Context: if present, we're on a venue page
+  artistId?: string; // Context: if present, we're on an artist page - affects status display
   onToggleExpansion: (showId: string) => void;
   onShowDocument: (show: Show) => void;
   onDeleteShow?: (showId: string, showName: string) => void;
@@ -26,12 +27,16 @@ interface ShowHeaderRowProps {
  * ShowHeaderRow - Clean show container with smart title generation
  * This represents the show as a venue event with multiple artists,
  * replacing the legacy "single artist owns show" pattern
+ * 
+ * 🎯 PERSPECTIVE-AWARE STATUS: When artistId is provided (artist page view),
+ * shows that specific artist's status rather than the aggregate show status.
  */
 export function ShowHeaderRow({
   show,
   permissions,
   isExpanded,
   venueId,
+  artistId,
   onToggleExpansion,
   onShowDocument,
   onDeleteShow,
@@ -42,18 +47,41 @@ export function ShowHeaderRow({
   const lineup: LineupItem[] = effectiveLineup || show.lineup || [];
   const showTitle = generateSmartShowTitle(lineup);
   const detailedTitle = generateDetailedShowTitle(lineup);
-  const statusBadge = getAggregateStatusBadge(lineup);
   
   // Show has lineup if there are any artists
   const hasLineup = lineup.length > 0;
   
+  // 🎯 ARTIST PERSPECTIVE: When viewing from artist page, show that artist's specific status
+  const getViewingPerspectiveStatus = () => {
+    if (artistId && lineup.length > 0) {
+      // Find the viewing artist's status in this show
+      const viewingArtistLineupItem = lineup.find(item => item.artistId === artistId);
+      if (viewingArtistLineupItem) {
+        // Return the artist's individual status
+        return {
+          status: viewingArtistLineupItem.status,
+          isArtistSpecific: true
+        };
+      }
+    }
+    
+    // Default to aggregate status (venue perspective or no specific artist context)
+    const statusBadge = getAggregateStatusBadge(lineup);
+    return {
+      status: statusBadge.text?.toLowerCase()?.includes('confirmed') ? 'CONFIRMED' : 'PENDING',
+      isArtistSpecific: false
+    };
+  };
+  
+  const perspectiveStatus = getViewingPerspectiveStatus();
+  
   // Use unified styling system for consistent appearance
   const getStyleVariant = (): 'confirmed' | 'open' | 'hold' => {
-    const statusText = statusBadge.text?.toLowerCase() || '';
+    const status = perspectiveStatus.status.toLowerCase();
     
-    if (statusText.includes('confirmed') || statusText.includes('complete')) {
+    if (status === 'confirmed') {
       return 'confirmed';
-    } else if (statusText.includes('pending') || statusText.includes('partial')) {
+    } else if (status === 'pending') {
       return 'open'; // Pending shows use 'open' styling (blue)
     } else {
       return 'confirmed'; // Default to confirmed styling for edge cases
@@ -165,10 +193,10 @@ export function ShowHeaderRow({
         </div>
       </td>
 
-      {/* Aggregate Status */}
+      {/* Status - Artist-specific when viewing from artist page, aggregate otherwise */}
       <td className="px-4 py-1 w-[10%]">
         <StatusBadge 
-          status={styleVariant === 'confirmed' ? 'confirmed' : 'pending'} 
+          status={perspectiveStatus.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending'} 
           variant="compact" 
         />
       </td>
