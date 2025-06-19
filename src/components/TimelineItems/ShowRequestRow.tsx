@@ -1,6 +1,7 @@
 import React from 'react';
 import { VenueBid } from '../../../types';
 import { ItineraryDate } from '../DateDisplay';
+import { AlignedDate } from './AlignedDate';
 import { DeleteActionButton } from '../ActionButtons';
 import { generateSmartShowTitle, getBillingPriority } from '../../utils/showNaming';
 import { ExpansionIndicator } from './ExpansionIndicator';
@@ -66,7 +67,7 @@ export function ShowRequestRow({
         </div>
       </td>
       <td className="px-4 py-1 w-[12%]">
-        <ItineraryDate
+        <AlignedDate
           startDate={request.requestedDate?.split('T')[0] || request.startDate}
           endDate={request.requestedDate?.split('T')[0] || request.endDate}
           isSingleDate={true}

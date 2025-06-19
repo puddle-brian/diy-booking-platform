@@ -3,6 +3,7 @@ import { Show } from '../../../types';
 import { generateSmartShowTitle, generateDetailedShowTitle, getAggregateStatusBadge, LineupItem } from '../../utils/showUtils';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
+import { AlignedDate } from './AlignedDate';
 import { DocumentActionButton, DeleteActionButton } from '../ActionButtons';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 import { StatusBadge } from '../StatusBadge';
@@ -76,7 +77,7 @@ export function ShowHeaderRow({
 
       {/* Date */}
       <td className="px-4 py-1 w-[12%]">
-        <ItineraryDate date={show.date} className={timelineTypography.date} />
+        <AlignedDate date={show.date} className={timelineTypography.date} />
       </td>
 
       {/* Location (only show if not on venue page) */}

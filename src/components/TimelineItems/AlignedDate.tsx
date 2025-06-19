@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface TimelineDateProps {
+interface AlignedDateProps {
   date?: string | Date;
   startDate?: string | Date;
   endDate?: string | Date;
@@ -9,21 +9,22 @@ interface TimelineDateProps {
 }
 
 /**
- * Timeline-optimized date component with perfect alignment
+ * Date component with perfect column alignment
  * 
- * Uses CSS Grid instead of monospace fonts to achieve:
- * - Perfect vertical alignment of dates
- * - Consistent typography with rest of timeline
- * - Professional scanability
- * - Compact appearance
+ * Splits "Wed, Dec 15" into:
+ * - Fixed-width weekday column: "Wed"
+ * - Aligned month-day column: "Dec 15"
+ * 
+ * This ensures the month always starts at the same position,
+ * which makes the day numbers perfectly aligned vertically.
  */
-export function TimelineDate({ 
+export function AlignedDate({ 
   date, 
   startDate, 
   endDate, 
   isSingleDate = true, 
   className = "" 
-}: TimelineDateProps) {
+}: AlignedDateProps) {
   
   // Determine the actual date to format
   const actualDate = date || startDate;
@@ -56,17 +57,15 @@ export function TimelineDate({
     return <span className={className}>Error</span>;
   }
 
-  // Format exactly like ItineraryDate but with grid structure
+  // Get the parts separately for perfect alignment
   const weekday = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+  const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
   const day = dateObj.getDate();
 
   return (
-    <span className={`timeline-date ${className}`}>
-      <span className="timeline-date-weekday">{weekday}</span>
-      <span className="timeline-date-day">{day}</span>
+    <span className={`timeline-date-aligned ${className}`}>
+      <span className="timeline-date-weekday">{weekday},</span>
+      <span className="timeline-date-month-day">{month} {day}</span>
     </span>
   );
-}
-
-// Drop-in replacement for ItineraryDate in timeline contexts
-export const ItineraryDateTimeline = TimelineDate; 
+} 
