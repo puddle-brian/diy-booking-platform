@@ -4,6 +4,9 @@ import { LineupItem, getLineupItemStatusBadge, getBillingPositionBadge } from '.
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { DocumentActionButton } from '../ActionButtons';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
+import { StatusBadge, StatusType } from '../StatusBadge';
+import { UnifiedActionButton } from '../ActionButtons/UnifiedActionButton';
+import { getTimelineRowStyling, timelineTypography } from '../../utils/timelineRowStyling';
 
 interface LineupItemRowProps {
   lineupItem: LineupItem;
@@ -27,30 +30,41 @@ export function LineupItemRow({
   index,
   onShowDocument
 }: LineupItemRowProps) {
-  const statusBadge = getLineupItemStatusBadge(lineupItem.status);
   const billingBadge = getBillingPositionBadge(lineupItem.billingPosition);
   
-  // Status-based row styling similar to BidTimelineItem
-  const getRowStyling = () => {
-    const baseClasses = "transition-colors duration-150";
-    
+  // Use unified styling system for consistent appearance
+  const getStatusType = (): StatusType => {
     switch (lineupItem.status?.toLowerCase()) {
       case 'confirmed':
-        return `${baseClasses} bg-green-50 hover:bg-green-100`;
+        return 'confirmed';
       case 'pending':
-        return `${baseClasses} bg-yellow-50 hover:bg-yellow-100`;
+        return 'pending';
       case 'declined':
       case 'rejected':
-        return `${baseClasses} bg-red-50 hover:bg-red-100`;
+        return 'declined';
       case 'accepted':
-        return `${baseClasses} bg-emerald-50 hover:bg-emerald-100`;
+        return 'accepted';
       default:
-        return `${baseClasses} bg-gray-50 hover:bg-gray-100`;
+        return 'pending';
     }
   };
   
-  return (
-    <tr className={getRowStyling()}>
+  const getStyleVariant = (): 'confirmed' | 'open' | 'hold' => {
+    switch (lineupItem.status?.toLowerCase()) {
+      case 'confirmed':
+      case 'accepted':
+        return 'confirmed';
+      default:
+        return 'open'; // Pending/other states use open (blue) styling
+    }
+  };
+  
+  const statusType = getStatusType();
+  const styleVariant = getStyleVariant();
+  const rowClassName = getTimelineRowStyling(styleVariant);
+  
+      return (
+    <tr className={rowClassName}>
       {/* Empty expansion column - child row */}
       <td className="px-4 py-1 w-[3%]">
         {/* Empty - child row doesn't need expansion button */}
@@ -70,7 +84,7 @@ export function LineupItemRow({
 
       {/* Artist Name - Clickable Link */}
       <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
-        <div className="text-sm font-medium text-gray-900 truncate">
+        <div className={`${timelineTypography.title} truncate`}>
           {lineupItem.artistId && lineupItem.artistId !== 'external-artist' ? (
             <a 
               href={`/artists/${lineupItem.artistId}`}
@@ -85,16 +99,14 @@ export function LineupItemRow({
           )}
           {/* Show set length if available */}
           {lineupItem.setLength && (
-            <span className="text-xs text-gray-500 ml-2">• {lineupItem.setLength}min</span>
+            <span className={`${timelineTypography.muted} ml-2`}>• {lineupItem.setLength}min</span>
           )}
         </div>
       </td>
 
       {/* Individual Artist Status */}
       <td className="px-4 py-1 w-[10%]">
-        <span className={statusBadge.className}>
-          {statusBadge.text}
-        </span>
+        <StatusBadge status={statusType} variant="compact" />
       </td>
 
       {/* Billing Position */}
@@ -108,7 +120,7 @@ export function LineupItemRow({
 
       {/* Age Restriction - Inherited from show */}
       <td className="px-4 py-1 w-[7%]">
-        <div className="text-xs text-gray-500 whitespace-nowrap">
+        <div className={`${timelineTypography.muted} whitespace-nowrap`}>
           {/* Could show artist-specific age requirements here if needed */}
           <span className="text-gray-400">—</span>
         </div>
@@ -116,7 +128,7 @@ export function LineupItemRow({
 
       {/* Financial - Individual Guarantee */}
       <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
-        <div className="text-xs text-gray-600">
+        <div className={timelineTypography.subtitle}>
           {permissions.canSeeFinancialDetails(show) ? 
             (lineupItem.guarantee ? `$${lineupItem.guarantee}` : 'TBD') : 
             '—'}
@@ -165,17 +177,17 @@ export function LineupItemRow({
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
           {permissions.canEditShow(show) && (
-            <button
-              className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-              title="Remove from lineup"
-              onClick={(e) => {
-                e.stopPropagation();
+            <UnifiedActionButton
+              variant="danger"
+              size="sm"
+              onClick={() => {
                 // Future: Remove artist from lineup
                 console.log('Remove artist from lineup:', lineupItem.artistName);
               }}
+              title="Remove from lineup"
             >
               ✕
-            </button>
+            </UnifiedActionButton>
           )}
         </div>
       </td>

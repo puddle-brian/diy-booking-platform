@@ -1,6 +1,7 @@
 import React from 'react';
 import { VenueBid, VenueOffer } from '../../../types';
 import { BidTimelineItem } from './BidTimelineItem';
+import { getExpansionContainerStyling, getExpansionHeaderStyling, timelineTypography } from '../../utils/timelineRowStyling';
 
 interface ExpandedBidsSectionProps {
   request: any;
@@ -21,6 +22,7 @@ interface ExpandedBidsSectionProps {
   handleOfferAction: (offer: VenueOffer, action: string) => Promise<void>;
   getBillingPriority: (item: { billingPosition?: string }) => number;
   expandedDividerClass: string;
+  variant?: 'confirmed' | 'open' | 'hold'; // Add variant for unified styling
 }
 
 export function ExpandedBidsSection({
@@ -41,7 +43,8 @@ export function ExpandedBidsSection({
   handleBidAction,
   handleOfferAction,
   getBillingPriority,
-  expandedDividerClass
+  expandedDividerClass,
+  variant = 'open' // Default to 'open' for show requests
 }: ExpandedBidsSectionProps) {
   
   // Collect all bids from parent and siblings
@@ -161,10 +164,10 @@ export function ExpandedBidsSection({
   });
   
   return (
-    <div className="bg-white border-l-4 border-blue-200">
+    <div className={getExpansionContainerStyling(variant)}>
       <table className="w-full">
-        <thead className="bg-gray-50">
-          <tr className="text-left text-xs font-medium text-gray-600">
+        <thead className={getExpansionHeaderStyling(variant)}>
+          <tr className={`text-left ${timelineTypography.status} text-gray-600`}>
             <th className="px-4 py-1 w-[3%]"></th>
             <th className="px-4 py-1 w-[12%]">Date</th>
             {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
