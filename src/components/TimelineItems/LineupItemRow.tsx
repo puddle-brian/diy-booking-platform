@@ -113,7 +113,7 @@ export function LineupItemRow({
       </td>
 
       {/* Financial - Individual Guarantee */}
-      <td className="px-4 py-1 w-[10%]">
+      <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
         <div className="text-xs text-gray-600">
           {permissions.canSeeFinancialDetails(show) ? 
             (lineupItem.guarantee ? `$${lineupItem.guarantee}` : 'TBD') : 
