@@ -3,7 +3,7 @@ import { Show } from '../../../types';
 import { generateSmartShowTitle, generateDetailedShowTitle, getAggregateStatusBadge, LineupItem } from '../../utils/showUtils';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
-import { DocumentActionButton } from '../ActionButtons';
+import { DocumentActionButton, DeleteActionButton } from '../ActionButtons';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 
 interface ShowHeaderRowProps {
@@ -13,7 +13,9 @@ interface ShowHeaderRowProps {
   venueId?: string; // Context: if present, we're on a venue page
   onToggleExpansion: (showId: string) => void;
   onShowDocument: (show: Show) => void;
+  onDeleteShow?: (showId: string, showName: string) => void;
   effectiveLineup?: LineupItem[]; // Override lineup for legacy show support
+  isDeleteLoading?: boolean;
 }
 
 /**
@@ -28,7 +30,9 @@ export function ShowHeaderRow({
   venueId,
   onToggleExpansion,
   onShowDocument,
-  effectiveLineup
+  onDeleteShow,
+  effectiveLineup,
+  isDeleteLoading = false
 }: ShowHeaderRowProps) {
   // Use effectiveLineup if provided (for legacy shows), otherwise use show.lineup
   const lineup: LineupItem[] = effectiveLineup || show.lineup || [];
@@ -145,7 +149,7 @@ export function ShowHeaderRow({
               showTitle
             )
           )}
-          {show.venueName && (
+          {show.venueName && !venueId && (
             <span className="text-xs text-gray-500 ml-2">
               at {show.venueName}
             </span>
@@ -181,9 +185,7 @@ export function ShowHeaderRow({
       <td className="px-4 py-1 w-[10%]">
         <div className="text-xs text-gray-600">
           {permissions.canSeeFinancialDetails(show) ? (
-            hasLineup ? 
-              `${lineup.filter(item => item.guarantee).length}/${lineup.length} set` : 
-              'No lineup'
+            show.guarantee ? `$${show.guarantee}` : '—'
           ) : (
             '—'
           )}
@@ -200,7 +202,17 @@ export function ShowHeaderRow({
       {/* Show Actions */}
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Future: Show-level actions (edit show details, etc.) */}
+          {onDeleteShow && permissions.canEditShow(show) && (
+            <DeleteActionButton
+              show={show}
+              permissions={permissions}
+              venueId={venueId}
+              venueOffers={[]}
+              venueBids={[]}
+              isLoading={isDeleteLoading}
+              onDeleteShow={onDeleteShow}
+            />
+          )}
         </div>
       </td>
     </tr>

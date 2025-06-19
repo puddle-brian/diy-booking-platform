@@ -61,13 +61,17 @@ export function generateDetailedShowTitle(lineup: LineupItem[]): string {
 /**
  * Calculate aggregate status from all lineup items
  * This replaces the legacy Show.status approach
+ * 
+ * IMPORTANT: For confirmed shows (shows that exist in the database), 
+ * the show itself is confirmed even if individual lineup items are pending.
+ * This function should be used with context about whether the show is confirmed.
  */
-export function getAggregateStatus(lineup: LineupItem[]): {
+export function getAggregateStatus(lineup: LineupItem[], isConfirmedShow: boolean = true): {
   status: 'CONFIRMED' | 'PARTIAL' | 'PENDING' | 'CANCELLED';
   description: string;
 } {
   if (!lineup?.length) {
-    return { status: 'PENDING', description: 'No artists' };
+    return { status: isConfirmedShow ? 'CONFIRMED' : 'PENDING', description: isConfirmedShow ? 'No lineup yet' : 'No artists' };
   }
   
   const confirmedCount = lineup.filter(item => item.status === 'CONFIRMED').length;
@@ -80,6 +84,29 @@ export function getAggregateStatus(lineup: LineupItem[]): {
     return { status: 'CANCELLED', description: 'All cancelled' };
   }
   
+  // For confirmed shows, treat pending lineup items as "being finalized" rather than "pending show"
+  if (isConfirmedShow) {
+    // All confirmed
+    if (confirmedCount === totalCount) {
+      return { status: 'CONFIRMED', description: 'Confirmed' };
+    }
+    
+    // Mix of confirmed and pending - show is confirmed, just finalizing lineup
+    if (confirmedCount > 0 && pendingCount > 0) {
+      return { status: 'PARTIAL', description: `${confirmedCount}/${totalCount} confirmed` };
+    }
+    
+    // All pending but show is confirmed - lineup being finalized
+    if (pendingCount === totalCount) {
+      return { status: 'PARTIAL', description: `${confirmedCount}/${totalCount} confirmed` };
+    }
+    
+    // Mixed with cancellations
+    const activeCount = confirmedCount + pendingCount;
+    return { status: 'PARTIAL', description: `${confirmedCount}/${activeCount} confirmed` };
+  }
+  
+  // For unconfirmed shows (show requests), use original logic
   // All confirmed
   if (confirmedCount === totalCount) {
     return { status: 'CONFIRMED', description: 'All confirmed' };
@@ -103,8 +130,8 @@ export function getAggregateStatus(lineup: LineupItem[]): {
 /**
  * Get status badge styling for show-level status
  */
-export function getAggregateStatusBadge(lineup: LineupItem[]) {
-  const { status, description } = getAggregateStatus(lineup);
+export function getAggregateStatusBadge(lineup: LineupItem[], isConfirmedShow: boolean = true) {
+  const { status, description } = getAggregateStatus(lineup, isConfirmedShow);
   
   switch (status) {
     case 'CONFIRMED':
@@ -114,8 +141,8 @@ export function getAggregateStatusBadge(lineup: LineupItem[]) {
       };
     case 'PARTIAL':
       return {
-        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800',
-        text: description
+        className: 'inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800',
+        text: description.replace(' confirmed', '')
       };
     case 'PENDING':
       return {

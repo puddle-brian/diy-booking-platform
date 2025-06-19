@@ -171,7 +171,9 @@ export function ShowTimelineItem({
         venueId={venueId}
         onToggleExpansion={onToggleExpansion}
         onShowDocument={onShowDocument}
+        onDeleteShow={onDeleteShow}
         effectiveLineup={effectiveLineup}
+        isDeleteLoading={isDeleting}
       />
 
       {/* 🎯 NEW ARCHITECTURE: Lineup Rows */}
