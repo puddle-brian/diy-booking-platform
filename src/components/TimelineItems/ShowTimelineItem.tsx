@@ -187,6 +187,7 @@ export function ShowTimelineItem({
           permissions={permissions}
           venueId={venueId}
           onShowDocument={onShowDocument}
+          artistId={artistId}
         />
       )}
       

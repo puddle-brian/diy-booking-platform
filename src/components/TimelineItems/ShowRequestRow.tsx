@@ -268,7 +268,16 @@ export function ShowRequestRow({
             if (venueId && requestBids.length > 0) {
               const venueBid = requestBids.find(bid => bid.venueId === venueId);
               if (venueBid) {
-                // Check for hold status first
+                // Check for accepted state first (even in auto-hold)
+                if (venueBid.status === 'accepted' || (venueBid as any).holdState === 'ACCEPTED_HELD') {
+                  return (
+                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                      Accepted
+                    </span>
+                  );
+                }
+                
+                // Check for hold status (manual holds, not auto-holds from acceptance)
                 if ((venueBid as any).holdState === 'HELD' || (venueBid as any).holdState === 'FROZEN') {
                   return (
                     <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700">
@@ -277,7 +286,7 @@ export function ShowRequestRow({
                   );
                 }
                 
-                // All other venue bids (including accepted) show as "Open"
+                // All other venue bids (pending) show as "Open"
                 return (
                   <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                     Open
@@ -288,7 +297,19 @@ export function ShowRequestRow({
             
             // Default logic for artists and venues without bids
             // BUSINESS LOGIC: Show requests are either "Open" or become confirmed shows
-            // There should be no "Accepted" status for show request rows
+            // Show "Accepted" for auto-held acceptances, "Hold" for manual holds
+            
+            const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
+              bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
+            );
+            
+            if (hasAcceptedBid) {
+              return (
+                <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                  Accepted
+                </span>
+              );
+            }
             
             const hasActiveHold = requestBids.some((bid: VenueBid) => 
               (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'

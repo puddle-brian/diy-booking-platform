@@ -15,6 +15,7 @@ interface LineupItemRowProps {
   venueId?: string; // Context: if present, we're on a venue page
   index: number; // For display order
   onShowDocument?: (show: Show) => void; // Handler for show document action
+  artistId?: string; // Add artistId to determine if user owns this lineup item
 }
 
 /**
@@ -28,7 +29,8 @@ export function LineupItemRow({
   permissions,
   venueId,
   index,
-  onShowDocument
+  onShowDocument,
+  artistId
 }: LineupItemRowProps) {
   const billingBadge = getBillingPositionBadge(lineupItem.billingPosition);
   
@@ -176,7 +178,7 @@ export function LineupItemRow({
       {/* Artist Actions */}
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
-          {permissions.canEditShow(show) && (
+          {permissions.actualViewerType === 'venue' && permissions.canEditShow(show) && (
             <UnifiedActionButton
               variant="danger"
               size="sm"
