@@ -4,6 +4,7 @@ import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton } from '../ActionButtons';
 import { generateSmartShowTitle, getBillingPriority } from '../../utils/showNaming';
 import { ExpansionIndicator } from './ExpansionIndicator';
+import { timelineTypography } from '../../utils/timelineRowStyling';
 
 interface ShowRequestRowProps {
   entry: any;
@@ -69,7 +70,7 @@ export function ShowRequestRow({
           startDate={request.requestedDate?.split('T')[0] || request.startDate}
           endDate={request.requestedDate?.split('T')[0] || request.endDate}
           isSingleDate={true}
-          className={`text-sm font-medium ${textColorClass}`}
+          className={timelineTypography.date}
         />
       </td>
       {!venueId && (

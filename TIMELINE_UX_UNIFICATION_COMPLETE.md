@@ -30,7 +30,8 @@ export const timelineTypography = {
   subtitle: "text-xs text-gray-600", 
   status: "text-xs font-medium",
   link: "text-blue-600 hover:text-blue-800 hover:underline",
-  muted: "text-xs text-gray-500"
+  muted: "text-xs text-gray-500",
+  date: "text-sm font-medium text-gray-900" // ✅ Unified date styling
 }
 ```
 
@@ -52,7 +53,11 @@ export const timelineTypography = {
 ### **4. Expansion Indicator Unification** ⭐ **NEW**
 ```typescript
 // src/components/TimelineItems/ExpansionIndicator.tsx
-<ExpansionIndicator isExpanded={isExpanded} />
+<td className="px-4 py-1 w-[3%]">
+  <div className="flex items-center justify-center">
+    <ExpansionIndicator isExpanded={isExpanded} />
+  </div>
+</td>
 ```
 
 ### **5. Expansion Container Unification**
@@ -112,7 +117,9 @@ const rowClassName = getTimelineRowStyling(styleVariant);
 return (
   <tr className={rowClassName}>
     <td className="px-4 py-1 w-[3%]">
-      <ExpansionIndicator isExpanded={isExpanded} />
+      <div className="flex items-center justify-center">
+        <ExpansionIndicator isExpanded={isExpanded} />
+      </div>
     </td>
     <td className="px-4 py-1 w-[10%]">
       <StatusBadge status={statusType} variant="compact" />
@@ -131,6 +138,7 @@ return (
 <div className={timelineTypography.title}>Main Title</div>
 <div className={timelineTypography.subtitle}>Subtitle</div>
 <div className={timelineTypography.muted}>Muted text</div>
+<ItineraryDate date={date} className={timelineTypography.date} />
 ```
 
 ## 🎯 **UX Pattern Consistency Achieved**
@@ -139,6 +147,11 @@ return (
 - **All timeline rows**: Right-pointing chevron rotates 90° when expanded
 - **Consistent animation**: 200ms transition duration
 - **Same hover states**: Gray-400 → Gray-600 color transition
+
+### **Date Column Scanability** ⭐ **Enhanced**
+- **Tabular numbers**: Perfect digit alignment for easy scanning
+- **Monospace font**: Consistent character widths eliminate visual raggedness
+- **Optimized letter spacing**: Enhanced readability and professional appearance
 
 ### **Status Communication**
 - **Identical badges**: Same size, border-radius, font-weight across all components

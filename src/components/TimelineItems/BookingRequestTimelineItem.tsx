@@ -4,6 +4,7 @@ import { formatDisplayDate } from '@/utils/dateUtils';
 import { ItineraryDate } from '../DateDisplay';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 import { ExpansionIndicator } from './ExpansionIndicator';
+import { timelineTypography } from '../../utils/timelineRowStyling';
 
 // Extended types to include relations for timeline display
 type ShowRequestWithRelations = ShowRequest & {
@@ -121,14 +122,16 @@ export const BookingRequestTimelineItem: React.FC<BookingRequestTimelineItemProp
     >
       {/* Expand/Collapse Button */}
       <td className="px-4 py-1 w-[3%]">
-        <ExpansionIndicator isExpanded={isExpanded} />
+        <div className="flex items-center justify-center">
+          <ExpansionIndicator isExpanded={isExpanded} />
+        </div>
       </td>
 
       {/* Date */}
       <td className="px-4 py-1 w-[12%]">
         <ItineraryDate
           date={displayData.date}
-          className="text-sm font-medium text-gray-900"
+          className={timelineTypography.date}
         />
       </td>
 

@@ -52,7 +52,9 @@ export const timelineTypography = {
   subtitle: "text-xs text-gray-600", 
   status: "text-xs font-medium",
   link: "text-blue-600 hover:text-blue-800 hover:underline",
-  muted: "text-xs text-gray-500"
+  muted: "text-xs text-gray-500",
+  date: "text-sm font-medium text-gray-900 font-mono timeline-date", // ✅ Compact monospace for perfect alignment
+  dateEnhanced: "text-sm font-medium text-gray-900 font-mono" // ✅ Enhanced version for future use
 };
 
 /**

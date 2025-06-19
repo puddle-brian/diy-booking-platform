@@ -69,12 +69,14 @@ export function ShowHeaderRow({
     >
       {/* Expand/Collapse Button - Unified with open show requests */}
       <td className="px-4 py-1 w-[3%]">
-        <ExpansionIndicator isExpanded={isExpanded} />
+        <div className="flex items-center justify-center">
+          <ExpansionIndicator isExpanded={isExpanded} />
+        </div>
       </td>
 
       {/* Date */}
       <td className="px-4 py-1 w-[12%]">
-        <ItineraryDate date={show.date} />
+        <ItineraryDate date={show.date} className={timelineTypography.date} />
       </td>
 
       {/* Location (only show if not on venue page) */}

@@ -57,3 +57,12 @@ body {
     transform: translateY(0);
   }
 }
+
+/* Timeline date typography optimization for scanability */
+.timeline-date {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.05em; /* Much tighter spacing for compact monospace */
+  font-feature-settings: "tnum";
+  /* Slightly smaller to compensate for monospace width */
+  font-size: 0.875rem; /* 14px instead of default */
+}
