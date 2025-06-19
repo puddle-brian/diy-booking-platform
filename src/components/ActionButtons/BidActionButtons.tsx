@@ -216,32 +216,6 @@ export function BidActionButtons({
     }
   }
 
-  // ❄️ FROZEN: Show just snowflake icon when bid is frozen by an active hold
-  if (isFrozenByHold) {
-    return (
-      <div className="flex items-center justify-center">
-        <span 
-          className="text-xl text-blue-400 cursor-help"
-          title={`Frozen by active hold${activeHoldInfo ? ` (${activeHoldInfo.requesterName})` : ''}`}
-        >
-          ❄️
-        </span>
-      </div>
-    );
-  }
-
-  // If bid is frozen by a hold, show locked state
-  if (bid.holdState === 'FROZEN' || bid.isFrozen) {
-    return (
-      <div className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md">
-        <span className="text-blue-600 font-medium">🔒 Locked by Hold</span>
-        {bid.frozenByHoldId && (
-          <span className="text-xs text-blue-500">Hold: {bid.frozenByHoldId.slice(-8)}</span>
-        )}
-      </div>
-    );
-  }
-
   const handleAction = (action: string) => {
     if (request?.isVenueInitiated && request.originalOfferId) {
       // This is a venue offer, use offer action
@@ -266,6 +240,32 @@ export function BidActionButtons({
       {icon}
     </button>
   );
+
+  // ❄️ FROZEN: Show decline button only (status badge already shows frozen state)
+  if (isFrozenByHold) {
+    return (
+      <div className="flex items-center space-x-1">
+        {renderActionButton(
+          'decline', 
+          '✕', 
+          'bg-red-600 hover:bg-red-700', 
+          'Decline this bid (allowed even when frozen)'
+        )}
+      </div>
+    );
+  }
+
+  // If bid is frozen by a hold, show locked state
+  if (bid.holdState === 'FROZEN' || bid.isFrozen) {
+    return (
+      <div className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-md">
+        <span className="text-blue-600 font-medium">🔒 Locked by Hold</span>
+        {bid.frozenByHoldId && (
+          <span className="text-xs text-blue-500">Hold: {bid.frozenByHoldId.slice(-8)}</span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center space-x-0.5 flex-wrap">

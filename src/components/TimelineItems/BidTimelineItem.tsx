@@ -317,15 +317,23 @@ export function BidTimelineItem({
             />
           )}
           
-          {/* ❄️ FROZEN: Show just snowflake icon when bid is frozen by hold (but NOT when it's held) */}
+          {/* ❄️ FROZEN: Show decline button only (status badge already shows frozen state) */}
           {isFrozenByHold && (bid as any).holdState === 'FROZEN' ? (
-            <div className="flex items-center justify-center">
-              <span 
-                className="text-lg text-slate-500 cursor-help filter drop-shadow-none"
-                title={`Frozen by active hold${activeHoldInfo ? ` (${activeHoldInfo.requesterName})` : ''}`}
-              >
-                ❄️
-              </span>
+            <div className="flex items-center space-x-1">
+              {/* Decline Button (allowed even when frozen) */}
+              {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onBidAction && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBidAction(bid, 'decline');
+                  }}
+                  className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                  disabled={isDeleting}
+                  title="Decline this bid (allowed even when frozen)"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ) : (bid as any).holdState === 'HELD' ? (
             /* 🔒 HELD BID: Show two distinct actions - Release Hold vs Decline Bid */
