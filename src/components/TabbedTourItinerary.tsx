@@ -51,6 +51,7 @@ import { ItineraryEmptyState } from './ItineraryEmptyState';
 import { AddDateButtons } from './AddDateButtons';
 import { ExpandedBidsSection } from './TimelineItems/ExpandedBidsSection';
 import { ShowRequestProcessor } from './TimelineItems/ShowRequestProcessor';
+import { TimelineRow } from './TimelineItems/TimelineRow';
 import { ModalContainer } from './ModalContainer';
 import { ItineraryLoadingStates } from './ItineraryLoadingStates';
 import { generateSmartShowTitle, getBillingPriority } from '../utils/showNaming';
@@ -74,6 +75,7 @@ interface TabbedTourItineraryProps {
 
 
 interface TimelineEntry {
+  id: string; // 🎯 PHASE 4: Added id field for TimelineEntryCommon compatibility
   type: 'show' | 'show-request'; // 🎯 PHASE 3: Changed 'tour-request' to 'show-request'
   date: string;
   endDate?: string;
@@ -630,7 +632,6 @@ export default function TabbedTourItinerary({
                     isDeleting={state.deleteShowLoading === show.id}
                     artistId={artistId}
                     venueId={venueId}
-                    venueOffers={filteredVenueOffers}
                     onToggleExpansion={toggleShowExpansion}
                     onDeleteShow={handleDeleteShow}
                     onShowDocument={handlers.handleShowDocumentModal}
@@ -639,31 +640,6 @@ export default function TabbedTourItinerary({
                       // Optimistic update: immediately refresh data to show new support act
                       // This provides the most polished experience with minimal complexity
                       fetchData();
-                    }}
-                    onSupportActDocument={handlers.handleShowDocumentModal}
-                    onSupportActAction={async (offer: any, action: string) => {
-                      if (action === 'delete') {
-                        // Delete the support act offer
-                        actions.setDeleteLoading(offer.id);
-                        try {
-                          const response = await fetch(`/api/show-requests/${offer.id}`, {
-                            method: 'DELETE',
-                          });
-                          
-                          if (!response.ok) {
-                            throw new Error('Failed to delete support act');
-                          }
-                          
-                          // Refresh data to show the removal
-                          fetchData();
-                          alert('✅ Support act removed from lineup');
-                        } catch (error) {
-                          console.error('Failed to delete support act:', error);
-                          alert('Failed to remove support act');
-                        } finally {
-                          actions.setDeleteLoading(null);
-                        }
-                      }
                     }}
                   />
                 );

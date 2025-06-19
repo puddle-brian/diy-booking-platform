@@ -187,7 +187,7 @@ export function ShowTimelineItem({
       {/* Add Support Act button row */}
       {isExpanded && permissions.canEditShow(show) && (
         <tr>
-          <td colSpan={10}>
+          <td colSpan={venueId ? 9 : 10}>
             <div className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150 px-4 py-2">
               <button
                 onClick={(e) => {
@@ -209,7 +209,7 @@ export function ShowTimelineItem({
       {/* Empty state when expanded but no lineup */}
       {isExpanded && !hasLineup && (
         <tr>
-          <td colSpan={10}>
+          <td colSpan={venueId ? 9 : 10}>
             <div className="bg-gray-50 px-4 py-8 text-center">
               <div className="text-gray-500 text-sm mb-4">
                 No artists confirmed for this show yet
