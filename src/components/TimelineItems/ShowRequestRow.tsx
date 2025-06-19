@@ -3,6 +3,7 @@ import { VenueBid } from '../../../types';
 import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton } from '../ActionButtons';
 import { generateSmartShowTitle, getBillingPriority } from '../../utils/showNaming';
+import { ExpansionIndicator } from './ExpansionIndicator';
 
 interface ShowRequestRowProps {
   entry: any;
@@ -56,11 +57,11 @@ export function ShowRequestRow({
       title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
     >
       <td className={`px-4 py-1 w-[3%] ${borderClass}`}>
-        <div className="flex items-center justify-center text-gray-400">
-          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-              d={state.expandedRequests.has(request.id) ? "M19 9l-7 7-7-7" : "M9 5l7 7-7 7"} />
-          </svg>
+        <div className="flex items-center justify-center">
+          <ExpansionIndicator 
+            isExpanded={state.expandedRequests.has(request.id)}
+            title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
+          />
         </div>
       </td>
       <td className="px-4 py-1 w-[12%]">

@@ -7,6 +7,7 @@ import { DocumentActionButton, DeleteActionButton } from '../ActionButtons';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 import { StatusBadge } from '../StatusBadge';
 import { getTimelineRowStyling, timelineTypography } from '../../utils/timelineRowStyling';
+import { ExpansionIndicator } from './ExpansionIndicator';
 
 interface ShowHeaderRowProps {
   show: Show;
@@ -66,21 +67,9 @@ export function ShowHeaderRow({
       className={rowClassName}
       onClick={() => onToggleExpansion(show.id)}
     >
-      {/* Expand/Collapse Button - EXACTLY like open show requests */}
+      {/* Expand/Collapse Button - Unified with open show requests */}
       <td className="px-4 py-1 w-[3%]">
-        <button
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-          title={isExpanded ? "Collapse" : "Expand"}
-        >
-          <svg 
-            className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        <ExpansionIndicator isExpanded={isExpanded} />
       </td>
 
       {/* Date */}

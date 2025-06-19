@@ -3,6 +3,7 @@ import { ShowRequest, Show, Artist, Venue } from '@prisma/client';
 import { formatDisplayDate } from '@/utils/dateUtils';
 import { ItineraryDate } from '../DateDisplay';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
+import { ExpansionIndicator } from './ExpansionIndicator';
 
 // Extended types to include relations for timeline display
 type ShowRequestWithRelations = ShowRequest & {
@@ -120,19 +121,7 @@ export const BookingRequestTimelineItem: React.FC<BookingRequestTimelineItemProp
     >
       {/* Expand/Collapse Button */}
       <td className="px-4 py-1 w-[3%]">
-        <button
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-          title={isExpanded ? "Collapse" : "Expand"}
-        >
-          <svg 
-            className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} 
-            fill="none" 
-            stroke="currentColor" 
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        <ExpansionIndicator isExpanded={isExpanded} />
       </td>
 
       {/* Date */}
