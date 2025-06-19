@@ -5,6 +5,8 @@ import { ShowHeaderRow } from './ShowHeaderRow';
 import { LineupTableSection } from './LineupTableSection';
 import { AddSupportActModal } from '../modals/AddSupportActModal';
 import { LineupItem } from '../../utils/showUtils';
+import { ExpansionContainer } from './ExpansionContainer';
+import { UnifiedActionButton } from '../ActionButtons/UnifiedActionButton';
 
 // Helper functions to convert support offers to synthetic format for document viewing
 function createSyntheticRequest(supportOffer: any) {
@@ -189,48 +191,42 @@ export function ShowTimelineItem({
       
       {/* Add Support Act button row */}
       {isExpanded && permissions.canEditShow(show) && (
-        <tr>
-          <td colSpan={venueId ? 9 : 10}>
-            <div className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150 px-4 py-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsAddSupportActModalOpen(true);
-                }}
-                className="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded border-2 border-dashed border-yellow-400 transition-colors duration-150 flex items-center justify-center space-x-2 text-sm"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Add Artist to Lineup</span>
-              </button>
-            </div>
-          </td>
-        </tr>
+        <ExpansionContainer variant="confirmed" colSpan={venueId ? 9 : 10}>
+          <div className="px-4 py-2">
+            <UnifiedActionButton
+              variant="primary"
+              size="md"
+              onClick={() => setIsAddSupportActModalOpen(true)}
+              className="w-full border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center space-x-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add Artist to Lineup</span>
+            </UnifiedActionButton>
+          </div>
+        </ExpansionContainer>
       )}
 
       {/* Empty state when expanded but no lineup */}
       {isExpanded && !hasLineup && (
-        <tr>
-          <td colSpan={venueId ? 9 : 10}>
-            <div className="bg-gray-50 px-4 py-8 text-center">
-              <div className="text-gray-500 text-sm mb-4">
-                No artists confirmed for this show yet
-              </div>
-              {permissions.canEditShow(show) && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsAddSupportActModalOpen(true);
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors duration-150"
-                >
-                  Add First Artist
-                </button>
-              )}
+        <ExpansionContainer variant="confirmed" colSpan={venueId ? 9 : 10}>
+          <div className="px-4 py-8 text-center">
+            <div className="text-gray-500 text-sm mb-4">
+              No artists confirmed for this show yet
             </div>
-          </td>
-        </tr>
+            {permissions.canEditShow(show) && (
+              <UnifiedActionButton
+                variant="primary"
+                size="md"
+                onClick={() => setIsAddSupportActModalOpen(true)}
+                title="Add first artist to this show"
+              >
+                Add First Artist
+              </UnifiedActionButton>
+            )}
+          </div>
+        </ExpansionContainer>
       )}
 
       {/* Add Artist Modal */}

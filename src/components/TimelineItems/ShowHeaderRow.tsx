@@ -5,6 +5,8 @@ import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
 import { DocumentActionButton, DeleteActionButton } from '../ActionButtons';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
+import { StatusBadge } from '../StatusBadge';
+import { getTimelineRowStyling, timelineTypography } from '../../utils/timelineRowStyling';
 
 interface ShowHeaderRowProps {
   show: Show;
@@ -43,27 +45,25 @@ export function ShowHeaderRow({
   // Show has lineup if there are any artists
   const hasLineup = lineup.length > 0;
   
-  // Status-based row styling based on aggregate status
-  const getRowStyling = () => {
-    const baseClasses = "transition-colors duration-150 cursor-pointer";
-    
-    // Extract status from statusBadge.text or statusBadge.className
+  // Use unified styling system for consistent appearance
+  const getStyleVariant = (): 'confirmed' | 'open' | 'hold' => {
     const statusText = statusBadge.text?.toLowerCase() || '';
     
     if (statusText.includes('confirmed') || statusText.includes('complete')) {
-      return `${baseClasses} bg-green-50 hover:bg-green-100`;
+      return 'confirmed';
     } else if (statusText.includes('pending') || statusText.includes('partial')) {
-      return `${baseClasses} bg-yellow-50 hover:bg-yellow-100`;
-    } else if (statusText.includes('declined') || statusText.includes('rejected')) {
-      return `${baseClasses} bg-red-50 hover:bg-red-100`;
+      return 'open'; // Pending shows use 'open' styling (blue)
     } else {
-      return `${baseClasses} bg-white hover:bg-gray-50`;
+      return 'confirmed'; // Default to confirmed styling for edge cases
     }
   };
   
+  const styleVariant = getStyleVariant();
+  const rowClassName = getTimelineRowStyling(styleVariant);
+  
   return (
     <tr 
-      className={getRowStyling()}
+      className={rowClassName}
       onClick={() => onToggleExpansion(show.id)}
     >
       {/* Expand/Collapse Button - EXACTLY like open show requests */}
@@ -159,9 +159,10 @@ export function ShowHeaderRow({
 
       {/* Aggregate Status */}
       <td className="px-4 py-1 w-[10%]">
-        <span className={statusBadge.className}>
-          {statusBadge.text}
-        </span>
+        <StatusBadge 
+          status={styleVariant === 'confirmed' ? 'confirmed' : 'pending'} 
+          variant="compact" 
+        />
       </td>
 
       {/* Billing Position - N/A for show header */}

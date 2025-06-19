@@ -4,6 +4,14 @@ import { ShowRequestRow } from './ShowRequestRow';
 import { ExpandedBidsSection } from './ExpandedBidsSection';
 import { getTimelineBorderClass, extractDateFromEntry } from '../../utils/timelineUtils';
 import { getBillingPriority } from '../../utils/showNaming';
+import { 
+  getTimelineRowStyling, 
+  getTimelineTextStyling,
+  getExpansionContainerStyling,
+  getExpansionHeaderStyling,
+  getExpansionTextStyling,
+  getExpansionDividerStyling
+} from '../../utils/timelineRowStyling';
 
 interface ShowRequestProcessorProps {
   entry: any;
@@ -142,7 +150,7 @@ export function ShowRequestProcessor({
     requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
   }
 
-  // Determine status for border styling
+  // Determine status for styling
   const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
     bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
   );
@@ -151,40 +159,24 @@ export function ShowRequestProcessor({
   );
   const isHeldBidRequest = (request as any).isHeldBid;
   
-  let requestStatus: 'confirmed' | 'pending' | 'hold' | 'accepted' = 'pending';
+  // Determine styling variant using unified system
+  let styleVariant: 'confirmed' | 'open' | 'hold' = 'open';
   if (hasAcceptedBid) {
-    requestStatus = 'accepted';
+    styleVariant = 'confirmed';
   } else if (hasActiveHold || isHeldBidRequest) {
-    requestStatus = 'hold';
+    styleVariant = 'hold';
   }
   
-  const borderClass = getTimelineBorderClass(requestStatus);
-
-  // Generate class names safely
-  const baseClasses = "cursor-pointer transition-colors duration-150 hover:shadow-sm";
-  const hoverClass = requestStatus === 'accepted' ? 'bg-green-50/30 hover:bg-green-100' :
-                    requestStatus === 'hold' ? 'bg-violet-50/30 hover:bg-violet-100' :
-                    'hover:bg-blue-50';
-  const rowClassName = `${baseClasses} ${hoverClass}`;
+  // Use unified styling system
+  const rowClassName = getTimelineRowStyling(styleVariant);
+  const textColorClass = getTimelineTextStyling(styleVariant);
+  const expandedBgClass = getExpansionContainerStyling(styleVariant);
+  const expandedHeaderClass = getExpansionHeaderStyling(styleVariant);
+  const expandedTextClass = getExpansionTextStyling(styleVariant);
+  const expandedDividerClass = getExpansionDividerStyling(styleVariant);
   
-  // Pre-calculate text colors
-  const textColorClass = requestStatus === 'accepted' ? 'text-green-900' :
-                        requestStatus === 'hold' ? 'text-violet-900' :
-                        'text-blue-900';
-  
-  // Pre-calculate expanded section classes
-  const expandedBgClass = requestStatus === 'accepted' ? 'bg-green-50 border-l-4 border-green-400' :
-                         requestStatus === 'hold' ? 'bg-violet-50 border-l-4 border-violet-400' :
-                         'bg-yellow-50 border-l-4 border-yellow-400';
-  const expandedHeaderClass = requestStatus === 'accepted' ? 'bg-green-100' :
-                             requestStatus === 'hold' ? 'bg-violet-100' :
-                             'bg-yellow-100';
-  const expandedTextClass = requestStatus === 'accepted' ? 'text-left text-xs font-medium text-green-700' :
-                           requestStatus === 'hold' ? 'text-left text-xs font-medium text-violet-700' :
-                           'text-left text-xs font-medium text-yellow-700';
-  const expandedDividerClass = requestStatus === 'accepted' ? 'divide-y divide-green-200' :
-                              requestStatus === 'hold' ? 'divide-y divide-violet-200' :
-                              'divide-y divide-yellow-200';
+  // Keep legacy border class for compatibility
+  const borderClass = getTimelineBorderClass(hasAcceptedBid ? 'accepted' : hasActiveHold ? 'hold' : 'pending');
 
   return (
     <React.Fragment key={`request-${request.id}`}>

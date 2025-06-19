@@ -5,6 +5,7 @@ import { ItineraryDate } from '../DateDisplay';
 import { DeleteActionButton, DocumentActionButton, MakeOfferActionButton } from '../ActionButtons';
 import { InlineOfferDisplay } from '../OfferDisplay';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
+import { StatusBadge, StatusType } from '../StatusBadge';
 
 interface BidTimelineItemProps {
   bid: VenueBid;
@@ -64,43 +65,28 @@ export function BidTimelineItem({
   activeHoldInfo
 }: BidTimelineItemProps) {
   
-  const getStatusBadge = (status: string, isFrozen = false, holdState?: string) => {
+  const getStatusType = (status: string, isFrozen = false, holdState?: string): StatusType => {
     // ❄️ FROZEN/HELD states take priority over normal status
     if (isFrozen && holdState === 'FROZEN') {
-      return {
-        className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-slate-200 text-slate-700',
-        text: 'Frozen'
-      };
+      return 'frozen';
     }
     if (isFrozen && holdState === 'HELD') {
-      return {
-        className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700',
-        text: 'On Hold'
-      };
+      return 'hold';
     }
 
-    // Normal status badges
+    // Normal status mapping
     switch (status) {
       case 'accepted':
-        return {
-          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800',
-          text: 'Accepted'
-        };
+        return 'accepted';
       case 'declined':
-        return {
-          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800',
-          text: 'Declined'
-        };
+        return 'declined';
       default:
-        return {
-          className: 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800',
-          text: 'Pending'
-        };
+        return 'pending';
     }
   };
 
   const currentStatus = effectiveStatus || bid.status;
-  const statusBadge = getStatusBadge(currentStatus, isFrozenByHold, (bid as any).holdState);
+  const statusType = getStatusType(currentStatus, isFrozenByHold, (bid as any).holdState);
 
   // 🎵 Helper function to generate billing position badge with status-matched colors
   const getBillingPositionBadge = (billingPosition: string, bidStatus: string) => {
@@ -240,9 +226,7 @@ export function BidTimelineItem({
 
             {/* Status column - w-[10%] */}
       <td className="px-4 py-1 w-[10%]">
-        <span className={statusBadge.className}>
-          {statusBadge.text}
-        </span>
+        <StatusBadge status={statusType} variant="compact" />
       </td>
 
       {/* Capacity/Position column - w-[7%] - Context sensitive */}
