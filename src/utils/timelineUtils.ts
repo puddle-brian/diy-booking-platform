@@ -170,16 +170,59 @@ export function createTimelineEntries(
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   
-  // Add confirmed shows only
+  // Add shows with artist-context-aware logic
   shows.forEach(show => {
-    // Only add shows that are actually confirmed (handle both case variations)
     const status = show.status?.toLowerCase();
     if (status === 'confirmed' || status === 'accepted') {
-      entries.push({
-        type: 'show',
-        date: show.date,
-        data: show
-      });
+      
+      if (artistId) {
+        // 🎯 ARTIST PERSPECTIVE: Only add as 'show' type if THIS ARTIST is confirmed
+        const artistLineupItem = show.lineup?.find(item => item.artistId === artistId);
+        const artistConfirmed = artistLineupItem?.status?.toLowerCase() === 'confirmed';
+        
+        if (artistConfirmed) {
+          // Artist is confirmed → show as confirmed show (expands to lineup)
+          entries.push({
+            type: 'show',
+            date: show.date,
+            data: show
+          });
+        } else if (artistLineupItem) {
+          // Artist is in lineup but NOT confirmed → convert to show-request (expands to competing bids)
+          const syntheticRequest = {
+            id: `show-request-${show.id}`,
+            artistId: artistId,
+            artistName: artistLineupItem.artistName,
+            title: `Pending Show at ${show.venueName}`,
+            description: `Multi-artist show where you're pending confirmation`,
+            requestedDate: show.date,
+            startDate: show.date,
+            endDate: show.date,
+            isSingleDate: true,
+            location: show.city && show.state ? `${show.city}, ${show.state}` : show.venueName,
+            status: 'OPEN',
+            // Mark as synthetic show-request for special handling
+            isShowBasedRequest: true,
+            originalShowId: show.id,
+            venueId: show.venueId,
+            venueName: show.venueName
+          };
+          
+          entries.push({
+            type: 'show-request',
+            date: show.date,
+            data: syntheticRequest
+          });
+        }
+        // If artist not in lineup at all, don't show the show
+      } else {
+        // 🎯 VENUE PERSPECTIVE: Use aggregate show status (existing logic)
+        entries.push({
+          type: 'show',
+          date: show.date,
+          data: show
+        });
+      }
     }
   });
   

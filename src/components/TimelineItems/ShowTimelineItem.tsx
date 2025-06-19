@@ -190,6 +190,8 @@ export function ShowTimelineItem({
         />
       )}
       
+
+      
       {/* Add Support Act button row */}
       {isExpanded && permissions.canEditShow(show) && (
         <ExpansionContainer variant="confirmed" colSpan={venueId ? 9 : 10}>
