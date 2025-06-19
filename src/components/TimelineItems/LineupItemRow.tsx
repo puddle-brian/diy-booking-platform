@@ -28,20 +28,35 @@ export function LineupItemRow({
   const statusBadge = getLineupItemStatusBadge(lineupItem.status);
   const billingBadge = getBillingPositionBadge(lineupItem.billingPosition);
   
+  // Status-based row styling similar to BidTimelineItem
+  const getRowStyling = () => {
+    const baseClasses = "transition-colors duration-150";
+    
+    switch (lineupItem.status?.toLowerCase()) {
+      case 'confirmed':
+        return `${baseClasses} bg-green-50 hover:bg-green-100`;
+      case 'pending':
+        return `${baseClasses} bg-yellow-50 hover:bg-yellow-100`;
+      case 'declined':
+      case 'rejected':
+        return `${baseClasses} bg-red-50 hover:bg-red-100`;
+      case 'accepted':
+        return `${baseClasses} bg-emerald-50 hover:bg-emerald-100`;
+      default:
+        return `${baseClasses} bg-gray-50 hover:bg-gray-100`;
+    }
+  };
+  
   return (
-    <tr className="bg-gray-50 hover:bg-gray-100 transition-colors duration-150">
-      {/* Indent for child row */}
-      <td className="px-2 py-1 w-[3%]">
-        <div className="w-6 flex justify-center">
-          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
-        </div>
+    <tr className={getRowStyling()}>
+      {/* Empty expansion column - child row */}
+      <td className="px-4 py-1 w-[3%]">
+        {/* Empty - child row doesn't need expansion button */}
       </td>
 
       {/* Empty date column - parent provides context */}
       <td className="px-4 py-1 w-[12%]">
-        <div className="text-xs text-gray-400 text-center">
-          {lineupItem.performanceOrder && `#${lineupItem.performanceOrder}`}
-        </div>
+        {/* Empty - parent row provides date context */}
       </td>
 
       {/* Location (only show if not on venue page) */}

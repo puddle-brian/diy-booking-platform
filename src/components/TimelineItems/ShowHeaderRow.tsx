@@ -39,11 +39,27 @@ export function ShowHeaderRow({
   // Show has lineup if there are any artists
   const hasLineup = lineup.length > 0;
   
-  // Show header row rendering correctly
+  // Status-based row styling based on aggregate status
+  const getRowStyling = () => {
+    const baseClasses = "transition-colors duration-150 cursor-pointer";
+    
+    // Extract status from statusBadge.text or statusBadge.className
+    const statusText = statusBadge.text?.toLowerCase() || '';
+    
+    if (statusText.includes('confirmed') || statusText.includes('complete')) {
+      return `${baseClasses} bg-green-50 hover:bg-green-100`;
+    } else if (statusText.includes('pending') || statusText.includes('partial')) {
+      return `${baseClasses} bg-yellow-50 hover:bg-yellow-100`;
+    } else if (statusText.includes('declined') || statusText.includes('rejected')) {
+      return `${baseClasses} bg-red-50 hover:bg-red-100`;
+    } else {
+      return `${baseClasses} bg-white hover:bg-gray-50`;
+    }
+  };
   
   return (
     <tr 
-      className="bg-white hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+      className={getRowStyling()}
       onClick={() => onToggleExpansion(show.id)}
     >
       {/* Expand/Collapse Button - EXACTLY like open show requests */}

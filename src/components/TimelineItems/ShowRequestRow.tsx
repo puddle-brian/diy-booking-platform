@@ -55,7 +55,7 @@ export function ShowRequestRow({
       onClick={() => toggleRequestExpansion(request.id)}
       title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
     >
-      <td className={`px-2 py-1 w-[3%] ${borderClass}`}>
+      <td className={`px-4 py-1 w-[3%] ${borderClass}`}>
         <div className="flex items-center justify-center text-gray-400">
           <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 

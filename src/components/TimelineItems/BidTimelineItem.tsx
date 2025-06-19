@@ -152,7 +152,7 @@ export function BidTimelineItem({
   return (
     <tr className={getRowStyling()}>
       {/* Expansion toggle column - w-[3%] - Empty for child rows */}
-      <td className="px-2 py-1 w-[3%]">
+      <td className="px-4 py-1 w-[3%]">
         {/* Intentionally blank - child rows are not expandable */}
       </td>
 
