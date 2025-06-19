@@ -326,7 +326,7 @@ export function ShowRequestRow({
       </td>
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-2">
-          {venueId && (
+          {(venueId || artistId) && (
             <DeleteActionButton
               request={request}
               venueId={venueId}

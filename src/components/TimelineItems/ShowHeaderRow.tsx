@@ -84,27 +84,22 @@ export function ShowHeaderRow({
       {!venueId && (
         <td className="px-4 py-1 w-[14%]">
           <div className="text-sm text-gray-600 truncate">
-            {show.venueName || 'Unknown Venue'}
+            {show.city && show.state ? (
+              `${show.city}, ${show.state}`
+            ) : (
+              show.venueName || 'Unknown Location'
+            )}
           </div>
         </td>
       )}
 
-      {/* Show Title with Clickable Artist Links */}
+      {/* Context-aware content: Artists column for venue view, Venue column for artist view */}
       <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
         <div className="text-sm font-medium text-gray-900 truncate" title={detailedTitle}>
-          {lineup.length === 1 ? (
-            // Single artist - make it clickable
-            <a 
-              href={`/artists/${lineup[0].artistId}`}
-              className="text-blue-600 hover:text-blue-800 hover:underline"
-              title="View artist page"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {lineup[0].artistName}
-            </a>
-          ) : lineup.length === 2 ? (
-            // Two artists - both clickable
-            <>
+          {venueId ? (
+            // Venue view: Show artist lineup with smart title
+            lineup.length === 1 ? (
+              // Single artist - make it clickable
               <a 
                 href={`/artists/${lineup[0].artistId}`}
                 className="text-blue-600 hover:text-blue-800 hover:underline"
@@ -113,19 +108,8 @@ export function ShowHeaderRow({
               >
                 {lineup[0].artistName}
               </a>
-              <span> & </span>
-              <a 
-                href={`/artists/${lineup[1].artistId}`}
-                className="text-blue-600 hover:text-blue-800 hover:underline"
-                title="View artist page"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {lineup[1].artistName}
-              </a>
-            </>
-          ) : (
-            // Multiple artists - use smart title with clickable headliner
-            lineup.length > 0 ? (
+            ) : lineup.length === 2 ? (
+              // Two artists - both clickable
               <>
                 <a 
                   href={`/artists/${lineup[0].artistId}`}
@@ -135,16 +119,48 @@ export function ShowHeaderRow({
                 >
                   {lineup[0].artistName}
                 </a>
-                <span> + {lineup.length - 1} more</span>
+                <span> & </span>
+                <a 
+                  href={`/artists/${lineup[1].artistId}`}
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                  title="View artist page"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {lineup[1].artistName}
+                </a>
               </>
             ) : (
-              showTitle
+              // Multiple artists - use smart title with clickable headliner
+              lineup.length > 0 ? (
+                <>
+                  <a 
+                    href={`/artists/${lineup[0].artistId}`}
+                    className="text-blue-600 hover:text-blue-800 hover:underline"
+                    title="View artist page"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {lineup[0].artistName}
+                  </a>
+                  <span> + {lineup.length - 1} more</span>
+                </>
+              ) : (
+                showTitle
+              )
             )
-          )}
-          {show.venueName && !venueId && (
-            <span className="text-xs text-gray-500 ml-2">
-              at {show.venueName}
-            </span>
+          ) : (
+            // Artist view: Show venue information with clickable link
+            show.venueId ? (
+              <a 
+                href={`/venues/${show.venueId}`}
+                className="text-blue-600 hover:text-blue-800 hover:underline"
+                title="View venue page"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {show.venueName || 'Unknown Venue'}
+              </a>
+            ) : (
+              <span>{show.venueName || 'Unknown Venue'}</span>
+            )
           )}
         </div>
       </td>
