@@ -319,19 +319,23 @@ async function resetTestData() {
         date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
         supportActs: [
           { artist: otherArtists[0], status: 'CONFIRMED' },
-          { artist: otherArtists[1], status: 'PENDING' }, // This creates our test case!
+          { artist: otherArtists[1], status: 'CONFIRMED' },
+          { artist: otherArtists[2], status: 'PENDING' },   // 🎯 3/4 confirmed (headliner + 2 support)
+          { artist: otherArtists[3], status: 'PENDING' },   // 🎯 Mixed status for testing
         ],
         ticketPrice: 25,
         guarantee: 1500
       },
       {
         title: 'Noise Festival Headliner',
-        venue: venues[1] || venues[0],
+        venue: venues.find(v => v.name?.toLowerCase().includes('lost bag')) || venues[1],
         date: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000), // 45 days from now
         supportActs: [
-          { artist: otherArtists[2], status: 'CONFIRMED' },
-          { artist: otherArtists[3], status: 'CONFIRMED' },
-          { artist: otherArtists[4], status: 'PENDING' },
+          { artist: otherArtists[4], status: 'CONFIRMED' },
+          { artist: otherArtists[5], status: 'CONFIRMED' },
+          { artist: otherArtists[6], status: 'CONFIRMED' },
+          { artist: otherArtists[7], status: 'PENDING' },   // 🎯 4/5 confirmed (headliner + 3 support)
+          { artist: otherArtists[8], status: 'PENDING' },   // 🎯 More pending for variety
         ],
         ticketPrice: 30,
         guarantee: 2000
@@ -341,10 +345,34 @@ async function resetTestData() {
         venue: venues[2] || venues[0],
         date: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // 60 days from now
         supportActs: [
-          { artist: otherArtists[5], status: 'CONFIRMED' },
+          { artist: otherArtists[9], status: 'CONFIRMED' },
+          { artist: otherArtists[10], status: 'PENDING' },  // 🎯 2/3 confirmed (headliner + 1 support)
         ],
         ticketPrice: 20,
         guarantee: 1200
+      },
+      // 🎯 NEW: More diverse mixed status scenarios for better testing
+      {
+        title: 'Punk Rock Festival',
+        venue: venues.find(v => v.name?.toLowerCase().includes('lost bag')) || venues[3],
+        date: new Date(Date.now() + 75 * 24 * 60 * 60 * 1000), // 75 days from now
+        supportActs: [
+          { artist: otherArtists[11], status: 'PENDING' },
+          { artist: otherArtists[12], status: 'PENDING' },
+          { artist: otherArtists[13], status: 'PENDING' },  // 🎯 1/4 confirmed (only headliner)
+        ],
+        ticketPrice: 28,
+        guarantee: 1800
+      },
+      {
+        title: 'All Ages Showcase',
+        venue: venues[4] || venues[0],
+        date: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 days from now
+        supportActs: [
+          { artist: otherArtists[14], status: 'CONFIRMED' },  // 🎯 2/2 confirmed (all confirmed)
+        ],
+        ticketPrice: 15,
+        guarantee: 1000
       }
     ];
     

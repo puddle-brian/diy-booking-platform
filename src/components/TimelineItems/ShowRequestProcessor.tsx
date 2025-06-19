@@ -152,9 +152,8 @@ export function ShowRequestProcessor({
   }
 
   // Determine status for styling
-  const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
-    bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
-  );
+  // BUSINESS LOGIC: Show requests are either "Open" or have "Hold" status
+  // Accepted bids should be converted to confirmed shows, not shown as accepted requests
   const hasActiveHold = requestBids.some((bid: VenueBid) => 
     (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
   );
@@ -162,11 +161,10 @@ export function ShowRequestProcessor({
   
   // Determine styling variant using unified system
   let styleVariant: 'confirmed' | 'open' | 'hold' = 'open';
-  if (hasAcceptedBid) {
-    styleVariant = 'confirmed';
-  } else if (hasActiveHold || isHeldBidRequest) {
+  if (hasActiveHold || isHeldBidRequest) {
     styleVariant = 'hold';
   }
+  // All other show requests use 'open' styling
   
   // Use unified styling system
   const rowClassName = getTimelineRowStyling(styleVariant);
@@ -177,7 +175,7 @@ export function ShowRequestProcessor({
   const expandedDividerClass = getExpansionDividerStyling(styleVariant);
   
   // Keep legacy border class for compatibility
-  const borderClass = getTimelineBorderClass(hasAcceptedBid ? 'accepted' : hasActiveHold ? 'hold' : 'pending');
+  const borderClass = getTimelineBorderClass(hasActiveHold ? 'hold' : 'pending');
 
   return (
     <React.Fragment key={`request-${request.id}`}>

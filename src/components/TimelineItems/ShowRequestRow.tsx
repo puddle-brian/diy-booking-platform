@@ -263,30 +263,32 @@ export function ShowRequestRow({
         <div className="flex items-center space-x-1">
           {(() => {
             // If viewing as a venue, show venue's specific bid status
+            // BUSINESS LOGIC: Even accepted venue bids should show as "Open" 
+            // since show requests are "always open unless confirmed"
             if (venueId && requestBids.length > 0) {
               const venueBid = requestBids.find(bid => bid.venueId === venueId);
               if (venueBid) {
-                const statusBadge = getBidStatusBadge(venueBid);
+                // Check for hold status first
+                if ((venueBid as any).holdState === 'HELD' || (venueBid as any).holdState === 'FROZEN') {
+                  return (
+                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700">
+                      Hold
+                    </span>
+                  );
+                }
+                
+                // All other venue bids (including accepted) show as "Open"
                 return (
-                  <span className={statusBadge.className}>
-                    {statusBadge.text}
+                  <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    Open
                   </span>
                 );
               }
             }
             
             // Default logic for artists and venues without bids
-            const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
-              bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
-            );
-            
-            if (hasAcceptedBid) {
-              return (
-                <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                  Accepted
-                </span>
-              );
-            }
+            // BUSINESS LOGIC: Show requests are either "Open" or become confirmed shows
+            // There should be no "Accepted" status for show request rows
             
             const hasActiveHold = requestBids.some((bid: VenueBid) => 
               (bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN'
@@ -302,6 +304,7 @@ export function ShowRequestRow({
               );
             }
             
+            // All show requests without holds are "Open"
             return (
               <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                 Open
