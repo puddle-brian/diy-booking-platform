@@ -67,46 +67,74 @@
   - Add missing type annotations
 - **Test**: Full TypeScript compilation without errors
 
+### **PHASE 1 STATUS: COMPLETE** 
+
+### Phase 1.1: VenueBid Type Consolidation ✅
+- **COMPLETED**: Eliminated 6 duplicate VenueBid interfaces 
+- **COMPLETED**: Single source of truth in main `types.ts`
+- **COMPLETED**: Fixed `'direct-support'` vs `'support'` billing conflicts
+- **COMPLETED**: Added missing fields for timeline compatibility
+- **COMMIT**: `7b328f9` - Type conflicts eliminated
+
+### Phase 1.2: Status Enum Standardization ✅
+- **COMPLETED**: Created unified `BidStatus`, `OfferStatus`, `ShowRequestStatus` types
+- **COMPLETED**: Added `StatusConverter` utility for legacy compatibility
+- **COMPLETED**: Updated all service functions to use unified types
+- **COMPLETED**: Fixed TabbedTourItinerary.tsx status conflicts
+- **COMMIT**: `7b328f9` - Status enum unification complete
+- **TESTED**: ✅ Site functionality preserved, no visual changes
+
 ---
 
-### **Phase 2: Data Flow Simplification** ⚡ *HIGH IMPACT, MEDIUM RISK*
-**Time**: 3-4 days | **Commits**: 4-5
+## 🚧 **PHASE 2: DATA FLOW SIMPLIFICATION** (In Progress)
 
-#### Step 2.1: Extract Timeline Creation Logic (Day 1)
-- **File**: `utils/timelineCreation.ts` (new)
-- **Goal**: Single responsibility for timeline entry creation
-- **Changes**:
-  - Move timeline logic out of component
-  - Separate concerns: creation vs rendering
-  - Add comprehensive unit tests
-- **Test**: Identical timeline output, easier to debug
+**Current Problem**: 350+ lines of synthetic data transformations in `timelineUtils.ts`
 
-#### Step 2.2: Simplify Data Fetching (Day 2)
-- **File**: `hooks/useTourItineraryData.ts`
-- **Goal**: Remove conversion layers, fetch native formats
-- **Changes**:
-  - Eliminate synthetic data creation in fetch layer
-  - Return raw API data with proper typing
-  - Move transformations to display layer
-- **Test**: Same data displayed, cleaner fetch logic
+### Phase 2.1: Eliminate Synthetic Data Conversions (Starting Now)
+**Target**: Remove the massive `createTimelineEntries` function that converts:
+- Venue offers → synthetic tour requests  
+- Venue bids → synthetic tour requests
+- Shows → synthetic tour requests (conditionally)
 
-#### Step 2.3: Create Unified Data Adapter (Day 3)
-- **File**: `adapters/bookingDataAdapter.ts` (new)
-- **Goal**: Single point for data format conversions
-- **Changes**:
-  - Central adapter for legacy format support
-  - Clear input/output contracts
-  - Comprehensive transformation tests
-- **Test**: All booking data displays correctly
+**Strategy**: 
+1. **Create unified data fetching** - All data sources return the same shape
+2. **Eliminate on-the-fly conversions** - Data comes pre-formatted from API
+3. **Simplify timeline rendering** - Components handle their own data types
 
-#### Step 2.4: Remove Synthetic Request Generation (Day 4)
-- **File**: `utils/timelineUtils.ts`
-- **Goal**: Eliminate on-the-fly data model creation
-- **Changes**:
-  - Replace synthetic requests with proper data modeling
-  - Use adapter pattern for display formatting
-  - Remove 200+ lines of synthetic data code
-- **Test**: Timeline functionality unchanged, much cleaner code
+**Risk**: Medium - Requires API changes but preserves existing functionality
+
+### Phase 2.2: Component Data Simplification
+**Target**: Reduce timeline component complexity from 765 lines to ~400 lines
+**Strategy**: Remove synthetic data handling, use native data types
+
+### Phase 2.3: State Management Consolidation  
+**Target**: Eliminate scattered state management across 5+ hooks
+**Strategy**: Single source of truth for itinerary state
+
+---
+
+## 🎯 **PHASE 2.1 DETAILED PLAN**
+
+### Step 1: Create Unified Timeline Data API
+- **File**: `src/hooks/useUnifiedTimelineData.ts`
+- **Purpose**: Single hook that returns consistent data shapes
+- **Benefit**: Eliminates 200+ lines of synthetic conversions
+
+### Step 2: Update Timeline Components
+- **Files**: `src/components/TimelineItems/*`
+- **Purpose**: Handle native data types instead of synthetic conversions
+- **Benefit**: Removes conditional rendering complexity
+
+### Step 3: Simplify TabbedTourItinerary  
+- **File**: `src/components/TabbedTourItinerary.tsx`
+- **Purpose**: Use unified data hook instead of multiple data sources
+- **Benefit**: Reduces from 765 to ~400 lines
+
+**Success Metrics**:
+- [ ] `timelineUtils.ts` reduced from 571 to <200 lines
+- [ ] `TabbedTourItinerary.tsx` reduced from 765 to ~400 lines  
+- [ ] All synthetic data conversions eliminated
+- [ ] Site functionality preserved
 
 ---
 
