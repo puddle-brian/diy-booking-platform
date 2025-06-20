@@ -391,31 +391,51 @@ export function BidTimelineItem({
               {/* Normal bid actions for non-held bids */}
               {currentStatus === 'pending' && (
                 <>
-                  {/* Accept Button */}
-                  {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAcceptBid(bid);
-                      }}
-                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                      disabled={isDeleting}
-                      title="Accept bid"
-                    >
-                      ✓
-                    </button>
+                  {/* Artist actions for pending bids */}
+                  {!venueId && (
+                    <>
+                      {/* Accept Button */}
+                      {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAcceptBid(bid);
+                          }}
+                          className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                          disabled={isDeleting}
+                          title="Accept bid"
+                        >
+                          ✓
+                        </button>
+                      )}
+                      
+                      {/* Decline Button */}
+                      {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onDeclineBid && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeclineBid(bid);
+                          }}
+                          className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                          disabled={isDeleting}
+                          title="Decline bid"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </>
                   )}
-                  
-                  {/* Decline Button */}
-                  {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onDeclineBid && (
+
+                  {/* Venue actions for pending bids - withdraw their own offers */}
+                  {venueId && bid.venueId === venueId && onBidAction && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onDeclineBid(bid);
+                        onBidAction(bid, 'decline', 'Venue withdrew offer');
                       }}
                       className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                       disabled={isDeleting}
-                      title="Decline bid"
+                      title="Withdraw this offer"
                     >
                       ✕
                     </button>
