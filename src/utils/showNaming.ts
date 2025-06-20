@@ -107,7 +107,7 @@ function generateSmartShowTitleFromLineup(lineup: LineupItem[]): { title: string
   return generateSmartShowTitleFromOptions({
     headlinerName: headliner.artistName,
     supportActs,
-    includeStatusInCount: false // Default for confirmed shows
+    includeStatusInCount: true // 🎯 FIX: For confirmed shows, include all artists regardless of individual status
   });
 }
 

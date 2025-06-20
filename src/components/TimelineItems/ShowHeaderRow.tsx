@@ -46,7 +46,20 @@ export function ShowHeaderRow({
 }: ShowHeaderRowProps) {
   // Use effectiveLineup if provided (for legacy shows), otherwise use show.lineup
   const lineup: LineupItem[] = effectiveLineup || show.lineup || [];
+  
+  // 🔍 DEBUG: Log lineup data for Lightning Bolt show
+  if (show.title === 'Punk Rock Festival') {
+    console.log('🎯 Lightning Bolt show lineup:', lineup);
+    console.log('🎯 Lineup length:', lineup.length);
+  }
+  
   const { title: showTitle, tooltip: detailedTitle } = generateSmartShowTitle(lineup);
+  
+  // 🔍 DEBUG: Log generated title
+  if (show.title === 'Punk Rock Festival') {
+    console.log('🎯 Generated title:', showTitle);
+    console.log('🎯 Generated tooltip:', detailedTitle);
+  }
   
   // Show has lineup if there are any artists
   const hasLineup = lineup.length > 0;
