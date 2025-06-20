@@ -454,11 +454,15 @@ export function useTourItineraryData({
           const venueInitiatedData = await venueInitiatedResponse.json();
           const allArtistRequestsData = await allArtistRequestsResponse.json();
           
-          // 🎯 FIXED: Show ALL open artist requests that venues can bid on
-          // Not just ones they've already bid on - this gives venues full visibility for booking opportunities
-          const availableArtistRequests = allArtistRequestsData.filter((req: any) => 
-            req.status === 'OPEN' && req.initiatedBy === 'ARTIST'
-          );
+          // 🎯 LAYER 1 FIX: Show ALL artist requests where this venue has bids
+          // Filter to only show requests where the venue has actually placed bids
+          const availableArtistRequests = allArtistRequestsData.filter((req: any) => {
+            if (req.initiatedBy !== 'ARTIST') return false;
+            
+            // Check if this venue has any bids on this request
+            const hasVenueBid = req.bids && req.bids.some((bid: any) => bid.venueId === venueId);
+            return hasVenueBid;
+          });
           
           const combinedShowRequestsData = [...venueInitiatedData, ...availableArtistRequests];
           

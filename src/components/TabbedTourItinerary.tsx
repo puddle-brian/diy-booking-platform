@@ -610,10 +610,30 @@ export default function TabbedTourItinerary({
                 extractDateFromEntry(otherEntry) === entryDate
               );
               
+              // 🔍 DEBUG: Log date grouping for August 29th
+              if (entryDate === '2025-08-29') {
+                console.log('🔍 Aug 29 Debug - Entry:', entry.data.artist?.name || entry.data.artistName);
+                console.log('🔍 Aug 29 Debug - Entry ID:', entry.data.id);
+                console.log('🔍 Aug 29 Debug - Current Index:', index);
+                console.log('🔍 Aug 29 Debug - EntryDate:', entryDate);
+                console.log('🔍 Aug 29 Debug - SameDateSiblings:', sameDateSiblings.length);
+                console.log('🔍 Aug 29 Debug - All Aug 29 entries with IDs:', 
+                  activeMonthEntries
+                    .filter(e => extractDateFromEntry(e) === '2025-08-29')
+                    .map((e, i) => `${i}: ${e.data.artist?.name || e.data.artistName} (ID: ${e.data.id})`));
+              }
+              
               // Only show count badge on first occurrence of each date
-              const isFirstOfDate = activeMonthEntries.findIndex(otherEntry => 
+              const firstIndexOfDate = activeMonthEntries.findIndex(otherEntry => 
                 extractDateFromEntry(otherEntry) === entryDate
-              ) === index;
+              );
+              const isFirstOfDate = firstIndexOfDate === index;
+              
+              // 🔍 DEBUG: Log first-of-date logic for August 29th
+              if (entryDate === '2025-08-29') {
+                console.log('🔍 Aug 29 Debug - FirstIndexOfDate:', firstIndexOfDate, 'CurrentIndex:', index);
+                console.log('🔍 Aug 29 Debug - IsFirstOfDate:', isFirstOfDate, 'for', entry.data.artist?.name || entry.data.artistName);
+              }
               
               // Hide non-first entries - they'll be shown as children when parent is expanded
               if (!isFirstOfDate) {

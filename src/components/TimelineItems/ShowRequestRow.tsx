@@ -191,26 +191,89 @@ export function ShowRequestRow({
                 }
               }
             } else if (venueId) {
-              // Use unified title system - exactly the same as confirmed shows
+              // 🚀 SIMPLIFIED FIX: Use venueBids directly instead of complex matching
+              // Filter venueBids to only those for this date and venue
+              const sameDateVenueBids = venueBids.filter(bid => {
+                const bidDate = bid.proposedDate?.split('T')[0] || bid.proposedDate;
+                return bidDate === entryDate && bid.venueId === venueId;
+              });
+              
+              // Get artist names from timeline entries and billing positions from venueBids
               const allSameDateArtists = [entry, ...sameDateSiblings]
                 .filter(e => e.type === 'show-request')
                 .map(e => {
                   const req = e.data as any;
-                  const artistBid = requestBids.find(bid => bid.showRequestId === req.id);
+                  const timelineEntryId = req.id.startsWith('venue-bid-') ? req.id.replace('venue-bid-', '') : req.id;
+                  const matchingBid = sameDateVenueBids.find(bid => bid.id === timelineEntryId);
                   
                   return {
                     artistName: req.artist?.name || req.artistName || 'Unknown Artist',
                     status: 'accepted' as const,
-                    billingPosition: artistBid?.billingPosition || 'support' as const
+                    billingPosition: matchingBid?.billingPosition || 'support' as const
                   };
                 })
                 .filter(artist => artist.artistName !== 'Unknown Artist');
               
+              // 🔍 DEBUG: Log title generation for August 29th
+              if (entryDate === '2025-08-29') {
+                              console.log('🎵 Aug 29 Title Debug - AllSameDateArtists:', allSameDateArtists);
+              console.log('🎵 Aug 29 Title Debug - RequestBids:', requestBids);
+              console.log('🎵 Aug 29 RequestBids IDs:', requestBids.map(bid => ({
+                id: bid.id,
+                showRequestId: bid.showRequestId,
+                billingPosition: bid.billingPosition
+              })));
+              console.log('🎵 Aug 29 Title Debug - Entry data:', entry.data);
+              console.log('🎵 Aug 29 Title Debug - SameDateSiblings data:', sameDateSiblings.map(s => s.data));
+              
+              // 🔍 DEBUG: Check bid matching for each artist
+              console.log('🎵 Aug 29 Bid Matching Debug:');
+              allSameDateArtists.forEach((artist, i) => {
+                const req = [entry, ...sameDateSiblings][i]?.data as any;
+                const timelineEntryId = req?.id?.startsWith('venue-bid-') ? req.id.replace('venue-bid-', '') : req?.id;
+                const artistBid = requestBids.find(bid => bid.id === timelineEntryId);
+                console.log(`  ${i+1}. ${artist.artistName}:`);
+                console.log(`     Timeline Entry ID: ${req?.id}`);
+                console.log(`     Stripped ID for matching: ${timelineEntryId}`);
+                console.log(`     Found bid: ${artistBid ? 'YES' : 'NO'}`);
+                console.log(`     Billing: ${artist.billingPosition}`);
+                if (artistBid) {
+                  console.log(`     Bid details:`, artistBid);
+                }
+              });
+              }
+              
+              // 🚀 FIX: Find the actual headliner, not just the first artist
+              const headliners = allSameDateArtists.filter(artist => 
+                artist.billingPosition === 'headliner' || artist.billingPosition === 'co-headliner'
+              );
+              const supportActs = allSameDateArtists.filter(artist => 
+                artist.billingPosition === 'support' || artist.billingPosition === 'local-support'
+              );
+              
+              // Use the first headliner as the main headliner, others become co-headliners
+              const mainHeadliner = headliners[0]?.artistName || allSameDateArtists[0]?.artistName || 'Unknown Artist';
+              const coHeadliners = headliners.slice(1).map(h => ({
+                artistName: h.artistName,
+                status: h.status,
+                billingPosition: 'co-headliner' as const
+              }));
+              const supportActsForTitle = supportActs.map(s => ({
+                artistName: s.artistName,
+                status: s.status,
+                billingPosition: s.billingPosition
+              }));
+              
               const { title } = generateSmartShowTitle({
-                headlinerName: allSameDateArtists[0]?.artistName || request.artist?.name || request.artistName || 'Unknown Artist',
-                supportActs: allSameDateArtists.slice(1),
+                headlinerName: mainHeadliner,
+                supportActs: [...coHeadliners, ...supportActsForTitle],
                 includeStatusInCount: true
               });
+              
+              // 🔍 DEBUG: Log generated title for August 29th
+              if (entryDate === '2025-08-29') {
+                console.log('🎵 Aug 29 Title Debug - Generated title:', title);
+              }
               
               return title;
             } else {

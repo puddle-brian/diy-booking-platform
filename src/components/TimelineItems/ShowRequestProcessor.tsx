@@ -148,7 +148,46 @@ export function ShowRequestProcessor({
     requestBids = allBidsOnRequest;
   } else {
     // For regular artist-initiated requests, use normal bid filtering
-    requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
+    // 🔧 FIX: For venue view, get ALL bids that match the timeline entries for this date
+    if (venueId) {
+      // Extract date from request
+      const requestDate = request.requestedDate?.split('T')[0] || request.startDate;
+      
+      // Get all timeline entry IDs for this date (strip the 'venue-bid-' prefix)
+      const sameDateTimelineIds = sameDateSiblings.map(sibling => {
+        const timelineId = sibling.id;
+        return timelineId.startsWith('venue-bid-') ? timelineId.replace('venue-bid-', '') : timelineId;
+      });
+      
+      // Also include the current entry ID
+      const currentEntryId = entry.id.startsWith('venue-bid-') ? entry.id.replace('venue-bid-', '') : entry.id;
+      const allRelevantIds = [...sameDateTimelineIds, currentEntryId];
+      
+      // 🔧 DEBUG: Log the filtering process
+      console.log('🔧 ShowRequestProcessor Debug:');
+      console.log('  RequestDate:', requestDate);
+      console.log('  VenueId:', venueId);
+      console.log('  AllRelevantIds:', allRelevantIds);
+      console.log('  VenueBids count:', venueBids.length);
+      console.log('  VenueBids for this venue/date:', venueBids.filter(bid => {
+        const bidDate = bid.proposedDate?.split('T')[0] || bid.proposedDate;
+        return bidDate === requestDate && bid.venueId === venueId;
+      }).map(bid => ({ id: bid.id, showRequestId: bid.showRequestId })));
+      
+      // Find all bids that match these timeline entry IDs
+      requestBids = venueBids.filter(bid => {
+        const bidDate = bid.proposedDate?.split('T')[0] || bid.proposedDate;
+        return bidDate === requestDate && 
+               bid.venueId === venueId && 
+               allRelevantIds.includes(bid.id) &&
+               !declinedBids.has(bid.id);
+      });
+      
+      console.log('  Filtered RequestBids:', requestBids.map(bid => ({ id: bid.id, showRequestId: bid.showRequestId })));
+    } else {
+      // For artist view, use normal filtering
+      requestBids = venueBids.filter(bid => bid.showRequestId === request.id && !declinedBids.has(bid.id));
+    }
   }
 
   // Determine status for styling

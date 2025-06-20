@@ -311,10 +311,6 @@ export function createTimelineEntries(
   // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view ONLY
   // 🎯 FIX: Only create synthetic venue bid requests when viewing venue pages, not when venue users view artist pages
   if (venueId && !artistId && venueBids.length > 0) {
-
-    
-    // 🎯 FIX: Group bids by showRequestId to avoid creating duplicate request rows
-    const uniqueRequestIds = new Set<string>();
     
     venueBids.forEach(bid => {
       const status = bid.status.toLowerCase();
@@ -322,8 +318,7 @@ export function createTimelineEntries(
       // Only show active bid statuses (same filtering as venue offers)
       if (!['cancelled', 'declined', 'rejected', 'expired'].includes(status)) {
         // 🎯 KEY FIX: Only create timeline entries for bids that belong to the current venue
-        if (bid.venueId === venueId && !uniqueRequestIds.has(bid.showRequestId)) {
-          uniqueRequestIds.add(bid.showRequestId);
+        if (bid.venueId === venueId) {
           
 
           
