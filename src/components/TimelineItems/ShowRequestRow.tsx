@@ -80,7 +80,43 @@ export function ShowRequestRow({
         </td>
       )}
       <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
-        <div className="text-sm font-medium text-gray-900 truncate">
+        <div className="text-sm font-medium text-gray-900 truncate" title={
+          (() => {
+            if (venueId) {
+              // Generate tooltip for venue view using unified system
+              const allSameDateArtists = [entry, ...sameDateSiblings]
+                .filter(e => e.type === 'show-request')
+                .map(e => {
+                  const req = e.data as any;
+                  const artistBid = requestBids.find(bid => bid.showRequestId === req.id);
+                  
+                  return {
+                    artistName: req.artist?.name || req.artistName || 'Unknown Artist',
+                    status: 'accepted' as const,
+                    billingPosition: artistBid?.billingPosition || 'support' as const
+                  };
+                })
+                .filter(artist => artist.artistName !== 'Unknown Artist');
+              
+              const { tooltip } = generateSmartShowTitle({
+                headlinerName: allSameDateArtists[0]?.artistName || request.artist?.name || request.artistName || 'Unknown Artist',
+                supportActs: allSameDateArtists.slice(1),
+                includeStatusInCount: true
+              });
+              
+              return tooltip;
+            } else {
+              // Generate tooltip for other views
+              const { tooltip } = generateSmartShowTitle({
+                headlinerName: request.artist?.name || request.artistName || 'Unknown Artist',
+                supportActs: [],
+                includeStatusInCount: true
+              });
+              
+              return tooltip;
+            }
+          })()
+        }>
           {(() => {
             if (artistId) {
               // For artist pages, show venue information
