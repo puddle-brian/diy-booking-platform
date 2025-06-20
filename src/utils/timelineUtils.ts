@@ -1,146 +1,7 @@
-import { Show } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
+import { Show, VenueBid, VenueOffer } from '../../types'; // 🎯 PHASE 1: Use unified types
 import { extractDateString } from './dateUtils';
 
-interface VenueBid {
-  id: string;
-  showRequestId: string;
-  venueId: string;
-  venueName: string;
-  proposedDate: string;
-  guarantee?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-  };
-  ticketPrice: {
-    advance?: number;
-    door?: number;
-  };
-  capacity: number;
-  ageRestriction: string;
-  equipmentProvided: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn: string;
-  soundcheck: string;
-  doorsOpen: string;
-  showTime: string;
-  curfew: string;
-  promotion: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  message: string;
-  status: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
-  readByArtist: boolean;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string;
-  location?: string;
-  holdPosition?: 1 | 2 | 3;
-  heldAt?: string;
-  heldUntil?: string;
-  acceptedAt?: string;
-  declinedAt?: string;
-  declinedReason?: string;
-  cancelledAt?: string;
-  cancelledReason?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  // 🔒 HOLD STATE MANAGEMENT FIELDS
-  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
-  frozenByHoldId?: string;
-  frozenAt?: string;
-  unfrozenAt?: string;
-  isFrozen?: boolean;
-  venue?: any;
-  artistId?: string;
-  artistName?: string;
-}
-
-interface VenueOffer {
-  id: string;
-  venueId: string;
-  venueName: string;
-  artistId: string;
-  artistName: string;
-  title: string;
-  description?: string;
-  proposedDate: string;
-  alternativeDates?: string[];
-  message?: string;
-  amount?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-    afterExpenses?: boolean;
-  };
-  ticketPrice?: {
-    advance?: number;
-    door?: number;
-  };
-  merchandiseSplit?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  capacity?: number;
-  ageRestriction?: string;
-  equipmentProvided?: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn?: string;
-  soundcheck?: string;
-  doorsOpen?: string;
-  showTime?: string;
-  curfew?: string;
-  promotion?: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  lodging?: {
-    offered: boolean;
-    type: 'floor-space' | 'couch' | 'private-room';
-    details?: string;
-  };
-  additionalTerms?: string;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-  venue?: {
-    id: string;
-    name: string;
-    venueType?: string;
-    capacity?: number;
-    location?: {
-      city: string;
-      stateProvince: string;
-      country: string;
-    };
-  };
-  artist?: {
-    id: string;
-    name: string;
-    genres?: string[];
-  };
-}
+// 🎯 PHASE 1: Removed duplicate interfaces - now using unified types from main types.ts
 
 interface TimelineEntry {
   type: 'show' | 'show-request'; // 🎯 PHASE 3: Updated to 'show-request'
@@ -245,15 +106,13 @@ export function createTimelineEntries(
       const syntheticRequest: any = { // 🎯 PHASE 4: Updated to any for ShowRequest
         id: `venue-offer-${offer.id}`, // Prefix to distinguish synthetic requests
         artistId: offer.artistId,
-        artistName: offer.artistName || offer.artist?.name || 'Unknown Artist',
+        artistName: offer.artistName || 'Unknown Artist',
         title: offer.title,
         description: offer.description || `Offer from ${offer.venueName}`,
         startDate: offerDate, // 🎯 FIX: Use consistent date without timezone
         endDate: offerDate, // Single date for offers
         isSingleDate: true,
-        location: offer.venue?.location ? 
-          `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
-          offer.venueName || 'Unknown Location',
+        location: offer.venueName || 'Unknown Location', // 🎯 PHASE 1: Simplified location display
         radius: 0, // Not applicable for venue offers
         flexibility: 'exact-cities' as const,
         genres: [], // Could be enhanced with venue/artist genre matching

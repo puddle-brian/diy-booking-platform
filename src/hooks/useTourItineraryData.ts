@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Show } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
+import { Show, VenueBid, VenueOffer } from '../../types'; // 🎯 PHASE 1: Use unified types
 
 // 🎵 Helper function to map old billing positions to new simplified system
 function mapBillingPosition(oldPosition: string | undefined): 'headliner' | 'co-headliner' | 'support' | 'local-support' | undefined {
@@ -20,146 +20,9 @@ function mapBillingPosition(oldPosition: string | undefined): 'headliner' | 'co-
   }
 }
 
-interface VenueBid {
-  id: string;
-  showRequestId: string;
-  venueId: string;
-  venueName: string;
-  proposedDate: string;
-  guarantee?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-  };
-  ticketPrice: {
-    advance?: number;
-    door?: number;
-  };
-  capacity: number;
-  ageRestriction: string;
-  equipmentProvided: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn: string;
-  soundcheck: string;
-  doorsOpen: string;
-  showTime: string;
-  curfew: string;
-  promotion: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  message: string;
-  status: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
-  readByArtist: boolean;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string;
-  location?: string;
-  holdPosition?: 1 | 2 | 3;
-  heldAt?: string;
-  heldUntil?: string;
-  acceptedAt?: string;
-  declinedAt?: string;
-  declinedReason?: string;
-  cancelledAt?: string;
-  cancelledReason?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  artistId?: string;
-  artistName?: string;
-  // 🔒 HOLD STATE MANAGEMENT FIELDS
-  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
-  frozenByHoldId?: string;
-  frozenAt?: string;
-  unfrozenAt?: string;
-  isFrozen?: boolean;
-  venue?: any; // Include venue object for proper name display
-}
+// 🎯 PHASE 1: Removed duplicate VenueBid interface - now using unified type from main types.ts
 
-interface VenueOffer {
-  id: string;
-  venueId: string;
-  venueName: string;
-  artistId: string;
-  artistName: string;
-  title: string;
-  description?: string;
-  proposedDate: string;
-  alternativeDates?: string[];
-  message?: string;
-  amount?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-    afterExpenses?: boolean;
-  };
-  ticketPrice?: {
-    advance?: number;
-    door?: number;
-  };
-  merchandiseSplit?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  capacity?: number;
-  ageRestriction?: string;
-  equipmentProvided?: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn?: string;
-  soundcheck?: string;
-  doorsOpen?: string;
-  showTime?: string;
-  curfew?: string;
-  promotion?: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  lodging?: {
-    offered: boolean;
-    type: 'floor-space' | 'couch' | 'private-room';
-    details?: string;
-  };
-  additionalTerms?: string;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-  venue?: {
-    id: string;
-    name: string;
-    venueType?: string;
-    capacity?: number;
-    location?: {
-      city: string;
-      stateProvince: string;
-      country: string;
-    };
-  };
-  artist?: {
-    id: string;
-    name: string;
-    genres?: string[];
-  };
-}
+// 🎯 PHASE 1: Removed duplicate VenueOffer interface - now using unified type from main types.ts
 
 interface UseTourItineraryDataProps {
   artistId?: string;
@@ -327,6 +190,7 @@ export function useTourItineraryData({
               venueName: req.venue?.name || 'Unknown Venue',
               artistId: req.artistId,
               artistName: req.artist?.name || 'Unknown Artist',
+              createdById: req.createdBy || 'unknown', // 🎯 PHASE 1: Add required field
               title: req.title,
               description: req.description,
               proposedDate: req.requestedDate,

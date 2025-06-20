@@ -194,11 +194,17 @@ export interface VenueBid {
   expiresAt: string; // bids expire if not responded to
   
   // NEW: Hold state management for frozen bids
-  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
+  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD' | 'ACCEPTED_HELD';
   frozenByHoldId?: string; // Reference to hold that froze this bid
   frozenAt?: string; // When this bid was frozen
   unfrozenAt?: string; // When this bid was unfrozen
   isFrozen?: boolean; // Computed property for easier access
+  
+  // 🎯 PHASE 1: Additional fields used by timeline system
+  location?: string; // Derived location string for display
+  artistId?: string; // Artist ID for bid tracking
+  artistName?: string; // Artist name for display
+  venue?: any; // Venue object for expanded details
 }
 
 // 🎯 NEW: Venue Offers - Direct offers from venues to specific artists
