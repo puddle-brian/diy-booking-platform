@@ -28,6 +28,7 @@ import { useTourItineraryData } from '../hooks/useTourItineraryData';
 import { useVenueArtistSearch } from '../hooks/useVenueArtistSearch';
 import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
 import { useItineraryState } from '../hooks/useItineraryState';
+import { useCleanTimelineData } from '../hooks/useCleanTimelineData';
 import {
   createTimelineEntries,
   groupEntriesByMonth,
@@ -245,7 +246,7 @@ export default function TabbedTourItinerary({
   
   // Universal Make Offer Modal state - now managed by centralized state
 
-  // 🎯 REFACTORED: Timeline creation using utility functions
+  // 🎯 REFACTORED: Timeline creation using utility functions (ORIGINAL - TO BE REPLACED)
   const filteredShows = shows.filter(show => !state.deletedShows.has(show.id));
   const filteredTourRequests = tourRequests.filter(request => !state.deletedRequests.has(request.id));
   // Filter venue offers - exclude offers whose synthetic request IDs are in deletedRequests
@@ -263,6 +264,18 @@ export default function TabbedTourItinerary({
   
   // 🎯 UX IMPROVEMENT: Generate stable 12-month tabs with compact spacing
   const stableMonthTabs = generateCompactMonthLabels(monthGroups);
+
+  // 🔍 STEP A3: Test new hook alongside existing logic
+  const cleanTimelineData = useCleanTimelineData({
+    shows,
+    tourRequests,
+    venueBids,
+    venueOffers,
+    deletedShows: state.deletedShows,
+    deletedRequests: state.deletedRequests,
+    artistId,
+    venueId
+  });
 
   // 🎯 UX IMPROVEMENT: Helper function to determine when venues should see offer buttons
   const shouldShowOfferButton = (request: any & { isVenueInitiated?: boolean }) => { // 🎯 PHASE 4: Updated to any for ShowRequest
