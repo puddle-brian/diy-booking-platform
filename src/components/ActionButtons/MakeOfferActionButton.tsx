@@ -41,11 +41,11 @@ export function MakeOfferActionButton({
     return null;
   }
   
-  const buttonText = existingBid ? "Edit Offer" : "Make Offer";
+  const buttonText = existingBid ? "✏️" : "Make Offer";
   
   // ✅ UX IMPROVEMENT: Visual differentiation between Make Offer vs Edit Offer
   const buttonStyles = existingBid 
-    ? "inline-flex items-center justify-center border rounded-lg font-medium transition-colors duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 px-3 py-1 text-xs bg-green-600 text-white hover:bg-green-700 border-green-600 focus:ring-green-500 whitespace-nowrap"
+    ? "px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
     : "inline-flex items-center justify-center border rounded-lg font-medium transition-colors duration-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 px-3 py-1 text-xs bg-white text-blue-600 hover:bg-blue-50 border-blue-600 focus:ring-blue-500 whitespace-nowrap";
 
   return (
@@ -53,6 +53,7 @@ export function MakeOfferActionButton({
       <button
         onClick={() => onMakeOffer(request, existingBid || undefined)}
         className={buttonStyles}
+        title={existingBid ? "Edit offer" : "Make offer"}
       >
         {buttonText}
       </button>

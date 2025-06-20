@@ -257,14 +257,28 @@ export function BidTimelineItem({
 
       {/* Offers column - w-[15%] for venue views, w-[10%] for artist views */}
       <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
-        <div className="text-xs text-gray-600">
-          {permissions.canSeeFinancialDetails(undefined, bid, request) ? (
-            <InlineOfferDisplay 
-              amount={bid.guarantee || (bid as any).amount}
-              doorDeal={bid.doorDeal}
-              className="text-xs"
+        <div className="flex items-center space-x-2">
+          <div className="text-xs text-gray-600">
+            {permissions.canSeeFinancialDetails(undefined, bid, request) ? (
+              <InlineOfferDisplay 
+                amount={bid.guarantee || (bid as any).amount}
+                doorDeal={bid.doorDeal}
+                className="text-xs"
+              />
+            ) : '-'}
+          </div>
+          
+          {/* Edit Offer button - only for venues viewing their own pending bids */}
+          {venueId && bid.venueId === venueId && request && onMakeOffer && currentStatus !== 'accepted' && (
+            <MakeOfferActionButton
+              request={request as any}
+              permissions={permissions}
+              venueId={venueId}
+              venueName={venueName}
+              requestBids={venueBids}
+              onMakeOffer={(req, _existingBid) => onMakeOffer(req as any, bid)}
             />
-          ) : '-'}
+          )}
         </div>
       </td>
 
@@ -305,17 +319,6 @@ export function BidTimelineItem({
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Make/Edit Offer button for venues viewing their own bid - hide when accepted */}
-          {venueId && bid.venueId === venueId && request && onMakeOffer && currentStatus !== 'accepted' && (
-            <MakeOfferActionButton
-              request={request as any}
-              permissions={permissions}
-              venueId={venueId}
-              venueName={venueName}
-              requestBids={venueBids}
-              onMakeOffer={(req, _existingBid) => onMakeOffer(req as any, bid)}
-            />
-          )}
           
           {/* ❄️ FROZEN: Show decline button only (status badge already shows frozen state) */}
           {isFrozenByHold && (bid as any).holdState === 'FROZEN' ? (
