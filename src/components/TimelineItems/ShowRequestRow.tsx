@@ -155,7 +155,7 @@ export function ShowRequestRow({
                 }
               }
             } else if (venueId) {
-              // For venue pages, show intelligent artist lineup
+              // Use unified title system - exactly the same as confirmed shows
               const allSameDateArtists = [entry, ...sameDateSiblings]
                 .filter(e => e.type === 'show-request')
                 .map(e => {
@@ -164,97 +164,28 @@ export function ShowRequestRow({
                   
                   return {
                     artistName: req.artist?.name || req.artistName || 'Unknown Artist',
-                    artistId: req.artistId,
                     status: 'accepted' as const,
-                    billingPosition: artistBid?.billingPosition || undefined
+                    billingPosition: artistBid?.billingPosition || 'support' as const
                   };
                 })
-                .filter(artist => artist.artistName !== 'Unknown Artist')
-                .sort((a, b) => {
-                  return getBillingPriority(a) - getBillingPriority(b);
-                });
+                .filter(artist => artist.artistName !== 'Unknown Artist');
               
-              const smartTitle = (() => {
-                if (!allSameDateArtists || allSameDateArtists.length === 0) {
-                  return request.artist?.name || request.artistName || 'Unknown Artist';
-                }
-                
-                if (allSameDateArtists.length === 1) {
-                  const artist = allSameDateArtists[0];
-                  if (artist.artistId && artist.artistId !== 'external-artist') {
-                    return (
-                      <a 
-                        href={`/artists/${artist.artistId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                        title="View artist page"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {artist.artistName}
-                      </a>
-                    );
-                  } else {
-                    return artist.artistName;
-                  }
-                } else {
-                  const sortedArtists = [...allSameDateArtists].sort((a, b) => {
-                    return getBillingPriority(a) - getBillingPriority(b);
-                  });
-                  const headlinerArtist = sortedArtists[0];
-                  
-                  if (!headlinerArtist) {
-                    return 'Unknown Artist';
-                  }
-                  
-                  const supportActs = sortedArtists.slice(1);
-                  
-                  const { title, tooltip } = generateSmartShowTitle({
-                    headlinerName: headlinerArtist.artistName || 'Unknown Artist',
-                    supportActs: supportActs.map(artist => ({
-                      artistName: artist.artistName || 'Unknown Artist',
-                      status: 'accepted' as const,
-                      billingPosition: artist.billingPosition || 'support' as const
-                    })),
-                    includeStatusInCount: true
-                  });
-                  
-                  if (headlinerArtist.artistId && headlinerArtist.artistId !== 'external-artist') {
-                    return (
-                      <a 
-                        href={`/artists/${headlinerArtist.artistId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                        title={tooltip ? `${tooltip} - Click to view ${headlinerArtist.artistName || 'Unknown Artist'} page` : `View ${headlinerArtist.artistName || 'Unknown Artist'} page`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {title}
-                      </a>
-                    );
-                  } else {
-                    return (
-                      <span title={tooltip || undefined}>
-                        {title}
-                      </span>
-                    );
-                  }
-                }
-              })();
+              const { title } = generateSmartShowTitle({
+                headlinerName: allSameDateArtists[0]?.artistName || request.artist?.name || request.artistName || 'Unknown Artist',
+                supportActs: allSameDateArtists.slice(1),
+                includeStatusInCount: true
+              });
               
-              return smartTitle;
+              return title;
             } else {
-              // For public/general view, show artist name
-              if (request.artistId && request.artistId !== 'external-artist') {
-                return (
-                  <a 
-                    href={`/artists/${request.artistId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                    title="View artist page"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {request.artist?.name || request.artistName}
-                  </a>
-                );
-              } else {
-                return request.artist?.name || request.artistName;
-              }
+              // Use unified title system for all views
+              const { title } = generateSmartShowTitle({
+                headlinerName: request.artist?.name || request.artistName || 'Unknown Artist',
+                supportActs: [],
+                includeStatusInCount: true
+              });
+              
+              return title;
             }
           })()}
         </div>

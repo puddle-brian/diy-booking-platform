@@ -11,6 +11,17 @@ interface ShowNamingOptions {
   maxNameLength?: number;
 }
 
+// Add support for LineupItem data from showUtils.ts
+interface LineupItem {
+  artistId: string;
+  artistName: string;
+  billingPosition: 'HEADLINER' | 'CO_HEADLINER' | 'SUPPORT' | 'OPENER' | 'LOCAL_SUPPORT';
+  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+  performanceOrder: number;
+  setLength?: number;
+  guarantee?: number;
+}
+
 /**
  * 🎯 CENTRALIZED BILLING PRIORITY FUNCTION
  * Single source of truth for billing order across parent rows and child rows
@@ -48,7 +59,62 @@ export function getBillingPriority(item: {
  * - "Lightning Bolt, Techno Barkley + 1 more" (co-equal artists)
  * - "3 artists" (all equal status)
  */
-export function generateSmartShowTitle({
+export function generateSmartShowTitle(options: ShowNamingOptions): { title: string; tooltip?: string };
+export function generateSmartShowTitle(lineup: LineupItem[]): { title: string; tooltip?: string };
+export function generateSmartShowTitle(
+  optionsOrLineup: ShowNamingOptions | LineupItem[]
+): { title: string; tooltip?: string } {
+  // Handle LineupItem[] format
+  if (Array.isArray(optionsOrLineup)) {
+    return generateSmartShowTitleFromLineup(optionsOrLineup);
+  }
+  
+  // Handle existing ShowNamingOptions format
+  return generateSmartShowTitleFromOptions(optionsOrLineup);
+}
+
+/**
+ * Handle LineupItem[] data by converting to ShowNamingOptions format
+ */
+function generateSmartShowTitleFromLineup(lineup: LineupItem[]): { title: string; tooltip?: string } {
+  if (!lineup?.length) return { title: 'TBA' };
+  
+  // Filter out cancelled acts
+  const activeLineup = lineup.filter(item => item.status !== 'CANCELLED');
+  if (activeLineup.length === 0) return { title: 'TBA' };
+  
+  // Sort by billing priority first, then performance order
+  const sortedLineup = activeLineup.sort((a, b) => {
+    const priorityA = getBillingPriority({ billingPosition: a.billingPosition.toLowerCase() });
+    const priorityB = getBillingPriority({ billingPosition: b.billingPosition.toLowerCase() });
+    
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB; // Lower number = higher priority
+    }
+    
+    // Within same billing tier, sort by performance order
+    return (a.performanceOrder || 999) - (b.performanceOrder || 999);
+  });
+  
+  // Convert to ShowNamingOptions format and use existing logic
+  const [headliner, ...support] = sortedLineup;
+  const supportActs: SupportAct[] = support.map(item => ({
+    artistName: item.artistName,
+    status: mapLineupStatusToShowRequestStatus(item.status),
+    billingPosition: mapBillingPosition(item.billingPosition)
+  }));
+  
+  return generateSmartShowTitleFromOptions({
+    headlinerName: headliner.artistName,
+    supportActs,
+    includeStatusInCount: false // Default for confirmed shows
+  });
+}
+
+/**
+ * Handle existing ShowNamingOptions format (existing implementation)
+ */
+function generateSmartShowTitleFromOptions({
   headlinerName,
   supportActs,
   includeStatusInCount = false,
@@ -147,6 +213,27 @@ export function generateSmartShowTitle({
     title: `${headlinerName} + ${totalActiveSupport} more`,
     tooltip 
   };
+}
+
+// Helper functions to map between the two data formats
+function mapLineupStatusToShowRequestStatus(status: 'CONFIRMED' | 'PENDING' | 'CANCELLED'): 'accepted' | 'pending' | 'cancelled' {
+  switch (status) {
+    case 'CONFIRMED': return 'accepted';
+    case 'PENDING': return 'pending';
+    case 'CANCELLED': return 'cancelled';
+    default: return 'pending';
+  }
+}
+
+function mapBillingPosition(position: string): 'headliner' | 'co-headliner' | 'support' | 'local-support' {
+  switch (position?.toLowerCase()) {
+    case 'headliner': return 'headliner';
+    case 'co_headliner': return 'co-headliner';
+    case 'support': return 'support';
+    case 'local_support': return 'local-support';
+    case 'opener': return 'support'; // Map opener to support
+    default: return 'support';
+  }
 }
 
 /**
