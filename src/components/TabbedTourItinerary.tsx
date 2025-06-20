@@ -30,12 +30,9 @@ import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
 import { useItineraryState } from '../hooks/useItineraryState';
 import { useCleanTimelineData } from '../hooks/useCleanTimelineData';
 import {
-  createTimelineEntries,
-  groupEntriesByMonth,
   getDefaultActiveMonth,
   generateStableMonthTabs,
   generateMinimalMonthLabels,
-  generateCompactMonthLabels,
   getDefaultActiveMonthStable,
   getMonthKeyFromDate,
   getTimelineBorderClass,
@@ -246,26 +243,7 @@ export default function TabbedTourItinerary({
   
   // Universal Make Offer Modal state - now managed by centralized state
 
-  // 🎯 REFACTORED: Timeline creation using utility functions (ORIGINAL - TO BE REPLACED)
-  const filteredShows = shows.filter(show => !state.deletedShows.has(show.id));
-  const filteredTourRequests = tourRequests.filter(request => !state.deletedRequests.has(request.id));
-  // Filter venue offers - exclude offers whose synthetic request IDs are in deletedRequests
-  const filteredVenueOffers = venueOffers.filter(offer => {
-    const syntheticRequestId = `venue-offer-${offer.id}`;
-    return !state.deletedRequests.has(syntheticRequestId);
-  });
-  // 🎯 NEW: Filter venue bids - exclude bids whose synthetic request IDs are in deletedRequests
-  const filteredVenueBids = venueBids.filter(bid => {
-    const syntheticRequestId = `venue-bid-${bid.id}`;
-    return !state.deletedRequests.has(syntheticRequestId);
-  });
-  const timelineEntries = createTimelineEntries(filteredShows, filteredTourRequests, filteredVenueOffers, filteredVenueBids, artistId, venueId);
-  const monthGroups = groupEntriesByMonth(timelineEntries);
-  
-  // 🎯 UX IMPROVEMENT: Generate stable 12-month tabs with compact spacing
-  const stableMonthTabs = generateCompactMonthLabels(monthGroups);
-
-  // 🔍 STEP A3: Test new hook alongside existing logic
+  // 🎯 STEP A5: Replace existing logic with clean hook
   const cleanTimelineData = useCleanTimelineData({
     shows,
     tourRequests,
@@ -277,52 +255,18 @@ export default function TabbedTourItinerary({
     venueId
   });
 
-  // 🔍 STEP A4: Verify UI identical - Compare outputs
-  useEffect(() => {
-    const DEBUG_COMPARISON = process.env.NODE_ENV === 'development';
-    
-    if (DEBUG_COMPARISON) {
-      console.group('🔍 STEP A4: Comparing Hook Output vs Existing Logic');
-      
-      // Compare filtered data
-      const showsMatch = filteredShows.length === cleanTimelineData.filteredShows.length;
-      const requestsMatch = filteredTourRequests.length === cleanTimelineData.filteredTourRequests.length;
-      const bidsMatch = filteredVenueBids.length === cleanTimelineData.filteredVenueBids.length;
-      const offersMatch = filteredVenueOffers.length === cleanTimelineData.filteredVenueOffers.length;
-      const entriesMatch = timelineEntries.length === cleanTimelineData.timelineEntries.length;
-      const tabsMatch = stableMonthTabs.length === cleanTimelineData.stableMonthTabs.length;
-      
-      console.log('✅ Filtered Shows Match:', showsMatch, `(${filteredShows.length} vs ${cleanTimelineData.filteredShows.length})`);
-      console.log('✅ Filtered Requests Match:', requestsMatch, `(${filteredTourRequests.length} vs ${cleanTimelineData.filteredTourRequests.length})`);
-      console.log('✅ Filtered Bids Match:', bidsMatch, `(${filteredVenueBids.length} vs ${cleanTimelineData.filteredVenueBids.length})`);
-      console.log('✅ Filtered Offers Match:', offersMatch, `(${filteredVenueOffers.length} vs ${cleanTimelineData.filteredVenueOffers.length})`);
-      console.log('✅ Timeline Entries Match:', entriesMatch, `(${timelineEntries.length} vs ${cleanTimelineData.timelineEntries.length})`);
-      console.log('✅ Month Tabs Match:', tabsMatch, `(${stableMonthTabs.length} vs ${cleanTimelineData.stableMonthTabs.length})`);
-      
-      const allMatch = showsMatch && requestsMatch && bidsMatch && offersMatch && entriesMatch && tabsMatch;
-      
-      if (allMatch) {
-        console.log('🎉 SUCCESS: Hook produces identical results to existing logic!');
-      } else {
-        console.error('❌ MISMATCH: Hook output differs from existing logic');
-      }
-      
-      console.groupEnd();
-    }
-  }, [
-    filteredShows.length, 
-    filteredTourRequests.length,
-    filteredVenueBids.length,
-    filteredVenueOffers.length,
-    timelineEntries.length,
-    stableMonthTabs.length,
-    cleanTimelineData.filteredShows.length,
-    cleanTimelineData.filteredTourRequests.length,
-    cleanTimelineData.filteredVenueBids.length,
-    cleanTimelineData.filteredVenueOffers.length,
-    cleanTimelineData.timelineEntries.length,
-    cleanTimelineData.stableMonthTabs.length
-  ]);
+  // Extract clean data from hook
+  const {
+    filteredShows,
+    filteredTourRequests,
+    filteredVenueOffers,
+    filteredVenueBids,
+    timelineEntries,
+    monthGroups,
+    stableMonthTabs
+  } = cleanTimelineData;
+
+
 
   // 🎯 UX IMPROVEMENT: Helper function to determine when venues should see offer buttons
   const shouldShowOfferButton = (request: any & { isVenueInitiated?: boolean }) => { // 🎯 PHASE 4: Updated to any for ShowRequest
