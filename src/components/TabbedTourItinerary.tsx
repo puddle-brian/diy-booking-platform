@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Show, VenueBid, VenueOffer } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
+import { Show, VenueBid, VenueOffer, BidStatus } from '../../types'; // 🎯 PHASE 1.2: Add unified BidStatus type
 import { TechnicalRequirement, HospitalityRequirement } from '../../types/templates';
 import VenueBidForm from './VenueBidForm';
 import ShowDetailModal from './ShowDetailModal';
@@ -233,7 +233,7 @@ export default function TabbedTourItinerary({
   // Removed local deletedShows state - now using hook's state.deletedShows
   
   // Add optimistic bid status tracking to prevent blinking during switches
-  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, 'pending' | 'accepted' | 'declined'>>(new Map());
+  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, BidStatus>>(new Map()); // 🎯 PHASE 1.2: Use unified BidStatus type
   
   // Track recent undo actions to prevent race conditions
   const [recentUndoActions, setRecentUndoActions] = useState<Set<string>>(new Set());

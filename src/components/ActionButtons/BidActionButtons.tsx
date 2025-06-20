@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { VenueBid, VenueOffer } from '../../../types'; // 🎯 PHASE 1: Use unified types
+import { VenueBid, VenueOffer, BidStatus } from '../../../types'; // 🎯 PHASE 1.2: Add unified status types
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 
 // 🎯 PHASE 1: Removed duplicate interfaces - now using unified types from main types.ts
@@ -17,7 +17,7 @@ interface BidActionButtonsProps {
   bid: VenueBid;
   request?: TourRequest;
   permissions: ItineraryPermissions;
-  bidStatus: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
+  bidStatus: BidStatus;
   isLoading?: boolean;
   venueOffers: VenueOffer[];
   onBidAction: (bid: VenueBid, action: string, reason?: string) => Promise<void>;

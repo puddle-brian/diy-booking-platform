@@ -1,4 +1,4 @@
-import { VenueBid, VenueOffer, Show } from '../../types';
+import { VenueBid, VenueOffer, Show, BidStatus, StatusConverter } from '../../types'; // 🎯 PHASE 1.2: Add unified status types
 
 interface BidStatusBadge {
   className: string;
@@ -11,7 +11,7 @@ interface DateConflictResult {
 }
 
 interface BidActionCallbacks {
-  setBidStatusOverrides: (fn: (prev: Map<string, 'pending' | 'accepted' | 'declined'>) => Map<string, 'pending' | 'accepted' | 'declined'>) => void;
+  setBidStatusOverrides: (fn: (prev: Map<string, BidStatus>) => Map<string, BidStatus>) => void; // 🎯 PHASE 1.2: Use unified BidStatus type
   setDeclinedBids: (fn: (prev: Set<string>) => Set<string>) => void;
   setBidActions: (fn: (prev: { [key: string]: boolean }) => { [key: string]: boolean }) => void;
   fetchData: () => Promise<void>;
@@ -34,8 +34,8 @@ export class BidService {
    */
   static getEffectiveBidStatus(
     bid: VenueBid, 
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>
-  ): string {
+    bidStatusOverrides: Map<string, BidStatus>
+  ): BidStatus { // 🎯 PHASE 1.2: Use unified BidStatus type
     const override = bidStatusOverrides.get(bid.id);
     if (override) {
       return override;
@@ -52,8 +52,8 @@ export class BidService {
    */
   static getBidStatusBadge(
     bid: VenueBid, 
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>
-  ): BidStatusBadge {
+    bidStatusOverrides: Map<string, BidStatus>
+  ): BidStatusBadge { // 🎯 PHASE 1.2: Use unified BidStatus type
     const effectiveStatus = this.getEffectiveBidStatus(bid, bidStatusOverrides);
     
     switch (effectiveStatus) {
@@ -93,7 +93,7 @@ export class BidService {
     shows: Show[],
     venueBids: VenueBid[],
     venueOffers: VenueOffer[] = [],
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>,
+    bidStatusOverrides: Map<string, BidStatus>, // 🎯 PHASE 1.2: Use unified BidStatus type
     excludeBidId?: string,
     excludeOfferId?: string
   ): DateConflictResult {
@@ -122,7 +122,7 @@ export class BidService {
     bid: VenueBid,
     action: string,
     callbacks: BidActionCallbacks,
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>,
+    bidStatusOverrides: Map<string, BidStatus>, // 🎯 PHASE 1.2: Use unified BidStatus type
     shows: Show[],
     venueBids: VenueBid[],
     venueOffers: VenueOffer[] = [],
@@ -346,7 +346,7 @@ export class BidService {
     offer: VenueOffer,
     action: string,
     callbacks: OfferActionCallbacks,
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>,
+    bidStatusOverrides: Map<string, BidStatus>, // 🎯 PHASE 1.2: Use unified BidStatus type
     shows: Show[],
     venueBids: VenueBid[],
     venueOffers: VenueOffer[] = []
