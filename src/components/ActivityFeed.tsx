@@ -54,15 +54,12 @@ export function ActivityFeed({
         params.set('venueId', venueId);
       }
       
-      console.log('🎯 ActivityFeed: Fetching activities with params:', params.toString());
+
       
       const response = await fetch(`/api/activities?${params}`);
       
-      console.log('🎯 ActivityFeed: Response status:', response.status);
-      
-      if (response.ok) {
-        const fetchedActivities = await response.json();
-        console.log('🎯 ActivityFeed: Fetched activities:', fetchedActivities);
+              if (response.ok) {
+          const fetchedActivities = await response.json();
         setActivities(fetchedActivities);
       } else {
         console.error('🎯 ActivityFeed: Failed to fetch activities, status:', response.status);
@@ -186,7 +183,6 @@ export function ActivityFeed({
   };
 
   if (loading) {
-    console.log('🎯 ActivityFeed: Loading state');
     return (
       <div className="text-xs text-gray-500 py-1">
         Loading activity...
@@ -195,11 +191,8 @@ export function ActivityFeed({
   }
 
   if (activities.length === 0) {
-    console.log('🎯 ActivityFeed: No activities to display');
     return null;
   }
-
-  console.log(`🎯 ActivityFeed: Rendering ${activities.length} activities`);
 
   return (
     <div className={`${className}`}>

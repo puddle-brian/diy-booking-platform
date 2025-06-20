@@ -66,7 +66,7 @@ export function HoldNotificationPanel({
           return acc;
         }, []);
         
-        console.log(`🔒 HoldNotificationPanel: Received ${holds.length} holds, deduplicated to ${uniqueHolds.length} unique holds`);
+
         
         setIncomingHolds(uniqueHolds.filter((hold: HoldRequest) => 
           hold.status === 'PENDING' && hold.requestedById !== currentUserId

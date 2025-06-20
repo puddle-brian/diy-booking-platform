@@ -311,7 +311,7 @@ export function createTimelineEntries(
   // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view ONLY
   // 🎯 FIX: Only create synthetic venue bid requests when viewing venue pages, not when venue users view artist pages
   if (venueId && !artistId && venueBids.length > 0) {
-    console.log(`🎯 Processing ${venueBids.length} venue bids for venue timeline`);
+
     
     // 🎯 FIX: Group bids by showRequestId to avoid creating duplicate request rows
     const uniqueRequestIds = new Set<string>();
@@ -325,7 +325,7 @@ export function createTimelineEntries(
         if (bid.venueId === venueId && !uniqueRequestIds.has(bid.showRequestId)) {
           uniqueRequestIds.add(bid.showRequestId);
           
-          console.log(`🎯 Creating timeline entry for venue bid: ${bid.venueName} -> ${bid.location || 'Unknown Location'} on ${bid.proposedDate.split('T')[0]}`);
+
           
           const bidDate = bid.proposedDate.split('T')[0];
           
@@ -419,7 +419,7 @@ export function createTimelineEntries(
     // Add show requests that are specifically targeted at this venue
     tourRequests.forEach(request => {
       if (request.status === 'OPEN') { // 🎯 PHASE 3: ShowRequest uses 'OPEN' not 'active'
-        console.log(`🎯 Adding venue-specific request to timeline: ${request.artist?.name} -> ${request.title} on ${request.requestedDate}`);
+
         entries.push({
           type: 'show-request', // 🎯 PHASE 3: Updated to 'show-request'
           date: request.requestedDate?.split('T')[0], // 🎯 PHASE 3: Use requestedDate from ShowRequest
