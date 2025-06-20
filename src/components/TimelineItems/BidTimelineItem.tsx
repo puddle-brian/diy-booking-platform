@@ -305,8 +305,8 @@ export function BidTimelineItem({
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Make/Edit Offer button for venues viewing their own bid */}
-          {venueId && bid.venueId === venueId && request && onMakeOffer && (
+          {/* Make/Edit Offer button for venues viewing their own bid - hide when accepted */}
+          {venueId && bid.venueId === venueId && request && onMakeOffer && currentStatus !== 'accepted' && (
             <MakeOfferActionButton
               request={request as any}
               permissions={permissions}
