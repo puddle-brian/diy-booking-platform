@@ -416,7 +416,9 @@ export default function TabbedTourItinerary({
       showError,
       showInfo,
       toast,
-      confirm
+      confirm,
+      // 🐛 BUG FIX: Add deleteRequestOptimistic for venue bid withdrawals
+      deleteRequestOptimistic: actions.deleteRequestOptimistic
     };
 
     return BidService.handleBidAction(

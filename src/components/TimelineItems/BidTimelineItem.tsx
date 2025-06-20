@@ -279,16 +279,29 @@ export function BidTimelineItem({
           </div>
           
           {/* Edit Offer button - only for venues viewing their own pending bids */}
-          {venueId && bid.venueId === venueId && request && onMakeOffer && currentStatus !== 'accepted' && (
-            <MakeOfferActionButton
-              request={request as any}
-              permissions={permissions}
-              venueId={venueId}
-              venueName={venueName}
-              requestBids={venueBids}
-              onMakeOffer={(req, _existingBid) => onMakeOffer(req as any, bid)}
-            />
-          )}
+          {(() => {
+            const shouldShow = venueId && bid.venueId === venueId && request && onMakeOffer && currentStatus !== 'accepted';
+            console.log('🔍 Edit Offer Button Debug:', {
+              venueId,
+              bidVenueId: bid.venueId,
+              hasRequest: !!request,
+              hasOnMakeOffer: !!onMakeOffer,
+              currentStatus,
+              shouldShow,
+              bidId: bid.id
+            });
+            
+            return shouldShow ? (
+              <MakeOfferActionButton
+                request={request as any}
+                permissions={permissions}
+                venueId={venueId}
+                venueName={venueName}
+                requestBids={venueBids}
+                onMakeOffer={(req, _existingBid) => onMakeOffer(req as any, bid)}
+              />
+            ) : null;
+          })()}
         </div>
       </td>
 
@@ -437,7 +450,7 @@ export function BidTimelineItem({
                   )}
 
                   {/* Venue actions for pending bids - withdraw their own offers */}
-                  {venueId && bid.venueId === venueId && onBidAction && (
+                  {venueId && bid.venueId === venueId && (onBidAction || onOfferAction) && (
                     <>
                       {/* Invisible spacer to align decline button with accepted row layout */}
                       <div className="px-2 py-1 text-xs" style={{ width: '25px' }}></div>
@@ -445,7 +458,7 @@ export function BidTimelineItem({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onBidAction(bid, 'decline', 'Venue withdrew offer');
+                          onBidAction?.(bid, 'decline', 'Venue withdrew offer');
                         }}
                         className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
                         disabled={isDeleting}

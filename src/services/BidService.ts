@@ -20,6 +20,8 @@ interface BidActionCallbacks {
   showInfo: (title: string, message: string) => void;
   toast: (type: 'info' | 'success' | 'error' | 'warning', title: string, message: string, duration?: number) => void;
   confirm: (title: string, message: string, onConfirm: () => void) => void;
+  // 🐛 BUG FIX: Add deleteRequestOptimistic to handle venue bid withdrawals
+  deleteRequestOptimistic?: (requestId: string) => void;
 }
 
 interface OfferActionCallbacks extends BidActionCallbacks {
@@ -238,6 +240,14 @@ export class BidService {
       callbacks.setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'pending'));
     } else if (action === 'decline' || action === 'decline-held') {
       callbacks.setDeclinedBids(prev => new Set([...prev, bid.id]));
+      
+      // 🐛 BUG FIX: When venue withdraws their own bid, also remove the synthetic timeline entry
+      // Check if this is a venue bid withdrawal (reason contains "withdrew") and callbacks has deleteRequestOptimistic
+      if (reason?.includes('withdrew') && callbacks.deleteRequestOptimistic) {
+        const syntheticRequestId = `venue-bid-${bid.id}`;
+        callbacks.deleteRequestOptimistic(syntheticRequestId);
+        console.log('🐛 Removed synthetic venue bid timeline entry:', syntheticRequestId);
+      }
     }
     
     try {
