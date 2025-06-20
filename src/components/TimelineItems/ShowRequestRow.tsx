@@ -54,11 +54,11 @@ export function ShowRequestRow({
 }: ShowRequestRowProps) {
   return (
     <tr 
-      className="cursor-pointer transition-colors duration-150 hover:shadow-sm"
+      className={`${borderClass} cursor-pointer transition-colors duration-150 hover:shadow-sm`}
       onClick={() => toggleRequestExpansion(request.id)}
       title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
     >
-      <td className={`px-4 py-1 w-[3%] ${borderClass}`}>
+      <td className="px-4 py-1 w-[3%]">
         <div className="flex items-center justify-center">
           <ExpansionIndicator 
             isExpanded={state.expandedRequests.has(request.id)}

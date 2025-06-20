@@ -3,6 +3,7 @@ import { Show } from '../../../types';
 import { LineupItem } from '../../utils/showUtils';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { LineupItemRow } from './LineupItemRow';
+import { getExpansionContainerStyling } from '../../utils/timelineRowStyling';
 
 interface LineupTableSectionProps {
   show: Show;
@@ -31,7 +32,7 @@ export function LineupTableSection({
   return (
     <tr>
       <td colSpan={venueId ? 9 : 10} className="px-0 py-0">
-        <div className="bg-blue-50/30 border-l-4 border-l-blue-400">
+        <div className={getExpansionContainerStyling('confirmed')}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px] table-fixed">
               <thead className="bg-gray-50">

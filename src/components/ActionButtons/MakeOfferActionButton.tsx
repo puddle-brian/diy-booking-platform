@@ -41,7 +41,7 @@ export function MakeOfferActionButton({
     return null;
   }
   
-  const buttonText = existingBid ? "✏️" : "Make Offer";
+  const buttonText = existingBid ? "✎" : "Make Offer";
   
   // ✅ UX IMPROVEMENT: Visual differentiation between Make Offer vs Edit Offer
   const buttonStyles = existingBid 

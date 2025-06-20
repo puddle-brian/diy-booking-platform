@@ -6,6 +6,8 @@ import { DeleteActionButton, DocumentActionButton, MakeOfferActionButton } from 
 import { InlineOfferDisplay } from '../OfferDisplay';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 import { StatusBadge, StatusType } from '../StatusBadge';
+import { getTimelineRowStyling, getTimelineTextStyling } from '../../utils/timelineTableUtils';
+import { getExpansionContainerStyling } from '../../utils/timelineRowStyling';
 
 interface BidTimelineItemProps {
   bid: VenueBid;
@@ -126,17 +128,28 @@ export function BidTimelineItem({
     );
   };
 
-  // 🎨 Dynamic row styling based on hold state
-  const getRowStyling = () => {
+  // 🎨 Dynamic row styling based on hold state using unified system
+  const getStyleVariant = (): 'confirmed' | 'open' | 'hold' => {
     if (isFrozenByHold && (bid as any).holdState === 'HELD') {
-      return "bg-violet-100 hover:bg-violet-200 transition-colors duration-150"; // Held state - bold purple for active hold
+      return 'hold'; // Held state uses hold styling
     }
-    // Frozen rows stay the same yellow as parent rows to avoid confusion
-    return "bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150"; // Normal/frozen state
+    // Determine variant based on bid status
+    const status = effectiveStatus || bid.status;
+    if (status === 'accepted') {
+      return 'confirmed';
+    } else if ((bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN') {
+      return 'hold';
+    } else {
+      return 'open'; // Default for pending/other states
+    }
   };
 
+  const styleVariant = getStyleVariant();
+  const rowClassName = getTimelineRowStyling(styleVariant);
+  const textColorClass = getTimelineTextStyling(styleVariant);
+
   return (
-    <tr className={getRowStyling()}>
+    <tr className={rowClassName}>
       {/* Expansion toggle column - w-[3%] - Empty for child rows */}
       <td className="px-4 py-1 w-[3%]">
         {/* Intentionally blank - child rows are not expandable */}
@@ -150,10 +163,7 @@ export function BidTimelineItem({
       {/* Location column - w-[14%] - Hidden for venue views */}
       {!venueId && (
         <td className="px-4 py-1 w-[14%]">
-          <div className={`text-sm truncate ${
-            isFrozenByHold && (bid as any).holdState === 'HELD' ? 'text-violet-700' :
-            'text-yellow-900'
-          }`}>
+          <div className="text-sm truncate text-gray-700">
             {(() => {
               // Look up venue location from venues array
               if (venues && bid.venueId) {

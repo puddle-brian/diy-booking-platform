@@ -689,11 +689,11 @@ export function getTimelineBorderClass(status: string): string {
   const normalizedStatus = status?.toLowerCase();
   switch (normalizedStatus) {
     case 'confirmed':
-      return 'border-l-4 border-l-green-500 bg-green-50/30';
+      return 'bg-green-50/30';
     case 'accepted':
-      return 'border-l-4 border-l-green-400 bg-green-50/20';
+      return 'bg-green-50/20';
     case 'hold':
-      return 'border-l-4 border-l-violet-400 bg-violet-50/30';
+      return 'bg-violet-50/30';
     case 'pending':
     default:
       return ''; // No border for non-confirmed items
