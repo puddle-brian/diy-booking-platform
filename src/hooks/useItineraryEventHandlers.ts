@@ -8,7 +8,7 @@ interface UseItineraryEventHandlersParams {
   shows: Show[];
   venueBids: VenueBid[];
   venueOffers: VenueOffer[];
-  bidStatusOverrides: Map<string, string>;
+  bidStatusOverrides: Map<string, any>;
   setBidStatusOverrides: any;
   setDeclinedBids: any;
   setBidActions: any;

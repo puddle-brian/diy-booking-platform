@@ -59,6 +59,7 @@ import { AddDateFormModal } from './forms/AddDateFormModal';
 import { useModalState } from '../hooks/useModalState';
 import { useTimelineEntryProcessor } from '../hooks/useTimelineEntryProcessor';
 import { useItineraryEventHandlers } from '../hooks/useItineraryEventHandlers';
+import { useItineraryUIState } from '../hooks/useItineraryUIState';
 
 interface TabbedTourItineraryProps {
   artistId?: string;
@@ -208,37 +209,35 @@ export default function TabbedTourItinerary({
     }
   });
 
-  // Remaining state management - REMOVE these old useState calls and use centralized state
-  // const [expandedBids, setExpandedBids] = useState<Set<string>>(new Set());
-  // const [expandedShows, setExpandedShows] = useState<Set<string>>(new Set());
-  // const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set());
-  // const [showBidForm, setShowBidForm] = useState(false);
-  // const [selectedTourRequest, setSelectedTourRequest] = useState<TourRequest | null>(null);
-  const [bidActions, setBidActions] = useState<Record<string, boolean>>({});
-  // const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
-  const [showTourRequestForm, setShowTourRequestForm] = useState(false);
-  const [addDateLoading, setAddDateLoading] = useState(false);
-  const [deleteShowLoading, setDeleteShowLoading] = useState<string | null>(null);
-  // 🎯 PHASE 4: Removed TourRequest modal state - no longer needed
-  // const [tourRequestDetailModal, setTourRequestDetailModal] = useState(false);
-  // const [selectedTourRequest, setSelectedTourRequest] = useState<any | null>(null);
+  // 🎯 STEP D5: Replace all individual UI state with consolidated hook
+  const [uiState, uiActions] = useItineraryUIState();
   
-  // Track declined bids locally to avoid flashing
-  const [declinedBids, setDeclinedBids] = useState<Set<string>>(new Set());
+  // Extract consolidated UI state for cleaner access
+  const {
+    bidActions,
+    showTourRequestForm,
+    addDateLoading,
+    deleteShowLoading,
+    declinedBids,
+    bidStatusOverrides,
+    recentUndoActions,
+    showVenueOfferForm
+  } = uiState;
   
-  // Removed local deletedRequests state - now using hook's state.deletedRequests
-  
-  // Track deleted shows locally to avoid flashing
-  // Removed local deletedShows state - now using hook's state.deletedShows
-  
-  // Add optimistic bid status tracking to prevent blinking during switches
-  const [bidStatusOverrides, setBidStatusOverrides] = useState<Map<string, BidStatus>>(new Map()); // 🎯 PHASE 1.2: Use unified BidStatus type
-  
-  // Track recent undo actions to prevent race conditions
-  const [recentUndoActions, setRecentUndoActions] = useState<Set<string>>(new Set());
-  
-  // Add venue offer form state
-  const [showVenueOfferForm, setShowVenueOfferForm] = useState(false);
+  const {
+    setBidActions,
+    setShowTourRequestForm,
+    setAddDateLoading,
+    setDeleteShowLoading,
+    addDeclinedBid,
+    removeDeclinedBid,
+    setBidStatusOverride,
+    removeBidStatusOverride,
+    addRecentUndoAction,
+    removeRecentUndoAction,
+    setShowVenueOfferForm,
+    resetAllUIState
+  } = uiActions;
   
   // 🎯 REFACTORED: Modal states now managed by useModalState hook
   
@@ -314,7 +313,7 @@ export default function TabbedTourItinerary({
   // 🎯 STEP B5: Use timeline processing utility function
   const processedEntries = processTimelineEntries(activeMonthEntries);
 
-  // 🎯 STEP C2: Test event handlers hook alongside existing logic
+  // 🎯 STEP D6: Update event handlers to use consolidated UI state
   const eventHandlers = useItineraryEventHandlers({
     actions,
     fetchData,
@@ -322,8 +321,33 @@ export default function TabbedTourItinerary({
     venueBids,
     venueOffers,
     bidStatusOverrides,
-    setBidStatusOverrides,
-    setDeclinedBids,
+    setBidStatusOverrides: (setValue: any) => {
+      if (typeof setValue === 'function') {
+        const newMap = setValue(bidStatusOverrides);
+        // Handle Map updates by iterating through changes
+        newMap.forEach((value: any, key: string) => {
+          if (!bidStatusOverrides.has(key) || bidStatusOverrides.get(key) !== value) {
+            setBidStatusOverride(key, value);
+          }
+        });
+      } else {
+        console.warn('setBidStatusOverrides called with non-function');
+      }
+    },
+    setDeclinedBids: (setValue: any) => {
+      if (typeof setValue === 'function') {
+        const currentSet = declinedBids;
+        const newSet = setValue(currentSet);
+        // Handle Set updates by finding differences
+        newSet.forEach((bidId: string) => {
+          if (!currentSet.has(bidId)) {
+            addDeclinedBid(bidId);
+          }
+        });
+      } else {
+        console.warn('setDeclinedBids called with non-function');
+      }
+    },
     setBidActions,
     activeMonthEntries,
     venueId,
