@@ -34,6 +34,10 @@ interface BaseGroupRowProps {
   venueId?: string;
   venueName?: string;
   actions: any;
+  
+  // 🎯 MICRO-PHASE D FIX: Add missing event handlers for shows
+  toggleShowExpansion?: (id: string) => void;
+  handleDeleteShow?: (id: string) => void;
 }
 
 interface ShowRequestSpecificProps {
@@ -63,6 +67,9 @@ export function SpecializedTimelineGroupRow({
   venueId,
   venueName,
   actions,
+  // Show specific props
+  toggleShowExpansion,
+  handleDeleteShow,
   // Show request specific props (optional)
   venueBids = [],
   venueOffers = [],
@@ -92,12 +99,14 @@ export function SpecializedTimelineGroupRow({
       venueName
     };
     
-    // For show entries, only pass base props
+    // For show entries, pass base props + show-specific handlers
     if (entry.type === 'show') {
       return (
         <SpecializedTimelineRow
           key={`${entry.type}-${entry.data.id}`}
           {...baseProps}
+          toggleShowExpansion={toggleShowExpansion}
+          handleDeleteShow={handleDeleteShow}
         />
       );
     }
@@ -150,6 +159,8 @@ export function SpecializedTimelineGroupRow({
       <SpecializedTimelineRow
         key={`${entry.type}-${entry.data.id}`}
         {...baseProps}
+        toggleShowExpansion={toggleShowExpansion}
+        handleDeleteShow={handleDeleteShow}
       />
     );
   }

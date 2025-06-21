@@ -25,6 +25,9 @@ interface BaseTimelineRowProps {
   artistId?: string;
   venueId?: string;
   venueName?: string;
+  // 🎯 MICRO-PHASE D FIX: Add the actual event handlers that were missing
+  toggleShowExpansion?: (id: string) => void;
+  handleDeleteShow?: (id: string) => void;
 }
 
 interface ShowTimelineRowProps extends BaseTimelineRowProps {
@@ -54,7 +57,16 @@ interface ShowRequestTimelineRowProps extends BaseTimelineRowProps {
 /**
  * Specialized Show Timeline Row - Only handles show entries
  */
-function ShowTimelineRow({ entry, permissions, state, handlers, artistId, venueId }: ShowTimelineRowProps) {
+function ShowTimelineRow({ 
+  entry, 
+  permissions, 
+  state, 
+  handlers, 
+  artistId, 
+  venueId,
+  toggleShowExpansion,
+  handleDeleteShow
+}: ShowTimelineRowProps) {
   const show = entry.data;
   
   return (
@@ -65,8 +77,8 @@ function ShowTimelineRow({ entry, permissions, state, handlers, artistId, venueI
       isDeleting={state.deleteShowLoading === show.id}
       artistId={artistId}
       venueId={venueId}
-      onToggleExpansion={handlers.toggleShowExpansion || (() => {})}
-      onDeleteShow={handlers.handleDeleteShow || (() => {})}
+      onToggleExpansion={toggleShowExpansion || (() => {})}
+      onDeleteShow={handleDeleteShow || (() => {})}
       onShowDocument={handlers.handleShowDocumentModal || (() => {})}
       onShowDetail={handlers.handleShowDetailModal || (() => {})}
       onSupportActAdded={(offer: any) => {

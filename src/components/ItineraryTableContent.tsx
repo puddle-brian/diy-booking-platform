@@ -84,6 +84,8 @@ export function ItineraryTableContent({
               venueId={venueId}
               venueName={venueName}
               actions={actions}
+              toggleShowExpansion={toggleShowExpansion}
+              handleDeleteShow={handleDeleteShow}
               venueBids={venueBids}
               venueOffers={venueOffers}
               declinedBids={declinedBids}
