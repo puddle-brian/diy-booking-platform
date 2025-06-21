@@ -42,6 +42,91 @@ export interface ItineraryEventHandlers {
 }
 
 /**
+ * 🎯 MICRO-PHASE C: Simplified Parameter Setup for Event Handlers
+ * 
+ * Creates properly configured parameters for useItineraryEventHandlers
+ * by moving complex callback setup logic from the component to here.
+ * 
+ * This reduces component complexity while maintaining exact same hook interface.
+ */
+export function createEventHandlerParams(config: {
+  actions: any;
+  fetchData: () => Promise<void>;
+  shows: Show[];
+  venueBids: VenueBid[];
+  venueOffers: VenueOffer[];
+  bidStatusOverrides: Map<string, any>;
+  setBidStatusOverride: (key: string, value: any) => void;
+  addDeclinedBid: (bidId: string) => void;
+  declinedBids: Set<string>;
+  setBidActions: any;
+  activeMonthEntries: any[];
+  venueId?: string;
+  venueName?: string;
+  permissions: any;
+  confirm: any;
+  showSuccess: any;
+  showError: any;
+  showInfo: any;
+  toast: any;
+  addDateForm: any;
+  addDateFormActions: any;
+}): UseItineraryEventHandlersParams {
+  return {
+    actions: config.actions,
+    fetchData: config.fetchData,
+    shows: config.shows,
+    venueBids: config.venueBids,
+    venueOffers: config.venueOffers,
+    bidStatusOverrides: config.bidStatusOverrides,
+    // 🎯 MICRO-PHASE C: Create complex state wrapper internally
+    setBidStatusOverrides: (setValue: any) => {
+      if (typeof setValue === 'function') {
+        const newMap = setValue(config.bidStatusOverrides);
+        // Handle Map updates by iterating through changes
+        newMap.forEach((value: any, key: string) => {
+          if (!config.bidStatusOverrides.has(key) || config.bidStatusOverrides.get(key) !== value) {
+            config.setBidStatusOverride(key, value);
+          }
+        });
+      } else {
+        console.warn('setBidStatusOverrides called with non-function');
+      }
+    },
+    setDeclinedBids: (setValue: any) => {
+      if (typeof setValue === 'function') {
+        const currentSet = config.declinedBids;
+        const newSet = setValue(currentSet);
+        // Handle Set updates by finding differences
+        newSet.forEach((bidId: string) => {
+          if (!currentSet.has(bidId)) {
+            config.addDeclinedBid(bidId);
+          }
+        });
+      } else {
+        console.warn('setDeclinedBids called with non-function');
+      }
+    },
+    setBidActions: config.setBidActions,
+    activeMonthEntries: config.activeMonthEntries,
+    venueId: config.venueId,
+    venueName: config.venueName,
+    permissions: config.permissions,
+    confirm: config.confirm,
+    showSuccess: config.showSuccess,
+    showError: config.showError,
+    showInfo: config.showInfo,
+    toast: config.toast,
+    // 🎯 MICRO-PHASE C: Create form state wrapper internally
+    setAddDateForm: (updateFunction: any) => {
+      const currentForm = config.addDateForm;
+      const updatedForm = updateFunction(currentForm);
+      config.addDateFormActions.updateForm(updatedForm);
+    }
+  };
+}
+
+/**
  * 🎯 MICRO-PHASE C: Event Handler Consolidation Hook
  * 
  * Consolidates all event handling logic from TabbedTourItinerary

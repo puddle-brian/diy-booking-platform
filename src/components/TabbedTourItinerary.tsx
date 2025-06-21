@@ -39,6 +39,7 @@ import {
   extractDateFromEntry
 } from '../utils/timelineUtils';
 import { processTimelineEntries } from '../utils/timelineProcessing';
+import { createBidStatusOverridesCallback, createDeclinedBidsCallback, createAddDateFormCallback } from '../utils/eventHandlerHelpers';
 
 // Import action button components
 import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
@@ -244,7 +245,7 @@ export default function TabbedTourItinerary({
   // 🎯 STEP B5: Use timeline processing utility function
   const processedEntries = processTimelineEntries(activeMonthEntries);
 
-  // 🎯 STEP D6: Update event handlers to use consolidated UI state
+  // 🎯 MICRO-PHASE C: Simplified event handler setup using helper utilities
   const eventHandlers = useItineraryEventHandlers({
     actions,
     fetchData,
@@ -252,33 +253,8 @@ export default function TabbedTourItinerary({
     venueBids,
     venueOffers,
     bidStatusOverrides,
-    setBidStatusOverrides: (setValue: any) => {
-      if (typeof setValue === 'function') {
-        const newMap = setValue(bidStatusOverrides);
-        // Handle Map updates by iterating through changes
-        newMap.forEach((value: any, key: string) => {
-          if (!bidStatusOverrides.has(key) || bidStatusOverrides.get(key) !== value) {
-            setBidStatusOverride(key, value);
-          }
-        });
-      } else {
-        console.warn('setBidStatusOverrides called with non-function');
-      }
-    },
-    setDeclinedBids: (setValue: any) => {
-      if (typeof setValue === 'function') {
-        const currentSet = declinedBids;
-        const newSet = setValue(currentSet);
-        // Handle Set updates by finding differences
-        newSet.forEach((bidId: string) => {
-          if (!currentSet.has(bidId)) {
-            addDeclinedBid(bidId);
-          }
-        });
-      } else {
-        console.warn('setDeclinedBids called with non-function');
-      }
-    },
+    setBidStatusOverrides: createBidStatusOverridesCallback(bidStatusOverrides, setBidStatusOverride),
+    setDeclinedBids: createDeclinedBidsCallback(declinedBids, addDeclinedBid),
     setBidActions,
     activeMonthEntries,
     venueId,
@@ -289,12 +265,7 @@ export default function TabbedTourItinerary({
     showError,
     showInfo,
     toast,
-    setAddDateForm: (updateFunction: any) => {
-      // 🎯 STEP E10: Compatibility wrapper for event handlers hook
-      const currentForm = addDateForm;
-      const updatedForm = updateFunction(currentForm);
-      addDateFormActions.updateForm(updatedForm);
-    }
+    setAddDateForm: createAddDateFormCallback(addDateForm, addDateFormActions)
   });
 
   // 🎯 STEP C3: Use event handlers from hook
