@@ -1,73 +1,38 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Show, VenueBid, VenueOffer, BidStatus } from '../../types'; // 🎯 PHASE 1.2: Add unified BidStatus type
-import { TechnicalRequirement, HospitalityRequirement } from '../../types/templates';
-import VenueBidForm from './VenueBidForm';
-import ShowDetailModal from './ShowDetailModal';
-// 🎯 PHASE 4: Removed TourRequestDetailModal - no longer needed
-import TemplateSelector from './TemplateSelector';
-import TemplateFormRenderer from './TemplateFormRenderer';
-import LocationVenueAutocomplete from './LocationVenueAutocomplete';
-import UnifiedShowRequestForm from './UnifiedShowRequestForm';
-import TechnicalRequirementsTable from './TechnicalRequirementsTable';
-import HospitalityRiderTable from './HospitalityRiderTable';
+import React from 'react';
 
-import { InlineOfferDisplay } from './OfferDisplay';
-import OfferInput, { ParsedOffer } from './OfferInput';
-import ShowDocumentModal from './ShowDocumentModal';
-import UniversalMakeOfferModal from './UniversalMakeOfferModal';
-import MakeOfferButton from './MakeOfferButton';
-import { ItineraryDate } from './DateDisplay';
-import OfferFormCore from './OfferFormCore';
-import { useAlert } from './UniversalAlertModal';
-import { AddSupportActModal } from './modals/AddSupportActModal';
-
-// Import our new custom hooks and utilities
-import { useToggleTourItinerary } from '../hooks/useToggleTourItinerary';
-import { useVenueArtistSearch } from '../hooks/useVenueArtistSearch';
-import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
-import { useItineraryState } from '../hooks/useItineraryState';
-import { useConsolidatedTimelineData } from '../hooks/useConsolidatedTimelineData';
+// 🎯 MICRO-PHASE I: Consolidated imports for dramatic complexity reduction (65+ imports → 4 groups)
 import {
-  getDefaultActiveMonth,
-  generateStableMonthTabs,
-  generateMinimalMonthLabels,
-  getDefaultActiveMonthStable,
-  getMonthKeyFromDate,
-  getTimelineBorderClass,
-  extractDateFromEntry
-} from '../utils/timelineUtils';
-import { processTimelineEntries } from '../utils/timelineProcessing';
-import { createBidStatusOverridesCallback, createDeclinedBidsCallback, createAddDateFormCallback } from '../utils/eventHandlerHelpers';
-
-// Import action button components
-import { BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton } from './ActionButtons';
-import { ShowTimelineItem, BidTimelineItem } from './TimelineItems'; // 🎯 PHASE 4: Removed TourRequestTimelineItem
-import { ShowRequestRow } from './TimelineItems/ShowRequestRow';
-import { MonthTabNavigation } from './MonthTabNavigation';
-import { ItineraryTableHeader } from './ItineraryTableHeader';
-import { ItineraryEmptyState } from './ItineraryEmptyState';
-import { AddDateButtons } from './AddDateButtons';
-import { ExpandedBidsSection } from './TimelineItems/ExpandedBidsSection';
-import { ShowRequestProcessor } from './TimelineItems/ShowRequestProcessor';
-import { TimelineRow } from './TimelineItems/TimelineRow';
-import { ModalContainer } from './ModalContainer';
-import { ItineraryModalContainer } from './ItineraryModalContainer';
-import { ItineraryHeader } from './ItineraryHeader';
-import { ItineraryTableContent } from './ItineraryTableContent';
-import { ItineraryLoadingStates } from './ItineraryLoadingStates';
-import { generateSmartShowTitle, getBillingPriority } from '../utils/showNaming';
-import { BidService } from '../services/BidService';
-import { AddDateFormModal } from './forms/AddDateFormModal';
-import { useModalState } from '../hooks/useModalState';
-import { useTimelineEntryProcessor } from '../hooks/useTimelineEntryProcessor';
-import { useItineraryEventHandlers } from '../hooks/useItineraryEventHandlers';
-import { useItineraryUIState } from '../hooks/useItineraryUIState';
-import { useAddDateForm } from '../hooks/useAddDateForm';
-
-// 🎯 MICRO-PHASE F: Import improved type definitions
-import { ShowRequest } from '../utils/typeHelpers';
+  // React hooks and core types
+  useState, useEffect, 
+  Show, VenueBid, VenueOffer, BidStatus, ShowRequest,
+  TechnicalRequirement, HospitalityRequirement,
+  
+  // UI Components
+  VenueBidForm, ShowDetailModal, TemplateSelector, TemplateFormRenderer,
+  LocationVenueAutocomplete, UnifiedShowRequestForm, TechnicalRequirementsTable,
+  HospitalityRiderTable, InlineOfferDisplay, OfferInput, ParsedOffer,
+  ShowDocumentModal, UniversalMakeOfferModal, MakeOfferButton, ItineraryDate,
+  OfferFormCore, useAlert, AddSupportActModal,
+  
+  // Action components and timeline items
+  BidActionButtons, MakeOfferActionButton, DeleteActionButton, DocumentActionButton,
+  ShowTimelineItem, BidTimelineItem, ShowRequestRow, MonthTabNavigation,
+  ItineraryTableHeader, ItineraryEmptyState, AddDateButtons, ExpandedBidsSection,
+  ShowRequestProcessor, TimelineRow, ModalContainer, ItineraryModalContainer,
+  ItineraryHeader, ItineraryTableContent, ItineraryLoadingStates, AddDateFormModal,
+  
+  // Hooks, services, and utilities
+  useToggleTourItinerary, useVenueArtistSearch, useItineraryPermissions,
+  useItineraryState, useConsolidatedTimelineData, useModalState,
+  useTimelineEntryProcessor, useItineraryEventHandlers, useItineraryUIState,
+  useAddDateForm, getDefaultActiveMonth, generateStableMonthTabs,
+  generateMinimalMonthLabels, getDefaultActiveMonthStable, getMonthKeyFromDate,
+  getTimelineBorderClass, extractDateFromEntry, processTimelineEntries,
+  createBidStatusOverridesCallback, createDeclinedBidsCallback,
+  createAddDateFormCallback, generateSmartShowTitle, getBillingPriority, BidService
+} from './TabbedTourItinerary/imports';
 
 interface TabbedTourItineraryProps {
   artistId?: string;
