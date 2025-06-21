@@ -3,41 +3,64 @@ import { ItineraryTableHeader } from './ItineraryTableHeader';
 import { ItineraryEmptyState } from './ItineraryEmptyState';
 import { SpecializedTimelineGroupRow } from './TimelineItems/SpecializedTimelineGroupRow';
 import { groupProcessedEntriesByDate } from '../utils/timelineProcessing';
-// 🎯 MICRO-PHASE H: Import consolidated prop interfaces
-import { ConsolidatedTimelineProps, extractDataProps, extractInteractionProps, extractStateProps } from '../utils/propConsolidation';
+// 🎯 MICRO-PHASE H: Import safe prop organization helpers
+import { organizeTimelineProps, flattenTimelineProps } from '../utils/propHelpers';
 
-// 🎯 MICRO-PHASE H: Simplified interface using consolidated props
-interface ItineraryTableContentProps extends ConsolidatedTimelineProps {}
+// 🎯 MICRO-PHASE H: Keep existing interface for compatibility
+interface ItineraryTableContentProps {
+  venueId?: string;
+  artistId?: string;
+  activeMonthEntries: any[];
+  processedEntries: any[];
+  stableMonthTabs: any[];
+  editable: boolean;
+  permissions: any;
+  state: any;
+  handlers: any;
+  venueName?: string;
+  toggleShowExpansion: (showId: string) => void;
+  toggleRequestExpansion: (requestId: string) => void;
+  handleDeleteShow: (showId: string) => void;
+  venueBids: any[];
+  venueOffers: any[];
+  declinedBids: Set<string>;
+  tourRequests: any[];
+  actions: any;
+  getBidStatusBadge: (bidId: string) => any;
+  handleDeleteShowRequest: (id: string, name: string) => Promise<void>;
+  handleOfferAction: (offer: any, action: string) => Promise<void>;
+  handleBidAction: (bid: any, action: string, reason?: string) => Promise<void>;
+  getEffectiveBidStatus: (bidId: string) => string;
+  venues: any[];
+}
 
-// 🎯 MICRO-PHASE H: Simplified component signature using consolidated props
+// 🎯 MICRO-PHASE H: Use prop organization helpers for cleaner code
 export function ItineraryTableContent(props: ItineraryTableContentProps) {
-  // 🎯 MICRO-PHASE H: Extract organized prop groups
-  const dataProps = extractDataProps(props);
-  const interactionProps = extractInteractionProps(props);
-  const stateProps = extractStateProps(props);
+  // 🎯 MICRO-PHASE H: Organize props for better readability
+  const { data, interactions, state } = organizeTimelineProps(props);
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[1000px] table-fixed">
-        <ItineraryTableHeader venueId={dataProps.venueId} artistId={dataProps.artistId} />
+        <ItineraryTableHeader venueId={data.venueId} artistId={data.artistId} />
         <tbody className="divide-y divide-gray-100">
           {/* Empty state */}
-          {dataProps.activeMonthEntries.length === 0 && (
+          {data.activeMonthEntries.length === 0 && (
             <ItineraryEmptyState
-              venueId={dataProps.venueId}
-              stableMonthTabs={dataProps.stableMonthTabs}
-              editable={stateProps.editable}
+              venueId={data.venueId}
+              stableMonthTabs={data.stableMonthTabs}
+              editable={state.editable}
             />
           )}
           
-          {/* 🎯 MICRO-PHASE H: Consolidated props passed to specialized components */}
-          {groupProcessedEntriesByDate(dataProps.processedEntries).map(({ groupDate, groupEntries }) => (
+          {/* 🎯 MICRO-PHASE H: Organized props passed to specialized components */}
+          {groupProcessedEntriesByDate(data.processedEntries).map(({ groupDate, groupEntries }) => (
             <SpecializedTimelineGroupRow
               key={groupDate}
               groupDate={groupDate}
               groupEntries={groupEntries}
-              {...stateProps}
-              {...dataProps}
-              {...interactionProps}
+              {...state}
+              {...data}
+              {...interactions}
             />
           ))}
         </tbody>
