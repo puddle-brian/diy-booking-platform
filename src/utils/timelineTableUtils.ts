@@ -33,14 +33,14 @@ export function getTimelineRowStyling(variant: TimelineRowVariant, customBorderC
   
   switch (variant) {
     case 'confirmed':
-      return `${baseClass} bg-green-50/30 hover:bg-green-100 border-l-4 border-green-400`;
+      return `${baseClass} bg-green-50/30 hover:bg-green-100`;
     case 'accepted':
-      return `${baseClass} bg-green-50/30 hover:bg-green-100 border-l-4 border-green-400`;
+      return `${baseClass} bg-green-50/30 hover:bg-green-100`;
     case 'hold':
-      return `${baseClass} bg-violet-50/30 hover:bg-violet-100 border-l-4 border-violet-400`;
+      return `${baseClass} bg-violet-50/30 hover:bg-violet-100`;
     case 'open':
     default:
-      return `${baseClass} ${customBorderClass || 'border-l-4 border-blue-400'} hover:bg-blue-50`;
+      return `${baseClass} hover:bg-blue-50`;
   }
 }
 
@@ -70,14 +70,14 @@ export function getTimelineExpansionStyling(variant: TimelineRowVariant) {
     case 'confirmed':
     case 'accepted':
       return {
-        bgClass: 'bg-green-50 border-l-4 border-green-400',
+        bgClass: 'bg-green-50',
         headerClass: 'bg-green-100',
         textClass: 'text-left text-xs font-medium text-green-700',
         dividerClass: 'divide-y divide-green-200'
       };
     case 'hold':
       return {
-        bgClass: 'bg-violet-50 border-l-4 border-violet-400',
+        bgClass: 'bg-violet-50',
         headerClass: 'bg-violet-100',
         textClass: 'text-left text-xs font-medium text-violet-700',
         dividerClass: 'divide-y divide-violet-200'
@@ -85,7 +85,7 @@ export function getTimelineExpansionStyling(variant: TimelineRowVariant) {
     case 'open':
     default:
       return {
-        bgClass: 'bg-yellow-50 border-l-4 border-yellow-400',
+        bgClass: 'bg-yellow-50',
         headerClass: 'bg-yellow-100',
         textClass: 'text-left text-xs font-medium text-yellow-700',
         dividerClass: 'divide-y divide-yellow-200'

@@ -6,6 +6,8 @@ import { DeleteActionButton, DocumentActionButton, MakeOfferActionButton } from 
 import { InlineOfferDisplay } from '../OfferDisplay';
 import { formatAgeRestriction } from '../../utils/ageRestrictionUtils';
 import { StatusBadge, StatusType } from '../StatusBadge';
+import { getTimelineRowStyling, getTimelineTextStyling } from '../../utils/timelineTableUtils';
+import { getExpansionContainerStyling } from '../../utils/timelineRowStyling';
 
 interface BidTimelineItemProps {
   bid: VenueBid;
@@ -126,17 +128,28 @@ export function BidTimelineItem({
     );
   };
 
-  // 🎨 Dynamic row styling based on hold state
-  const getRowStyling = () => {
+  // 🎨 Dynamic row styling based on hold state using unified system
+  const getStyleVariant = (): 'confirmed' | 'open' | 'hold' => {
     if (isFrozenByHold && (bid as any).holdState === 'HELD') {
-      return "bg-violet-100 hover:bg-violet-200 transition-colors duration-150"; // Held state - bold purple for active hold
+      return 'hold'; // Held state uses hold styling
     }
-    // Frozen rows stay the same yellow as parent rows to avoid confusion
-    return "bg-yellow-50 hover:bg-yellow-100 transition-colors duration-150"; // Normal/frozen state
+    // Determine variant based on bid status
+    const status = effectiveStatus || bid.status;
+    if (status === 'accepted') {
+      return 'confirmed';
+    } else if ((bid as any).holdState === 'HELD' || (bid as any).holdState === 'FROZEN') {
+      return 'hold';
+    } else {
+      return 'open'; // Default for pending/other states
+    }
   };
 
+  const styleVariant = getStyleVariant();
+  const rowClassName = getTimelineRowStyling(styleVariant);
+  const textColorClass = getTimelineTextStyling(styleVariant);
+
   return (
-    <tr className={getRowStyling()}>
+    <tr className={rowClassName}>
       {/* Expansion toggle column - w-[3%] - Empty for child rows */}
       <td className="px-4 py-1 w-[3%]">
         {/* Intentionally blank - child rows are not expandable */}
@@ -150,10 +163,7 @@ export function BidTimelineItem({
       {/* Location column - w-[14%] - Hidden for venue views */}
       {!venueId && (
         <td className="px-4 py-1 w-[14%]">
-          <div className={`text-sm truncate ${
-            isFrozenByHold && (bid as any).holdState === 'HELD' ? 'text-violet-700' :
-            'text-yellow-900'
-          }`}>
+          <div className="text-sm truncate text-gray-700">
             {(() => {
               // Look up venue location from venues array
               if (venues && bid.venueId) {
@@ -257,14 +267,41 @@ export function BidTimelineItem({
 
       {/* Offers column - w-[15%] for venue views, w-[10%] for artist views */}
       <td className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>
-        <div className="text-xs text-gray-600">
-          {permissions.canSeeFinancialDetails(undefined, bid, request) ? (
-            <InlineOfferDisplay 
-              amount={bid.guarantee || (bid as any).amount}
-              doorDeal={bid.doorDeal}
-              className="text-xs"
-            />
-          ) : '-'}
+        <div className="flex items-center space-x-2">
+          <div className="text-xs text-gray-600">
+            {permissions.canSeeFinancialDetails(undefined, bid, request) ? (
+              <InlineOfferDisplay 
+                amount={bid.guarantee || (bid as any).amount}
+                doorDeal={bid.doorDeal}
+                className="text-xs"
+              />
+            ) : '-'}
+          </div>
+          
+          {/* Edit Offer button - only for venues viewing their own pending bids */}
+          {(() => {
+            const shouldShow = venueId && bid.venueId === venueId && request && onMakeOffer && currentStatus !== 'accepted';
+            console.log('🔍 Edit Offer Button Debug:', {
+              venueId,
+              bidVenueId: bid.venueId,
+              hasRequest: !!request,
+              hasOnMakeOffer: !!onMakeOffer,
+              currentStatus,
+              shouldShow,
+              bidId: bid.id
+            });
+            
+            return shouldShow ? (
+              <MakeOfferActionButton
+                request={request as any}
+                permissions={permissions}
+                venueId={venueId}
+                venueName={venueName}
+                requestBids={venueBids}
+                onMakeOffer={(req, _existingBid) => onMakeOffer(req as any, bid)}
+              />
+            ) : null;
+          })()}
         </div>
       </td>
 
@@ -305,27 +342,24 @@ export function BidTimelineItem({
       {/* Actions column - w-[10%] */}
       <td className="px-4 py-1 w-[10%]">
         <div className="flex items-center space-x-1">
-          {/* Make/Edit Offer button for venues viewing their own bid */}
-          {venueId && bid.venueId === venueId && request && onMakeOffer && (
-            <MakeOfferActionButton
-              request={request as any}
-              permissions={permissions}
-              venueId={venueId}
-              venueName={venueName}
-              requestBids={venueBids}
-              onMakeOffer={(req, _existingBid) => onMakeOffer(req as any, bid)}
-            />
-          )}
           
-          {/* ❄️ FROZEN: Show just snowflake icon when bid is frozen by hold (but NOT when it's held) */}
+          {/* ❄️ FROZEN: Show decline button only (status badge already shows frozen state) */}
           {isFrozenByHold && (bid as any).holdState === 'FROZEN' ? (
-            <div className="flex items-center justify-center">
-              <span 
-                className="text-lg text-slate-500 cursor-help filter drop-shadow-none"
-                title={`Frozen by active hold${activeHoldInfo ? ` (${activeHoldInfo.requesterName})` : ''}`}
-              >
-                ❄️
-              </span>
+            <div className="flex items-center space-x-1">
+              {/* Decline Button (allowed even when frozen) */}
+              {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onBidAction && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onBidAction(bid, 'decline');
+                  }}
+                  className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                  disabled={isDeleting}
+                  title="Decline this bid (allowed even when frozen)"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ) : (bid as any).holdState === 'HELD' ? (
             /* 🔒 HELD BID: Show two distinct actions - Release Hold vs Decline Bid */
@@ -380,34 +414,59 @@ export function BidTimelineItem({
               {/* Normal bid actions for non-held bids */}
               {currentStatus === 'pending' && (
                 <>
-                  {/* Accept Button */}
-                  {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onAcceptBid(bid);
-                      }}
-                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
-                      disabled={isDeleting}
-                      title="Accept bid"
-                    >
-                      ✓
-                    </button>
+                  {/* Artist actions for pending bids */}
+                  {!venueId && (
+                    <>
+                      {/* Accept Button */}
+                      {permissions.canAcceptBid && permissions.canAcceptBid(bid, request) && onAcceptBid && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onAcceptBid(bid);
+                          }}
+                          className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition-colors"
+                          disabled={isDeleting}
+                          title="Accept bid"
+                        >
+                          ✓
+                        </button>
+                      )}
+                      
+                      {/* Decline Button */}
+                      {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onDeclineBid && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeclineBid(bid);
+                          }}
+                          className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                          disabled={isDeleting}
+                          title="Decline bid"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </>
                   )}
-                  
-                  {/* Decline Button */}
-                  {permissions.canDeclineBid && permissions.canDeclineBid(bid, request) && onDeclineBid && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeclineBid(bid);
-                      }}
-                      className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
-                      disabled={isDeleting}
-                      title="Decline bid"
-                    >
-                      ✕
-                    </button>
+
+                  {/* Venue actions for pending bids - withdraw their own offers */}
+                  {venueId && bid.venueId === venueId && (onBidAction || onOfferAction) && (
+                    <>
+                      {/* Invisible spacer to align decline button with accepted row layout */}
+                      <div className="px-2 py-1 text-xs" style={{ width: '25px' }}></div>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onBidAction?.(bid, 'decline', 'Venue withdrew offer');
+                        }}
+                        className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors"
+                        disabled={isDeleting}
+                        title="Withdraw this offer"
+                      >
+                        ✕
+                      </button>
+                    </>
                   )}
                 </>
               )}

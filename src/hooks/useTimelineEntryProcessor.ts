@@ -140,9 +140,9 @@ export function useTimelineEntryProcessor({
                           'text-blue-900';
     
     // Pre-calculate expanded section classes
-    const expandedBgClass = requestStatus === 'accepted' ? 'bg-green-50 border-l-4 border-green-400' :
-                           requestStatus === 'hold' ? 'bg-violet-50 border-l-4 border-violet-400' :
-                           'bg-yellow-50 border-l-4 border-yellow-400';
+      const expandedBgClass = requestStatus === 'accepted' ? 'bg-green-50' :
+    requestStatus === 'hold' ? 'bg-violet-50' :
+    'bg-yellow-50';
     const expandedHeaderClass = requestStatus === 'accepted' ? 'bg-green-100' :
                                requestStatus === 'hold' ? 'bg-violet-100' :
                                'bg-yellow-100';

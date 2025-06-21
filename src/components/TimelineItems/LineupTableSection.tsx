@@ -3,6 +3,7 @@ import { Show } from '../../../types';
 import { LineupItem } from '../../utils/showUtils';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { LineupItemRow } from './LineupItemRow';
+import { getExpansionContainerStyling } from '../../utils/timelineRowStyling';
 
 interface LineupTableSectionProps {
   show: Show;
@@ -10,6 +11,7 @@ interface LineupTableSectionProps {
   permissions: ItineraryPermissions;
   venueId?: string; // Context: if present, we're on a venue page
   onShowDocument?: (show: Show) => void; // Handler for show document action
+  artistId?: string; // Add artistId for permission checks
 }
 
 /**
@@ -21,7 +23,8 @@ export function LineupTableSection({
   lineup,
   permissions,
   venueId,
-  onShowDocument
+  onShowDocument,
+  artistId
 }: LineupTableSectionProps) {
   // Sort lineup by performance order for proper display
   const sortedLineup = [...lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
@@ -29,7 +32,7 @@ export function LineupTableSection({
   return (
     <tr>
       <td colSpan={venueId ? 9 : 10} className="px-0 py-0">
-        <div className="bg-blue-50/30 border-l-4 border-l-blue-400">
+        <div className={getExpansionContainerStyling('confirmed')}>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[1000px] table-fixed">
               <thead className="bg-gray-50">
@@ -56,6 +59,7 @@ export function LineupTableSection({
                     venueId={venueId}
                     index={index}
                     onShowDocument={onShowDocument}
+                    artistId={artistId}
                   />
                 ))}
               </tbody>

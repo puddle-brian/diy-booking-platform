@@ -15,20 +15,17 @@ export const getTimelineRowStyling = (
   
   const variantClasses = {
     confirmed: {
-      base: "bg-green-50 hover:bg-green-100",
-      border: "border-l-4 border-l-green-400"
+      base: "bg-green-50 hover:bg-green-100"
     },
     open: {
-      base: "bg-blue-50 hover:bg-blue-100", 
-      border: "border-l-4 border-l-blue-400"
+      base: "bg-blue-50 hover:bg-blue-100"
     },
     hold: {
-      base: "bg-violet-50 hover:bg-violet-100",
-      border: "border-l-4 border-l-violet-400"
+      base: "bg-violet-50 hover:bg-violet-100"
     }
   };
   
-  return `${baseClasses} ${variantClasses[variant].base} ${variantClasses[variant].border}`;
+  return `${baseClasses} ${variantClasses[variant].base}`;
 };
 
 /**
@@ -62,9 +59,9 @@ export const timelineTypography = {
  */
 export const getExpansionContainerStyling = (variant: 'confirmed' | 'open' | 'hold') => {
   const expansionVariants = {
-    confirmed: "bg-green-50/30 border-l-4 border-l-green-400",
-    open: "bg-blue-50/30 border-l-4 border-l-blue-400",
-    hold: "bg-violet-50/30 border-l-4 border-l-violet-400"
+    confirmed: "bg-green-50/30",
+    open: "bg-blue-50/30",
+    hold: "bg-violet-50/30"
   };
   
   return `${expansionVariants[variant]} overflow-x-auto`;

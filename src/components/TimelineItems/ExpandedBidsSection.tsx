@@ -164,24 +164,28 @@ export function ExpandedBidsSection({
   });
   
   return (
-    <div className={getExpansionContainerStyling(variant)}>
-      <table className="w-full">
-        <thead className={getExpansionHeaderStyling(variant)}>
-          <tr className={`text-left ${timelineTypography.status} text-gray-600`}>
-            <th className="px-4 py-1 w-[3%]"></th>
-            <th className="px-4 py-1 w-[12%]">Date</th>
-            {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
-            <th className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
-            <th className="px-4 py-1 w-[10%]">Status</th>
-            <th className="px-4 py-1 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
-            <th className="px-4 py-1 w-[7%]">Age</th>
-            <th className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
-            <th className="px-4 py-1 w-[8%]">Details</th>
-            <th className="px-4 py-1 w-[10%]">Actions</th>
-          </tr>
-        </thead>
-        <tbody className={expandedDividerClass}>
-          {sortedBids.map(({ bid, request: bidRequest }) => {
+    <>
+      {/* Header row for the expansion section */}
+      <tr>
+        <td colSpan={venueId ? 9 : 10} className="px-0 py-0">
+          <div className={getExpansionContainerStyling(variant)}>
+            <table className="w-full table-fixed">
+              <thead className={getExpansionHeaderStyling(variant)}>
+                <tr className={`text-left ${timelineTypography.status} text-gray-600`}>
+                  <th className="px-4 py-1 w-[3%]"></th>
+                  <th className="px-4 py-1 w-[12%]">Date</th>
+                  {!venueId && <th className="px-4 py-1 w-[14%]">Location</th>}
+                  <th className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>{artistId ? 'Venue' : venueId ? 'Artist' : 'Artist'}</th>
+                  <th className="px-4 py-1 w-[10%]">Status</th>
+                  <th className="px-4 py-1 w-[7%]">{venueId ? 'Position' : 'Capacity'}</th>
+                  <th className="px-4 py-1 w-[7%]">Age</th>
+                  <th className={`px-4 py-1 ${venueId ? 'w-[15%]' : 'w-[10%]'}`}>Offers</th>
+                  <th className="px-4 py-1 w-[8%]">Details</th>
+                  <th className="px-4 py-1 w-[10%]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className={expandedDividerClass}>
+                {sortedBids.map(({ bid, request: bidRequest }) => {
             const isFrozenByHold = (bid as any).holdState === 'FROZEN' || (bid as any).holdState === 'HELD';
             
             return (
@@ -235,8 +239,11 @@ export function ExpandedBidsSection({
               />
             );
           })}
-        </tbody>
-      </table>
-    </div>
+              </tbody>
+            </table>
+          </div>
+        </td>
+      </tr>
+    </>
   );
 } 

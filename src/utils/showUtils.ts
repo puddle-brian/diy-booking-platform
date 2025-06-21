@@ -12,51 +12,7 @@ export interface LineupItem {
   guarantee?: number;
 }
 
-/**
- * Generate smart show titles from lineup composition
- * This replaces the legacy single-artist title approach
- */
-export function generateSmartShowTitle(lineup: LineupItem[]): string {
-  if (!lineup?.length) return 'TBA';
-  
-  // Sort by performance order to get proper billing hierarchy
-  const sortedLineup = lineup
-    .filter(item => item.status !== 'CANCELLED') // Exclude cancelled artists
-    .sort((a, b) => a.performanceOrder - b.performanceOrder);
-  
-  if (sortedLineup.length === 0) return 'TBA';
-  if (sortedLineup.length === 1) return sortedLineup[0].artistName;
-  
-  // Two artists - use &
-  if (sortedLineup.length === 2) {
-    return `${sortedLineup[0].artistName} & ${sortedLineup[1].artistName}`;
-  }
-  
-  // Three artists - show all names
-  if (sortedLineup.length === 3) {
-    return `${sortedLineup[0].artistName} + ${sortedLineup[1].artistName} + 1 more`;
-  }
-  
-  // Four or more - headliner + co-headliner + count
-  const headliner = sortedLineup[0];
-  const coHeadliner = sortedLineup[1];
-  const othersCount = sortedLineup.length - 2;
-  
-  return `${headliner.artistName} + ${coHeadliner.artistName} + ${othersCount} more`;
-}
-
-/**
- * Generate detailed show title with full artist names for tooltips
- */
-export function generateDetailedShowTitle(lineup: LineupItem[]): string {
-  if (!lineup?.length) return 'No artists confirmed';
-  
-  const sortedLineup = lineup
-    .filter(item => item.status !== 'CANCELLED')
-    .sort((a, b) => a.performanceOrder - b.performanceOrder);
-  
-  return sortedLineup.map(item => item.artistName).join(', ');
-}
+// Legacy title generation functions removed - now using unified system in showNaming.ts
 
 /**
  * Calculate aggregate status from all lineup items

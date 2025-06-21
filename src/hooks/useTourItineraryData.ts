@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Show } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
+import { Show, VenueBid, VenueOffer } from '../../types'; // 🎯 PHASE 1: Use unified types
 
 // 🎵 Helper function to map old billing positions to new simplified system
 function mapBillingPosition(oldPosition: string | undefined): 'headliner' | 'co-headliner' | 'support' | 'local-support' | undefined {
@@ -20,146 +20,9 @@ function mapBillingPosition(oldPosition: string | undefined): 'headliner' | 'co-
   }
 }
 
-interface VenueBid {
-  id: string;
-  showRequestId: string;
-  venueId: string;
-  venueName: string;
-  proposedDate: string;
-  guarantee?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-  };
-  ticketPrice: {
-    advance?: number;
-    door?: number;
-  };
-  capacity: number;
-  ageRestriction: string;
-  equipmentProvided: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn: string;
-  soundcheck: string;
-  doorsOpen: string;
-  showTime: string;
-  curfew: string;
-  promotion: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  message: string;
-  status: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
-  readByArtist: boolean;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string;
-  location?: string;
-  holdPosition?: 1 | 2 | 3;
-  heldAt?: string;
-  heldUntil?: string;
-  acceptedAt?: string;
-  declinedAt?: string;
-  declinedReason?: string;
-  cancelledAt?: string;
-  cancelledReason?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  artistId?: string;
-  artistName?: string;
-  // 🔒 HOLD STATE MANAGEMENT FIELDS
-  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
-  frozenByHoldId?: string;
-  frozenAt?: string;
-  unfrozenAt?: string;
-  isFrozen?: boolean;
-  venue?: any; // Include venue object for proper name display
-}
+// 🎯 PHASE 1: Removed duplicate VenueBid interface - now using unified type from main types.ts
 
-interface VenueOffer {
-  id: string;
-  venueId: string;
-  venueName: string;
-  artistId: string;
-  artistName: string;
-  title: string;
-  description?: string;
-  proposedDate: string;
-  alternativeDates?: string[];
-  message?: string;
-  amount?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-    afterExpenses?: boolean;
-  };
-  ticketPrice?: {
-    advance?: number;
-    door?: number;
-  };
-  merchandiseSplit?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  capacity?: number;
-  ageRestriction?: string;
-  equipmentProvided?: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn?: string;
-  soundcheck?: string;
-  doorsOpen?: string;
-  showTime?: string;
-  curfew?: string;
-  promotion?: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  lodging?: {
-    offered: boolean;
-    type: 'floor-space' | 'couch' | 'private-room';
-    details?: string;
-  };
-  additionalTerms?: string;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-  venue?: {
-    id: string;
-    name: string;
-    venueType?: string;
-    capacity?: number;
-    location?: {
-      city: string;
-      stateProvince: string;
-      country: string;
-    };
-  };
-  artist?: {
-    id: string;
-    name: string;
-    genres?: string[];
-  };
-}
+// 🎯 PHASE 1: Removed duplicate VenueOffer interface - now using unified type from main types.ts
 
 interface UseTourItineraryDataProps {
   artistId?: string;
@@ -327,6 +190,7 @@ export function useTourItineraryData({
               venueName: req.venue?.name || 'Unknown Venue',
               artistId: req.artistId,
               artistName: req.artist?.name || 'Unknown Artist',
+              createdById: req.createdBy || 'unknown', // 🎯 PHASE 1: Add required field
               title: req.title,
               description: req.description,
               proposedDate: req.requestedDate,
@@ -454,20 +318,19 @@ export function useTourItineraryData({
           const venueInitiatedData = await venueInitiatedResponse.json();
           const allArtistRequestsData = await allArtistRequestsResponse.json();
           
-          // 🎯 FIXED: Show ALL open artist requests that venues can bid on
-          // Not just ones they've already bid on - this gives venues full visibility for booking opportunities
-          const availableArtistRequests = allArtistRequestsData.filter((req: any) => 
-            req.status === 'OPEN' && req.initiatedBy === 'ARTIST'
-          );
+          // 🎯 LAYER 1 FIX: Show ALL artist requests where this venue has bids
+          // Filter to only show requests where the venue has actually placed bids
+          const availableArtistRequests = allArtistRequestsData.filter((req: any) => {
+            if (req.initiatedBy !== 'ARTIST') return false;
+            
+            // Check if this venue has any bids on this request
+            const hasVenueBid = req.bids && req.bids.some((bid: any) => bid.venueId === venueId);
+            return hasVenueBid;
+          });
           
           const combinedShowRequestsData = [...venueInitiatedData, ...availableArtistRequests];
           
-          console.log('🚨 VENUE FILTERING DEBUG - NEW LOGIC ACTIVE 🚨');
-          console.log('🎯 Fetched show requests for venue:');
-          console.log(`  - Venue-initiated: ${venueInitiatedData.length}`);
-          console.log(`  - Available artist requests: ${availableArtistRequests.length}`);
-          console.log(`  - Total combined: ${combinedShowRequestsData.length}`);
-          console.log('🚨 AVAILABLE ARTIST REQUESTS:', availableArtistRequests.map((req: any) => req.artist?.name || 'Unknown'));
+          // Debug logging for venue filtering logic
           
           // 🎯 DEBUG: Log all venue-initiated data
           console.log('🔍 Debug: All venueInitiatedData:', venueInitiatedData.map((req: any) => ({
@@ -489,16 +352,7 @@ export function useTourItineraryData({
             ...availableArtistRequests
           ];
           
-          console.log(`  - Direct venue-specific requests: ${venueInitiatedData.filter((req: any) => req.initiatedBy === 'ARTIST' && req.venueId === venueId).length}`);
-          console.log(`  - General artist requests venue can bid on: ${availableArtistRequests.length}`);
-          console.log(`  - Total relevant requests for venue: ${allRelevantArtistRequests.length}`);
-          console.log('🔍 Debug: All relevant requests:', allRelevantArtistRequests.map((req: any) => ({
-            id: req.id,
-            title: req.title,
-            artistName: req.artist?.name,
-            date: req.requestedDate,
-            type: req.venueId === venueId ? 'venue-specific' : 'general-location'
-          })));
+
           
           // Convert all relevant artist requests to legacy TourRequest format
           const legacyTourRequests: any[] = allRelevantArtistRequests.map((req: any) => ({ // 🎯 PHASE 4: Updated to any for ShowRequest
@@ -536,27 +390,8 @@ export function useTourItineraryData({
             expiresAt: req.expiresAt
           }));
           
-          console.log('🔄 Debug: Converting all relevant requests to legacy format:');
-          console.log(`  - Input: ${allRelevantArtistRequests.length} relevant requests`);
-          console.log(`  - Output: ${legacyTourRequests.length} legacy tour requests`);
-          console.log('🔍 Debug: Legacy tour requests:', legacyTourRequests.map((req: any) => ({
-            id: req.id,
-            artistName: req.artistName,
-            title: req.title,
-            startDate: req.startDate,
-            location: req.location,
-            status: req.status
-          })));
           
           setTourRequests(legacyTourRequests);
-          console.log('✅ Debug: Set tourRequests state with', legacyTourRequests.length, 'requests');
-          console.log('🚨 LEGACY TOUR REQUESTS SAMPLE:', legacyTourRequests.slice(0, 3).map((req: any) => ({
-            id: req.id,
-            artistName: req.artistName,
-            title: req.title,
-            location: req.location,
-            status: req.status
-          })));
           
           // Convert to legacy formats (similar to artist logic but focused on venue perspective)
           const legacyVenueOffers: VenueOffer[] = combinedShowRequestsData
@@ -615,7 +450,7 @@ export function useTourItineraryData({
               if (hasVenueBid) {
                 // If venue has bid on this request, show ALL bids for competitive intelligence
                 req.bids.forEach((bid: any) => {
-                  console.log(`🎯 Found ${bid.venueId === venueId ? 'OWN' : 'COMPETITOR'} bid: ${bid.venue?.name || `Venue ${bid.venueId?.slice(-6)}`} -> ${req.artist?.name || 'Unknown Artist'} (${req.title})`);
+
                   
                   // 🎯 IMPROVED: Get venue name from multiple sources for competitive bids
                   let venueName = 'Unknown Venue';

@@ -169,7 +169,7 @@ export interface VenueBid {
   additionalTerms?: string;
   
   // 🎯 BID STATUS - Simple industry-standard flow
-  status: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
+  status: BidStatus;
   
   // 🎯 HOLD MANAGEMENT - Automatic priority system
   holdPosition?: 1 | 2 | 3; // Auto-assigned: first hold = 1, second = 2, etc.
@@ -194,11 +194,17 @@ export interface VenueBid {
   expiresAt: string; // bids expire if not responded to
   
   // NEW: Hold state management for frozen bids
-  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
+  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD' | 'ACCEPTED_HELD';
   frozenByHoldId?: string; // Reference to hold that froze this bid
   frozenAt?: string; // When this bid was frozen
   unfrozenAt?: string; // When this bid was unfrozen
   isFrozen?: boolean; // Computed property for easier access
+  
+  // 🎯 PHASE 1: Additional fields used by timeline system
+  location?: string; // Derived location string for display
+  artistId?: string; // Artist ID for bid tracking
+  artistName?: string; // Artist name for display
+  venue?: any; // Venue object for expanded details
 }
 
 // 🎯 NEW: Venue Offers - Direct offers from venues to specific artists
@@ -269,7 +275,7 @@ export interface VenueOffer {
   additionalTerms?: string;
   
   // Status Management (consistent with VenueBid)
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  status: OfferStatus;
   acceptedAt?: string;
   declinedAt?: string;
   declinedReason?: string;
@@ -521,4 +527,48 @@ export interface LineupInvitationRequest {
   };
   setLength?: number;
   message?: string;
-} 
+}
+
+// 🎯 PHASE 1.2: Unified Status Enums - Single source of truth for all status values
+export type BidStatus = 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
+export type OfferStatus = 'pending' | 'accepted' | 'declined' | 'cancelled';
+export type ShowRequestStatus = 'OPEN' | 'PENDING' | 'CONFIRMED' | 'CANCELLED';
+export type ShowStatus = 'hold' | 'confirmed' | 'cancelled' | 'completed' | 'accepted';
+export type LineupStatus = 'CONFIRMED' | 'PENDING' | 'CANCELLED';
+
+// 🎯 PHASE 1.2: Status conversion utilities for legacy compatibility
+export const StatusConverter = {
+  // Convert between uppercase and lowercase bid statuses
+  bidToUppercase: (status: BidStatus): string => {
+    const map: Record<BidStatus, string> = {
+      'pending': 'PENDING',
+      'hold': 'HOLD', 
+      'accepted': 'ACCEPTED',
+      'declined': 'DECLINED',
+      'cancelled': 'CANCELLED'
+    };
+    return map[status] || status.toUpperCase();
+  },
+  
+  // Convert from uppercase to lowercase bid status
+  bidToLowercase: (status: string): BidStatus => {
+    const map: Record<string, BidStatus> = {
+      'PENDING': 'pending',
+      'HOLD': 'hold',
+      'ACCEPTED': 'accepted', 
+      'DECLINED': 'declined',
+      'CANCELLED': 'cancelled'
+    };
+    return map[status] || status.toLowerCase() as BidStatus;
+  },
+  
+  // Convert lineup status to bid status
+  lineupToBid: (status: LineupStatus): BidStatus => {
+    const map: Record<LineupStatus, BidStatus> = {
+      'CONFIRMED': 'accepted',
+      'PENDING': 'pending',
+      'CANCELLED': 'cancelled'
+    };
+    return map[status];
+  }
+}; 

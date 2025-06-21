@@ -54,11 +54,11 @@ export function ShowRequestRow({
 }: ShowRequestRowProps) {
   return (
     <tr 
-      className="cursor-pointer transition-colors duration-150 hover:shadow-sm"
+      className={`${borderClass} cursor-pointer transition-colors duration-150 hover:shadow-sm`}
       onClick={() => toggleRequestExpansion(request.id)}
       title={`Click to ${state.expandedRequests.has(request.id) ? 'hide' : 'view'} bids for this show request`}
     >
-      <td className={`px-4 py-1 w-[3%] ${borderClass}`}>
+      <td className="px-4 py-1 w-[3%]">
         <div className="flex items-center justify-center">
           <ExpansionIndicator 
             isExpanded={state.expandedRequests.has(request.id)}
@@ -80,7 +80,43 @@ export function ShowRequestRow({
         </td>
       )}
       <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
-        <div className="text-sm font-medium text-gray-900 truncate">
+        <div className="text-sm font-medium text-gray-900 truncate" title={
+          (() => {
+            if (venueId) {
+              // Generate tooltip for venue view using unified system
+              const allSameDateArtists = [entry, ...sameDateSiblings]
+                .filter(e => e.type === 'show-request')
+                .map(e => {
+                  const req = e.data as any;
+                  const artistBid = requestBids.find(bid => bid.showRequestId === req.id);
+                  
+                  return {
+                    artistName: req.artist?.name || req.artistName || 'Unknown Artist',
+                    status: 'accepted' as const,
+                    billingPosition: artistBid?.billingPosition || 'support' as const
+                  };
+                })
+                .filter(artist => artist.artistName !== 'Unknown Artist');
+              
+              const { tooltip } = generateSmartShowTitle({
+                headlinerName: allSameDateArtists[0]?.artistName || request.artist?.name || request.artistName || 'Unknown Artist',
+                supportActs: allSameDateArtists.slice(1),
+                includeStatusInCount: true
+              });
+              
+              return tooltip;
+            } else {
+              // Generate tooltip for other views
+              const { tooltip } = generateSmartShowTitle({
+                headlinerName: request.artist?.name || request.artistName || 'Unknown Artist',
+                supportActs: [],
+                includeStatusInCount: true
+              });
+              
+              return tooltip;
+            }
+          })()
+        }>
           {(() => {
             if (artistId) {
               // For artist pages, show venue information
@@ -155,106 +191,100 @@ export function ShowRequestRow({
                 }
               }
             } else if (venueId) {
-              // For venue pages, show intelligent artist lineup
+              // 🚀 SIMPLIFIED FIX: Use venueBids directly instead of complex matching
+              // Filter venueBids to only those for this date and venue
+              const sameDateVenueBids = venueBids.filter(bid => {
+                const bidDate = bid.proposedDate?.split('T')[0] || bid.proposedDate;
+                return bidDate === entryDate && bid.venueId === venueId;
+              });
+              
+              // Get artist names from timeline entries and billing positions from venueBids
               const allSameDateArtists = [entry, ...sameDateSiblings]
                 .filter(e => e.type === 'show-request')
                 .map(e => {
                   const req = e.data as any;
-                  const artistBid = requestBids.find(bid => bid.showRequestId === req.id);
+                  const timelineEntryId = req.id.startsWith('venue-bid-') ? req.id.replace('venue-bid-', '') : req.id;
+                  const matchingBid = sameDateVenueBids.find(bid => bid.id === timelineEntryId);
                   
                   return {
                     artistName: req.artist?.name || req.artistName || 'Unknown Artist',
-                    artistId: req.artistId,
                     status: 'accepted' as const,
-                    billingPosition: artistBid?.billingPosition || undefined
+                    billingPosition: matchingBid?.billingPosition || 'support' as const
                   };
                 })
-                .filter(artist => artist.artistName !== 'Unknown Artist')
-                .sort((a, b) => {
-                  return getBillingPriority(a) - getBillingPriority(b);
-                });
+                .filter(artist => artist.artistName !== 'Unknown Artist');
               
-              const smartTitle = (() => {
-                if (!allSameDateArtists || allSameDateArtists.length === 0) {
-                  return request.artist?.name || request.artistName || 'Unknown Artist';
-                }
-                
-                if (allSameDateArtists.length === 1) {
-                  const artist = allSameDateArtists[0];
-                  if (artist.artistId && artist.artistId !== 'external-artist') {
-                    return (
-                      <a 
-                        href={`/artists/${artist.artistId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                        title="View artist page"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {artist.artistName}
-                      </a>
-                    );
-                  } else {
-                    return artist.artistName;
-                  }
-                } else {
-                  const sortedArtists = [...allSameDateArtists].sort((a, b) => {
-                    return getBillingPriority(a) - getBillingPriority(b);
-                  });
-                  const headlinerArtist = sortedArtists[0];
-                  
-                  if (!headlinerArtist) {
-                    return 'Unknown Artist';
-                  }
-                  
-                  const supportActs = sortedArtists.slice(1);
-                  
-                  const { title, tooltip } = generateSmartShowTitle({
-                    headlinerName: headlinerArtist.artistName || 'Unknown Artist',
-                    supportActs: supportActs.map(artist => ({
-                      artistName: artist.artistName || 'Unknown Artist',
-                      status: 'accepted' as const,
-                      billingPosition: artist.billingPosition || 'support' as const
-                    })),
-                    includeStatusInCount: true
-                  });
-                  
-                  if (headlinerArtist.artistId && headlinerArtist.artistId !== 'external-artist') {
-                    return (
-                      <a 
-                        href={`/artists/${headlinerArtist.artistId}`}
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                        title={tooltip ? `${tooltip} - Click to view ${headlinerArtist.artistName || 'Unknown Artist'} page` : `View ${headlinerArtist.artistName || 'Unknown Artist'} page`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {title}
-                      </a>
-                    );
-                  } else {
-                    return (
-                      <span title={tooltip || undefined}>
-                        {title}
-                      </span>
-                    );
-                  }
-                }
-              })();
+              // 🔍 DEBUG: Log title generation for August 29th
+              if (entryDate === '2025-08-29') {
+                              console.log('🎵 Aug 29 Title Debug - AllSameDateArtists:', allSameDateArtists);
+              console.log('🎵 Aug 29 Title Debug - RequestBids:', requestBids);
+              console.log('🎵 Aug 29 RequestBids IDs:', requestBids.map(bid => ({
+                id: bid.id,
+                showRequestId: bid.showRequestId,
+                billingPosition: bid.billingPosition
+              })));
+              console.log('🎵 Aug 29 Title Debug - Entry data:', entry.data);
+              console.log('🎵 Aug 29 Title Debug - SameDateSiblings data:', sameDateSiblings.map(s => s.data));
               
-              return smartTitle;
-            } else {
-              // For public/general view, show artist name
-              if (request.artistId && request.artistId !== 'external-artist') {
-                return (
-                  <a 
-                    href={`/artists/${request.artistId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                    title="View artist page"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {request.artist?.name || request.artistName}
-                  </a>
-                );
-              } else {
-                return request.artist?.name || request.artistName;
+              // 🔍 DEBUG: Check bid matching for each artist
+              console.log('🎵 Aug 29 Bid Matching Debug:');
+              allSameDateArtists.forEach((artist, i) => {
+                const req = [entry, ...sameDateSiblings][i]?.data as any;
+                const timelineEntryId = req?.id?.startsWith('venue-bid-') ? req.id.replace('venue-bid-', '') : req?.id;
+                const artistBid = requestBids.find(bid => bid.id === timelineEntryId);
+                console.log(`  ${i+1}. ${artist.artistName}:`);
+                console.log(`     Timeline Entry ID: ${req?.id}`);
+                console.log(`     Stripped ID for matching: ${timelineEntryId}`);
+                console.log(`     Found bid: ${artistBid ? 'YES' : 'NO'}`);
+                console.log(`     Billing: ${artist.billingPosition}`);
+                if (artistBid) {
+                  console.log(`     Bid details:`, artistBid);
+                }
+              });
               }
+              
+              // 🚀 FIX: Find the actual headliner, not just the first artist
+              const headliners = allSameDateArtists.filter(artist => 
+                artist.billingPosition === 'headliner' || artist.billingPosition === 'co-headliner'
+              );
+              const supportActs = allSameDateArtists.filter(artist => 
+                artist.billingPosition === 'support' || artist.billingPosition === 'local-support'
+              );
+              
+              // Use the first headliner as the main headliner, others become co-headliners
+              const mainHeadliner = headliners[0]?.artistName || allSameDateArtists[0]?.artistName || 'Unknown Artist';
+              const coHeadliners = headliners.slice(1).map(h => ({
+                artistName: h.artistName,
+                status: h.status,
+                billingPosition: 'co-headliner' as const
+              }));
+              const supportActsForTitle = supportActs.map(s => ({
+                artistName: s.artistName,
+                status: s.status,
+                billingPosition: s.billingPosition
+              }));
+              
+              const { title } = generateSmartShowTitle({
+                headlinerName: mainHeadliner,
+                supportActs: [...coHeadliners, ...supportActsForTitle],
+                includeStatusInCount: true
+              });
+              
+              // 🔍 DEBUG: Log generated title for August 29th
+              if (entryDate === '2025-08-29') {
+                console.log('🎵 Aug 29 Title Debug - Generated title:', title);
+              }
+              
+              return title;
+            } else {
+              // Use unified title system for all views
+              const { title } = generateSmartShowTitle({
+                headlinerName: request.artist?.name || request.artistName || 'Unknown Artist',
+                supportActs: [],
+                includeStatusInCount: true
+              });
+              
+              return title;
             }
           })()}
         </div>
@@ -263,19 +293,42 @@ export function ShowRequestRow({
         <div className="flex items-center space-x-1">
           {(() => {
             // If viewing as a venue, show venue's specific bid status
+            // BUSINESS LOGIC: Even accepted venue bids should show as "Open" 
+            // since show requests are "always open unless confirmed"
             if (venueId && requestBids.length > 0) {
               const venueBid = requestBids.find(bid => bid.venueId === venueId);
               if (venueBid) {
-                const statusBadge = getBidStatusBadge(venueBid);
+                // Check for accepted state first (even in auto-hold)
+                if (venueBid.status === 'accepted' || (venueBid as any).holdState === 'ACCEPTED_HELD') {
+                  return (
+                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                      Accepted
+                    </span>
+                  );
+                }
+                
+                // Check for hold status (manual holds, not auto-holds from acceptance)
+                if ((venueBid as any).holdState === 'HELD' || (venueBid as any).holdState === 'FROZEN') {
+                  return (
+                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-violet-100 text-violet-700">
+                      Hold
+                    </span>
+                  );
+                }
+                
+                // All other venue bids (pending) show as "Open"
                 return (
-                  <span className={statusBadge.className}>
-                    {statusBadge.text}
+                  <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                    Open
                   </span>
                 );
               }
             }
             
             // Default logic for artists and venues without bids
+            // BUSINESS LOGIC: Show requests are either "Open" or become confirmed shows
+            // Show "Accepted" for auto-held acceptances, "Hold" for manual holds
+            
             const hasAcceptedBid = requestBids.some((bid: VenueBid) => 
               bid.status === 'accepted' || (bid as any).holdState === 'ACCEPTED_HELD'
             );
@@ -302,6 +355,7 @@ export function ShowRequestRow({
               );
             }
             
+            // All show requests without holds are "Open"
             return (
               <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                 Open

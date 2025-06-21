@@ -1,146 +1,7 @@
-import { Show } from '../../types'; // 🎯 PHASE 4: Removed TourRequest import
+import { Show, VenueBid, VenueOffer } from '../../types'; // 🎯 PHASE 1: Use unified types
 import { extractDateString } from './dateUtils';
 
-interface VenueBid {
-  id: string;
-  showRequestId: string;
-  venueId: string;
-  venueName: string;
-  proposedDate: string;
-  guarantee?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-  };
-  ticketPrice: {
-    advance?: number;
-    door?: number;
-  };
-  capacity: number;
-  ageRestriction: string;
-  equipmentProvided: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn: string;
-  soundcheck: string;
-  doorsOpen: string;
-  showTime: string;
-  curfew: string;
-  promotion: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  message: string;
-  status: 'pending' | 'hold' | 'accepted' | 'declined' | 'cancelled';
-  readByArtist: boolean;
-  createdAt: string;
-  updatedAt: string;
-  expiresAt: string;
-  location?: string;
-  holdPosition?: 1 | 2 | 3;
-  heldAt?: string;
-  heldUntil?: string;
-  acceptedAt?: string;
-  declinedAt?: string;
-  declinedReason?: string;
-  cancelledAt?: string;
-  cancelledReason?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  // 🔒 HOLD STATE MANAGEMENT FIELDS
-  holdState?: 'AVAILABLE' | 'FROZEN' | 'HELD';
-  frozenByHoldId?: string;
-  frozenAt?: string;
-  unfrozenAt?: string;
-  isFrozen?: boolean;
-  venue?: any;
-  artistId?: string;
-  artistName?: string;
-}
-
-interface VenueOffer {
-  id: string;
-  venueId: string;
-  venueName: string;
-  artistId: string;
-  artistName: string;
-  title: string;
-  description?: string;
-  proposedDate: string;
-  alternativeDates?: string[];
-  message?: string;
-  amount?: number;
-  doorDeal?: {
-    split: string;
-    minimumGuarantee?: number;
-    afterExpenses?: boolean;
-  };
-  ticketPrice?: {
-    advance?: number;
-    door?: number;
-  };
-  merchandiseSplit?: string;
-  billingPosition?: 'headliner' | 'co-headliner' | 'support' | 'local-support';
-  lineupPosition?: number;
-  setLength?: number;
-  otherActs?: string;
-  billingNotes?: string;
-  capacity?: number;
-  ageRestriction?: string;
-  equipmentProvided?: {
-    pa: boolean;
-    mics: boolean;
-    drums: boolean;
-    amps: boolean;
-    piano: boolean;
-  };
-  loadIn?: string;
-  soundcheck?: string;
-  doorsOpen?: string;
-  showTime?: string;
-  curfew?: string;
-  promotion?: {
-    social: boolean;
-    flyerPrinting: boolean;
-    radioSpots: boolean;
-    pressCoverage: boolean;
-  };
-  lodging?: {
-    offered: boolean;
-    type: 'floor-space' | 'couch' | 'private-room';
-    details?: string;
-  };
-  additionalTerms?: string;
-  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'CANCELLED';
-  createdAt: string;
-  updatedAt: string;
-  expiresAt?: string;
-  venue?: {
-    id: string;
-    name: string;
-    venueType?: string;
-    capacity?: number;
-    location?: {
-      city: string;
-      stateProvince: string;
-      country: string;
-    };
-  };
-  artist?: {
-    id: string;
-    name: string;
-    genres?: string[];
-  };
-}
+// 🎯 PHASE 1: Removed duplicate interfaces - now using unified types from main types.ts
 
 interface TimelineEntry {
   type: 'show' | 'show-request'; // 🎯 PHASE 3: Updated to 'show-request'
@@ -170,16 +31,59 @@ export function createTimelineEntries(
 ): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
   
-  // Add confirmed shows only
+  // Add shows with artist-context-aware logic
   shows.forEach(show => {
-    // Only add shows that are actually confirmed (handle both case variations)
     const status = show.status?.toLowerCase();
     if (status === 'confirmed' || status === 'accepted') {
-      entries.push({
-        type: 'show',
-        date: show.date,
-        data: show
-      });
+      
+      if (artistId) {
+        // 🎯 ARTIST PERSPECTIVE: Only add as 'show' type if THIS ARTIST is confirmed
+        const artistLineupItem = show.lineup?.find(item => item.artistId === artistId);
+        const artistConfirmed = artistLineupItem?.status?.toLowerCase() === 'confirmed';
+        
+        if (artistConfirmed) {
+          // Artist is confirmed → show as confirmed show (expands to lineup)
+          entries.push({
+            type: 'show',
+            date: show.date,
+            data: show
+          });
+        } else if (artistLineupItem) {
+          // Artist is in lineup but NOT confirmed → convert to show-request (expands to competing bids)
+          const syntheticRequest = {
+            id: `show-request-${show.id}`,
+            artistId: artistId,
+            artistName: artistLineupItem.artistName,
+            title: `Pending Show at ${show.venueName}`,
+            description: `Multi-artist show where you're pending confirmation`,
+            requestedDate: show.date,
+            startDate: show.date,
+            endDate: show.date,
+            isSingleDate: true,
+            location: show.city && show.state ? `${show.city}, ${show.state}` : show.venueName,
+            status: 'OPEN',
+            // Mark as synthetic show-request for special handling
+            isShowBasedRequest: true,
+            originalShowId: show.id,
+            venueId: show.venueId,
+            venueName: show.venueName
+          };
+          
+          entries.push({
+            type: 'show-request',
+            date: show.date,
+            data: syntheticRequest
+          });
+        }
+        // If artist not in lineup at all, don't show the show
+      } else {
+        // 🎯 VENUE PERSPECTIVE: Use aggregate show status (existing logic)
+        entries.push({
+          type: 'show',
+          date: show.date,
+          data: show
+        });
+      }
     }
   });
   
@@ -202,15 +106,13 @@ export function createTimelineEntries(
       const syntheticRequest: any = { // 🎯 PHASE 4: Updated to any for ShowRequest
         id: `venue-offer-${offer.id}`, // Prefix to distinguish synthetic requests
         artistId: offer.artistId,
-        artistName: offer.artistName || offer.artist?.name || 'Unknown Artist',
+        artistName: offer.artistName || 'Unknown Artist',
         title: offer.title,
         description: offer.description || `Offer from ${offer.venueName}`,
         startDate: offerDate, // 🎯 FIX: Use consistent date without timezone
         endDate: offerDate, // Single date for offers
         isSingleDate: true,
-        location: offer.venue?.location ? 
-          `${offer.venue.location.city}, ${offer.venue.location.stateProvince}` : 
-          offer.venueName || 'Unknown Location',
+        location: offer.venueName || 'Unknown Location', // 🎯 PHASE 1: Simplified location display
         radius: 0, // Not applicable for venue offers
         flexibility: 'exact-cities' as const,
         genres: [], // Could be enhanced with venue/artist genre matching
@@ -268,10 +170,6 @@ export function createTimelineEntries(
   // 🎯 NEW: Convert venue bids to synthetic tour requests for venue timeline view ONLY
   // 🎯 FIX: Only create synthetic venue bid requests when viewing venue pages, not when venue users view artist pages
   if (venueId && !artistId && venueBids.length > 0) {
-    console.log(`🎯 Processing ${venueBids.length} venue bids for venue timeline`);
-    
-    // 🎯 FIX: Group bids by showRequestId to avoid creating duplicate request rows
-    const uniqueRequestIds = new Set<string>();
     
     venueBids.forEach(bid => {
       const status = bid.status.toLowerCase();
@@ -279,10 +177,9 @@ export function createTimelineEntries(
       // Only show active bid statuses (same filtering as venue offers)
       if (!['cancelled', 'declined', 'rejected', 'expired'].includes(status)) {
         // 🎯 KEY FIX: Only create timeline entries for bids that belong to the current venue
-        if (bid.venueId === venueId && !uniqueRequestIds.has(bid.showRequestId)) {
-          uniqueRequestIds.add(bid.showRequestId);
+        if (bid.venueId === venueId) {
           
-          console.log(`🎯 Creating timeline entry for venue bid: ${bid.venueName} -> ${bid.location || 'Unknown Location'} on ${bid.proposedDate.split('T')[0]}`);
+
           
           const bidDate = bid.proposedDate.split('T')[0];
           
@@ -376,7 +273,7 @@ export function createTimelineEntries(
     // Add show requests that are specifically targeted at this venue
     tourRequests.forEach(request => {
       if (request.status === 'OPEN') { // 🎯 PHASE 3: ShowRequest uses 'OPEN' not 'active'
-        console.log(`🎯 Adding venue-specific request to timeline: ${request.artist?.name} -> ${request.title} on ${request.requestedDate}`);
+
         entries.push({
           type: 'show-request', // 🎯 PHASE 3: Updated to 'show-request'
           date: request.requestedDate?.split('T')[0], // 🎯 PHASE 3: Use requestedDate from ShowRequest
@@ -646,11 +543,11 @@ export function getTimelineBorderClass(status: string): string {
   const normalizedStatus = status?.toLowerCase();
   switch (normalizedStatus) {
     case 'confirmed':
-      return 'border-l-4 border-l-green-500 bg-green-50/30';
+      return 'bg-green-50/30';
     case 'accepted':
-      return 'border-l-4 border-l-green-400 bg-green-50/20';
+      return 'bg-green-50/20';
     case 'hold':
-      return 'border-l-4 border-l-violet-400 bg-violet-50/30';
+      return 'bg-violet-50/30';
     case 'pending':
     default:
       return ''; // No border for non-confirmed items

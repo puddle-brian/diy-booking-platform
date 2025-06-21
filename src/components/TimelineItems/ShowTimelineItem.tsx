@@ -187,8 +187,11 @@ export function ShowTimelineItem({
           permissions={permissions}
           venueId={venueId}
           onShowDocument={onShowDocument}
+          artistId={artistId}
         />
       )}
+      
+
       
       {/* Add Support Act button row */}
       {isExpanded && permissions.canEditShow(show) && (

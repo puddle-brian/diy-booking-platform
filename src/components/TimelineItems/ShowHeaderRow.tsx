@@ -1,6 +1,7 @@
 import React from 'react';
 import { Show } from '../../../types';
-import { generateSmartShowTitle, generateDetailedShowTitle, getAggregateStatusBadge, LineupItem } from '../../utils/showUtils';
+import { getAggregateStatusBadge, getAggregateStatus, LineupItem } from '../../utils/showUtils';
+import { generateSmartShowTitle } from '../../utils/showNaming';
 import { ItineraryPermissions } from '../../hooks/useItineraryPermissions';
 import { ItineraryDate } from '../DateDisplay';
 import { AlignedDate } from './AlignedDate';
@@ -45,8 +46,20 @@ export function ShowHeaderRow({
 }: ShowHeaderRowProps) {
   // Use effectiveLineup if provided (for legacy shows), otherwise use show.lineup
   const lineup: LineupItem[] = effectiveLineup || show.lineup || [];
-  const showTitle = generateSmartShowTitle(lineup);
-  const detailedTitle = generateDetailedShowTitle(lineup);
+  
+  // 🔍 DEBUG: Log lineup data for Lightning Bolt show
+  if (show.title === 'Punk Rock Festival') {
+    console.log('🎯 Lightning Bolt show lineup:', lineup);
+    console.log('🎯 Lineup length:', lineup.length);
+  }
+  
+  const { title: showTitle, tooltip: detailedTitle } = generateSmartShowTitle(lineup);
+  
+  // 🔍 DEBUG: Log generated title
+  if (show.title === 'Punk Rock Festival') {
+    console.log('🎯 Generated title:', showTitle);
+    console.log('🎯 Generated tooltip:', detailedTitle);
+  }
   
   // Show has lineup if there are any artists
   const hasLineup = lineup.length > 0;
@@ -60,16 +73,20 @@ export function ShowHeaderRow({
         // Return the artist's individual status
         return {
           status: viewingArtistLineupItem.status,
-          isArtistSpecific: true
+          isArtistSpecific: true,
+          badge: null // Use StatusBadge component for individual artist status
         };
       }
     }
     
     // Default to aggregate status (venue perspective or no specific artist context)
-    const statusBadge = getAggregateStatusBadge(lineup);
+    const statusBadge = getAggregateStatusBadge(lineup, false);
+    
+    // For venue view, return the actual badge to show custom text like "2/3", "3/4"
     return {
-      status: statusBadge.text?.toLowerCase()?.includes('confirmed') ? 'CONFIRMED' : 'PENDING',
-      isArtistSpecific: false
+      status: statusBadge.text?.toLowerCase()?.includes('confirmed') || statusBadge.text?.includes('/') ? 'CONFIRMED' : 'PENDING',
+      isArtistSpecific: false,
+      badge: statusBadge // Use the actual badge HTML for custom text
     };
   };
   
@@ -125,56 +142,8 @@ export function ShowHeaderRow({
       <td className={`px-4 py-1 ${venueId ? 'w-[26%]' : 'w-[19%]'}`}>
         <div className="text-sm font-medium text-gray-900 truncate" title={detailedTitle}>
           {venueId ? (
-            // Venue view: Show artist lineup with smart title
-            lineup.length === 1 ? (
-              // Single artist - make it clickable
-              <a 
-                href={`/artists/${lineup[0].artistId}`}
-                className="text-blue-600 hover:text-blue-800 hover:underline"
-                title="View artist page"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {lineup[0].artistName}
-              </a>
-            ) : lineup.length === 2 ? (
-              // Two artists - both clickable
-              <>
-                <a 
-                  href={`/artists/${lineup[0].artistId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                  title="View artist page"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {lineup[0].artistName}
-                </a>
-                <span> & </span>
-                <a 
-                  href={`/artists/${lineup[1].artistId}`}
-                  className="text-blue-600 hover:text-blue-800 hover:underline"
-                  title="View artist page"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {lineup[1].artistName}
-                </a>
-              </>
-            ) : (
-              // Multiple artists - use smart title with clickable headliner
-              lineup.length > 0 ? (
-                <>
-                  <a 
-                    href={`/artists/${lineup[0].artistId}`}
-                    className="text-blue-600 hover:text-blue-800 hover:underline"
-                    title="View artist page"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {lineup[0].artistName}
-                  </a>
-                  <span> + {lineup.length - 1} more</span>
-                </>
-              ) : (
-                showTitle
-              )
-            )
+            // Use unified title system - exactly the same as show requests
+            showTitle
           ) : (
             // Artist view: Show venue information with clickable link
             show.venueId ? (
@@ -195,10 +164,18 @@ export function ShowHeaderRow({
 
       {/* Status - Artist-specific when viewing from artist page, aggregate otherwise */}
       <td className="px-4 py-1 w-[10%]">
-        <StatusBadge 
-          status={perspectiveStatus.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending'} 
-          variant="compact" 
-        />
+        {perspectiveStatus.badge ? (
+          // Use custom badge for venue view (shows "2/3", "3/4", etc.)
+          <span className={perspectiveStatus.badge.className}>
+            {perspectiveStatus.badge.text}
+          </span>
+        ) : (
+          // Use StatusBadge component for artist-specific view
+          <StatusBadge 
+            status={perspectiveStatus.status.toLowerCase() === 'confirmed' ? 'confirmed' : 'pending'} 
+            variant="compact" 
+          />
+        )}
       </td>
 
       {/* Billing Position - N/A for show header */}

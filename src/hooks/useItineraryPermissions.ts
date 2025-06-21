@@ -1,12 +1,7 @@
 import { useMemo } from 'react';
+import { VenueBid } from '../../types'; // 🎯 PHASE 1: Use unified VenueBid type
 
-interface VenueBid {
-  id: string;
-  venueId: string;
-  venueName: string;
-  status: string;
-  showRequestId: string;
-}
+// 🎯 PHASE 1: Removed duplicate VenueBid interface - now using unified type from main types.ts
 
 interface LineupItem {
   artistId: string;

@@ -38,34 +38,8 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-// 🎵 LINEUP DISPLAY UTILITIES
-const generateSmartShowTitle = (show: ShowWithLineup): string => {
-  // If show has a custom title, use it
-  if (show.title && !show.title.includes(' at ')) {
-    return show.title;
-  }
-
-  // Use lineup to generate smart title
-  if (show.lineup && show.lineup.length > 0) {
-    const sortedLineup = [...show.lineup].sort((a, b) => a.performanceOrder - b.performanceOrder);
-    
-    if (sortedLineup.length === 1) {
-      // Single artist
-      return sortedLineup[0].artistName;
-    } else if (sortedLineup.length === 2) {
-      // Two artists
-      return `${sortedLineup[0].artistName} + ${sortedLineup[1].artistName}`;
-    } else {
-      // Multi-artist: "Headliner + X others"
-      const headliner = sortedLineup[0];
-      const othersCount = sortedLineup.length - 1;
-      return `${headliner.artistName} + ${othersCount} ${othersCount === 1 ? 'other' : 'others'}`;
-    }
-  }
-
-  // Fallback to original artistName
-  return show.artistName || 'TBA';
-};
+// Import unified show naming system
+import { generateSmartShowTitle } from '../../utils/showNaming';
 
 const getLineupSummary = (show: ShowWithLineup): { 
   headliner: string; 
@@ -473,7 +447,23 @@ export default function ShowsPage() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">{generateSmartShowTitle(show)}</h3>
+                                                      <h3 className="text-xl font-bold text-gray-900">
+                              {(() => {
+                                // Handle custom titles
+                                if (show.title && !show.title.includes(' at ')) {
+                                  return show.title;
+                                }
+                                
+                                // Use lineup if available
+                                if (show.lineup && show.lineup.length > 0) {
+                                  const { title } = generateSmartShowTitle(show.lineup);
+                                  return title;
+                                }
+                                
+                                // Fallback to original artistName
+                                return show.artistName || 'TBA';
+                              })()}
+                            </h3>
                           <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(show.status)}`}>
                             {show.status}
                           </span>

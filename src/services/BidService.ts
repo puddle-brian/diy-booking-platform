@@ -1,4 +1,4 @@
-import { VenueBid, VenueOffer, Show } from '../../types';
+import { VenueBid, VenueOffer, Show, BidStatus, StatusConverter } from '../../types'; // 🎯 PHASE 1.2: Add unified status types
 
 interface BidStatusBadge {
   className: string;
@@ -11,7 +11,7 @@ interface DateConflictResult {
 }
 
 interface BidActionCallbacks {
-  setBidStatusOverrides: (fn: (prev: Map<string, 'pending' | 'accepted' | 'declined'>) => Map<string, 'pending' | 'accepted' | 'declined'>) => void;
+  setBidStatusOverrides: (fn: (prev: Map<string, BidStatus>) => Map<string, BidStatus>) => void; // 🎯 PHASE 1.2: Use unified BidStatus type
   setDeclinedBids: (fn: (prev: Set<string>) => Set<string>) => void;
   setBidActions: (fn: (prev: { [key: string]: boolean }) => { [key: string]: boolean }) => void;
   fetchData: () => Promise<void>;
@@ -20,6 +20,8 @@ interface BidActionCallbacks {
   showInfo: (title: string, message: string) => void;
   toast: (type: 'info' | 'success' | 'error' | 'warning', title: string, message: string, duration?: number) => void;
   confirm: (title: string, message: string, onConfirm: () => void) => void;
+  // 🐛 BUG FIX: Add deleteRequestOptimistic to handle venue bid withdrawals
+  deleteRequestOptimistic?: (requestId: string) => void;
 }
 
 interface OfferActionCallbacks extends BidActionCallbacks {
@@ -32,8 +34,8 @@ export class BidService {
    */
   static getEffectiveBidStatus(
     bid: VenueBid, 
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>
-  ): string {
+    bidStatusOverrides: Map<string, BidStatus>
+  ): BidStatus { // 🎯 PHASE 1.2: Use unified BidStatus type
     const override = bidStatusOverrides.get(bid.id);
     if (override) {
       return override;
@@ -50,8 +52,8 @@ export class BidService {
    */
   static getBidStatusBadge(
     bid: VenueBid, 
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>
-  ): BidStatusBadge {
+    bidStatusOverrides: Map<string, BidStatus>
+  ): BidStatusBadge { // 🎯 PHASE 1.2: Use unified BidStatus type
     const effectiveStatus = this.getEffectiveBidStatus(bid, bidStatusOverrides);
     
     switch (effectiveStatus) {
@@ -91,7 +93,7 @@ export class BidService {
     shows: Show[],
     venueBids: VenueBid[],
     venueOffers: VenueOffer[] = [],
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>,
+    bidStatusOverrides: Map<string, BidStatus>, // 🎯 PHASE 1.2: Use unified BidStatus type
     excludeBidId?: string,
     excludeOfferId?: string
   ): DateConflictResult {
@@ -120,7 +122,7 @@ export class BidService {
     bid: VenueBid,
     action: string,
     callbacks: BidActionCallbacks,
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>,
+    bidStatusOverrides: Map<string, BidStatus>, // 🎯 PHASE 1.2: Use unified BidStatus type
     shows: Show[],
     venueBids: VenueBid[],
     venueOffers: VenueOffer[] = [],
@@ -238,6 +240,14 @@ export class BidService {
       callbacks.setBidStatusOverrides(prev => new Map(prev).set(bid.id, 'pending'));
     } else if (action === 'decline' || action === 'decline-held') {
       callbacks.setDeclinedBids(prev => new Set([...prev, bid.id]));
+      
+      // 🐛 BUG FIX: When venue withdraws their own bid, also remove the synthetic timeline entry
+      // Check if this is a venue bid withdrawal (reason contains "withdrew") and callbacks has deleteRequestOptimistic
+      if (reason?.includes('withdrew') && callbacks.deleteRequestOptimistic) {
+        const syntheticRequestId = `venue-bid-${bid.id}`;
+        callbacks.deleteRequestOptimistic(syntheticRequestId);
+        console.log('🐛 Removed synthetic venue bid timeline entry:', syntheticRequestId);
+      }
     }
     
     try {
@@ -336,7 +346,7 @@ export class BidService {
     offer: VenueOffer,
     action: string,
     callbacks: OfferActionCallbacks,
-    bidStatusOverrides: Map<string, 'pending' | 'accepted' | 'declined'>,
+    bidStatusOverrides: Map<string, BidStatus>, // 🎯 PHASE 1.2: Use unified BidStatus type
     shows: Show[],
     venueBids: VenueBid[],
     venueOffers: VenueOffer[] = []
