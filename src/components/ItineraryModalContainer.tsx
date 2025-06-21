@@ -52,7 +52,7 @@ interface ItineraryModalContainerProps {
   onAddAnotherArtistSuccess: () => void;
   
   // Alert Modal
-  AlertModal: React.ComponentType<any>;
+  AlertModal: React.ReactNode;
   
   // Shared props
   actualViewerType: 'artist' | 'venue' | 'public';
@@ -112,7 +112,7 @@ export function ItineraryModalContainer(props: ItineraryModalContainerProps) {
       onAddAnotherArtistSuccess={props.onAddAnotherArtistSuccess}
       
       // Alert Modal
-      AlertModal={<props.AlertModal />}
+      AlertModal={props.AlertModal}
       
       // Shared props
       actualViewerType={props.actualViewerType}
