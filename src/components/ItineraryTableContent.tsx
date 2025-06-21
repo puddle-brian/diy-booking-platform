@@ -3,100 +3,41 @@ import { ItineraryTableHeader } from './ItineraryTableHeader';
 import { ItineraryEmptyState } from './ItineraryEmptyState';
 import { SpecializedTimelineGroupRow } from './TimelineItems/SpecializedTimelineGroupRow';
 import { groupProcessedEntriesByDate } from '../utils/timelineProcessing';
+// 🎯 MICRO-PHASE H: Import consolidated prop interfaces
+import { ConsolidatedTimelineProps, extractDataProps, extractInteractionProps, extractStateProps } from '../utils/propConsolidation';
 
-interface ItineraryTableContentProps {
-  venueId?: string;
-  artistId?: string;
-  activeMonthEntries: any[];
-  processedEntries: any[];
-  stableMonthTabs: any[];
-  editable: boolean;
-  permissions: any;
-  state: any;
-  handlers: any;
-  venueName?: string;
-  toggleShowExpansion: (showId: string) => void;
-  toggleRequestExpansion: (requestId: string) => void;
-  handleDeleteShow: (showId: string) => void;
-  venueBids: any[];
-  venueOffers: any[];
-  declinedBids: Set<string>;
-  tourRequests: any[];
-  actions: any;
-  getBidStatusBadge: (bidId: string) => any;
-  handleDeleteShowRequest: (id: string, name: string) => Promise<void>;
-  handleOfferAction: (offer: any, action: string) => Promise<void>;
-  handleBidAction: (bid: any, action: string, reason?: string) => Promise<void>;
-  getEffectiveBidStatus: (bidId: string) => string;
-  venues: any[];
-}
+// 🎯 MICRO-PHASE H: Simplified interface using consolidated props
+interface ItineraryTableContentProps extends ConsolidatedTimelineProps {}
 
-export function ItineraryTableContent({
-  venueId,
-  artistId,
-  activeMonthEntries,
-  processedEntries,
-  stableMonthTabs,
-  editable,
-  permissions,
-  state,
-  handlers,
-  venueName,
-  toggleShowExpansion,
-  toggleRequestExpansion,
-  handleDeleteShow,
-  venueBids,
-  venueOffers,
-  declinedBids,
-  tourRequests,
-  actions,
-  getBidStatusBadge,
-  handleDeleteShowRequest,
-  handleOfferAction,
-  handleBidAction,
-  getEffectiveBidStatus,
-  venues
-}: ItineraryTableContentProps) {
+// 🎯 MICRO-PHASE H: Simplified component signature using consolidated props
+export function ItineraryTableContent(props: ItineraryTableContentProps) {
+  // 🎯 MICRO-PHASE H: Extract organized prop groups
+  const dataProps = extractDataProps(props);
+  const interactionProps = extractInteractionProps(props);
+  const stateProps = extractStateProps(props);
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[1000px] table-fixed">
-        <ItineraryTableHeader venueId={venueId} artistId={artistId} />
+        <ItineraryTableHeader venueId={dataProps.venueId} artistId={dataProps.artistId} />
         <tbody className="divide-y divide-gray-100">
           {/* Empty state */}
-          {activeMonthEntries.length === 0 && (
+          {dataProps.activeMonthEntries.length === 0 && (
             <ItineraryEmptyState
-              venueId={venueId}
-              stableMonthTabs={stableMonthTabs}
-              editable={editable}
+              venueId={dataProps.venueId}
+              stableMonthTabs={dataProps.stableMonthTabs}
+              editable={stateProps.editable}
             />
           )}
           
-          {/* 🎯 MICRO-PHASE D: Specialized timeline components (reduces prop drilling) */}
-          {groupProcessedEntriesByDate(processedEntries).map(({ groupDate, groupEntries }) => (
+          {/* 🎯 MICRO-PHASE H: Consolidated props passed to specialized components */}
+          {groupProcessedEntriesByDate(dataProps.processedEntries).map(({ groupDate, groupEntries }) => (
             <SpecializedTimelineGroupRow
               key={groupDate}
               groupDate={groupDate}
               groupEntries={groupEntries}
-              permissions={permissions}
-              state={state}
-              handlers={handlers}
-              artistId={artistId}
-              venueId={venueId}
-              venueName={venueName}
-              actions={actions}
-              toggleShowExpansion={toggleShowExpansion}
-              handleDeleteShow={handleDeleteShow}
-              venueBids={venueBids}
-              venueOffers={venueOffers}
-              declinedBids={declinedBids}
-              tourRequests={tourRequests}
-              getBidStatusBadge={getBidStatusBadge}
-              toggleRequestExpansion={toggleRequestExpansion}
-              handleDeleteShowRequest={handleDeleteShowRequest}
-              handleOfferAction={handleOfferAction}
-              handleBidAction={handleBidAction}
-              getEffectiveBidStatus={getEffectiveBidStatus}
-              venues={venues}
+              {...stateProps}
+              {...dataProps}
+              {...interactionProps}
             />
           ))}
         </tbody>
