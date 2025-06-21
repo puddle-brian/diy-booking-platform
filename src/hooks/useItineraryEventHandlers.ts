@@ -1,181 +1,289 @@
-import { VenueBid, VenueOffer } from '../../types';
+import { useCallback } from 'react';
+import { Show, VenueBid, VenueOffer } from '../../types';
+import { BidService } from '../services/BidService';
 
-interface UseItineraryEventHandlersProps {
-  artistId?: string;
+interface UseItineraryEventHandlersParams {
+  actions: any;
+  fetchData: () => Promise<void>;
+  shows: Show[];
+  venueBids: VenueBid[];
+  venueOffers: VenueOffer[];
+  bidStatusOverrides: Map<string, string>;
+  setBidStatusOverrides: any;
+  setDeclinedBids: any;
+  setBidActions: any;
+  activeMonthEntries: any[];
   venueId?: string;
   venueName?: string;
-  fetchData: () => void;
-  actions: any;
-  showSuccess: (title: string, message: string) => void;
-  showError: (message: string) => void;
-  confirm: (message: string) => Promise<boolean>;
+  permissions: any;
+  confirm: any;
+  showSuccess: any;
+  showError: any;
+  showInfo: any;
+  toast: any;
+  setAddDateForm: any;
 }
 
-export function useItineraryEventHandlers({
-  artistId,
-  venueId,
-  venueName,
-  fetchData,
-  actions,
-  showSuccess,
-  showError,
-  confirm
-}: UseItineraryEventHandlersProps) {
+export interface ItineraryEventHandlers {
+  toggleBidExpansion: (requestId: string) => void;
+  toggleShowExpansion: (showId: string) => void;
+  toggleRequestExpansion: (requestId: string) => void;
+  handleBidSuccess: (bid: any) => void;
+  handlePlaceBid: (tourRequest: any) => void;
+  handleDeleteShow: (showId: string, showName: string) => Promise<void>;
+  checkDateConflict: (proposedDate: string, excludeBidId?: string, excludeOfferId?: string) => any;
+  getEffectiveBidStatus: (bid: VenueBid) => string;
+  handleBidAction: (bid: VenueBid, action: string, reason?: string) => Promise<any>;
+  handleOfferAction: (offer: VenueOffer, action: string) => Promise<any>;
+  getBidStatusBadge: (bid: VenueBid) => any;
+  handleTemplateApply: (template: any) => void;
+  handleDeleteShowRequest: (requestId: string, requestName: string) => Promise<void>;
+  handleAddAnotherArtistSuccess: (offer: any) => void;
+}
 
-  const shouldShowOfferButton = (request: any & { isVenueInitiated?: boolean }) => {
-    if (!venueId) return false;
-    if (request.isVenueInitiated) return false;
-    return request.status === 'OPEN' || request.status === 'open';
-  };
+/**
+ * 🎯 MICRO-PHASE C: Event Handler Consolidation Hook
+ * 
+ * Consolidates all event handling logic from TabbedTourItinerary
+ * to reduce component complexity and improve maintainability.
+ * 
+ * Extracted event handlers:
+ * - Expansion toggles
+ * - Bid/offer actions 
+ * - CRUD operations
+ * - Template handling
+ * - Date conflict checking
+ */
+export function useItineraryEventHandlers(params: UseItineraryEventHandlersParams): ItineraryEventHandlers {
+  const {
+    actions,
+    fetchData,
+    shows,
+    venueBids,
+    venueOffers,
+    bidStatusOverrides,
+    setBidStatusOverrides,
+    setDeclinedBids,
+    setBidActions,
+    activeMonthEntries,
+    venueId,
+    venueName,
+    permissions,
+    confirm,
+    showSuccess,
+    showError,
+    showInfo,
+    toast,
+    setAddDateForm
+  } = params;
 
-  const toggleBidExpansion = (requestId: string) => {
+  const toggleBidExpansion = useCallback((requestId: string) => {
     actions.toggleBidExpansion(requestId);
-  };
+  }, [actions]);
 
-  const toggleShowExpansion = (showId: string) => {
+  const toggleShowExpansion = useCallback((showId: string) => {
     actions.toggleShowExpansion(showId);
-  };
+  }, [actions]);
 
-  const toggleRequestExpansion = (requestId: string) => {
+  const toggleRequestExpansion = useCallback((requestId: string) => {
     actions.toggleRequestExpansion(requestId);
-  };
+  }, [actions]);
 
-  const handleBidSuccess = (bid: any) => {
-    console.log('Bid placed successfully:', bid);
+  const handleBidSuccess = useCallback((bid: any) => {
     actions.closeBidForm();
     fetchData();
-  };
+  }, [actions, fetchData]);
 
-  const handlePlaceBid = (tourRequest: any) => {
-    actions.openBidForm(tourRequest);
-  };
-
-  const handleDeleteShow = async (showId: string, showName: string) => {
-    const confirmed = await confirm(`Are you sure you want to delete "${showName}"? This action cannot be undone.`);
-    if (!confirmed) return;
-
-    actions.setDeleteLoading(showId);
-    try {
-      const response = await fetch(`/api/shows/${showId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Failed to delete show');
-      }
-
-      // Remove from local state immediately for better UX
-      actions.deleteShowOptimistic(showId);
-      
-      // Then refresh to ensure consistency
-      fetchData();
-      
-      showSuccess('Show Deleted', `"${showName}" has been successfully deleted.`);
-    } catch (error) {
-      console.error('Failed to delete show:', error);
-      showError('Failed to delete show. Please try again.');
-    } finally {
-      actions.setDeleteLoading(null);
+  const handlePlaceBid = useCallback((tourRequest: any) => {
+    if (venueId && venueName) {
+      actions.openBidForm(tourRequest);
+      return;
     }
-  };
-
-  const checkDateConflict = (proposedDate: string, excludeBidId?: string, excludeOfferId?: string) => {
-    // Implementation would go here - this is a placeholder
-    return false;
-  };
-
-  const getEffectiveBidStatus = (bid: VenueBid) => {
-    if ((bid as any).holdState === 'HELD') return 'held';
-    return bid.status;
-  };
-
-  const handleBidAction = async (bid: VenueBid, action: string, reason?: string) => {
-    try {
-      const response = await fetch(`/api/venue-bids/${bid.id}/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason })
+    
+    if (permissions.canMakeOffers) {
+      actions.openUniversalOffer({
+        id: tourRequest.artistId,
+        name: tourRequest.artist?.name || tourRequest.artistName
       });
-
-      if (!response.ok) {
-        throw new Error(`Failed to ${action} bid`);
-      }
-
-      fetchData();
-      showSuccess(`Bid ${action}ed`, `The bid has been ${action}ed successfully.`);
-    } catch (error) {
-      console.error(`Failed to ${action} bid:`, error);
-      showError(`Failed to ${action} bid. Please try again.`);
+      return;
     }
-  };
+    
+    alert('To submit a bid, we need your venue information. Please visit your venue profile page first to set up bidding.');
+  }, [venueId, venueName, permissions, actions]);
 
-  const handleOfferAction = async (offer: VenueOffer, action: string) => {
-    try {
-      const response = await fetch(`/api/venue-offers/${offer.id}/${action}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
+  const handleDeleteShow = useCallback(async (showId: string, showName: string) => {
+    confirm(
+      'Delete Show',
+      `Are you sure you want to delete "${showName}"?`,
+      async () => {
+        try {
+          // Check if this is the last item in the current month before deletion
+          const currentMonthEntries = activeMonthEntries;
+          const showToDelete = currentMonthEntries.find(entry => 
+            entry.type === 'show' && (entry.data as Show).id === showId
+          );
+          const isLastItemInMonth = currentMonthEntries.length === 1 && showToDelete;
+          
+          // Optimistic update - immediately hide the show
+          actions.deleteShowOptimistic(showId);
+          
+          const response = await fetch(`/api/shows/${showId}`, {
+            method: 'DELETE',
+          });
 
-      if (!response.ok) {
-        throw new Error(`Failed to ${action} offer`);
+          if (!response.ok) {
+            throw new Error('Failed to delete show');
+          }
+
+          showSuccess('Show Deleted', 'Show deleted successfully');
+        } catch (error) {
+          console.error('Error deleting show:', error);
+          
+          // Revert optimistic update on error by refreshing data
+          await fetchData();
+          
+          showError('Delete Failed', 'Failed to delete show. Please try again.');
+        }
       }
+    );
+  }, [confirm, activeMonthEntries, actions, showSuccess, showError, fetchData]);
 
-      fetchData();
-      showSuccess(`Offer ${action}ed`, `The offer has been ${action}ed successfully.`);
-    } catch (error) {
-      console.error(`Failed to ${action} offer:`, error);
-      showError(`Failed to ${action} offer. Please try again.`);
-    }
-  };
+  const checkDateConflict = useCallback((proposedDate: string, excludeBidId?: string, excludeOfferId?: string) => {
+    return BidService.checkDateConflict(
+      proposedDate,
+      shows,
+      venueBids,
+      venueOffers,
+      bidStatusOverrides,
+      excludeBidId,
+      excludeOfferId
+    );
+  }, [shows, venueBids, venueOffers, bidStatusOverrides]);
 
-  const getBidStatusBadge = (bid: VenueBid) => {
-    return getEffectiveBidStatus(bid);
-  };
+  const getEffectiveBidStatus = useCallback((bid: VenueBid) => {
+    return BidService.getEffectiveBidStatus(bid, bidStatusOverrides);
+  }, [bidStatusOverrides]);
 
-  const handleTemplateApply = (template: any) => {
-    console.log('Applying template:', template);
-    // Template application logic would go here
-  };
+  const handleBidAction = useCallback(async (bid: VenueBid, action: string, reason?: string) => {
+    const callbacks = {
+      setBidStatusOverrides,
+      setDeclinedBids,
+      setBidActions,
+      fetchData,
+      showSuccess,
+      showError,
+      showInfo,
+      toast,
+      confirm,
+      deleteRequestOptimistic: actions.deleteRequestOptimistic
+    };
 
-  const handleDeleteShowRequest = async (requestId: string, requestName: string) => {
-    const confirmed = await confirm(`Are you sure you want to delete "${requestName}"? This action cannot be undone.`);
-    if (!confirmed) return;
+    return BidService.handleBidAction(
+      bid,
+      action,
+      callbacks,
+      bidStatusOverrides,
+      shows,
+      venueBids,
+      venueOffers,
+      reason
+    );
+  }, [setBidStatusOverrides, setDeclinedBids, setBidActions, fetchData, showSuccess, showError, showInfo, toast, confirm, actions, bidStatusOverrides, shows, venueBids, venueOffers]);
 
-    actions.setDeleteLoading(requestId);
-    try {
-      const response = await fetch(`/api/show-requests/${requestId}`, {
-        method: 'DELETE',
-      });
+  const handleOfferAction = useCallback(async (offer: VenueOffer, action: string) => {
+    const callbacks = {
+      setBidStatusOverrides,
+      setDeclinedBids,
+      setBidActions,
+      fetchData,
+      showSuccess,
+      showError,
+      showInfo,
+      toast,
+      confirm,
+      deleteRequestOptimistic: actions.deleteRequestOptimistic
+    };
 
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || 'Failed to delete show request');
+    return BidService.handleOfferAction(
+      offer,
+      action,
+      callbacks,
+      bidStatusOverrides,
+      shows,
+      venueBids,
+      venueOffers
+    );
+  }, [setBidStatusOverrides, setDeclinedBids, setBidActions, fetchData, showSuccess, showError, showInfo, toast, confirm, actions, bidStatusOverrides, shows, venueBids, venueOffers]);
+
+  const getBidStatusBadge = useCallback((bid: VenueBid) => {
+    return BidService.getBidStatusBadge(bid, bidStatusOverrides);
+  }, [bidStatusOverrides]);
+
+  const handleTemplateApply = useCallback((template: any) => {
+    setAddDateForm((prev: any) => ({
+      ...prev,
+      equipment: {
+        needsPA: template.equipment?.needsPA ?? prev.equipment.needsPA,
+        needsMics: template.equipment?.needsMics ?? prev.equipment.needsMics,
+        needsDrums: template.equipment?.needsDrums ?? prev.equipment.needsDrums,
+        needsAmps: template.equipment?.needsAmps ?? prev.equipment.needsAmps,
+        acoustic: template.equipment?.acoustic ?? prev.equipment.acoustic
+      },
+      guaranteeRange: {
+        min: template.guaranteeRange?.min ?? prev.guaranteeRange?.min ?? 0,
+        max: template.guaranteeRange?.max ?? prev.guaranteeRange?.max ?? 0
+      },
+      acceptsDoorDeals: template.acceptsDoorDeals ?? prev.acceptsDoorDeals,
+      merchandising: template.merchandising ?? prev.merchandising,
+      ageRestriction: template.ageRestriction ?? prev.ageRestriction,
+      travelMethod: template.travelMethod ?? prev.travelMethod,
+      lodging: template.lodging ?? prev.lodging,
+      technicalRequirements: template.technicalRequirements ?? prev.technicalRequirements,
+      hospitalityRequirements: template.hospitalityRequirements ?? prev.hospitalityRequirements,
+      priority: template.priority ?? prev.priority,
+      notes: template.notes ? `${prev.notes ? prev.notes + '\n\n' : ''}Template: ${template.name}\n${template.notes}` : prev.notes
+    }));
+  }, [setAddDateForm]);
+
+  const handleDeleteShowRequest = useCallback(async (requestId: string, requestName: string) => {
+    confirm(
+      'Delete Show Request',
+      `Delete "${requestName}"? This will also delete all associated bids and cannot be undone.`,
+      async () => {
+        actions.setDeleteLoading(requestId);
+        
+        // Optimistic update - immediately hide the request
+        actions.deleteRequestOptimistic(requestId);
+        
+        try {
+          const response = await fetch(`/api/show-requests/${requestId}`, {
+            method: 'DELETE'
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to delete show request');
+          }
+          
+          showSuccess('Request Deleted', 'Show request deleted successfully.');
+        } catch (error) {
+          console.error('Error deleting show request:', error);
+          
+          // Revert optimistic update on error
+          await fetchData();
+          
+          showError('Delete Failed', 'Failed to delete show request. Please try again.');
+        } finally {
+          actions.setDeleteLoading(null);
+        }
       }
+    );
+  }, [confirm, actions, showSuccess, showError, fetchData]);
 
-      // Remove from local state immediately for better UX
-      actions.deleteRequestOptimistic(requestId);
-      
-      // Then refresh to ensure consistency
-      fetchData();
-      
-      showSuccess('Show Request Deleted', `"${requestName}" has been successfully deleted.`);
-    } catch (error) {
-      console.error('Failed to delete show request:', error);
-      showError('Failed to delete show request. Please try again.');
-    } finally {
-      actions.setDeleteLoading(null);
-    }
-  };
-
-  const handleAddAnotherArtistSuccess = (offer: any) => {
-    console.log('Artist offer sent:', offer);
+  const handleAddAnotherArtistSuccess = useCallback((offer: any) => {
     fetchData();
-    showSuccess('Artist Offer Sent', 'Your offer has been sent to the artist and will appear in their itinerary.');
-  };
+  }, [fetchData]);
 
   return {
-    shouldShowOfferButton,
     toggleBidExpansion,
     toggleShowExpansion,
     toggleRequestExpansion,
