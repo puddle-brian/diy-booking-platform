@@ -52,6 +52,9 @@ import { ExpandedBidsSection } from './TimelineItems/ExpandedBidsSection';
 import { ShowRequestProcessor } from './TimelineItems/ShowRequestProcessor';
 import { TimelineRow } from './TimelineItems/TimelineRow';
 import { ModalContainer } from './ModalContainer';
+import { ItineraryModalContainer } from './ItineraryModalContainer';
+import { ItineraryHeader } from './ItineraryHeader';
+import { ItineraryTableContent } from './ItineraryTableContent';
 import { ItineraryLoadingStates } from './ItineraryLoadingStates';
 import { generateSmartShowTitle, getBillingPriority } from '../utils/showNaming';
 import { BidService } from '../services/BidService';
@@ -339,35 +342,15 @@ export default function TabbedTourItinerary({
     >
     <div className="bg-white border border-gray-200 shadow-md rounded-xl overflow-hidden">
       {/* Header */}
-      {showTitle && (
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold">
-                {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
-              </h3>
-              <p className="text-sm text-gray-600 mt-1">
-                {filteredShows.length} confirmed show{filteredShows.length !== 1 ? 's' : ''}
-                {artistId && filteredTourRequests.length > 0 && (
-                  <span> • {filteredTourRequests.length} active show request{filteredTourRequests.length !== 1 ? 's' : ''}</span>
-                )}
-              </p>
-            </div>
-            {editable && (
-              <button
-                onClick={fetchData}
-                className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
-                title="Refresh data to get the latest updates"
-              >
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <ItineraryHeader
+        showTitle={showTitle}
+        title={title}
+        artistId={artistId}
+        filteredShows={filteredShows}
+        filteredTourRequests={filteredTourRequests}
+        editable={editable}
+        onRefresh={fetchData}
+      />
 
       {/* Month Tabs */}
       <MonthTabNavigation
@@ -377,67 +360,32 @@ export default function TabbedTourItinerary({
       />
 
       {/* Table Content */}
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1000px] table-fixed">
-          <ItineraryTableHeader venueId={venueId} artistId={artistId} />
-          <tbody className="divide-y divide-gray-100">
-            {/* Empty state */}
-            {activeMonthEntries.length === 0 && (
-              <ItineraryEmptyState
-                venueId={venueId}
-                stableMonthTabs={stableMonthTabs}
-                editable={editable}
-              />
-            )}
-            
-            {/* Render entries for active month */}
-            {processedEntries.map(({ entry, index, entryDate, sameDateSiblings, isFirstOfDate }) => {
-              // Hide non-first entries - they'll be shown as children when parent is expanded
-              if (!isFirstOfDate) {
-                return null;
-              }
-              
-              // 🎯 PHASE 4: Unified timeline rendering with single TimelineRow component
-              return (
-                <TimelineRow
-                  key={`${entry.type}-${entry.data.id}`}
-                  entry={{...entry, id: entry.data.id}}
-                  permissions={permissions}
-                  state={state}
-                  handlers={handlers}
-                  artistId={artistId}
-                  venueId={venueId}
-                  venueName={venueName}
-                  onToggleExpansion={toggleShowExpansion}
-                  toggleRequestExpansion={toggleRequestExpansion}
-                  onDeleteShow={handleDeleteShow}
-                  onShowDocument={handlers.handleShowDocumentModal}
-                  onShowDetail={handlers.handleShowDetailModal}
-                  onSupportActAdded={(offer: any) => {
-                    fetchData();
-                  }}
-                  venueBids={venueBids}
-                  venueOffers={venueOffers}
-                  declinedBids={declinedBids}
-                  tourRequests={tourRequests}
-                  sameDateSiblings={sameDateSiblings}
-                  isFirstOfDate={isFirstOfDate}
-                  entryDate={entryDate}
-                  actions={actions}
-                  getBidStatusBadge={getBidStatusBadge}
-                  handleDeleteShowRequest={handleDeleteShowRequest}
-                  handleOfferAction={handleOfferAction}
-                  handleBidAction={handleBidAction}
-                  getEffectiveBidStatus={getEffectiveBidStatus}
-                  venues={venues}
-                />
-              );
-              return null;
-            })}
-            
-                      </tbody>
-        </table>
-      </div>
+      <ItineraryTableContent
+        venueId={venueId}
+        artistId={artistId}
+        activeMonthEntries={activeMonthEntries}
+        processedEntries={processedEntries}
+        stableMonthTabs={stableMonthTabs}
+        editable={editable}
+        permissions={permissions}
+        state={state}
+        handlers={handlers}
+        venueName={venueName}
+        toggleShowExpansion={toggleShowExpansion}
+        toggleRequestExpansion={toggleRequestExpansion}
+        handleDeleteShow={handleDeleteShow}
+        venueBids={venueBids}
+        venueOffers={venueOffers}
+        declinedBids={declinedBids}
+        tourRequests={tourRequests}
+        actions={actions}
+        getBidStatusBadge={getBidStatusBadge}
+        handleDeleteShowRequest={handleDeleteShowRequest}
+        handleOfferAction={handleOfferAction}
+        handleBidAction={handleBidAction}
+        getEffectiveBidStatus={getEffectiveBidStatus}
+        venues={venues}
+      />
 
       <AddDateButtons
         stableMonthTabs={stableMonthTabs}
@@ -457,41 +405,32 @@ export default function TabbedTourItinerary({
  
 
       {/* All Modals */}
-      <ModalContainer
-        // Venue Bid Form Modal
+      <ItineraryModalContainer
         showBidForm={state.showBidForm}
         selectedTourRequest={state.selectedTourRequest}
         venueId={venueId}
         venueName={venueName}
         onBidSuccess={handleBidSuccess}
         onCloseBidForm={() => actions.closeBidForm()}
-        
-        // Show Detail Modal
         showDetailModal={modals.showDetailModal}
         selectedShowForDetail={modalData.selectedShowForDetail}
         onCloseShowDetailModal={handlers.closeShowDetailModal}
-        
-        // Show Document Modal
         showDocumentModal={modals.showDocumentModal}
         selectedDocumentShow={modalData.selectedDocumentShow}
         selectedDocumentBid={modalData.selectedDocumentBid}
         selectedDocumentTourRequest={modalData.selectedDocumentTourRequest}
         onCloseShowDocumentModal={handlers.closeShowDocumentModal}
         onDocumentUpdate={fetchData}
-        
-        // Universal Make Offer Modal
         showUniversalOfferModal={state.showUniversalOfferModal}
         offerTargetArtist={state.offerTargetArtist}
-                 offerPreSelectedDate={state.offerPreSelectedDate || undefined}
+        offerPreSelectedDate={state.offerPreSelectedDate || undefined}
         offerTourRequest={state.offerTourRequest}
         offerExistingBid={state.offerExistingBid}
         onCloseUniversalOffer={() => actions.closeUniversalOffer()}
         onUniversalOfferSuccess={fetchData}
         onDeleteRequestOptimistic={actions.deleteRequestOptimistic}
-        
-        // Add Date Form Modal
         showAddDateForm={modals.showAddDateForm}
-                 addDateFormType={addDateForm.type === 'confirmed' ? 'request' : addDateForm.type}
+        addDateFormType={addDateForm.type === 'confirmed' ? 'request' : addDateForm.type}
         artistId={artistId}
         artistName={artistName}
         addDateLoading={addDateLoading}
@@ -499,18 +438,12 @@ export default function TabbedTourItinerary({
         onAddDateSuccess={fetchData}
         onSetActiveMonth={actions.setActiveMonth}
         confirm={confirm}
-        
-        // Add Artist Modal
         isAddAnotherArtistModalOpen={modals.isAddAnotherArtistModalOpen}
         addAnotherArtistShowId={modalData.addAnotherArtistShowId}
         addAnotherArtistDate={modalData.addAnotherArtistDate}
         onCloseAddAnotherArtistModal={handlers.closeAddAnotherArtistModal}
         onAddAnotherArtistSuccess={handleAddAnotherArtistSuccess}
-        
-        // Alert Modal
         AlertModal={AlertModal}
-        
-        // Shared props
         actualViewerType={permissions.actualViewerType}
         fetchData={fetchData}
       />
