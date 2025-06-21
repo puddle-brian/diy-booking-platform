@@ -314,241 +314,46 @@ export default function TabbedTourItinerary({
   // 🎯 STEP B5: Use timeline processing utility function
   const processedEntries = processTimelineEntries(activeMonthEntries);
 
-  // Handler functions that are still needed in the component
-  const toggleBidExpansion = (requestId: string) => {
-    actions.toggleBidExpansion(requestId);
-  };
+  // 🎯 STEP C2: Test event handlers hook alongside existing logic
+  const eventHandlers = useItineraryEventHandlers({
+    actions,
+    fetchData,
+    shows,
+    venueBids,
+    venueOffers,
+    bidStatusOverrides,
+    setBidStatusOverrides,
+    setDeclinedBids,
+    setBidActions,
+    activeMonthEntries,
+    venueId,
+    venueName,
+    permissions,
+    confirm,
+    showSuccess,
+    showError,
+    showInfo,
+    toast,
+    setAddDateForm
+  });
 
-  const toggleShowExpansion = (showId: string) => {
-    actions.toggleShowExpansion(showId);
-  };
-
-  const toggleRequestExpansion = (requestId: string) => {
-    actions.toggleRequestExpansion(requestId);
-  };
-
-  const handleBidSuccess = (bid: any) => {
-    actions.closeBidForm();
-    fetchData();
-  };
-
-  // Additional handler functions
-  const handlePlaceBid = (tourRequest: any) => { // 🎯 PHASE 4: Updated to any for ShowRequest
-    if (venueId && venueName) {
-      actions.openBidForm(tourRequest);
-      return;
-    }
-    
-    if (permissions.canMakeOffers) {
-      // Fix the artist parameter to match the expected signature
-      actions.openUniversalOffer({
-        id: tourRequest.artistId,
-                        name: tourRequest.artist?.name || tourRequest.artistName
-      });
-      return;
-    }
-    
-    alert('To submit a bid, we need your venue information. Please visit your venue profile page first to set up bidding.');
-  };
-
-  const handleDeleteShow = async (showId: string, showName: string) => {
-    confirm(
-      'Delete Show',
-      `Are you sure you want to delete "${showName}"?`,
-      async () => {
-        try {
-          // Check if this is the last item in the current month before deletion
-          const currentMonthEntries = activeMonthEntries;
-          const showToDelete = currentMonthEntries.find(entry => 
-            entry.type === 'show' && (entry.data as Show).id === showId
-          );
-          const isLastItemInMonth = currentMonthEntries.length === 1 && showToDelete;
-          
-          // Optimistic update - immediately hide the show
-          actions.deleteShowOptimistic(showId);
-          
-          // 🎯 UX IMPROVEMENT: Stay on current month after deletion to confirm action worked
-          // (Removed auto-switching logic that was confusing users)
-          
-          const response = await fetch(`/api/shows/${showId}`, {
-            method: 'DELETE',
-          });
-
-          if (!response.ok) {
-            throw new Error('Failed to delete show');
-          }
-
-          // Don't call fetchData() to avoid flashing - the optimistic update already handles UI
-          showSuccess('Show Deleted', 'Show deleted successfully');
-        } catch (error) {
-          console.error('Error deleting show:', error);
-          
-          // Revert optimistic update on error by refreshing data
-          await fetchData();
-          
-          showError('Delete Failed', 'Failed to delete show. Please try again.');
-        }
-      }
-    );
-  };
-
-  // Add all the missing handler functions
-  
-  // Helper function to check for date conflicts when accepting bids/offers
-  const checkDateConflict = (proposedDate: string, excludeBidId?: string, excludeOfferId?: string) => {
-    return BidService.checkDateConflict(
-      proposedDate,
-      shows,
-      venueBids,
-      venueOffers,
-      bidStatusOverrides,
-      excludeBidId,
-      excludeOfferId
-    );
-  };
-
-  // Helper function to get effective bid status (with optimistic overrides)
-  const getEffectiveBidStatus = (bid: VenueBid) => {
-    return BidService.getEffectiveBidStatus(bid, bidStatusOverrides);
-  };
-
-  // Old bid and offer action logic moved to BidService
-
-  const handleBidAction = async (bid: VenueBid, action: string, reason?: string) => {
-    const callbacks = {
-      setBidStatusOverrides,
-      setDeclinedBids,
-      setBidActions,
-      fetchData,
-      showSuccess,
-      showError,
-      showInfo,
-      toast,
-      confirm,
-      // 🐛 BUG FIX: Add deleteRequestOptimistic for venue bid withdrawals
-      deleteRequestOptimistic: actions.deleteRequestOptimistic
-    };
-
-    return BidService.handleBidAction(
-      bid,
-      action,
-      callbacks,
-      bidStatusOverrides,
-      shows,
-      venueBids,
-      venueOffers,
-      reason
-    );
-  };
-
-  // Optimistic bid action processing now handled by BidService
-
-  // Optimistic offer action processing now handled by BidService
-
-  const handleOfferAction = async (offer: VenueOffer, action: string) => {
-    const callbacks = {
-      setBidStatusOverrides,
-      setDeclinedBids,
-      setBidActions,
-      fetchData,
-      showSuccess,
-      showError,
-      showInfo,
-      toast,
-      confirm,
-      deleteRequestOptimistic: actions.deleteRequestOptimistic
-    };
-
-    return BidService.handleOfferAction(
-      offer,
-      action,
-      callbacks,
-      bidStatusOverrides,
-      shows,
-      venueBids,
-      venueOffers
-    );
-  };
-
-  const getBidStatusBadge = (bid: VenueBid) => {
-    return BidService.getBidStatusBadge(bid, bidStatusOverrides);
-  };
-
-  const handleTemplateApply = (template: any) => {
-    setAddDateForm(prev => ({
-      ...prev,
-      equipment: {
-        needsPA: template.equipment?.needsPA ?? prev.equipment.needsPA,
-        needsMics: template.equipment?.needsMics ?? prev.equipment.needsMics,
-        needsDrums: template.equipment?.needsDrums ?? prev.equipment.needsDrums,
-        needsAmps: template.equipment?.needsAmps ?? prev.equipment.needsAmps,
-        acoustic: template.equipment?.acoustic ?? prev.equipment.acoustic
-      },
-      guaranteeRange: {
-        min: template.guaranteeRange?.min ?? prev.guaranteeRange?.min ?? 0,
-        max: template.guaranteeRange?.max ?? prev.guaranteeRange?.max ?? 0
-      },
-      acceptsDoorDeals: template.acceptsDoorDeals ?? prev.acceptsDoorDeals,
-      merchandising: template.merchandising ?? prev.merchandising,
-      ageRestriction: template.ageRestriction ?? prev.ageRestriction,
-      travelMethod: template.travelMethod ?? prev.travelMethod,
-      lodging: template.lodging ?? prev.lodging,
-      technicalRequirements: template.technicalRequirements ?? prev.technicalRequirements,
-      hospitalityRequirements: template.hospitalityRequirements ?? prev.hospitalityRequirements,
-      priority: template.priority ?? prev.priority,
-      notes: template.notes ? `${prev.notes ? prev.notes + '\n\n' : ''}Template: ${template.name}\n${template.notes}` : prev.notes
-    }));
-  };
-
-  const handleDeleteShowRequest = async (requestId: string, requestName: string) => {
-    confirm(
-      'Delete Show Request',
-      `Delete "${requestName}"? This will also delete all associated bids and cannot be undone.`,
-      async () => {
-        actions.setDeleteLoading(requestId);
-        
-        // Optimistic update - immediately hide the request
-        actions.deleteRequestOptimistic(requestId);
-        
-        // 🎯 UX IMPROVEMENT: Stay on current month after deletion to confirm action worked
-        // (Removed auto-switching logic that was confusing users)
-        
-        try {
-          const response = await fetch(`/api/show-requests/${requestId}`, {
-            method: 'DELETE',
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Failed to delete tour request');
-          }
-
-          // Don't call fetchData() to avoid flashing - the optimistic update already handles UI
-          showSuccess('Tour Request Deleted', 'Tour request deleted successfully.');
-        } catch (error) {
-          console.error('Error deleting tour request:', error);
-          
-          // Revert optimistic update on error - we'll need to add this to the state
-          // For now just refetch data
-          await fetchData();
-          
-          showError('Deletion Failed', `Failed to delete tour request: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        } finally {
-          actions.setDeleteLoading(null);
-        }
-      }
-    );
-  };
-
-  // 🎯 REFACTORED: Modal handlers now come from useModalState hook
-
-  // Handle successful offer creation from AddSupportActModal
-  const handleAddAnotherArtistSuccess = (offer: any) => {
-    handlers.closeAddAnotherArtistModal();
-    // Refresh data to show the new offer
-    fetchData();
-    showSuccess('Artist Offer Sent', 'Your offer has been sent to the artist and will appear in their itinerary.');
-  };
+  // 🎯 STEP C3: Use event handlers from hook
+  const {
+    toggleBidExpansion,
+    toggleShowExpansion,
+    toggleRequestExpansion,
+    handleBidSuccess,
+    handlePlaceBid,
+    handleDeleteShow,
+    checkDateConflict,
+    getEffectiveBidStatus,
+    handleBidAction,
+    handleOfferAction,
+    getBidStatusBadge,
+    handleTemplateApply,
+    handleDeleteShowRequest,
+    handleAddAnotherArtistSuccess
+  } = eventHandlers;
 
 
 
