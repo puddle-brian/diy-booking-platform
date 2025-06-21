@@ -66,6 +66,9 @@ import { useItineraryEventHandlers } from '../hooks/useItineraryEventHandlers';
 import { useItineraryUIState } from '../hooks/useItineraryUIState';
 import { useAddDateForm } from '../hooks/useAddDateForm';
 
+// 🎯 MICRO-PHASE F: Import improved type definitions
+import { ShowRequest } from '../utils/typeHelpers';
+
 interface TabbedTourItineraryProps {
   artistId?: string;
   artistName?: string;
@@ -79,13 +82,14 @@ interface TabbedTourItineraryProps {
 
 
 
+// 🎯 MICRO-PHASE F: Improved TimelineEntry with proper types (replacing 'any')
 interface TimelineEntry {
-  id: string; // 🎯 PHASE 4: Added id field for TimelineEntryCommon compatibility
-  type: 'show' | 'show-request'; // 🎯 PHASE 3: Changed 'tour-request' to 'show-request'
+  id: string;
+  type: 'show' | 'show-request';
   date: string;
   endDate?: string;
-  data: Show | any | VenueBid; // 🎯 PHASE 3: Using 'any' for ShowRequest instead of TourRequest
-  parentTourRequest?: any; // 🎯 PHASE 3: Will be ShowRequest instead of TourRequest
+  data: Show | ShowRequest | VenueBid; // 🎯 MICRO-PHASE F: Replaced 'any' with proper ShowRequest type
+  parentTourRequest?: ShowRequest; // 🎯 MICRO-PHASE F: Replaced 'any' with ShowRequest type
 }
 
 // @ts-nocheck
@@ -217,20 +221,20 @@ export default function TabbedTourItinerary({
 
 
 
-  // 🎯 UX IMPROVEMENT: Helper function to determine when venues should see offer buttons
-  const shouldShowOfferButton = (request: any & { isVenueInitiated?: boolean }) => { // 🎯 PHASE 4: Updated to any for ShowRequest
+  // 🎯 MICRO-PHASE F: Improved helper function with proper typing
+  const shouldShowOfferButton = (request: ShowRequest | (ShowRequest & { isVenueInitiated?: boolean })) => {
     // When viewing artist pages: show for all requests (maximum discoverability!)
     if (artistId) {
       return true;
     }
     
-    // When viewing venue's own timeline: only show for artist-initiated requests (preserves existing behavior)
+    // When viewing venue's own timeline: only show for artist-initiated requests
     if (venueId && !artistId) {
-      return !request.isVenueInitiated;
+      return !request.isVenueInitiated && request.initiatedBy !== 'VENUE';
     }
     
     // Fallback to existing behavior
-    return !request.isVenueInitiated;
+    return !request.isVenueInitiated && request.initiatedBy !== 'VENUE';
   };
 
   // 🎯 UX IMPROVEMENT: Enhanced active month management with persistence
