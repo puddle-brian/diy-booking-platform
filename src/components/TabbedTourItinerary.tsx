@@ -34,6 +34,10 @@ import {
   createAddDateFormCallback, generateSmartShowTitle, getBillingPriority, BidService
 } from './TabbedTourItinerary/imports';
 
+// 🎯 MICRO-PHASE J: Modal consolidation utilities
+import { buildConsolidatedModalProps } from '../utils/modalConsolidation';
+import { EnhancedItineraryModalContainer } from './EnhancedItineraryModalContainer';
+
 interface TabbedTourItineraryProps {
   artistId?: string;
   artistName?: string;
@@ -344,48 +348,59 @@ export default function TabbedTourItinerary({
 
  
 
-      {/* All Modals */}
-      <ItineraryModalContainer
-        showBidForm={state.showBidForm}
-        selectedTourRequest={state.selectedTourRequest}
-        venueId={venueId}
-        venueName={venueName}
-        onBidSuccess={handleBidSuccess}
-        onCloseBidForm={() => actions.closeBidForm()}
-        showDetailModal={modals.showDetailModal}
-        selectedShowForDetail={modalData.selectedShowForDetail}
-        onCloseShowDetailModal={handlers.closeShowDetailModal}
-        showDocumentModal={modals.showDocumentModal}
-        selectedDocumentShow={modalData.selectedDocumentShow}
-        selectedDocumentBid={modalData.selectedDocumentBid}
-        selectedDocumentTourRequest={modalData.selectedDocumentTourRequest}
-        onCloseShowDocumentModal={handlers.closeShowDocumentModal}
-        onDocumentUpdate={fetchData}
-        showUniversalOfferModal={state.showUniversalOfferModal}
-        offerTargetArtist={state.offerTargetArtist}
-        offerPreSelectedDate={state.offerPreSelectedDate || undefined}
-        offerTourRequest={state.offerTourRequest}
-        offerExistingBid={state.offerExistingBid}
-        onCloseUniversalOffer={() => actions.closeUniversalOffer()}
-        onUniversalOfferSuccess={fetchData}
-        onDeleteRequestOptimistic={actions.deleteRequestOptimistic}
-        showAddDateForm={modals.showAddDateForm}
-        addDateFormType={addDateForm.type === 'confirmed' ? 'request' : addDateForm.type}
-        artistId={artistId}
-        artistName={artistName}
-        addDateLoading={addDateLoading}
-        onCloseAddDateForm={handlers.closeAddDateForm}
-        onAddDateSuccess={fetchData}
-        onSetActiveMonth={actions.setActiveMonth}
-        confirm={confirm}
-        isAddAnotherArtistModalOpen={modals.isAddAnotherArtistModalOpen}
-        addAnotherArtistShowId={modalData.addAnotherArtistShowId}
-        addAnotherArtistDate={modalData.addAnotherArtistDate}
-        onCloseAddAnotherArtistModal={handlers.closeAddAnotherArtistModal}
-        onAddAnotherArtistSuccess={handleAddAnotherArtistSuccess}
-        AlertModal={AlertModal}
-        actualViewerType={permissions.actualViewerType}
-        fetchData={fetchData}
+      {/* 🎯 MICRO-PHASE J: Dramatically simplified modal container with consolidated props */}
+      <EnhancedItineraryModalContainer
+        consolidatedProps={buildConsolidatedModalProps({
+          // Bid props
+          showBidForm: state.showBidForm,
+          selectedTourRequest: state.selectedTourRequest,
+          onBidSuccess: handleBidSuccess,
+          onCloseBidForm: () => actions.closeBidForm(),
+          
+          // Show props
+          showDetailModal: modals.showDetailModal,
+          selectedShowForDetail: modalData.selectedShowForDetail,
+          onCloseShowDetailModal: handlers.closeShowDetailModal,
+          showDocumentModal: modals.showDocumentModal,
+          selectedDocumentShow: modalData.selectedDocumentShow,
+          selectedDocumentBid: modalData.selectedDocumentBid,
+          selectedDocumentTourRequest: modalData.selectedDocumentTourRequest,
+          onCloseShowDocumentModal: handlers.closeShowDocumentModal,
+          onDocumentUpdate: fetchData,
+          
+          // Offer props
+          showUniversalOfferModal: state.showUniversalOfferModal,
+          offerTargetArtist: state.offerTargetArtist,
+          offerPreSelectedDate: state.offerPreSelectedDate || undefined,
+          offerTourRequest: state.offerTourRequest,
+          offerExistingBid: state.offerExistingBid,
+          onCloseUniversalOffer: () => actions.closeUniversalOffer(),
+          onUniversalOfferSuccess: fetchData,
+          onDeleteRequestOptimistic: actions.deleteRequestOptimistic,
+          
+          // Form props
+          showAddDateForm: modals.showAddDateForm,
+          addDateFormType: addDateForm.type === 'confirmed' ? 'request' : addDateForm.type,
+          addDateLoading: addDateLoading,
+          onCloseAddDateForm: handlers.closeAddDateForm,
+          onAddDateSuccess: fetchData,
+          onSetActiveMonth: actions.setActiveMonth,
+          isAddAnotherArtistModalOpen: modals.isAddAnotherArtistModalOpen,
+          addAnotherArtistShowId: modalData.addAnotherArtistShowId,
+          addAnotherArtistDate: modalData.addAnotherArtistDate,
+          onCloseAddAnotherArtistModal: handlers.closeAddAnotherArtistModal,
+          onAddAnotherArtistSuccess: handleAddAnotherArtistSuccess,
+          
+          // Context props
+          venueId: venueId,
+          venueName: venueName,
+          artistId: artistId,
+          artistName: artistName,
+          actualViewerType: permissions.actualViewerType,
+          fetchData: fetchData,
+          confirm: confirm,
+          AlertModal: AlertModal
+        })}
       />
     </div>
     </ItineraryLoadingStates>
