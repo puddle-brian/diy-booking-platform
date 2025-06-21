@@ -8,6 +8,11 @@ export interface ProcessedTimelineEntry {
   isFirstOfDate: boolean;
 }
 
+export interface TimelineGroupEntry {
+  groupDate: string;
+  groupEntries: ProcessedTimelineEntry[];
+}
+
 /**
  * 🎯 MICRO-PHASE B: Timeline Processing Utility
  * 
@@ -39,4 +44,32 @@ export function processTimelineEntries(entries: any[]): ProcessedTimelineEntry[]
       isFirstOfDate
     };
   });
+}
+
+/**
+ * 🎯 MICRO-PHASE B: Group processed entries by date
+ * 
+ * Takes processed timeline entries and groups them by date for 
+ * the TimelineGroupRow component. This reduces complexity in
+ * the parent component and centralizes date grouping logic.
+ */
+export function groupProcessedEntriesByDate(processedEntries: ProcessedTimelineEntry[]): TimelineGroupEntry[] {
+  const groups: { [date: string]: ProcessedTimelineEntry[] } = {};
+  
+  // Group entries by date
+  processedEntries.forEach(processedEntry => {
+    const { entryDate } = processedEntry;
+    if (!groups[entryDate]) {
+      groups[entryDate] = [];
+    }
+    groups[entryDate].push(processedEntry);
+  });
+  
+  // Convert to array format sorted by date
+  return Object.keys(groups)
+    .sort() // Chronological order
+    .map(groupDate => ({
+      groupDate,
+      groupEntries: groups[groupDate]
+    }));
 } 

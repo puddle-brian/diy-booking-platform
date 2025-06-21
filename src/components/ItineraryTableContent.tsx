@@ -1,7 +1,8 @@
 import React from 'react';
 import { ItineraryTableHeader } from './ItineraryTableHeader';
 import { ItineraryEmptyState } from './ItineraryEmptyState';
-import { TimelineRow } from './TimelineItems/TimelineRow';
+import { TimelineGroupRow } from './TimelineItems/TimelineGroupRow';
+import { groupProcessedEntriesByDate } from '../utils/timelineProcessing';
 
 interface ItineraryTableContentProps {
   venueId?: string;
@@ -70,49 +71,34 @@ export function ItineraryTableContent({
             />
           )}
           
-          {/* Render entries for active month */}
-          {processedEntries.map(({ entry, index, entryDate, sameDateSiblings, isFirstOfDate }) => {
-            // Hide non-first entries - they'll be shown as children when parent is expanded
-            if (!isFirstOfDate) {
-              return null;
-            }
-            
-            // 🎯 PHASE 4: Unified timeline rendering with single TimelineRow component
-            return (
-              <TimelineRow
-                key={`${entry.type}-${entry.data.id}`}
-                entry={{...entry, id: entry.data.id}}
-                permissions={permissions}
-                state={state}
-                handlers={handlers}
-                artistId={artistId}
-                venueId={venueId}
-                venueName={venueName}
-                onToggleExpansion={toggleShowExpansion}
-                toggleRequestExpansion={toggleRequestExpansion}
-                onDeleteShow={handleDeleteShow}
-                onShowDocument={handlers.handleShowDocumentModal}
-                onShowDetail={handlers.handleShowDetailModal}
-                onSupportActAdded={(offer: any) => {
-                  // Placeholder - this will be handled by parent
-                }}
-                venueBids={venueBids}
-                venueOffers={venueOffers}
-                declinedBids={declinedBids}
-                tourRequests={tourRequests}
-                sameDateSiblings={sameDateSiblings}
-                isFirstOfDate={isFirstOfDate}
-                entryDate={entryDate}
-                actions={actions}
-                getBidStatusBadge={getBidStatusBadge}
-                handleDeleteShowRequest={handleDeleteShowRequest}
-                handleOfferAction={handleOfferAction}
-                handleBidAction={handleBidAction}
-                getEffectiveBidStatus={getEffectiveBidStatus}
-                venues={venues}
-              />
-            );
-          })}
+          {/* 🎯 MICRO-PHASE B: Group entries by date (maintains original behavior) */}
+          {groupProcessedEntriesByDate(processedEntries).map(({ groupDate, groupEntries }) => (
+            <TimelineGroupRow
+              key={groupDate}
+              groupDate={groupDate}
+              groupEntries={groupEntries}
+              permissions={permissions}
+              state={state}
+              handlers={handlers}
+              artistId={artistId}
+              venueId={venueId}
+              venueName={venueName}
+              onToggleExpansion={toggleShowExpansion}
+              toggleRequestExpansion={toggleRequestExpansion}
+              onDeleteShow={handleDeleteShow}
+              venueBids={venueBids}
+              venueOffers={venueOffers}
+              declinedBids={declinedBids}
+              tourRequests={tourRequests}
+              actions={actions}
+              getBidStatusBadge={getBidStatusBadge}
+              handleDeleteShowRequest={handleDeleteShowRequest}
+              handleOfferAction={handleOfferAction}
+              handleBidAction={handleBidAction}
+              getEffectiveBidStatus={getEffectiveBidStatus}
+              venues={venues}
+            />
+          ))}
         </tbody>
       </table>
     </div>
