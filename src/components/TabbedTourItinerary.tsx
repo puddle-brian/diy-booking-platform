@@ -28,7 +28,7 @@ import { useToggleTourItinerary } from '../hooks/useToggleTourItinerary';
 import { useVenueArtistSearch } from '../hooks/useVenueArtistSearch';
 import { useItineraryPermissions } from '../hooks/useItineraryPermissions';
 import { useItineraryState } from '../hooks/useItineraryState';
-import { useCleanTimelineData } from '../hooks/useCleanTimelineData';
+import { useConsolidatedTimelineData } from '../hooks/useConsolidatedTimelineData';
 import {
   getDefaultActiveMonth,
   generateStableMonthTabs,
@@ -107,7 +107,7 @@ export default function TabbedTourItinerary({
   // 🎯 REFACTORED: Use centralized state management
   const { state, actions, getSavedActiveMonth, isValidSavedMonth } = useItineraryState();
 
-  // 🎯 REFACTORED: Use unified data fetching with A/B testing
+  // 🎯 PHASE 1.1: ULTRA-SAFE consolidated hook (perfect interface match)
   const {
     shows,
     tourRequests,
@@ -116,10 +116,21 @@ export default function TabbedTourItinerary({
     loading,
     fetchError,
     fetchData,
-    _metadata
-  } = useToggleTourItinerary({ artistId, venueId, venueName });
-
-
+    filteredShows,
+    filteredTourRequests,
+    filteredVenueBids,
+    filteredVenueOffers,
+    timelineEntries,
+    monthGroups,
+    stableMonthTabs
+  } = useConsolidatedTimelineData({
+    artistId,
+    venueId,
+    venueName,
+    viewerType,
+    deletedShows: state.deletedShows,
+    deletedRequests: state.deletedRequests
+  });
 
   // 🎯 REFACTORED: Use centralized permissions hook
   const permissions = useItineraryPermissions({
@@ -129,8 +140,6 @@ export default function TabbedTourItinerary({
     venueId,
     venueName
   });
-
-
 
   // 🎯 STEP E7: Replace massive form state with clean consolidated hook
   const [addDateForm, addDateFormActions, setAddDateForm] = useAddDateForm();
@@ -187,33 +196,6 @@ export default function TabbedTourItinerary({
     setShowVenueOfferForm,
     resetAllUIState
   } = uiActions;
-  
-  // 🎯 REFACTORED: Modal states now managed by useModalState hook
-  
-  // Universal Make Offer Modal state - now managed by centralized state
-
-  // 🎯 STEP A5: Replace existing logic with clean hook
-  const cleanTimelineData = useCleanTimelineData({
-    shows,
-    tourRequests,
-    venueBids,
-    venueOffers,
-    deletedShows: state.deletedShows,
-    deletedRequests: state.deletedRequests,
-    artistId,
-    venueId
-  });
-
-  // Extract clean data from hook
-  const {
-    filteredShows,
-    filteredTourRequests,
-    filteredVenueOffers,
-    filteredVenueBids,
-    timelineEntries,
-    monthGroups,
-    stableMonthTabs
-  } = cleanTimelineData;
 
 
 
