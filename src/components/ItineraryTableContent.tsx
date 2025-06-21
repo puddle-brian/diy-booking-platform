@@ -1,7 +1,7 @@
 import React from 'react';
 import { ItineraryTableHeader } from './ItineraryTableHeader';
 import { ItineraryEmptyState } from './ItineraryEmptyState';
-import { TimelineGroupRow } from './TimelineItems/TimelineGroupRow';
+import { SpecializedTimelineGroupRow } from './TimelineItems/SpecializedTimelineGroupRow';
 import { groupProcessedEntriesByDate } from '../utils/timelineProcessing';
 
 interface ItineraryTableContentProps {
@@ -71,9 +71,9 @@ export function ItineraryTableContent({
             />
           )}
           
-          {/* 🎯 MICRO-PHASE B: Group entries by date (maintains original behavior) */}
+          {/* 🎯 MICRO-PHASE D: Specialized timeline components (reduces prop drilling) */}
           {groupProcessedEntriesByDate(processedEntries).map(({ groupDate, groupEntries }) => (
-            <TimelineGroupRow
+            <SpecializedTimelineGroupRow
               key={groupDate}
               groupDate={groupDate}
               groupEntries={groupEntries}
@@ -83,15 +83,13 @@ export function ItineraryTableContent({
               artistId={artistId}
               venueId={venueId}
               venueName={venueName}
-              onToggleExpansion={toggleShowExpansion}
-              toggleRequestExpansion={toggleRequestExpansion}
-              onDeleteShow={handleDeleteShow}
+              actions={actions}
               venueBids={venueBids}
               venueOffers={venueOffers}
               declinedBids={declinedBids}
               tourRequests={tourRequests}
-              actions={actions}
               getBidStatusBadge={getBidStatusBadge}
+              toggleRequestExpansion={toggleRequestExpansion}
               handleDeleteShowRequest={handleDeleteShowRequest}
               handleOfferAction={handleOfferAction}
               handleBidAction={handleBidAction}
