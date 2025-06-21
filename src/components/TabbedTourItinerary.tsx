@@ -38,6 +38,10 @@ import {
 import { buildConsolidatedModalProps } from '../utils/modalConsolidation';
 import { EnhancedItineraryModalContainer } from './EnhancedItineraryModalContainer';
 
+// 🎯 MICRO-PHASE K: Table content consolidation utilities
+import { buildConsolidatedTableProps } from '../utils/tableContentConsolidation';
+import { EnhancedItineraryTableContent } from './EnhancedItineraryTableContent';
+
 interface TabbedTourItineraryProps {
   artistId?: string;
   artistName?: string;
