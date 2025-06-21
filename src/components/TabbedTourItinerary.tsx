@@ -60,6 +60,7 @@ import { useModalState } from '../hooks/useModalState';
 import { useTimelineEntryProcessor } from '../hooks/useTimelineEntryProcessor';
 import { useItineraryEventHandlers } from '../hooks/useItineraryEventHandlers';
 import { useItineraryUIState } from '../hooks/useItineraryUIState';
+import { useAddDateForm } from '../hooks/useAddDateForm';
 
 interface TabbedTourItineraryProps {
   artistId?: string;
@@ -127,54 +128,8 @@ export default function TabbedTourItinerary({
 
 
 
-  // Keep addDateForm as separate state for now (will refactor later)
-  const [addDateForm, setAddDateForm] = useState({
-    type: 'offer' as 'request' | 'confirmed' | 'offer',
-    date: '',
-    startDate: '',
-    endDate: '',
-    requestDate: '',
-    useSingleDate: true,
-    location: '',
-    artistId: '',
-    artistName: '',
-    venueId: '',
-    venueName: '',
-    title: '',
-    description: '',
-    guarantee: '',
-    capacity: '',
-    ageRestriction: 'all-ages' as 'all-ages' | '18+' | '21+' | 'flexible',
-    loadIn: '',
-    soundcheck: '',
-    doorsOpen: '',
-    showTime: '',
-    curfew: '',
-    notes: '',
-    billingPosition: '' as '' | 'headliner' | 'co-headliner' | 'direct-support' | 'opener' | 'local-opener',
-    lineupPosition: '',
-    setLength: '',
-    otherActs: '',
-    billingNotes: '',
-    equipment: {
-      needsPA: false,
-      needsMics: false,
-      needsDrums: false,
-      needsAmps: false,
-      acoustic: false
-    },
-    technicalRequirements: [] as TechnicalRequirement[],
-    hospitalityRequirements: [] as HospitalityRequirement[],
-    guaranteeRange: {
-      min: 0,
-      max: 0
-    },
-    acceptsDoorDeals: true,
-    merchandising: true,
-    travelMethod: 'van' as 'van' | 'flying' | 'train' | 'other',
-    lodging: 'flexible' as 'floor-space' | 'hotel' | 'flexible',
-    priority: 'medium' as 'high' | 'medium' | 'low'
-  });
+  // 🎯 STEP E7: Replace massive form state with clean consolidated hook
+  const [addDateForm, addDateFormActions, setAddDateForm] = useAddDateForm();
 
   // 🎯 REFACTORED: Use custom hook for venue/artist search
   const {
@@ -192,20 +147,10 @@ export default function TabbedTourItinerary({
     setShowArtistDropdown
   } = useVenueArtistSearch({
     onVenueSelect: (venue) => {
-      setAddDateForm(prev => ({
-        ...prev,
-        venueId: venue.id,
-        venueName: venue.name,
-        location: `${venue.city}, ${venue.state}`,
-        capacity: venue.capacity?.toString() || ''
-      }));
+      addDateFormActions.setVenueFromSearch(venue);
     },
     onArtistSelect: (artist) => {
-      setAddDateForm(prev => ({
-        ...prev,
-        artistId: artist.id,
-        artistName: artist.name
-      }));
+      addDateFormActions.setArtistFromSearch(artist);
     }
   });
 
@@ -358,7 +303,12 @@ export default function TabbedTourItinerary({
     showError,
     showInfo,
     toast,
-    setAddDateForm
+    setAddDateForm: (updateFunction: any) => {
+      // 🎯 STEP E10: Compatibility wrapper for event handlers hook
+      const currentForm = addDateForm;
+      const updatedForm = updateFunction(currentForm);
+      addDateFormActions.updateForm(updatedForm);
+    }
   });
 
   // 🎯 STEP C3: Use event handlers from hook
@@ -496,9 +446,9 @@ export default function TabbedTourItinerary({
         artistId={artistId}
         onAddDate={() => {
           if (artistId) {
-            setAddDateForm(prev => ({ ...prev, type: 'request' }));
+            addDateFormActions.setFormType('request');
           } else if (venueId) {
-            setAddDateForm(prev => ({ ...prev, type: 'offer' }));
+            addDateFormActions.setFormType('offer');
           }
           handlers.openAddDateForm();
         }}
