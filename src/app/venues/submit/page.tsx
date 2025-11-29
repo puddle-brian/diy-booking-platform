@@ -8,8 +8,17 @@ import { EquipmentState } from '../../../components/forms/EquipmentFeaturesModul
 import { PricingData } from '../../../components/forms/PricingPaymentModule';
 import LocationAutocomplete from '../../../components/LocationAutocomplete';
 import { VenueType, VENUE_TYPE_LABELS, CAPACITY_OPTIONS, ArtistType, ARTIST_TYPE_LABELS, getGenresForArtistTypes } from '../../../../types/index';
+import SubmitChoice from '../../../components/SubmitChoice';
 
 export default function SubmitVenue() {
+  return (
+    <SubmitChoice entityType="venue">
+      <VenueForm />
+    </SubmitChoice>
+  );
+}
+
+function VenueForm() {
   const [showGenreDetails, setShowGenreDetails] = useState(false);
   const router = useRouter();
 

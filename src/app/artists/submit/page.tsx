@@ -15,8 +15,17 @@ import {
   type ArtistType,
   type ArtistStatus
 } from '../../../../types/index';
+import SubmitChoice from '../../../components/SubmitChoice';
 
 export default function SubmitArtist() {
+  return (
+    <SubmitChoice entityType="artist">
+      <ArtistForm />
+    </SubmitChoice>
+  );
+}
+
+function ArtistForm() {
   const router = useRouter();
 
   // Form state using the new modular structure
