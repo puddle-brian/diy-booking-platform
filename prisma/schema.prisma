@@ -89,14 +89,15 @@ model Venue {
   streetAddress      String?
   artistTypesWelcome String[]
   socialLinks        Json?
-  // 🎯 PHASE 5: bids removed - replaced by showRequestBids
-  sceneReports       SceneReport[]
+  sceneReports          SceneReport[]
   showRequestBids       ShowRequestBid[]
   showRequests          ShowRequest[]
   shows                 Show[]
   offerTemplates        VenueOfferTemplate[]
   venueOffers           VenueOffer[]
   bookingOpportunities  BookingOpportunity[] @relation("VenueBookingOpportunities")
+  dateEntries           DateEntry[]          @relation("VenueDateEntries")
+  agentConversation     AgentConversation?   @relation("VenueAgentConversation")
   location              Location             @relation(fields: [locationId], references: [id])
   submittedBy           User?                @relation(fields: [submittedById], references: [id])
 
@@ -141,10 +142,11 @@ model Artist {
   sceneReports         SceneReport[]
   showRequestBids      ShowRequestBid[]
   showRequests         ShowRequest[]
-  showLineup           ShowLineup[]     // NEW: Artist can be in multiple show lineups
-  // 🎯 PHASE 5: tourRequests removed - replaced by showRequests
+  showLineup           ShowLineup[]
   venueOffers          VenueOffer[]
   bookingOpportunities BookingOpportunity[] @relation("ArtistBookingOpportunities")
+  dateEntries          DateEntry[]          @relation("ArtistDateEntries")
+  agentConversation    AgentConversation?   @relation("ArtistAgentConversation")
 
   @@index([locationId])
   @@index([name])
@@ -872,76 +874,172 @@ enum LineupStatus {
   COMPLETED     // Performance finished
 }
 
-// 🎯 UNIFIED BOOKING OPPORTUNITIES - THE SOLUTION TO TIMELINE CHAOS
+// =============================================================================
+// 🎯 V02 SIMPLIFIED BOOKING SYSTEM
+// =============================================================================
+// One simple model for all booking activity. The agent and user collaborate
+// on a shared spreadsheet of dates. That's it.
+// =============================================================================
 
+model DateEntry {
+  id          String      @id @default(cuid())
+  
+  // CORE: Who, Where, When
+  date        DateTime    // The show date
+  artistId    String
+  venueId     String
+  
+  // STATUS: Simple workflow
+  status      DateStatus  @default(INQUIRY)
+  
+  // PERFORMANCE
+  billing     String?     // "headliner", "support", "opener", "local"
+  setLength   Int?        // Minutes
+  
+  // DEAL: Financial terms (structured JSON)
+  // Types: GUARANTEE, DOOR, SPLIT, GUARANTEE_VS_PERCENT, GUARANTEE_PLUS_SPLIT
+  // Examples:
+  //   { type: "GUARANTEE", amount: 500 }
+  //   { type: "DOOR", percent: 100, expenses: 200 }
+  //   { type: "SPLIT", artistPercent: 70, venuePercent: 30 }
+  //   { type: "GUARANTEE_VS_PERCENT", guarantee: 400, percent: 80 }
+  //   { type: "GUARANTEE_PLUS_SPLIT", guarantee: 300, artistPercent: 70, threshold: 500 }
+  deal        Json?
+  
+  // Legacy fields (for backwards compat during migration)
+  guarantee   Float?
+  door        String?
+  
+  // DETAILS: Show logistics & rider (structured JSON)
+  // {
+  //   loadIn: "5:00 PM",
+  //   soundcheck: "6:00 PM", 
+  //   doors: "7:00 PM",
+  //   setTime: "9:00 PM",
+  //   curfew: "11:00 PM",
+  //   ageRestriction: "21+",
+  //   capacity: 200,
+  //   ticketPrice: { advance: 15, door: 20 },
+  //   hospitality: "2 drink tickets, pizza",
+  //   greenRoom: true,
+  //   parking: "Street parking available",
+  //   lodging: "Floor space available",
+  //   guestList: 4,
+  //   merch: "80/20 split, venue provides table",
+  //   backline: { drums: true, bass_amp: true, guitar_amps: 2 },
+  //   promotion: "Social media, local radio"
+  // }
+  details     Json?
+  
+  // HOLD: If on hold
+  holdUntil   DateTime?
+  holdReason  String?
+  
+  // NOTES: Freeform - agent writes negotiation history here
+  notes       String?     @db.Text
+  
+  // METADATA
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // RELATIONS
+  artist      Artist      @relation("ArtistDateEntries", fields: [artistId], references: [id])
+  venue       Venue       @relation("VenueDateEntries", fields: [venueId], references: [id])
+  
+  // One entry per artist/venue/date combination
+  @@unique([artistId, venueId, date])
+  
+  @@index([artistId])
+  @@index([venueId])
+  @@index([date])
+  @@index([status])
+  @@index([createdAt])
+  
+  @@map("date_entries")
+}
+
+enum DateStatus {
+  INQUIRY        // Initial interest / exploring
+  PENDING        // Offer made, awaiting artist response
+  HOLD_REQUESTED // Artist requested hold, awaiting venue approval
+  HOLD           // Venue approved hold (see holdUntil)
+  CONFIRMED      // It's happening!
+  DECLINED       // Artist declined the offer
+  CANCELLED      // Was confirmed, now cancelled
+}
+
+// =============================================================================
+// AGENT CONVERSATIONS - Persistent chat history per entity
+// =============================================================================
+
+model AgentConversation {
+  id          String   @id @default(cuid())
+  
+  // Owner - either artist or venue
+  artistId    String?  @unique
+  venueId     String?  @unique
+  
+  // Conversation data
+  messages    Json     @default("[]")  // Array of {role, content, timestamp}
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  artist      Artist?  @relation("ArtistAgentConversation", fields: [artistId], references: [id])
+  venue       Venue?   @relation("VenueAgentConversation", fields: [venueId], references: [id])
+  
+  @@index([artistId])
+  @@index([venueId])
+  @@map("agent_conversations")
+}
+
+// =============================================================================
+// LEGACY MODELS BELOW - Keep for now, will remove after migration
+// =============================================================================
+
+// TODO: Remove BookingOpportunity after migration to DateEntry
 model BookingOpportunity {
   id              String                 @id @default(cuid())
-  
-  // CORE ENTITIES
   artistId        String
   venueId         String
-  
-  // BASIC INFO
   title           String
   description     String?
   proposedDate    DateTime
-  
-  // INITIATION
-  initiatedBy     RequestInitiator       // 'ARTIST' | 'VENUE'  
+  initiatedBy     RequestInitiator
   initiatedById   String
-  
-  // STATUS WORKFLOW
   status          BookingOpportunityStatus @default(OPEN)
-  
-  // FINANCIAL TERMS
   guarantee       Float?
-  doorDeal        Json?                  // { split: "70/30", minimumGuarantee: 300 }
-  ticketPrice     Json?                  // { advance: 20, door: 25 }
-  merchandiseSplit String?               // "90/10"
-  
-  // PERFORMANCE DETAILS
+  doorDeal        Json?
+  ticketPrice     Json?
+  merchandiseSplit String?
   billingPosition BillingPosition?
-  performanceOrder Int?                  // 1 = headliner, 2 = support, etc.
-  setLength       Int?                   // Minutes
-  otherActs       String?                // Other acts on bill
-  billingNotes    String?                // Additional context
-  
-  // VENUE DETAILS
+  performanceOrder Int?
+  setLength       Int?
+  otherActs       String?
+  billingNotes    String?
   capacity        Int?
   ageRestriction  AgeRestriction?
-  
-  // EQUIPMENT & LOGISTICS
-  equipmentProvided Json?               // { pa: true, mics: true, drums: false }
+  equipmentProvided Json?
   loadIn          String?
   soundcheck      String?
   doorsOpen       String?
   showTime        String?
   curfew          String?
-  
-  // ADDITIONAL VALUE
-  promotion       Json?                 // { social: true, flyerPrinting: false }
-  lodging         Json?                 // { offered: true, type: "couch" }
+  promotion       Json?
+  lodging         Json?
   additionalTerms String?
-  
-  // COMMUNICATION
   message         String?
-  
-  // METADATA
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
   expiresAt       DateTime?
-  
-  // SOURCE TRACKING (for migration and debugging)
-  sourceType      BookingSourceType     // 'SHOW_REQUEST' | 'VENUE_OFFER' | 'SHOW_LINEUP'
-  sourceId        String                // Original record ID
-  
-  // HOLD MANAGEMENT
+  sourceType      BookingSourceType
+  sourceId        String
   holdState       BidHoldState          @default(AVAILABLE)
   frozenAt        DateTime?
   frozenByHoldId  String?
   unfrozenAt      DateTime?
-  
-  // STATUS HISTORY
   statusHistory   Json                  @default("[]")
   acceptedAt      DateTime?
   declinedAt      DateTime?
@@ -949,16 +1047,12 @@ model BookingOpportunity {
   cancelledAt     DateTime?
   cancelledReason String?
   
-  // RELATIONS
   artist          Artist                @relation("ArtistBookingOpportunities", fields: [artistId], references: [id])
   venue           Venue                 @relation("VenueBookingOpportunities", fields: [venueId], references: [id])
   initiatedByUser User                  @relation("BookingOpportunityInitiator", fields: [initiatedById], references: [id])
   holdRequests    HoldRequest[]
   
-  // PREVENT DUPLICATES
   @@unique([artistId, venueId, proposedDate], name: "unique_opportunity")
-  
-  // INDEXES
   @@index([artistId])
   @@index([venueId])
   @@index([proposedDate])
@@ -971,16 +1065,16 @@ model BookingOpportunity {
 }
 
 enum BookingOpportunityStatus {
-  OPEN          // Just created, awaiting response
-  PENDING       // Under negotiation/consideration
-  CONFIRMED     // Accepted by both parties
-  DECLINED      // Rejected by recipient
-  CANCELLED     // Cancelled by initiator
-  EXPIRED       // Expired due to time limit
+  OPEN
+  PENDING
+  CONFIRMED
+  DECLINED
+  CANCELLED
+  EXPIRED
 }
 
 enum BookingSourceType {
-  SHOW_REQUEST  // Migrated from ShowRequest
-  VENUE_OFFER   // Migrated from VenueOffer  
-  SHOW_LINEUP   // Migrated from Show.lineup (pending)
+  SHOW_REQUEST
+  VENUE_OFFER
+  SHOW_LINEUP
 }

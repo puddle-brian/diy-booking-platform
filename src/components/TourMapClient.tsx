@@ -1,17 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import type { TourDate } from './TourMap';
 
 // Fix Leaflet default marker icons in Next.js/webpack
-// This is needed because webpack messes up the default icon paths
+// Use CDN URLs for reliability across all environments
+const LEAFLET_CDN = 'https://unpkg.com/leaflet@1.9.4/dist/images';
+
 const DefaultIcon = L.icon({
-  iconUrl: '/markers/marker-icon.png',
-  iconRetinaUrl: '/markers/marker-icon-2x.png',
-  shadowUrl: '/markers/marker-shadow.png',
+  iconUrl: `${LEAFLET_CDN}/marker-icon.png`,
+  iconRetinaUrl: `${LEAFLET_CDN}/marker-icon-2x.png`,
+  shadowUrl: `${LEAFLET_CDN}/marker-shadow.png`,
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -21,7 +23,7 @@ const DefaultIcon = L.icon({
 L.Marker.prototype.options.icon = DefaultIcon;
 
 // Custom numbered marker icon
-const createNumberedIcon = (number: number, status: string) => {
+const createNumberedIcon = (number: number, status: string, isHighlighted: boolean = false) => {
   const colors: Record<string, string> = {
     confirmed: '#22c55e',
     hold: '#eab308',
@@ -30,6 +32,10 @@ const createNumberedIcon = (number: number, status: string) => {
   };
   
   const color = colors[status] || '#6366f1';
+  const size = isHighlighted ? 40 : 28;
+  const fontSize = isHighlighted ? 16 : 12;
+  const borderWidth = isHighlighted ? 4 : 2;
+  const glow = isHighlighted ? 'box-shadow: 0 0 20px rgba(99, 102, 241, 0.8), 0 4px 8px rgba(0,0,0,0.4);' : 'box-shadow: 0 2px 4px rgba(0,0,0,0.3);';
   
   return L.divIcon({
     className: 'custom-numbered-marker',
@@ -38,22 +44,24 @@ const createNumberedIcon = (number: number, status: string) => {
         background-color: ${color};
         color: white;
         border-radius: 50%;
-        width: 28px;
-        height: 28px;
+        width: ${size}px;
+        height: ${size}px;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        font-size: 12px;
-        border: 2px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        font-size: ${fontSize}px;
+        border: ${borderWidth}px solid white;
+        ${glow}
+        transition: all 0.2s ease;
+        ${isHighlighted ? 'transform: scale(1.1);' : ''}
       ">
         ${number}
       </div>
     `,
-    iconSize: [28, 28],
-    iconAnchor: [14, 14],
-    popupAnchor: [0, -14],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
   });
 };
 
@@ -71,11 +79,16 @@ function FitBounds({ dates }: { dates: TourDate[] }) {
   return null;
 }
 
+// Note: Removed auto-fly on hover - was too jarring. 
+// Highlighting the pin is enough visual feedback.
+
 interface TourMapClientProps {
   dates: TourDate[];
+  highlightedDateId?: string | null;
+  onDateHover?: (dateId: string | null) => void;
 }
 
-export default function TourMapClient({ dates }: TourMapClientProps) {
+export default function TourMapClient({ dates, highlightedDateId, onDateHover }: TourMapClientProps) {
   // Sort by date to show tour sequence
   const sortedDates = [...dates].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -128,42 +141,52 @@ export default function TourMapClient({ dates }: TourMapClientProps) {
         )}
 
         {/* Markers for each date */}
-        {sortedDates.map((date, index) => (
-          <Marker 
-            key={date.id} 
-            position={[date.latitude, date.longitude]}
-            icon={createNumberedIcon(index + 1, date.status)}
-          >
-            <Popup>
-              <div className="text-sm min-w-[180px]">
-                <div className="font-bold text-gray-900 mb-1">
-                  #{index + 1} — {date.venueName}
+        {sortedDates.map((date, index) => {
+          const isHighlighted = date.id === highlightedDateId;
+          return (
+            <Marker 
+              key={date.id} 
+              position={[date.latitude, date.longitude]}
+              icon={createNumberedIcon(index + 1, date.status, isHighlighted)}
+              eventHandlers={{
+                mouseover: () => onDateHover?.(date.id),
+                mouseout: () => onDateHover?.(null),
+                click: () => onDateHover?.(date.id),
+              }}
+              zIndexOffset={isHighlighted ? 1000 : 0}
+            >
+              <Popup>
+                <div className="text-sm min-w-[180px]">
+                  <div className="font-bold text-gray-900 mb-1">
+                    #{index + 1} — {date.venueName}
+                  </div>
+                  <div className="text-gray-600 mb-2">
+                    {date.city}, {date.state}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-700">
+                      {/* Parse as UTC to avoid timezone shift */}
+                      {new Date(date.date + 'T12:00:00').toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <span
+                      className="inline-block px-2 py-0.5 rounded text-xs font-medium"
+                      style={{ 
+                        backgroundColor: statusInfo[date.status]?.color || '#94a3b8', 
+                        color: 'white' 
+                      }}
+                    >
+                      {statusInfo[date.status]?.label || date.status}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-gray-600 mb-2">
-                  {date.city}, {date.state}
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">
-                    {new Date(date.date).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
-                  <span
-                    className="inline-block px-2 py-0.5 rounded text-xs font-medium"
-                    style={{ 
-                      backgroundColor: statusInfo[date.status]?.color || '#94a3b8', 
-                      color: 'white' 
-                    }}
-                  >
-                    {statusInfo[date.status]?.label || date.status}
-                  </span>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
 
       {/* Legend */}
@@ -183,7 +206,11 @@ export default function TourMapClient({ dates }: TourMapClientProps) {
           ))}
         </div>
       </div>
+      
+      {/* Interaction hint */}
+      <div className="absolute top-4 right-4 bg-white/90 rounded-lg shadow-sm px-2 py-1 z-[1000] text-xs text-gray-500">
+        Hover dates to highlight
+      </div>
     </div>
   );
 }
-

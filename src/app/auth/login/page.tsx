@@ -198,7 +198,7 @@ function LoginPageContent() {
             </div>
           )}
 
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={handleSubmit} autoComplete={isDebugUser ? "off" : "on"}>
             {/* Name Fields - Only for Registration */}
             {!isLogin && (
               <div className="grid grid-cols-2 gap-4">
@@ -246,9 +246,9 @@ function LoginPageContent() {
               <div className="mt-1">
                 <input
                   id="email"
-                  name="email"
+                  name={isDebugUser ? "debug-email" : "email"}
                   type="email"
-                  autoComplete="email"
+                  autoComplete={isDebugUser ? "off" : "email"}
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
@@ -268,9 +268,9 @@ function LoginPageContent() {
               <div className="mt-1">
                 <input
                   id="password"
-                  name="password"
+                  name={isDebugUser ? "debug-password" : "password"}
                   type="password"
-                  autoComplete={isLogin ? "current-password" : "new-password"}
+                  autoComplete={isDebugUser ? "off" : (isLogin ? "current-password" : "new-password")}
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   ProfileContext,
   Artist,
@@ -10,7 +10,9 @@ import {
   ProfileCard,
   BookingContactCard
 } from './ProfileModules';
-import TabbedTourItinerary from '../TabbedTourItinerary';
+// V02: Replaced TabbedTourItinerary with CalendarView
+import CalendarView from '../CalendarView';
+import TourMap from '../TourMap';
 import { UnifiedDataToggle } from '../UnifiedDataToggle';
 import MediaSection from '../MediaSection';
 import TeamManagementCard from './TeamManagementCard';
@@ -50,6 +52,13 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 
   // 🔄 NEW: State to trigger refresh of tour itinerary when holds are approved
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // 🗺️ Map/Itinerary interactivity state
+  const [highlightedDateId, setHighlightedDateId] = useState<string | null>(null);
+  
+  const handleDateHover = useCallback((dateId: string | null) => {
+    setHighlightedDateId(dateId);
+  }, []);
 
   // 🎯 NEW: Get current user's venue information for venue users viewing artist pages
   const getUserVenueInfo = () => {
@@ -127,20 +136,12 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
 
         {/* Primary Content Grid - Most important functionality */}
         <div className="grid gap-6 mb-8">
-          {/* A/B Testing Toggle - PHASE 4.2 */}
-          <UnifiedDataToggle />
-          
-          {/* Tour Dates/Booking - HIGHEST PRIORITY */}
-          <TabbedTourItinerary
-            key={`itinerary-${refreshTrigger}`} // 🔄 NEW: Force re-render when refresh is triggered
+          {/* V02: CalendarView replaces complex TabbedTourItinerary */}
+          <CalendarView
+            key={`calendar-${refreshTrigger}`}
             {...(isArtist ? { 
               artistId: entity.id, 
-              artistName: entity.name,
-              // 🎯 NEW: Pass venue info when venue user views artist page
-              ...(context.viewerType === 'venue' && userVenueId ? {
-                venueId: userVenueId,
-                venueName: userVenueName
-              } : {})
+              artistName: entity.name
             } : { 
               venueId: entity.id, 
               venueName: entity.name 
@@ -149,7 +150,19 @@ export const ProfileLayout: React.FC<ProfileLayoutProps> = ({
             showTitle={true}
             editable={context.canEdit}
             viewerType={context.viewerType === 'admin' ? 'public' : context.viewerType}
+            highlightedDateId={highlightedDateId}
+            onDateHover={handleDateHover}
           />
+          
+          {/* Tour Map - Only for artists */}
+          {isArtist && (
+            <TourMap
+              artistId={entity.id}
+              artistName={entity.name}
+              highlightedDateId={highlightedDateId}
+              onDateHover={handleDateHover}
+            />
+          )}
         </div>
 
         {/* Secondary Content Grid - Important supporting information */}

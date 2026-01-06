@@ -62,6 +62,27 @@ const TOUR_STATUS_MAP: Record<string, string> = {
   'not-touring': 'INACTIVE',
 };
 
+const BILLING_POSITION_MAP: Record<string, string> = {
+  'headliner': 'HEADLINER',
+  'co-headliner': 'CO_HEADLINER',
+  'support': 'SUPPORT',
+  'opener': 'OPENER',
+  'local': 'LOCAL_SUPPORT',
+  'local support': 'LOCAL_SUPPORT',
+  'local-support': 'LOCAL_SUPPORT',
+};
+
+// V02: Simple date status map
+const DATE_STATUS_MAP: Record<string, string> = {
+  'inquiry': 'INQUIRY',
+  'pending': 'PENDING',
+  'hold_requested': 'HOLD_REQUESTED',
+  'hold': 'HOLD',
+  'confirmed': 'CONFIRMED',
+  'declined': 'DECLINED',
+  'cancelled': 'CANCELLED',
+};
+
 // Helper: Find or create a location
 async function findOrCreateLocation(city: string, state: string, country: string = 'USA') {
   // Try to find existing location
@@ -270,6 +291,143 @@ const tools: Anthropic.Tool[] = [
       },
       required: ['name', 'city', 'state', 'artistType', 'contactEmail']
     }
+  },
+  // ======= V02 SIMPLE DATE TOOLS =======
+  {
+    name: 'get_dates',
+    description: 'Get all dates for an artist or venue. Simple list of bookings with status.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        artistId: {
+          type: 'string',
+          description: 'Artist ID to get dates for'
+        },
+        venueId: {
+          type: 'string',
+          description: 'Venue ID to get dates for'
+        },
+        status: {
+          type: 'string',
+          description: 'Filter by status: inquiry, pending, hold, confirmed, declined, cancelled (comma-separated OK)'
+        }
+      },
+      required: []
+    }
+  },
+  {
+    name: 'add_date',
+    description: 'Add a new date entry - book an artist at a venue on a specific date. Use this to create new bookings.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        date: {
+          type: 'string',
+          description: 'Date in YYYY-MM-DD format'
+        },
+        artistId: {
+          type: 'string',
+          description: 'Artist ID (use search_artists to find)'
+        },
+        venueId: {
+          type: 'string',
+          description: 'Venue ID (use search_venues to find)'
+        },
+        artistName: {
+          type: 'string',
+          description: 'Artist name (will search if artistId not provided)'
+        },
+        venueName: {
+          type: 'string',
+          description: 'Venue name (will search if venueId not provided)'
+        },
+        status: {
+          type: 'string',
+          description: 'Status: inquiry (default), pending, confirmed'
+        },
+        guarantee: {
+          type: 'number',
+          description: 'Guarantee amount in dollars'
+        },
+        door: {
+          type: 'string',
+          description: 'Door deal terms (e.g., "70/30 after $200")'
+        },
+        billing: {
+          type: 'string',
+          description: 'Billing position: headliner, support, opener, local'
+        },
+        setLength: {
+          type: 'number',
+          description: 'Set length in minutes'
+        },
+        notes: {
+          type: 'string',
+          description: 'Any notes about this booking'
+        }
+      },
+      required: ['date']
+    }
+  },
+  {
+    name: 'update_date',
+    description: 'Update an existing date entry. Change status, deal, details, or add notes.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        dateId: {
+          type: 'string',
+          description: 'The date entry ID to update'
+        },
+        status: {
+          type: 'string',
+          description: 'New status: inquiry, pending, hold, confirmed, declined, cancelled'
+        },
+        billing: {
+          type: 'string',
+          description: 'Billing position: headliner, support, opener, local'
+        },
+        setLength: {
+          type: 'number',
+          description: 'Set length in minutes'
+        },
+        deal: {
+          type: 'object',
+          description: 'Financial deal. Types: GUARANTEE ({type:"GUARANTEE",amount:500}), DOOR ({type:"DOOR",percent:100,expenses:200}), SPLIT ({type:"SPLIT",artistPercent:70,venuePercent:30}), GUARANTEE_VS_PERCENT ({type:"GUARANTEE_VS_PERCENT",guarantee:400,percent:80}), GUARANTEE_PLUS_SPLIT ({type:"GUARANTEE_PLUS_SPLIT",guarantee:300,artistPercent:70,threshold:500})'
+        },
+        details: {
+          type: 'object',
+          description: 'Show logistics: {loadIn,soundcheck,doors,setTime,curfew,ageRestriction,ticketPrice:{advance,door},hospitality,greenRoom,parking,lodging,guestList,merch,backline:{drums,bass_amp},promotion}'
+        },
+        notes: {
+          type: 'string',
+          description: 'Notes to ADD (will be appended with timestamp)'
+        },
+        holdUntil: {
+          type: 'string',
+          description: 'Hold expiry date (YYYY-MM-DD) - sets status to HOLD'
+        },
+        holdReason: {
+          type: 'string',
+          description: 'Reason for the hold'
+        }
+      },
+      required: ['dateId']
+    }
+  },
+  {
+    name: 'delete_date',
+    description: 'Remove a date entry completely.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        dateId: {
+          type: 'string',
+          description: 'The date entry ID to delete'
+        }
+      },
+      required: ['dateId']
+    }
   }
 ];
 
@@ -464,6 +622,277 @@ async function createArtist(params: {
   };
 }
 
+// ======= V02 SIMPLE DATE TOOL FUNCTIONS =======
+
+async function getDates(params: { 
+  artistId?: string; 
+  venueId?: string; 
+  status?: string;
+}) {
+  const { artistId, venueId, status } = params;
+  
+  if (!artistId && !venueId) {
+    return { error: 'Must specify either artistId or venueId' };
+  }
+
+  const where: any = {};
+  if (artistId) where.artistId = artistId;
+  if (venueId) where.venueId = venueId;
+  if (status) {
+    const statusList = status.split(',').map(s => s.trim().toUpperCase());
+    where.status = { in: statusList };
+  }
+
+  const entries = await prisma.dateEntry.findMany({
+    where,
+    include: {
+      artist: { select: { id: true, name: true } },
+      venue: { 
+        select: { 
+          id: true, 
+          name: true,
+          location: { select: { city: true, stateProvince: true } }
+        }
+      },
+    },
+    orderBy: { date: 'asc' },
+  });
+
+  return {
+    dates: entries.map(e => ({
+      id: e.id,
+      date: e.date.toISOString().split('T')[0],
+      artistId: e.artistId,
+      artistName: e.artist.name,
+      venueId: e.venueId,
+      venueName: e.venue.name,
+      city: e.venue.location?.city,
+      state: e.venue.location?.stateProvince,
+      status: e.status.toLowerCase(),
+      guarantee: e.guarantee,
+      door: e.door,
+      billing: e.billing,
+      setLength: e.setLength,
+      holdUntil: e.holdUntil?.toISOString().split('T')[0],
+      holdReason: e.holdReason,
+      notes: e.notes,
+    })),
+    count: entries.length,
+    perspective: artistId ? 'artist' : 'venue',
+  };
+}
+
+async function addDate(params: {
+  date: string;
+  artistId?: string;
+  venueId?: string;
+  artistName?: string;
+  venueName?: string;
+  status?: string;
+  guarantee?: number;
+  door?: string;
+  billing?: string;
+  setLength?: number;
+  notes?: string;
+}) {
+  let { artistId, venueId, artistName, venueName, date, status, guarantee, door, billing, setLength, notes } = params;
+
+  // Find artist by name if ID not provided
+  if (!artistId && artistName) {
+    const artist = await prisma.artist.findFirst({
+      where: { name: { contains: artistName, mode: 'insensitive' } },
+      select: { id: true, name: true }
+    });
+    if (!artist) {
+      return { error: `Artist "${artistName}" not found. Try searching first.` };
+    }
+    artistId = artist.id;
+    artistName = artist.name;
+  }
+
+  // Find venue by name if ID not provided
+  if (!venueId && venueName) {
+    const venue = await prisma.venue.findFirst({
+      where: { name: { contains: venueName, mode: 'insensitive' } },
+      select: { id: true, name: true }
+    });
+    if (!venue) {
+      return { error: `Venue "${venueName}" not found. Try searching first.` };
+    }
+    venueId = venue.id;
+    venueName = venue.name;
+  }
+
+  if (!artistId || !venueId) {
+    return { error: 'Need both artist and venue. Specify by ID or name.' };
+  }
+
+  // Map status
+  const mappedStatus = status 
+    ? DATE_STATUS_MAP[status.toLowerCase()] || 'INQUIRY'
+    : 'INQUIRY';
+
+  try {
+    const entry = await prisma.dateEntry.create({
+      data: {
+        date: new Date(date),
+        artistId,
+        venueId,
+        status: mappedStatus as any,
+        guarantee: guarantee || null,
+        door: door || null,
+        billing: billing || null,
+        setLength: setLength || null,
+        notes: notes || null,
+      },
+      include: {
+        artist: { select: { name: true } },
+        venue: { select: { name: true } },
+      }
+    });
+
+    return {
+      success: true,
+      message: `Added: ${entry.artist.name} @ ${entry.venue.name} on ${date} (${mappedStatus.toLowerCase()})`,
+      date: {
+        id: entry.id,
+        date: entry.date.toISOString().split('T')[0],
+        artistName: entry.artist.name,
+        venueName: entry.venue.name,
+        status: entry.status.toLowerCase(),
+        guarantee: entry.guarantee,
+      }
+    };
+  } catch (error: any) {
+    if (error.code === 'P2002') {
+      return { error: 'Entry already exists for this artist/venue/date' };
+    }
+    throw error;
+  }
+}
+
+async function updateDate(params: {
+  dateId: string;
+  status?: string;
+  billing?: string;
+  setLength?: number;
+  deal?: any;
+  details?: any;
+  notes?: string;
+  holdUntil?: string;
+  holdReason?: string;
+}) {
+  const { dateId, status, billing, setLength, deal, details, notes, holdUntil, holdReason } = params;
+
+  const existing = await prisma.dateEntry.findUnique({
+    where: { id: dateId },
+    include: {
+      artist: { select: { name: true } },
+      venue: { select: { name: true } },
+    }
+  });
+
+  if (!existing) {
+    return { error: `Date entry not found: ${dateId}` };
+  }
+
+  // Build update data
+  const data: any = {};
+  const changes: string[] = [];
+  
+  if (status) {
+    data.status = DATE_STATUS_MAP[status.toLowerCase()] || status.toUpperCase();
+    changes.push(`status → ${status}`);
+  }
+  if (billing !== undefined) {
+    data.billing = billing;
+    changes.push(`billing → ${billing}`);
+  }
+  if (setLength !== undefined) {
+    data.setLength = setLength;
+    changes.push(`set length → ${setLength}min`);
+  }
+  
+  // Handle structured deal
+  if (deal !== undefined) {
+    data.deal = deal;
+    // Also update legacy fields for backwards compat
+    if (deal.type === 'GUARANTEE') {
+      data.guarantee = deal.amount;
+      data.door = null;
+    }
+    changes.push(`deal → ${deal.type}`);
+  }
+  
+  // Handle details (merge with existing)
+  if (details !== undefined) {
+    const existingDetails = (existing as any).details || {};
+    data.details = { ...existingDetails, ...details };
+    changes.push(`details updated`);
+  }
+  
+  // Handle notes - append with timestamp
+  if (notes !== undefined) {
+    const timestamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+    const existingNotes = existing.notes || '';
+    const newNote = `[${timestamp}] ${notes}`;
+    data.notes = existingNotes ? `${existingNotes}\n${newNote}` : newNote;
+    changes.push(`note added`);
+  }
+  
+  // Handle hold
+  if (holdUntil) {
+    data.holdUntil = new Date(holdUntil);
+    data.status = 'HOLD';
+    if (holdReason) data.holdReason = holdReason;
+    changes.push(`on hold until ${holdUntil}`);
+  }
+
+  const updated = await prisma.dateEntry.update({
+    where: { id: dateId },
+    data,
+    include: {
+      artist: { select: { name: true } },
+      venue: { select: { name: true } },
+    }
+  });
+
+  return {
+    success: true,
+    message: `Updated ${updated.artist.name} @ ${updated.venue.name}: ${changes.join(', ')}`,
+    date: {
+      id: updated.id,
+      date: updated.date.toISOString().split('T')[0],
+      artistName: updated.artist.name,
+      venueName: updated.venue.name,
+      status: updated.status.toLowerCase(),
+    }
+  };
+}
+
+async function deleteDate(params: { dateId: string }) {
+  const { dateId } = params;
+
+  const existing = await prisma.dateEntry.findUnique({
+    where: { id: dateId },
+    include: {
+      artist: { select: { name: true } },
+      venue: { select: { name: true } },
+    }
+  });
+
+  if (!existing) {
+    return { error: `Date entry not found: ${dateId}` };
+  }
+
+  await prisma.dateEntry.delete({ where: { id: dateId } });
+
+  return {
+    success: true,
+    message: `Removed: ${existing.artist.name} @ ${existing.venue.name} on ${existing.date.toISOString().split('T')[0]}`
+  };
+}
+
 // Execute a tool call
 async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
   try {
@@ -489,6 +918,23 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
       case 'create_artist':
         const artistResult = await createArtist(input as Parameters<typeof createArtist>[0]);
         return JSON.stringify(artistResult);
+      
+      // V02 Simple date tools
+      case 'get_dates':
+        const datesResult = await getDates(input as Parameters<typeof getDates>[0]);
+        return JSON.stringify(datesResult);
+        
+      case 'add_date':
+        const addDateResult = await addDate(input as Parameters<typeof addDate>[0]);
+        return JSON.stringify(addDateResult);
+        
+      case 'update_date':
+        const updateDateResult = await updateDate(input as Parameters<typeof updateDate>[0]);
+        return JSON.stringify(updateDateResult);
+        
+      case 'delete_date':
+        const deleteDateResult = await deleteDate(input as Parameters<typeof deleteDate>[0]);
+        return JSON.stringify(deleteDateResult);
         
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
@@ -499,55 +945,72 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
   }
 }
 
-// System prompt that defines the agent's role and capabilities
-const SYSTEM_PROMPT = `You are a helpful booking agent for DIY Shows, a platform connecting independent musicians with DIY venues. Think of yourself as a friendly tour manager who knows the DIY scene well.
+// V02 System prompt - persistent assistant with memory
+const SYSTEM_PROMPT = `You are a personal booking assistant for DIY Shows. You have an ongoing relationship with each artist/venue - your conversation history is saved and you remember past discussions.
 
-## Your Capabilities
+## Your Memory
+- This is a PERSISTENT conversation - you remember previous chats
+- Learn from what users tell you (preferences, contacts, typical deals)
+- Reference past conversations when relevant ("last time you mentioned...")
+- Build up knowledge about this artist/venue over time
 
-You have tools to:
-1. **Search venues** - Find venues by location, type, or name
-2. **Search artists** - Find artists by location, genre, or name  
-3. **Create venues** - Add new venue listings to the database
-4. **Create artists** - Add new artist listings to the database
+## Your Tools
 
-## Guidelines
+### Find Stuff:
+- **search_venues** - Find venues by city, name, or state
+- **search_artists** - Find artists by name, city, or genre
 
-### When helping users ADD a venue or artist:
-1. Have a natural conversation to gather the required info
-2. Required for venues: name, city, state (2-letter code like RI, CA), venue type, contact email
-3. Required for artists: name, city, state, artist type, contact email
-4. Ask follow-up questions about optional but helpful details (capacity, genres, description)
-5. Ask if they have a photo URL they'd like to use (from Instagram, their website, Bandcamp, etc.). If not, mention they can add photos later from their profile page.
-6. Before creating, summarize what you'll create and confirm with the user
-7. After creating, share the profile URL so they can view/edit their listing
+### Add Listings:
+- **create_venue** - Add a new venue
+- **create_artist** - Add a new artist
 
-### Venue Types:
-house-show, basement, bar, club, warehouse, coffee-shop, record-store, vfw-hall, community-center, park, amphitheater, other
+### Manage Dates:
+- **get_dates** - View someone's calendar
+- **add_date** - Book an artist at a venue for a date
+- **update_date** - Change status, deal, details, or notes
+- **delete_date** - Remove a date
 
-### Artist Types:
-band, solo, collective, dj, other
+## Status Workflow
 
-### Common Genres:
-punk, hardcore, indie, noise, experimental, folk, metal, emo, shoegaze, post-punk, garage, psych, electronic, hip-hop, jazz, country, bluegrass, ambient
+**For Artists receiving offers:**
+- pending → accept / decline / request hold
+- hold_requested → (waiting for venue)
+- hold → accept / decline / release
+- confirmed → cancel
 
-### Age Restrictions:
-all-ages, 18+, 21+
+**For Venues making offers:**
+- inquiry → make offer / pass
+- pending → (waiting for artist)
+- hold_requested → approve hold / deny hold
+- hold → (waiting for artist)
+- confirmed → cancel
 
-### Tone:
-- Friendly and conversational, not corporate
-- Knowledgeable about DIY touring and underground music
-- Concise but warm
-- Use the user's language and vibe
+## Deal Types
+- GUARANTEE: Flat fee ("$500")
+- DOOR: Percentage after expenses ("100% after $200")
+- SPLIT: Percentage split ("70/30")
+- GUARANTEE_VS_PERCENT: Greater of ("$400 vs 80%")
+- GUARANTEE_PLUS_SPLIT: Guarantee plus split ("$300 + 70% after $500")
 
-### Important:
-- Always confirm before creating anything
-- If a venue/artist might already exist, search first to check
-- Use 2-letter state codes (RI, CA, NY, TX, etc.)
-- Provide helpful context about what info is optional vs required`;
+## Show Details (Rider)
+Can track: loadIn, soundcheck, doors, setTime, curfew, ticketPrice, hospitality, greenRoom, parking, lodging, guestList, merch, backline, promotion
+
+## Notes
+Use update_date with notes to add timestamped entries - great for tracking negotiations, contacts, preferences.
+
+## Quick Tips
+- Be brief but personal
+- Execute immediately when clear
+- Reference past conversations
+- Track preferences over time
+- DIY shows: $200-800 or door deals typical
+
+## Tone
+Like a trusted friend who handles your booking. Personal, efficient, remembers everything.`;
 
 export async function POST(request: NextRequest) {
   try {
-    const { message, conversationHistory = [] } = await request.json();
+    const { message, conversationHistory = [], context = {} } = await request.json();
 
     if (!message) {
       return NextResponse.json(
@@ -564,6 +1027,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build context prefix for the system prompt
+    let contextPrefix = '';
+    if (context.entityType && context.entityId) {
+      contextPrefix = `\n\n## Current Context\nYou are helping manage dates for a ${context.entityType}: "${context.entityName}" (ID: ${context.entityId}). Use this ID in tool calls as ${context.entityType}Id.`;
+      
+      // If editing a specific date entry
+      if (context.dateEntryId) {
+        contextPrefix += `\n\nCurrently editing a specific date entry:\n- Date Entry ID: ${context.dateEntryId}\n- Date: ${context.dateEntryDate}\n- Artist: ${context.dateEntryArtist}\n- Venue: ${context.dateEntryVenue}\n\nUse update_date with dateId="${context.dateEntryId}" for any updates to this booking.`;
+      }
+    }
+
     // Build messages array with history
     let messages: Anthropic.MessageParam[] = [
       ...conversationHistory,
@@ -574,7 +1048,7 @@ export async function POST(request: NextRequest) {
     let response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      system: SYSTEM_PROMPT + contextPrefix,
       tools: tools,
       messages: messages
     });
@@ -609,7 +1083,7 @@ export async function POST(request: NextRequest) {
       response = await anthropic.messages.create({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system: SYSTEM_PROMPT + contextPrefix,
         tools: tools,
         messages: messages
       });

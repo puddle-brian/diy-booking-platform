@@ -34,6 +34,7 @@
     "dotenv": "^16.5.0",
     "googleapis": "^149.0.0",
     "jsonwebtoken": "^9.0.2",
+    "leaflet": "^1.9.4",
     "multer": "^2.0.0",
     "next": "15.1.8",
     "next-auth": "^4.24.10",
@@ -42,6 +43,7 @@
     "prisma": "^6.8.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
     "sharp": "^0.33.0"
   },
   "devDependencies": {

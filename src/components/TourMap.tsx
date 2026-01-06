@@ -31,9 +31,11 @@ interface TourMapProps {
   artistId: string;
   artistName?: string;
   className?: string;
+  highlightedDateId?: string | null;
+  onDateHover?: (dateId: string | null) => void;
 }
 
-export default function TourMap({ artistId, artistName, className }: TourMapProps) {
+export default function TourMap({ artistId, artistName, className, highlightedDateId, onDateHover }: TourMapProps) {
   const [dates, setDates] = useState<TourDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,7 +135,11 @@ export default function TourMap({ artistId, artistName, className }: TourMapProp
           <span className="text-sm text-gray-500">{dates.length} date{dates.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
-      <MapComponent dates={dates} />
+      <MapComponent 
+        dates={dates} 
+        highlightedDateId={highlightedDateId}
+        onDateHover={onDateHover}
+      />
     </div>
   );
 }
