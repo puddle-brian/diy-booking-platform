@@ -3,9 +3,68 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Theme presets
+const themePresets = {
+  'gibson-dark': {
+    name: 'Gibson Dark (Default)',
+    bgPrimary: '#0a0a0b',
+    bgSecondary: '#111113',
+    bgTertiary: '#18181b',
+    textPrimary: '#e4e4e7',
+    textSecondary: '#a1a1aa',
+    textMuted: '#52525b',
+    borderPrimary: '#27272a',
+    accentColor: '#22c55e',
+  },
+  'midnight': {
+    name: 'Midnight Blue',
+    bgPrimary: '#0a0f1a',
+    bgSecondary: '#101827',
+    bgTertiary: '#1a2337',
+    textPrimary: '#e0e7ff',
+    textSecondary: '#94a3b8',
+    textMuted: '#475569',
+    borderPrimary: '#1e3a5f',
+    accentColor: '#3b82f6',
+  },
+  'forest': {
+    name: 'Forest Terminal',
+    bgPrimary: '#0a0f0a',
+    bgSecondary: '#101810',
+    bgTertiary: '#182018',
+    textPrimary: '#d4e7d4',
+    textSecondary: '#8fbc8f',
+    textMuted: '#4a6a4a',
+    borderPrimary: '#1f3f1f',
+    accentColor: '#4ade80',
+  },
+  'amber': {
+    name: 'Amber Glow',
+    bgPrimary: '#0f0a05',
+    bgSecondary: '#1a1208',
+    bgTertiary: '#261a0d',
+    textPrimary: '#fef3c7',
+    textSecondary: '#fcd34d',
+    textMuted: '#92400e',
+    borderPrimary: '#451a03',
+    accentColor: '#f59e0b',
+  },
+  'light': {
+    name: 'Light Mode',
+    bgPrimary: '#fafafa',
+    bgSecondary: '#f4f4f5',
+    bgTertiary: '#e4e4e7',
+    textPrimary: '#18181b',
+    textSecondary: '#3f3f46',
+    textMuted: '#71717a',
+    borderPrimary: '#d4d4d8',
+    accentColor: '#0ea5e9',
+  },
+};
+
 export default function AdminPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'debug' | 'content' | 'feedback' | 'analytics'>('debug');
+  const [activeTab, setActiveTab] = useState<'debug' | 'content' | 'feedback' | 'analytics' | 'settings'>('debug');
   const [loading, setLoading] = useState<{[key: string]: boolean}>({});
   const [venues, setVenues] = useState<any[]>([]);
   const [artists, setArtists] = useState<any[]>([]);
@@ -19,8 +78,11 @@ export default function AdminPage() {
   const [backups, setBackups] = useState<any[]>([]);
   const [showBackupsList, setShowBackupsList] = useState(false);
   const [loadingBackups, setLoadingBackups] = useState(false);
+  
+  // Theme settings
+  const [currentTheme, setCurrentTheme] = useState('gibson-dark');
+  const [customColors, setCustomColors] = useState(themePresets['gibson-dark']);
 
-  // Filter functions for search
   const filteredVenues = venues.filter(venue => 
     venue.name.toLowerCase().includes(venueSearch.toLowerCase()) ||
     venue.city.toLowerCase().includes(venueSearch.toLowerCase()) ||
@@ -35,12 +97,69 @@ export default function AdminPage() {
     artist.artistType.toLowerCase().includes(artistSearch.toLowerCase())
   );
 
-  // Prevent hydration mismatch by only showing browser-specific content after mount
   useEffect(() => {
     setMounted(true);
+    
+    // Load saved theme from localStorage
+    const savedTheme = localStorage.getItem('diyshows-theme');
+    const savedColors = localStorage.getItem('diyshows-custom-colors');
+    
+    if (savedTheme && themePresets[savedTheme as keyof typeof themePresets]) {
+      setCurrentTheme(savedTheme);
+      setCustomColors(themePresets[savedTheme as keyof typeof themePresets]);
+    } else if (savedColors) {
+      try {
+        const colors = JSON.parse(savedColors);
+        setCustomColors(colors);
+        setCurrentTheme('custom');
+      } catch (e) {
+        console.error('Failed to parse saved colors');
+      }
+    }
   }, []);
 
-  // Load data for content management
+  // Apply theme to CSS variables
+  const applyTheme = (colors: typeof customColors) => {
+    const root = document.documentElement;
+    root.style.setProperty('--bg-primary', colors.bgPrimary);
+    root.style.setProperty('--bg-secondary', colors.bgSecondary);
+    root.style.setProperty('--bg-tertiary', colors.bgTertiary);
+    root.style.setProperty('--text-primary', colors.textPrimary);
+    root.style.setProperty('--text-secondary', colors.textSecondary);
+    root.style.setProperty('--text-muted', colors.textMuted);
+    root.style.setProperty('--border-primary', colors.borderPrimary);
+    root.style.setProperty('--status-active', colors.accentColor);
+  };
+
+  const handleThemeChange = (themeKey: string) => {
+    const preset = themePresets[themeKey as keyof typeof themePresets];
+    if (preset) {
+      setCurrentTheme(themeKey);
+      setCustomColors(preset);
+      applyTheme(preset);
+      localStorage.setItem('diyshows-theme', themeKey);
+      localStorage.removeItem('diyshows-custom-colors');
+    }
+  };
+
+  const handleColorChange = (colorKey: keyof typeof customColors, value: string) => {
+    const newColors = { ...customColors, [colorKey]: value };
+    setCustomColors(newColors);
+    setCurrentTheme('custom');
+    applyTheme(newColors);
+    localStorage.setItem('diyshows-custom-colors', JSON.stringify(newColors));
+    localStorage.removeItem('diyshows-theme');
+  };
+
+  const resetToDefault = () => {
+    const defaultTheme = themePresets['gibson-dark'];
+    setCurrentTheme('gibson-dark');
+    setCustomColors(defaultTheme);
+    applyTheme(defaultTheme);
+    localStorage.setItem('diyshows-theme', 'gibson-dark');
+    localStorage.removeItem('diyshows-custom-colors');
+  };
+
   useEffect(() => {
     if (activeTab === 'content') {
       loadContentData();
@@ -86,9 +205,6 @@ export default function AdminPage() {
     setLoading(prev => ({ ...prev, [email]: true }));
     
     try {
-      console.log('Admin: Redirecting to login with pre-filled credentials for:', displayName);
-      
-      // Redirect to login page with pre-filled email and password
       const loginUrl = `/auth/login?email=${encodeURIComponent(email)}&password=debug123&name=${encodeURIComponent(displayName)}`;
       
       if (mounted) {
@@ -108,20 +224,13 @@ export default function AdminPage() {
     try {
       const response = await fetch('/api/admin/reset-bids', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to reset bids');
-      }
+      if (!response.ok) throw new Error('Failed to reset bids');
 
       alert('✅ All bids have been reset to their original demo state!');
-      // Refresh the page to show updated state
-      if (mounted) {
-        window.location.reload();
-      }
+      if (mounted) window.location.reload();
     } catch (error) {
       console.error('Bid reset failed:', error);
       alert('Failed to reset bids');
@@ -131,29 +240,20 @@ export default function AdminPage() {
   };
 
   const handleClearAllBids = async () => {
-    if (!confirm('⚠️ This will permanently delete ALL bids from the system. This action cannot be undone. Are you sure?')) {
-      return;
-    }
+    if (!confirm('⚠️ This will permanently delete ALL bids from the system. Are you sure?')) return;
 
     setLoading(prev => ({ ...prev, clearBids: true }));
     
     try {
       const response = await fetch('/api/admin/clear-bids', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to clear bids');
-      }
+      if (!response.ok) throw new Error('Failed to clear bids');
 
-      alert('🧹 All bids have been cleared from the system!');
-      // Refresh the page to show updated state
-      if (mounted) {
-        window.location.reload();
-      }
+      alert('🧹 All bids have been cleared!');
+      if (mounted) window.location.reload();
     } catch (error) {
       console.error('Clear bids failed:', error);
       alert('Failed to clear bids');
@@ -163,39 +263,25 @@ export default function AdminPage() {
   };
 
   const handleDeleteContent = async (type: 'venue' | 'artist', id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete ${type} "${name}"? This action cannot be undone.`)) {
-      return;
-    }
+    if (!confirm(`Delete ${type} "${name}"? This cannot be undone.`)) return;
 
     setLoading(prev => ({ ...prev, [`delete-${type}-${id}`]: true }));
     
     try {
-      console.log(`🗑️ Attempting to delete ${type}: ${name} (ID: ${id})`);
-      
       const response = await fetch(`/api/${type}s/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
-
-      console.log(`🗑️ Delete response status: ${response.status}`);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error(`🗑️ Delete failed:`, errorData);
-        throw new Error(errorData.error || `Failed to delete ${type} (${response.status})`);
+        throw new Error(errorData.error || `Failed to delete ${type}`);
       }
 
-      const result = await response.json();
-      console.log(`✅ Delete successful:`, result);
-      
-      alert(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} "${name}" has been deleted!`);
-      
-      // Reload content data
+      alert(`✅ ${type} "${name}" deleted!`);
       await loadContentData();
     } catch (error) {
-      console.error(`❌ Delete ${type} failed:`, error);
+      console.error(`Delete ${type} failed:`, error);
       const errorMessage = error instanceof Error ? error.message : `Failed to delete ${type}`;
       alert(`❌ Error: ${errorMessage}`);
     } finally {
@@ -210,21 +296,15 @@ export default function AdminPage() {
     try {
       const response = await fetch('/api/admin/backup', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to create backup');
-      }
+      if (!response.ok) throw new Error('Failed to create backup');
 
-      // Check if this is a direct download response (production)
       const contentType = response.headers.get('content-type');
       const filename = response.headers.get('x-backup-filename');
       
       if (contentType?.includes('application/json') && filename) {
-        // Production: Direct download
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -235,19 +315,13 @@ export default function AdminPage() {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
         
-        setBackupMessage(`✅ Backup downloaded successfully: ${filename}`);
-        alert('Backup created and downloaded successfully!');
+        setBackupMessage(`✅ Backup downloaded: ${filename}`);
       } else {
-        // Local development: JSON response with file path
         const backupData = await response.json();
         setBackupMessage(backupData.message);
-        alert('Backup created successfully!');
       }
       
-      // Refresh backup list if it's currently shown
-      if (showBackupsList) {
-        await handleShowBackups();
-      }
+      if (showBackupsList) await handleShowBackups();
     } catch (error) {
       console.error('Backup creation failed:', error);
       alert('Failed to create backup');
@@ -260,9 +334,7 @@ export default function AdminPage() {
     setLoadingBackups(true);
     try {
       const response = await fetch('/api/admin/backups');
-      if (!response.ok) {
-        throw new Error('Failed to fetch backups');
-      }
+      if (!response.ok) throw new Error('Failed to fetch backups');
 
       const backupData = await response.json();
       setBackups(backupData.backups || []);
@@ -275,578 +347,599 @@ export default function AdminPage() {
     }
   };
 
+  const tabs = [
+    { id: 'debug', label: 'DEBUG', icon: '⚙' },
+    { id: 'content', label: 'CONTENT', icon: '📁' },
+    { id: 'feedback', label: `FEEDBACK [${feedback.filter(f => f.status === 'NEW').length}]`, icon: '💬' },
+    { id: 'analytics', label: 'ANALYTICS', icon: '📊' },
+    { id: 'settings', label: 'SETTINGS', icon: '🎨' },
+  ];
+
+  // Debug user cards data
+  const debugUsers = {
+    artists: [
+      { email: 'tom@debug.diyshows.com', name: 'Tom May', entity: 'The Menzingers', role: 'Vocalist/Guitar', location: 'Scranton, PA', genre: 'Punk Rock' },
+      { email: 'laura@debug.diyshows.com', name: 'Laura Jane Grace', entity: 'Against Me!', role: 'Vocalist/Guitar', location: 'Gainesville, FL', genre: 'Folk Punk' },
+      { email: 'patti@debug.diyshows.com', name: 'Patti Smith', entity: 'Solo Artist', role: 'Poet/Musician', location: 'New York, NY', genre: 'Punk Poetry' },
+      { email: 'barry@debug.diyshows.com', name: 'Barry Johnson', entity: 'Joyce Manor', role: 'Vocalist/Guitar', location: 'Torrance, CA', genre: 'Punk/Emo' },
+      { email: 'brian.gibson@debug.diyshows.com', name: 'Brian Gibson', entity: 'Lightning Bolt', role: 'Bass • Owner', location: 'Providence, RI', genre: 'Noise Rock' },
+      { email: 'brian.chippendale@debug.diyshows.com', name: 'Brian Chippendale', entity: 'Lightning Bolt', role: 'Drums • Member', location: 'Providence, RI', genre: 'Noise Rock' },
+    ],
+    venues: [
+      { email: 'lidz@debug.diyshows.com', name: 'Lidz Bierenday', entity: 'Lost Bag', type: 'House Show', location: 'Providence, RI', cap: '300' },
+      { email: 'joe@debug.diyshows.com', name: 'Joe Martinez', entity: "Joe's Basement", type: 'House Show', location: 'Portland, OR', cap: '35' },
+      { email: 'sarah@debug.diyshows.com', name: 'Sarah Chen', entity: 'Community Arts Center', type: 'Arts Center', location: 'Austin, TX', cap: '120' },
+      { email: 'mike@debug.diyshows.com', name: 'Mike Rodriguez', entity: 'The Underground', type: 'House Show', location: 'Brooklyn, NY', cap: '50' },
+      { email: 'alex@debug.diyshows.com', name: 'Alex Thompson', entity: 'VFW Post 1138', type: 'VFW Hall', location: 'Richmond, VA', cap: '150' },
+    ]
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="bg-white rounded-lg shadow">
-          {/* Header */}
-          <div className="border-b border-gray-200 px-6 py-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">🛠️ Admin Control Panel</h1>
-                <p className="text-gray-600 mt-1">Manage platform content and debug tools</p>
-              </div>
+    <div className="min-h-screen bg-bg-primary">
+      {/* Header */}
+      <header className="border-b border-border-subtle bg-bg-secondary">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-4">
+              <span className="text-lg font-medium text-text-accent">[ADMIN CONTROL]</span>
+              <span className="text-2xs text-text-muted uppercase tracking-wider">System Management</span>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <a href="/" className="btn text-2xs">&lt;&lt; BACK TO SITE</a>
               
-              <div className="flex items-center space-x-4">
-                {/* Back to Main Site Button */}
-                <a
-                  href="/"
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                  </svg>
-                  Back to Main Site
-                </a>
-                
-                {/* Current User Status */}
+              {user ? (
                 <div className="text-right">
-                  <div className="text-sm text-gray-600">Current User:</div>
-                  {user ? (
-                    <div className="text-sm">
-                      <div className="font-medium text-gray-900">{user.name}</div>
-                      <div className="text-gray-600">
-                        {user.role} {user.memberships && user.memberships.length > 0 && `• ${user.memberships.length} membership${user.memberships.length > 1 ? 's' : ''}`}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500">Not logged in</div>
-                  )}
+                  <div className="text-xs text-text-accent">{user.name}</div>
+                  <div className="text-2xs text-text-muted uppercase tracking-wider">
+                    {user.role} {user.memberships && user.memberships.length > 0 && `• ${user.memberships.length} MEMBERSHIPS`}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <span className="text-2xs text-text-muted">[NOT LOGGED IN]</span>
+              )}
             </div>
           </div>
+        </div>
+      </header>
 
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
+      {/* Tab Navigation */}
+      <nav className="border-b border-border-subtle bg-bg-tertiary">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex">
+            {tabs.map(tab => (
               <button
-                onClick={() => setActiveTab('debug')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'debug'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-6 py-3 text-2xs font-medium uppercase tracking-wider border-b-2 transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-text-accent text-text-accent bg-bg-secondary'
+                    : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-hover'
                 }`}
               >
-                🐛 Debug Tools
+                {tab.icon} {tab.label}
               </button>
-              <button
-                onClick={() => setActiveTab('content')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'content'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                📝 Content Management
-              </button>
-              <button
-                onClick={() => setActiveTab('feedback')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'feedback'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                💬 Feedback ({feedback.filter(f => f.status === 'NEW').length})
-              </button>
-              <button
-                onClick={() => setActiveTab('analytics')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                  activeTab === 'analytics'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                📊 Analytics
-              </button>
-            </nav>
-          </div>
-
-          {/* Tab Content */}
-          <div className="p-6">
-            {activeTab === 'debug' && (
-              <div className="space-y-8">
-                {/* Quick User Switcher */}
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick User Switcher</h2>
-                  <p className="text-sm text-gray-600 mb-6">
-                    Click any user below to go to the login page with their credentials pre-filled. 
-                    All debug users use password: <code className="bg-gray-100 px-2 py-1 rounded">debug123</code>
-                  </p>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    
-                    {/* ARTISTS */}
-                    <div className="col-span-full">
-                      <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">🎵 Artists</h3>
-                    </div>
-
-                    {/* Tom May (The Menzingers) */}
-                    <button
-                      onClick={() => handleQuickLogin('tom@debug.diyshows.com', 'Tom May (Debug)', 'artist', 'The Menzingers')}
-                      disabled={loading['tom@debug.diyshows.com']}
-                      className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-blue-800">🎤 Tom May (Debug)</div>
-                      <div className="text-sm text-blue-600">The Menzingers • Vocalist/Guitar</div>
-                      <div className="text-xs text-blue-500 mt-1">Scranton, PA • Punk Rock</div>
-                      <div className="text-xs text-gray-500 mt-2">tom@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Laura Jane Grace (Against Me!) */}
-                    <button
-                      onClick={() => handleQuickLogin('laura@debug.diyshows.com', 'Laura Jane Grace (Debug)', 'artist', 'Against Me!')}
-                      disabled={loading['laura@debug.diyshows.com']}
-                      className="p-4 border-2 border-red-200 rounded-lg hover:border-red-400 hover:bg-red-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-red-800">🎸 Laura Jane Grace (Debug)</div>
-                        <div className="text-sm text-red-600">Against Me! • Vocalist/Guitar</div>
-                        <div className="text-xs text-red-500 mt-1">Gainesville, FL • Folk Punk</div>
-                      <div className="text-xs text-gray-500 mt-2">laura@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Patti Smith */}
-                    <button
-                      onClick={() => handleQuickLogin('patti@debug.diyshows.com', 'Patti Smith (Debug)', 'artist', 'Patti Smith')}
-                      disabled={loading['patti@debug.diyshows.com']}
-                      className="p-4 border-2 border-indigo-200 rounded-lg hover:border-indigo-400 hover:bg-indigo-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-indigo-800">📖 Patti Smith (Debug)</div>
-                        <div className="text-sm text-indigo-600">Solo Artist • Poet/Musician</div>
-                        <div className="text-xs text-indigo-500 mt-1">New York, NY • Punk Poetry</div>
-                      <div className="text-xs text-gray-500 mt-2">patti@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Barry Johnson (Joyce Manor) */}
-                    <button
-                      onClick={() => handleQuickLogin('barry@debug.diyshows.com', 'Barry Johnson (Debug)', 'artist', 'Joyce Manor')}
-                      disabled={loading['barry@debug.diyshows.com']}
-                      className="p-4 border-2 border-orange-200 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-orange-800">🎸 Barry Johnson (Debug)</div>
-                        <div className="text-sm text-orange-600">Joyce Manor • Vocalist/Guitar</div>
-                        <div className="text-xs text-orange-500 mt-1">Torrance, CA • Punk/Emo</div>
-                      <div className="text-xs text-gray-500 mt-2">barry@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Brian Gibson (Lightning Bolt) */}
-                    <button
-                      onClick={() => handleQuickLogin('brian.gibson@debug.diyshows.com', 'Brian Gibson (Debug)', 'artist', 'Lightning Bolt')}
-                      disabled={loading['brian.gibson@debug.diyshows.com']}
-                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-purple-800">🎸 Brian Gibson (Debug)</div>
-                      <div className="text-sm text-purple-600">Lightning Bolt • Bass • Owner</div>
-                      <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
-                      <div className="text-xs text-gray-500 mt-2">brian.gibson@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Brian Chippendale (Lightning Bolt) */}
-                    <button
-                      onClick={() => handleQuickLogin('brian.chippendale@debug.diyshows.com', 'Brian Chippendale (Debug)', 'artist', 'Lightning Bolt')}
-                      disabled={loading['brian.chippendale@debug.diyshows.com']}
-                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-purple-800">🥁 Brian Chippendale (Debug)</div>
-                      <div className="text-sm text-purple-600">Lightning Bolt • Drums • Member</div>
-                      <div className="text-xs text-purple-500 mt-1">Providence, RI • Noise Rock</div>
-                      <div className="text-xs text-gray-500 mt-2">brian.chippendale@debug.diyshows.com</div>
-                    </button>
-
-                    {/* VENUES */}
-                    <div className="col-span-full mt-6">
-                      <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">🏢 Venues</h3>
-                    </div>
-
-                    {/* Lidz Bierenday (Lost Bag) */}
-                    <button
-                      onClick={() => handleQuickLogin('lidz@debug.diyshows.com', 'Lidz Bierenday (Debug)', 'venue', 'Lost Bag')}
-                      disabled={loading['lidz@debug.diyshows.com']}
-                      className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-green-800">🏠 Lidz Bierenday (Debug)</div>
-                        <div className="text-sm text-green-600">Lost Bag • House Show</div>
-                        <div className="text-xs text-green-500 mt-1">Providence, RI • 300 cap</div>
-                      <div className="text-xs text-gray-500 mt-2">lidz@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Joe Martinez (Joe's Basement) */}
-                    <button
-                      onClick={() => handleQuickLogin('joe@debug.diyshows.com', 'Joe Martinez (Debug)', 'venue', "Joe's Basement")}
-                      disabled={loading['joe@debug.diyshows.com']}
-                      className="p-4 border-2 border-yellow-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-yellow-800">🏠 Joe Martinez (Debug)</div>
-                        <div className="text-sm text-yellow-600">Joe's Basement • House Show</div>
-                        <div className="text-xs text-yellow-500 mt-1">Portland, OR • 35 cap</div>
-                      <div className="text-xs text-gray-500 mt-2">joe@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Sarah Chen (Community Arts Center) */}
-                    <button
-                      onClick={() => handleQuickLogin('sarah@debug.diyshows.com', 'Sarah Chen (Debug)', 'venue', 'Community Arts Center')}
-                      disabled={loading['sarah@debug.diyshows.com']}
-                      className="p-4 border-2 border-teal-200 rounded-lg hover:border-teal-400 hover:bg-teal-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-teal-800">🎭 Sarah Chen (Debug)</div>
-                        <div className="text-sm text-teal-600">Community Arts Center • Booker</div>
-                        <div className="text-xs text-teal-500 mt-1">Austin, TX • 120 cap</div>
-                      <div className="text-xs text-gray-500 mt-2">sarah@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Mike Rodriguez (The Underground) */}
-                    <button
-                      onClick={() => handleQuickLogin('mike@debug.diyshows.com', 'Mike Rodriguez (Debug)', 'venue', 'The Underground')}
-                      disabled={loading['mike@debug.diyshows.com']}
-                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-gray-800">🏠 Mike Rodriguez (Debug)</div>
-                        <div className="text-sm text-gray-600">The Underground • House Show</div>
-                        <div className="text-xs text-gray-500 mt-1">Brooklyn, NY • 50 cap</div>
-                      <div className="text-xs text-gray-500 mt-2">mike@debug.diyshows.com</div>
-                    </button>
-
-                    {/* Alex Thompson (VFW Post 1138) */}
-                    <button
-                      onClick={() => handleQuickLogin('alex@debug.diyshows.com', 'Alex Thompson (Debug)', 'venue', 'VFW Post 1138')}
-                      disabled={loading['alex@debug.diyshows.com']}
-                      className="p-4 border-2 border-purple-200 rounded-lg hover:border-purple-400 hover:bg-purple-50 transition-colors disabled:opacity-50 text-left"
-                    >
-                      <div className="font-semibold text-purple-800">🏛️ Alex Thompson (Debug)</div>
-                        <div className="text-sm text-purple-600">VFW Post 1138 • Event Coordinator</div>
-                        <div className="text-xs text-purple-500 mt-1">Richmond, VA • 150 cap</div>
-                      <div className="text-xs text-gray-500 mt-2">alex@debug.diyshows.com</div>
-                    </button>
-
-                    {/* LOGOUT */}
-                    <div className="col-span-full mt-6">
-                      <h3 className="text-md font-medium text-gray-700 mb-3 border-b border-gray-200 pb-1">👤 Other</h3>
-                    </div>
-
-                    {/* Public View */}
-                    <button
-                      onClick={() => {
-                        if (mounted) {
-                          window.location.href = '/';
-                        }
-                      }}
-                      className="p-4 border-2 border-gray-200 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors text-left"
-                    >
-                        <div className="font-semibold text-gray-900">👤 Public View</div>
-                        <div className="text-sm text-gray-600">Not logged in</div>
-                      <div className="text-xs text-gray-500 mt-1">Browse as public user</div>
-                    </button>
-                  </div>
-                  
-                  {/* Usage Instructions */}
-                  <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-2">🔧 How to use Debug Users</h4>
-                    <ul className="text-sm text-blue-800 space-y-1">
-                      <li>• Click any user above to go to login page with pre-filled credentials</li>
-                      <li>• All debug users use the same password: <code className="bg-blue-100 px-1 rounded">debug123</code></li>
-                      <li>• This tests the full authentication flow including login form validation</li>
-                      <li>• Debug users are clearly marked with "(Debug)" in their names</li>
-                      <li>• Each user is linked to real artists/venues in the database</li>
-                      <li>• <strong>Lightning Bolt has multiple members</strong> - test owner vs member permissions</li>
-                    </ul>
-                  </div>
-                </div>
-
-                {/* Test Data Management */}
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Test Data Management</h2>
-                  <p className="text-sm text-gray-600 mb-6">
-                    Manage test data for show requests, bids, and shows. Use these tools to reset the system to a known state for testing.
-                  </p>
-                  
-                  {/* Hold System Testing */}
-                  <div className="mb-6">
-                    <div className="p-4 bg-violet-50 border border-violet-200 rounded-lg">
-                      <h4 className="font-medium text-violet-900 mb-2">🔒 Hold System Testing</h4>
-                      <p className="text-sm text-violet-800 mb-3">
-                        Create and manage hold scenarios for testing the timeline UI. Test HELD and FROZEN bid states.
-                      </p>
-                      <a
-                        href="/admin/holds"
-                        className="inline-block px-4 py-2 bg-violet-600 text-white rounded hover:bg-violet-700 transition-colors"
-                      >
-                        Manage Holds
-                      </a>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Reset Bids Button */}
-                    <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                      <h4 className="font-medium text-yellow-900 mb-2">🔄 Reset Test Data</h4>
-                      <p className="text-sm text-yellow-800 mb-3">
-                        Recreates all show requests, bids, and shows with realistic test data using the NEW UNIFIED SYSTEM
-                      </p>
-                      <button
-                        onClick={handleResetBids}
-                        disabled={isResetting}
-                        className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
-                      >
-                        {isResetting ? 'Resetting...' : 'Reset Bids & Test Data'}
-                      </button>
-                    </div>
-
-                    {/* Database Backup Section */}
-                    <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <h4 className="font-medium text-green-900 mb-2">💾 Database Backup</h4>
-                      <p className="text-sm text-green-800 mb-3">
-                        Create and restore database backups to protect against data loss
-                      </p>
-                      <div className="space-y-2">
-                        <button
-                          onClick={handleCreateBackup}
-                          disabled={isBackingUp}
-                          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 mr-2"
-                        >
-                          {isBackingUp ? 'Creating Backup...' : 'Create Backup Now'}
-                        </button>
-                        <button
-                          onClick={handleShowBackups}
-                          disabled={loadingBackups}
-                          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          {loadingBackups ? 'Loading...' : 'View Backups'}
-                        </button>
-                      </div>
-                      {backupMessage && (
-                        <div className={`mt-2 text-sm ${backupMessage.includes('✅') ? 'text-green-700' : 'text-red-700'}`}>
-                          {backupMessage}
-                        </div>
-                      )}
-                      
-                      {/* Backup List Display */}
-                      {showBackupsList && (
-                        <div className="mt-4 p-3 bg-white border border-green-300 rounded-lg">
-                          <div className="flex justify-between items-center mb-3">
-                            <h5 className="font-medium text-green-900">📁 Available Backups ({backups.length})</h5>
-                            <button
-                              onClick={() => setShowBackupsList(false)}
-                              className="text-green-600 hover:text-green-800 text-sm"
-                            >
-                              ✕ Close
-                            </button>
-                          </div>
-                          
-                          {backups.length === 0 ? (
-                            <p className="text-sm text-green-700">No backups found. Create your first backup above!</p>
-                          ) : (
-                            <div className="space-y-2 max-h-48 overflow-y-auto">
-                              {backups.map((backup: any, index: number) => (
-                                <div key={backup.filename} className="flex justify-between items-center p-2 bg-green-50 rounded border">
-                                  <div className="flex-1">
-                                    <div className="text-sm font-medium text-green-900">{backup.filename}</div>
-                                    <div className="text-xs text-green-600">
-                                      {backup.sizeFormatted} • Created: {new Date(backup.created).toLocaleString()}
-                                    </div>
-                                  </div>
-                                  <div className="flex space-x-2">
-                                    <button
-                                      onClick={() => {
-                                        const link = document.createElement('a');
-                                        link.href = `/api/admin/backups/${backup.filename}`;
-                                        link.download = backup.filename;
-                                        link.click();
-                                      }}
-                                      className="text-xs px-2 py-1 bg-green-600 text-white rounded hover:bg-green-700"
-                                    >
-                                      Download
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Test Data Info */}
-                  <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <h4 className="font-medium text-yellow-900 mb-2">📊 What Test Data Includes (NEW UNIFIED SYSTEM)</h4>
-                    <ul className="text-sm text-yellow-800 space-y-1">
-                      <li>• <strong>Lightning Bolt:</strong> 10 bids with UI-visible statuses (pending, hold, accepted) - perfect for testing bid management</li>
-                      <li>• <strong>The Menzingers:</strong> 8 bids focusing on hold system testing (pending, hold)</li>
-                      <li>• <strong>Against Me!:</strong> 6 bids with acceptances leading to confirmed shows - perfect for testing acceptance workflow</li>
-                      <li>• <strong>Venue offers:</strong> 3 venue-initiated show requests (venues making offers to artists)</li>
-                      <li>• <strong>Additional shows:</strong> 12-20 random confirmed shows across all artists and venues</li>
-                      <li>• <strong>Realistic data:</strong> Proper dates, venues, pricing, and booking details</li>
-                      <li>• <strong>✅ FIXED:</strong> All data now uses the unified ShowRequest system that the UI actually reads from!</li>
-                      <li>• <strong>🎯 REALISTIC:</strong> Only creates bids with statuses that are actually visible in the UI (no rejected/withdrawn bids)</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'content' && (
-              <div className="space-y-8">
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <a 
-                    href="/admin/venues"
-                    className="p-4 border-2 border-green-200 rounded-lg hover:border-green-400 hover:bg-green-50 transition-colors text-center"
-                  >
-                    <div className="font-semibold text-green-900">+ Add New Space</div>
-                    <div className="text-sm text-green-600">Create a new venue/space</div>
-                  </a>
-                  <a 
-                    href="/admin/artists"
-                    className="p-4 border-2 border-blue-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors text-center"
-                  >
-                    <div className="font-semibold text-blue-900">+ Add New Performer</div>
-                    <div className="text-sm text-blue-600">Create a new artist/performer</div>
-                  </a>
-                </div>
-
-                {/* Venues Management */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Manage Spaces ({filteredVenues.length} of {venues.length})</h2>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search spaces..."
-                        value={venueSearch}
-                        onChange={(e) => setVenueSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="max-h-64 overflow-y-auto">
-                      {filteredVenues.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">
-                          {venueSearch ? `No venues found matching "${venueSearch}"` : 'No venues found'}
-                        </div>
-                      ) : (
-                        <table className="w-full">
-                          <thead className="bg-gray-50 sticky top-0">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {filteredVenues.map((venue: any) => (
-                              <tr key={venue.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-2 text-sm font-medium text-gray-900">{venue.name}</td>
-                                <td className="px-4 py-2 text-sm text-gray-500">{venue.city}, {venue.state}</td>
-                                <td className="px-4 py-2 text-sm text-gray-500 capitalize">{venue.venueType}</td>
-                                <td className="px-4 py-2 text-sm space-x-2">
-                                  <a 
-                                    href={`/venues/${venue.id}`}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    View
-                                  </a>
-                                  <a 
-                                    href={`/admin/venues/edit/${venue.id}`}
-                                    className="text-green-600 hover:text-green-800"
-                                  >
-                                    Edit
-                                  </a>
-                                  <button
-                                    onClick={() => handleDeleteContent('venue', venue.id, venue.name)}
-                                    disabled={loading[`delete-venue-${venue.id}`]}
-                                    className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                                  >
-                                    {loading[`delete-venue-${venue.id}`] ? 'Deleting...' : 'Delete'}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Artists Management */}
-                <div>
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Manage Performers ({filteredArtists.length} of {artists.length})</h2>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Search performers..."
-                        value={artistSearch}
-                        onChange={(e) => setArtistSearch(e.target.value)}
-                        className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                      <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                      </svg>
-                    </div>
-                  </div>
-                  <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                    <div className="max-h-64 overflow-y-auto">
-                      {filteredArtists.length === 0 ? (
-                        <div className="p-4 text-center text-gray-500">
-                          {artistSearch ? `No performers found matching "${artistSearch}"` : 'No artists found'}
-                        </div>
-                      ) : (
-                        <table className="w-full">
-                          <thead className="bg-gray-50 sticky top-0">
-                            <tr>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-gray-200">
-                            {filteredArtists.map((artist: any) => (
-                              <tr key={artist.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-2 text-sm font-medium text-gray-900">{artist.name}</td>
-                                <td className="px-4 py-2 text-sm text-gray-500">{artist.city}, {artist.state}</td>
-                                <td className="px-4 py-2 text-sm text-gray-500 capitalize">{artist.artistType}</td>
-                                <td className="px-4 py-2 text-sm space-x-2">
-                                  <a 
-                                    href={`/artists/${artist.id}`}
-                                    className="text-blue-600 hover:text-blue-800"
-                                  >
-                                    View
-                                  </a>
-                                  <a 
-                                    href={`/admin/artists/edit/${artist.id}`}
-                                    className="text-green-600 hover:text-green-800"
-                                  >
-                                    Edit
-                                  </a>
-                                  <button
-                                    onClick={() => handleDeleteContent('artist', artist.id, artist.name)}
-                                    disabled={loading[`delete-artist-${artist.id}`]}
-                                    className="text-red-600 hover:text-red-800 disabled:opacity-50"
-                                  >
-                                    {loading[`delete-artist-${artist.id}`] ? 'Deleting...' : 'Delete'}
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+            ))}
           </div>
         </div>
-      </div>
+      </nav>
+
+      {/* Content */}
+      <main className="max-w-7xl mx-auto px-4 py-6">
+        {activeTab === 'debug' && (
+          <div className="space-y-8">
+            {/* Quick User Switcher */}
+            <section className="module-section">
+              <div className="module-header">&gt; QUICK USER SWITCHER</div>
+              <div className="p-4">
+                <p className="text-xs text-text-secondary mb-4">
+                  Click any user to login. Password: <span className="text-status-info font-medium">debug123</span>
+                </p>
+                
+                {/* Artists */}
+                <div className="mb-6">
+                  <h3 className="text-2xs uppercase tracking-wider text-text-muted mb-3 pb-2 border-b border-border-subtle">[ARTISTS]</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {debugUsers.artists.map(u => (
+                      <button
+                        key={u.email}
+                        onClick={() => handleQuickLogin(u.email, u.name, 'artist', u.entity)}
+                        disabled={loading[u.email]}
+                        className="p-3 bg-bg-tertiary border border-border-subtle hover:border-status-info hover:bg-bg-hover transition-all text-left disabled:opacity-50"
+                      >
+                        <div className="text-sm font-medium text-text-accent">{u.name}</div>
+                        <div className="text-xs text-status-info">{u.entity}</div>
+                        <div className="text-2xs text-text-muted mt-1">{u.location} • {u.genre}</div>
+                        <div className="text-2xs text-text-muted mt-1 opacity-60">{u.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Venues */}
+                <div>
+                  <h3 className="text-2xs uppercase tracking-wider text-text-muted mb-3 pb-2 border-b border-border-subtle">[VENUES]</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {debugUsers.venues.map(u => (
+                      <button
+                        key={u.email}
+                        onClick={() => handleQuickLogin(u.email, u.name, 'venue', u.entity)}
+                        disabled={loading[u.email]}
+                        className="p-3 bg-bg-tertiary border border-border-subtle hover:border-status-active hover:bg-bg-hover transition-all text-left disabled:opacity-50"
+                      >
+                        <div className="text-sm font-medium text-text-accent">{u.name}</div>
+                        <div className="text-xs text-status-active">{u.entity}</div>
+                        <div className="text-2xs text-text-muted mt-1">{u.location} • {u.cap} cap</div>
+                        <div className="text-2xs text-text-muted mt-1 opacity-60">{u.email}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Test Data Management */}
+            <section className="module-section">
+              <div className="module-header">&gt; TEST DATA MANAGEMENT</div>
+              <div className="p-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Reset Bids */}
+                  <div className="p-4 bg-bg-tertiary border border-status-warning/30">
+                    <h4 className="text-xs font-medium text-status-warning mb-2">[RESET TEST DATA]</h4>
+                    <p className="text-2xs text-text-secondary mb-3">
+                      Recreates all show requests, bids, and shows with realistic test data.
+                    </p>
+                    <button onClick={handleResetBids} disabled={isResetting} className="btn text-2xs">
+                      {isResetting ? 'RESETTING...' : 'RESET BIDS'}
+                    </button>
+                  </div>
+                  
+                  {/* Backup */}
+                  <div className="p-4 bg-bg-tertiary border border-status-active/30">
+                    <h4 className="text-xs font-medium text-status-active mb-2">[DATABASE BACKUP]</h4>
+                    <p className="text-2xs text-text-secondary mb-3">
+                      Create and restore database backups.
+                    </p>
+                    <div className="flex gap-2">
+                      <button onClick={handleCreateBackup} disabled={isBackingUp} className="btn text-2xs">
+                        {isBackingUp ? 'CREATING...' : 'CREATE BACKUP'}
+                      </button>
+                      <button onClick={handleShowBackups} disabled={loadingBackups} className="btn text-2xs">
+                        {loadingBackups ? 'LOADING...' : 'VIEW BACKUPS'}
+                      </button>
+                    </div>
+                    {backupMessage && (
+                      <div className="mt-2 text-2xs text-status-active">{backupMessage}</div>
+                    )}
+                  </div>
+                  
+                  {/* Hold System */}
+                  <div className="p-4 bg-bg-tertiary border border-status-info/30">
+                    <h4 className="text-xs font-medium text-status-info mb-2">[HOLD SYSTEM]</h4>
+                    <p className="text-2xs text-text-secondary mb-3">
+                      Manage hold scenarios for timeline UI testing.
+                    </p>
+                    <a href="/admin/holds" className="btn text-2xs">MANAGE HOLDS</a>
+                  </div>
+                </div>
+                
+                {/* Backups List */}
+                {showBackupsList && (
+                  <div className="mt-4 p-4 bg-bg-secondary border border-border-subtle">
+                    <div className="flex justify-between items-center mb-3">
+                      <span className="text-2xs uppercase tracking-wider text-text-muted">[BACKUPS: {backups.length}]</span>
+                      <button onClick={() => setShowBackupsList(false)} className="text-2xs text-text-muted hover:text-text-primary">
+                        [CLOSE]
+                      </button>
+                    </div>
+                    
+                    {backups.length === 0 ? (
+                      <p className="text-xs text-text-secondary">No backups found.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {backups.map((backup: any) => (
+                          <div key={backup.filename} className="flex justify-between items-center p-2 bg-bg-tertiary border border-border-subtle">
+                            <div>
+                              <div className="text-xs text-text-primary font-medium tabular-nums">{backup.filename}</div>
+                              <div className="text-2xs text-text-muted tabular-nums">
+                                {backup.sizeFormatted} • {new Date(backup.created).toLocaleString()}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = `/api/admin/backups/${backup.filename}`;
+                                link.download = backup.filename;
+                                link.click();
+                              }}
+                              className="btn text-2xs"
+                            >
+                              DOWNLOAD
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'content' && (
+          <div className="space-y-8">
+            {/* Quick Actions */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <a href="/admin/venues" className="p-4 bg-bg-secondary border border-border-subtle hover:border-status-active hover:bg-bg-tertiary transition-all text-center">
+                <div className="text-sm font-medium text-text-accent">+ ADD NEW SPACE</div>
+                <div className="text-2xs text-text-muted mt-1">Create a new venue listing</div>
+              </a>
+              <a href="/admin/artists" className="p-4 bg-bg-secondary border border-border-subtle hover:border-status-info hover:bg-bg-tertiary transition-all text-center">
+                <div className="text-sm font-medium text-text-accent">+ ADD NEW PERFORMER</div>
+                <div className="text-2xs text-text-muted mt-1">Create a new artist listing</div>
+              </a>
+            </div>
+
+            {/* Venues Table */}
+            <section className="module-section">
+              <div className="module-header flex justify-between items-center">
+                <span>&gt; SPACES [{filteredVenues.length}/{venues.length}]</span>
+                <div className="flex items-center bg-bg-primary border border-border-subtle">
+                  <span className="px-2 text-text-muted">&gt;&gt;</span>
+                  <input
+                    type="text"
+                    placeholder="SEARCH..."
+                    value={venueSearch}
+                    onChange={(e) => setVenueSearch(e.target.value)}
+                    className="bg-transparent px-2 py-1 text-2xs text-text-primary placeholder-text-muted outline-none w-32"
+                  />
+                </div>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {filteredVenues.length === 0 ? (
+                  <div className="p-4 text-center text-text-muted text-xs">
+                    {venueSearch ? `No venues matching "${venueSearch}"` : 'No venues found'}
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>NAME</th>
+                        <th>LOCATION</th>
+                        <th>TYPE</th>
+                        <th>ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredVenues.map((venue: any) => (
+                        <tr key={venue.id}>
+                          <td className="text-xs text-text-primary">{venue.name}</td>
+                          <td className="text-xs text-text-secondary">{venue.city}, {venue.state}</td>
+                          <td className="text-xs text-text-secondary uppercase">{venue.venueType}</td>
+                          <td className="space-x-2">
+                            <a href={`/venues/${venue.id}`} className="text-2xs text-status-info hover:underline">VIEW</a>
+                            <a href={`/admin/venues/edit/${venue.id}`} className="text-2xs text-status-active hover:underline">EDIT</a>
+                            <button
+                              onClick={() => handleDeleteContent('venue', venue.id, venue.name)}
+                              disabled={loading[`delete-venue-${venue.id}`]}
+                              className="text-2xs text-status-error hover:underline disabled:opacity-50"
+                            >
+                              {loading[`delete-venue-${venue.id}`] ? '...' : 'DELETE'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+
+            {/* Artists Table */}
+            <section className="module-section">
+              <div className="module-header flex justify-between items-center">
+                <span>&gt; PERFORMERS [{filteredArtists.length}/{artists.length}]</span>
+                <div className="flex items-center bg-bg-primary border border-border-subtle">
+                  <span className="px-2 text-text-muted">&gt;&gt;</span>
+                  <input
+                    type="text"
+                    placeholder="SEARCH..."
+                    value={artistSearch}
+                    onChange={(e) => setArtistSearch(e.target.value)}
+                    className="bg-transparent px-2 py-1 text-2xs text-text-primary placeholder-text-muted outline-none w-32"
+                  />
+                </div>
+              </div>
+              <div className="max-h-64 overflow-y-auto">
+                {filteredArtists.length === 0 ? (
+                  <div className="p-4 text-center text-text-muted text-xs">
+                    {artistSearch ? `No artists matching "${artistSearch}"` : 'No artists found'}
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>NAME</th>
+                        <th>LOCATION</th>
+                        <th>TYPE</th>
+                        <th>ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredArtists.map((artist: any) => (
+                        <tr key={artist.id}>
+                          <td className="text-xs text-text-primary">{artist.name}</td>
+                          <td className="text-xs text-text-secondary">{artist.city}, {artist.state}</td>
+                          <td className="text-xs text-text-secondary uppercase">{artist.artistType}</td>
+                          <td className="space-x-2">
+                            <a href={`/artists/${artist.id}`} className="text-2xs text-status-info hover:underline">VIEW</a>
+                            <a href={`/admin/artists/edit/${artist.id}`} className="text-2xs text-status-active hover:underline">EDIT</a>
+                            <button
+                              onClick={() => handleDeleteContent('artist', artist.id, artist.name)}
+                              disabled={loading[`delete-artist-${artist.id}`]}
+                              className="text-2xs text-status-error hover:underline disabled:opacity-50"
+                            >
+                              {loading[`delete-artist-${artist.id}`] ? '...' : 'DELETE'}
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </section>
+          </div>
+        )}
+
+        {activeTab === 'feedback' && (
+          <section className="module-section">
+            <div className="module-header">&gt; USER FEEDBACK</div>
+            <div className="p-4">
+              <p className="text-xs text-text-muted">Feedback management coming soon...</p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'analytics' && (
+          <section className="module-section">
+            <div className="module-header">&gt; ANALYTICS</div>
+            <div className="p-4">
+              <p className="text-xs text-text-muted">Analytics dashboard coming soon...</p>
+            </div>
+          </section>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="space-y-8">
+            {/* Theme Presets */}
+            <section className="module-section">
+              <div className="module-header">&gt; THEME PRESETS</div>
+              <div className="p-4">
+                <p className="text-xs text-text-secondary mb-4">
+                  Select a preset theme or customize colors below. Changes are saved automatically.
+                </p>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                  {Object.entries(themePresets).map(([key, preset]) => (
+                    <button
+                      key={key}
+                      onClick={() => handleThemeChange(key)}
+                      className={`p-3 border transition-all text-left ${
+                        currentTheme === key 
+                          ? 'border-status-active bg-status-active/10' 
+                          : 'border-border-subtle hover:border-text-secondary'
+                      }`}
+                    >
+                      <div className="flex gap-1 mb-2">
+                        <div className="w-4 h-4 border border-white/20" style={{ backgroundColor: preset.bgPrimary }}></div>
+                        <div className="w-4 h-4 border border-white/20" style={{ backgroundColor: preset.textPrimary }}></div>
+                        <div className="w-4 h-4 border border-white/20" style={{ backgroundColor: preset.accentColor }}></div>
+                      </div>
+                      <div className="text-xs text-text-primary">{preset.name}</div>
+                      {currentTheme === key && (
+                        <div className="text-2xs text-status-active mt-1">[ACTIVE]</div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Custom Colors */}
+            <section className="module-section">
+              <div className="module-header">&gt; CUSTOM COLORS {currentTheme === 'custom' && '[CUSTOM MODE]'}</div>
+              <div className="p-4">
+                <p className="text-xs text-text-secondary mb-4">
+                  Adjust individual colors. Modifying any color switches to custom mode.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Background Colors */}
+                  <div className="space-y-3">
+                    <h4 className="text-2xs uppercase tracking-wider text-text-muted border-b border-border-subtle pb-2">Backgrounds</h4>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.bgPrimary}
+                        onChange={(e) => handleColorChange('bgPrimary', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Primary BG</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.bgPrimary}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.bgSecondary}
+                        onChange={(e) => handleColorChange('bgSecondary', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Secondary BG</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.bgSecondary}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.bgTertiary}
+                        onChange={(e) => handleColorChange('bgTertiary', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Tertiary BG</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.bgTertiary}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Text Colors */}
+                  <div className="space-y-3">
+                    <h4 className="text-2xs uppercase tracking-wider text-text-muted border-b border-border-subtle pb-2">Text</h4>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.textPrimary}
+                        onChange={(e) => handleColorChange('textPrimary', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Primary Text</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.textPrimary}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.textSecondary}
+                        onChange={(e) => handleColorChange('textSecondary', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Secondary Text</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.textSecondary}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.textMuted}
+                        onChange={(e) => handleColorChange('textMuted', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Muted Text</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.textMuted}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Border & Accent */}
+                  <div className="space-y-3">
+                    <h4 className="text-2xs uppercase tracking-wider text-text-muted border-b border-border-subtle pb-2">Border & Accent</h4>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.borderPrimary}
+                        onChange={(e) => handleColorChange('borderPrimary', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Border</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.borderPrimary}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={customColors.accentColor}
+                        onChange={(e) => handleColorChange('accentColor', e.target.value)}
+                        className="w-8 h-8 cursor-pointer bg-transparent border border-border-subtle"
+                      />
+                      <div>
+                        <div className="text-xs text-text-primary">Accent</div>
+                        <div className="text-2xs text-text-muted font-mono">{customColors.accentColor}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preview */}
+                  <div className="space-y-3">
+                    <h4 className="text-2xs uppercase tracking-wider text-text-muted border-b border-border-subtle pb-2">Preview</h4>
+                    <div 
+                      className="p-4 border"
+                      style={{ 
+                        backgroundColor: customColors.bgSecondary,
+                        borderColor: customColors.borderPrimary
+                      }}
+                    >
+                      <div style={{ color: customColors.textPrimary }} className="text-sm font-medium mb-1">
+                        Primary Text
+                      </div>
+                      <div style={{ color: customColors.textSecondary }} className="text-xs mb-1">
+                        Secondary text example
+                      </div>
+                      <div style={{ color: customColors.textMuted }} className="text-2xs mb-2">
+                        Muted text example
+                      </div>
+                      <div 
+                        className="inline-block px-2 py-1 text-2xs"
+                        style={{ 
+                          backgroundColor: customColors.accentColor,
+                          color: customColors.bgPrimary
+                        }}
+                      >
+                        [ACCENT BUTTON]
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-border-subtle flex gap-3">
+                  <button
+                    onClick={resetToDefault}
+                    className="btn text-2xs"
+                  >
+                    [RESET TO DEFAULT]
+                  </button>
+                  <span className="text-2xs text-text-muted self-center">
+                    Current: {currentTheme === 'custom' ? 'Custom' : themePresets[currentTheme as keyof typeof themePresets]?.name}
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* Info */}
+            <section className="module-section">
+              <div className="module-header">&gt; ABOUT THEMING</div>
+              <div className="p-4">
+                <div className="text-xs text-text-secondary space-y-2">
+                  <p>
+                    <span className="text-status-info">Note:</span> Theme settings are stored in your browser's localStorage 
+                    and will persist across sessions. They only affect your view of the site.
+                  </p>
+                  <p>
+                    The white backgrounds on Artist/Venue detail pages are intentional for 
+                    better readability of content-heavy pages. These pages use a light theme 
+                    variant to optimize for viewing images and detailed information.
+                  </p>
+                </div>
+              </div>
+            </section>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

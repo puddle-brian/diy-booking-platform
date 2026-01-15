@@ -7,10 +7,10 @@ import dynamic from 'next/dynamic';
 const MapComponent = dynamic(() => import('./TourMapClient'), {
   ssr: false,
   loading: () => (
-    <div className="h-[400px] w-full bg-gray-100 rounded-lg flex items-center justify-center">
+    <div className="h-[400px] w-full bg-bg-secondary border border-border-primary flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
-        <p className="text-gray-500 text-sm">Loading map...</p>
+        <div className="animate-spin h-6 w-6 border border-text-primary border-t-transparent mx-auto mb-2"></div>
+        <p className="text-text-secondary text-sm font-mono">Loading map...</p>
       </div>
     </div>
   ),
@@ -44,17 +44,21 @@ export default function TourMap({ artistId, artistName, className, highlightedDa
     const fetchDates = async () => {
       try {
         setLoading(true);
+        setError(null);
         const response = await fetch(`/api/artists/${artistId}/tour-map`);
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch tour dates');
+        const data = await response.json();
+        
+        // Handle both error responses and empty data gracefully
+        if (data.error && !data.dates) {
+          throw new Error(data.error);
         }
         
-        const data = await response.json();
         setDates(data.dates || []);
       } catch (err) {
         console.error('Error fetching tour map data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load map');
+        setDates([]); // Set empty dates so component shows empty state instead of error
       } finally {
         setLoading(false);
       }
@@ -67,17 +71,17 @@ export default function TourMap({ artistId, artistName, className, highlightedDa
 
   if (loading) {
     return (
-      <div className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}>
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <span>🗺️</span>
-            Tour Map
+      <div className={`bg-bg-secondary border border-border-primary overflow-hidden ${className}`}>
+        <div className="px-4 py-3 border-b border-border-primary bg-bg-tertiary">
+          <h3 className="font-mono text-text-primary flex items-center gap-2">
+            <span className="text-text-muted">&gt;&gt;</span>
+            TOUR_MAP
           </h3>
         </div>
-        <div className="h-[400px] flex items-center justify-center">
+        <div className="h-[400px] flex items-center justify-center bg-bg-primary">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
-            <p className="text-gray-500 text-sm">Loading tour dates...</p>
+            <div className="animate-spin h-6 w-6 border border-text-primary border-t-transparent mx-auto mb-2"></div>
+            <p className="text-text-secondary text-sm font-mono">Loading tour dates...</p>
           </div>
         </div>
       </div>
@@ -86,17 +90,17 @@ export default function TourMap({ artistId, artistName, className, highlightedDa
 
   if (error) {
     return (
-      <div className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}>
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <span>🗺️</span>
-            Tour Map
+      <div className={`bg-bg-secondary border border-border-primary overflow-hidden ${className}`}>
+        <div className="px-4 py-3 border-b border-border-primary bg-bg-tertiary">
+          <h3 className="font-mono text-text-primary flex items-center gap-2">
+            <span className="text-text-muted">&gt;&gt;</span>
+            TOUR_MAP
           </h3>
         </div>
-        <div className="h-[400px] flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <p>Unable to load map</p>
-            <p className="text-sm">{error}</p>
+        <div className="h-[400px] flex items-center justify-center bg-bg-primary">
+          <div className="text-center">
+            <p className="text-text-secondary font-mono">// Unable to load map</p>
+            <p className="text-sm text-text-muted font-mono mt-1">{error}</p>
           </div>
         </div>
       </div>
@@ -105,18 +109,18 @@ export default function TourMap({ artistId, artistName, className, highlightedDa
 
   if (dates.length === 0) {
     return (
-      <div className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}>
-        <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <span>🗺️</span>
-            Tour Map
+      <div className={`bg-bg-secondary border border-border-primary overflow-hidden ${className}`}>
+        <div className="px-4 py-3 border-b border-border-primary bg-bg-tertiary">
+          <h3 className="font-mono text-text-primary flex items-center gap-2">
+            <span className="text-text-muted">&gt;&gt;</span>
+            TOUR_MAP
           </h3>
         </div>
-        <div className="h-[300px] flex items-center justify-center">
-          <div className="text-center text-gray-500">
-            <span className="text-4xl mb-2 block">📍</span>
-            <p>No mappable tour dates yet</p>
-            <p className="text-sm mt-1">Book some shows to see your tour route!</p>
+        <div className="h-[300px] flex items-center justify-center bg-bg-primary">
+          <div className="text-center">
+            <span className="text-4xl mb-2 block text-text-muted">📍</span>
+            <p className="text-text-secondary font-mono">// NO_MAPPABLE_DATES</p>
+            <p className="text-sm mt-1 text-text-muted font-mono">Book shows to see your tour route</p>
           </div>
         </div>
       </div>
@@ -124,15 +128,15 @@ export default function TourMap({ artistId, artistName, className, highlightedDa
   }
 
   return (
-    <div className={`bg-white rounded-lg border border-gray-200 overflow-hidden ${className}`}>
-      <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+    <div className={`bg-bg-secondary border border-border-primary overflow-hidden ${className}`}>
+      <div className="px-4 py-3 border-b border-border-primary bg-bg-tertiary">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-            <span>🗺️</span>
-            Tour Map
-            {artistName && <span className="text-gray-500 font-normal">— {artistName}</span>}
+          <h3 className="font-mono text-text-primary flex items-center gap-2">
+            <span className="text-text-muted">&gt;&gt;</span>
+            TOUR_MAP
+            {artistName && <span className="text-text-secondary font-normal">— {artistName}</span>}
           </h3>
-          <span className="text-sm text-gray-500">{dates.length} date{dates.length !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-text-secondary font-mono">[{dates.length}] date{dates.length !== 1 ? 's' : ''}</span>
         </div>
       </div>
       <MapComponent 

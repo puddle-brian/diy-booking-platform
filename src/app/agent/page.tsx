@@ -28,7 +28,6 @@ export default function AgentPage() {
     setInput('');
     setIsLoading(true);
 
-    // Add user message to UI immediately
     const newMessages: Message[] = [...messages, { role: 'user', content: userMessage }];
     setMessages(newMessages);
 
@@ -47,7 +46,7 @@ export default function AgentPage() {
       if (data.error) {
         setMessages([...newMessages, { 
           role: 'assistant', 
-          content: `Error: ${data.error}` 
+          content: `[ERROR] ${data.error}` 
         }]);
       } else {
         setMessages([...newMessages, { 
@@ -58,7 +57,7 @@ export default function AgentPage() {
     } catch (error) {
       setMessages([...newMessages, { 
         role: 'assistant', 
-        content: 'Sorry, something went wrong. Please try again.' 
+        content: '[ERROR] Connection failed. Please try again.' 
       }]);
     } finally {
       setIsLoading(false);
@@ -72,107 +71,146 @@ export default function AgentPage() {
     }
   };
 
+  const getCurrentTimestamp = () => {
+    return new Date().toLocaleString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  };
+
+  const suggestions = [
+    "Add my venue to the database",
+    "Add my band to the database", 
+    "Search for venues in Brooklyn",
+    "How does booking work?"
+  ];
+
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex flex-col">
+    <div className="min-h-screen bg-bg-primary text-text-primary flex flex-col">
       {/* Header */}
-      <header className="border-b border-zinc-800 p-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-xl">
-            🤖
+      <header className="border-b border-border-subtle bg-bg-secondary">
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="w-10 h-10 border border-border-default flex items-center justify-center">
+              <span className="text-lg">⚡</span>
+            </div>
+            <div>
+              <h1 className="text-sm font-medium text-text-accent uppercase tracking-wider">DIYSHOWS AGENT</h1>
+              <p className="text-2xs text-text-muted uppercase tracking-wider">Booking Assistant v0.1</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-semibold">DIY Shows Agent</h1>
-            <p className="text-sm text-zinc-400">Your booking assistant</p>
-          </div>
+          <a href="/" className="btn text-2xs">&lt;&lt; BACK</a>
         </div>
       </header>
 
-      {/* Messages */}
-      <main className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-3xl mx-auto space-y-4">
-          {messages.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🎸</div>
-              <h2 className="text-xl font-semibold mb-2">Welcome to DIY Shows</h2>
-              <p className="text-zinc-400 mb-6">
-                I can help you add your venue or band, find shows, and manage bookings.
+      {/* Messages Area */}
+      <main className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {messages.length === 0 ? (
+            /* Welcome Screen */
+            <div className="text-center py-12 border border-border-subtle bg-bg-secondary">
+              <div className="text-5xl mb-6">⚡</div>
+              <h2 className="text-lg font-medium text-text-accent mb-2">BOOKING AGENT READY</h2>
+              <p className="text-text-secondary text-sm mb-8 max-w-md mx-auto">
+                I can help you add venues and artists, find shows, manage bookings, and more.
               </p>
-              <div className="flex flex-wrap gap-2 justify-center">
-                {[
-                  "I want to add my venue",
-                  "I want to add my band",
-                  "How does booking work?",
-                  "Help me find venues in Chicago"
-                ].map((suggestion) => (
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-lg mx-auto">
+                {suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     onClick={() => setInput(suggestion)}
-                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-full text-sm transition-colors"
+                    className="px-4 py-3 bg-bg-tertiary border border-border-subtle hover:border-border-default hover:bg-bg-hover transition-all text-left"
                   >
-                    {suggestion}
+                    <span className="text-text-muted mr-2">&gt;</span>
+                    <span className="text-xs text-text-primary">{suggestion}</span>
                   </button>
                 ))}
               </div>
             </div>
-          )}
-
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                  msg.role === 'user'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-zinc-800 text-zinc-100'
-                }`}
-              >
-                <p className="whitespace-pre-wrap">{msg.content}</p>
-              </div>
-            </div>
-          ))}
-
-          {isLoading && (
-            <div className="flex justify-start">
-              <div className="bg-zinc-800 rounded-2xl px-4 py-3">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          ) : (
+            /* Chat Messages */
+            <div className="space-y-4">
+              {messages.map((msg, i) => (
+                <div
+                  key={i}
+                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-[85%] ${msg.role === 'user' ? 'order-2' : 'order-1'}`}>
+                    {/* Message header */}
+                    <div className={`text-2xs text-text-muted uppercase tracking-wider mb-1 ${
+                      msg.role === 'user' ? 'text-right' : 'text-left'
+                    }`}>
+                      {msg.role === 'user' ? 'YOU' : 'AGENT'} • {getCurrentTimestamp()}
+                    </div>
+                    
+                    {/* Message content */}
+                    <div className={`p-3 border ${
+                      msg.role === 'user'
+                        ? 'bg-bg-tertiary border-border-default text-text-primary'
+                        : 'bg-bg-secondary border-border-subtle text-text-primary'
+                    }`}>
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
+
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="max-w-[85%]">
+                    <div className="text-2xs text-text-muted uppercase tracking-wider mb-1">
+                      AGENT • PROCESSING...
+                    </div>
+                    <div className="p-3 bg-bg-secondary border border-border-subtle">
+                      <div className="flex items-center space-x-2">
+                        <span className="w-2 h-2 bg-status-info animate-pulse"></span>
+                        <span className="w-2 h-2 bg-status-info animate-pulse" style={{ animationDelay: '150ms' }}></span>
+                        <span className="w-2 h-2 bg-status-info animate-pulse" style={{ animationDelay: '300ms' }}></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
             </div>
           )}
-
-          <div ref={messagesEndRef} />
         </div>
       </main>
 
-      {/* Input */}
-      <footer className="border-t border-zinc-800 p-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="flex gap-2">
+      {/* Input Area */}
+      <footer className="border-t border-border-subtle bg-bg-secondary">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <div className="flex items-center bg-bg-tertiary border border-border-subtle focus-within:border-border-strong transition-colors">
+            <span className="px-4 text-text-muted">&gt;&gt;</span>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
-              className="flex-1 bg-zinc-800 border border-zinc-700 rounded-full px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+              placeholder="TYPE YOUR MESSAGE..."
+              className="flex-1 bg-transparent py-3 text-sm text-text-primary placeholder-text-muted outline-none"
               disabled={isLoading}
             />
             <button
               onClick={sendMessage}
               disabled={isLoading || !input.trim()}
-              className="px-6 py-3 bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-700 disabled:text-zinc-500 rounded-full font-medium transition-colors"
+              className="px-6 py-3 text-xs uppercase tracking-wider font-medium border-l border-border-subtle transition-colors disabled:text-text-muted disabled:cursor-not-allowed text-text-accent hover:bg-bg-hover"
             >
-              Send
+              {isLoading ? 'SENDING...' : 'SEND'}
             </button>
+          </div>
+          
+          {/* Quick actions hint */}
+          <div className="mt-2 text-2xs text-text-muted">
+            <span className="uppercase tracking-wider">[ENTER]</span> to send • 
+            <span className="uppercase tracking-wider ml-2">[SHIFT+ENTER]</span> for new line
           </div>
         </div>
       </footer>
     </div>
   );
 }
-

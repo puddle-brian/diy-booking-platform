@@ -168,21 +168,21 @@ export default function SimplifiedTourItinerary({
     return (
       <div className="bg-white border border-gray-200 shadow-md rounded-xl p-8">
         <div className="text-center">
-          <div className="text-red-600 mb-4">
+          <div className="text-status-error mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.963-.833-2.732 0L4.082 15.5c-.77.833.192 2.5 1.732 2.5z" />
             </svg>
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Timeline</h3>
-          <p className="text-gray-600 mb-4">{error}</p>
+          <h3 className="font-mono text-text-primary mb-2">// ERROR_LOADING_TIMELINE</h3>
+          <p className="text-text-secondary font-mono text-sm mb-4">{error}</p>
           <button
             onClick={refresh}
-            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="inline-flex items-center px-4 py-2 border border-text-primary text-text-primary font-mono hover:bg-text-primary hover:text-bg-primary transition-colors"
           >
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
-            Retry
+            [RETRY]
           </button>
         </div>
       </div>
@@ -192,17 +192,17 @@ export default function SimplifiedTourItinerary({
   return (
     <>
       {AlertModal}
-      <div className="bg-white border border-gray-200 shadow-md rounded-xl overflow-hidden">
+      <div className="bg-bg-secondary border border-border-primary overflow-hidden">
         {/* Header */}
         {showTitle && (
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="px-6 py-4 border-b border-border-primary bg-bg-tertiary">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-semibold">
-                  {title || (artistId ? 'Show Dates' : 'Booking Calendar')}
+                <h3 className="font-mono text-text-primary">
+                  &gt;&gt; {(title || (artistId ? 'SHOW_DATES' : 'BOOKING_CALENDAR')).toUpperCase().replace(/ /g, '_')}
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  {timelineItems.length} total event{timelineItems.length !== 1 ? 's' : ''}
+                <p className="text-sm text-text-secondary mt-1 font-mono">
+                  [{timelineItems.length}] total event{timelineItems.length !== 1 ? 's' : ''}
                   {artistId && (
                     <span> for {artistName || 'artist'}</span>
                   )}
@@ -214,13 +214,13 @@ export default function SimplifiedTourItinerary({
               {editable && (
                 <button
                   onClick={refresh}
-                  className="inline-flex items-center px-3 py-1.5 text-sm bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 text-sm font-mono border border-border-secondary text-text-secondary hover:border-text-primary hover:text-text-primary transition-colors"
                   title="Refresh data to get the latest updates"
                 >
                   <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  Refresh
+                  [REFRESH]
                 </button>
               )}
             </div>
@@ -229,14 +229,14 @@ export default function SimplifiedTourItinerary({
 
         {/* Timeline Content */}
         {timelineItems.length === 0 ? (
-          <div className="px-6 py-12 text-center">
-            <div className="text-gray-400 mb-4">
+          <div className="px-6 py-12 text-center bg-bg-primary">
+            <div className="text-text-muted mb-4">
               <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M8 7V3a4 4 0 118 0v4m-4 16l-4-4m8 0l-4 4m-4-8h8" />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Events Yet</h3>
-            <p className="text-gray-600">
+            <h3 className="font-mono text-text-primary mb-2">// NO_EVENTS_YET</h3>
+            <p className="text-text-secondary font-mono text-sm">
               {artistId 
                 ? "Start building your tour by creating show requests or responding to venue offers."
                 : "No events found. Create some show requests or check back later."
@@ -244,13 +244,13 @@ export default function SimplifiedTourItinerary({
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200">
+          <div className="divide-y divide-border-primary bg-bg-primary">
             {monthGroups.map((monthGroup) => (
               <div key={monthGroup.monthKey} className="p-6">
-                <h4 className="text-lg font-medium text-gray-900 mb-4">
-                  {monthGroup.monthLabel}
-                  <span className="ml-2 text-sm font-normal text-gray-500">
-                    ({monthGroup.items.length} event{monthGroup.items.length !== 1 ? 's' : ''})
+                <h4 className="font-mono text-text-primary mb-4">
+                  {monthGroup.monthLabel.toUpperCase()}
+                  <span className="ml-2 text-sm text-status-active">
+                    [{monthGroup.items.length}]
                   </span>
                 </h4>
                 <div className="space-y-4">

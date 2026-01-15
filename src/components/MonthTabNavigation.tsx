@@ -16,22 +16,22 @@ export function MonthTabNavigation({
   onMonthChange
 }: MonthTabNavigationProps) {
   return (
-    <div className="border-b border-gray-200">
+    <div className="border-b border-border-primary bg-bg-secondary">
       <div className="px-6">
-        <nav className="flex space-x-4 overflow-x-auto">
+        <nav className="flex space-x-1 overflow-x-auto">
           {stableMonthTabs.map((group) => (
             <button
               key={group.monthKey}
               onClick={() => onMonthChange(group.monthKey)}
-              className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
+              className={`py-3 px-4 font-mono text-sm whitespace-nowrap transition-colors border-b-2 ${
                 activeMonthTab === group.monthKey
-                  ? 'border-blue-500 text-blue-600'
+                  ? 'border-status-active text-text-primary bg-bg-tertiary'
                   : group.count > 0 
-                    ? 'border-transparent text-gray-700 hover:text-gray-900 hover:border-gray-300'
-                    : 'border-transparent text-gray-400 hover:text-gray-500 hover:border-gray-200'
+                    ? 'border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-hover'
+                    : 'border-transparent text-text-muted hover:text-text-secondary hover:bg-bg-hover'
               }`}
             >
-              {group.monthLabel} {group.count > 0 && `(${group.count})`}
+              {group.monthLabel.toUpperCase()} {group.count > 0 && <span className="text-status-active">[{group.count}]</span>}
             </button>
           ))}
         </nav>

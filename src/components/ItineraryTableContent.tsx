@@ -39,10 +39,10 @@ export function ItineraryTableContent(props: ItineraryTableContentProps) {
   // 🎯 MICRO-PHASE H: Organize props for better readability
   const { data, interactions, state } = organizeTimelineProps(props);
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto bg-bg-primary">
       <table className="w-full min-w-[1000px] table-fixed">
         <ItineraryTableHeader venueId={data.venueId} artistId={data.artistId} />
-        <tbody className="divide-y divide-gray-100">
+        <tbody className="divide-y divide-border-primary">
           {/* Empty state */}
           {data.activeMonthEntries.length === 0 && (
             <ItineraryEmptyState

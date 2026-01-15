@@ -1,17 +1,13 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "../contexts/AuthContext";
 import FeedbackWidget from "../components/FeedbackWidget";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -71,13 +67,13 @@ export const metadata: Metadata = {
     "application-name": "DIY Shows",
     "apple-mobile-web-app-title": "DIY Shows",
     "apple-mobile-web-app-capable": "yes",
-    "apple-mobile-web-app-status-bar-style": "default",
+    "apple-mobile-web-app-status-bar-style": "black",
     "format-detection": "telephone=no",
     "mobile-web-app-capable": "yes",
     "msapplication-config": "/browserconfig.xml",
-    "msapplication-TileColor": "#000000",
+    "msapplication-TileColor": "#0a0a0a",
     "msapplication-tap-highlight": "no",
-    "theme-color": "#000000",
+    "theme-color": "#0a0a0a",
   },
 };
 
@@ -120,19 +116,14 @@ export default function RootLayout({
       "name": "DIY Shows - Book your own shows!",
       "description": "Connect DIY venues with touring artists. Skip the middlemen and book shows directly."
     },
-    "sameAs": [
-      // Add your social media URLs here when you have them
-      // "https://twitter.com/DIYShows",
-      // "https://instagram.com/DIYShows"
-    ]
+    "sameAs": []
   };
 
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
-        {/* Google Search Console Verification - Replace with your actual verification code */}
         <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE_HERE" />
         <script
           type="application/ld+json"
@@ -189,11 +180,7 @@ export default function RootLayout({
               "description": "DIY Shows - crowdsourced booking platform connecting venues and artists",
               "url": "https://diy-shows.com",
               "logo": "https://diy-shows.com/og-image.png",
-              "sameAs": [
-                // Add your social media URLs here when you have them
-                // "https://twitter.com/diyshows",
-                // "https://instagram.com/diyshows"
-              ],
+              "sameAs": [],
               "contactPoint": {
                 "@type": "ContactPoint",
                 "contactType": "customer service",
@@ -210,9 +197,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${jetbrainsMono.variable} font-mono antialiased bg-bg-primary text-text-primary`}>
         <AuthProvider>
           {children}
           <FeedbackWidget />

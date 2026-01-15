@@ -1,56 +1,291 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================================
+   GIBSON SWARM DESIGN SYSTEM
+   Terminal elegance meets spreadsheet precision
+   ============================================================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds - can be customized via Admin > Settings */
+  --bg-primary: #0a0a0b;
+  --bg-secondary: #111113;
+  --bg-tertiary: #18181b;
+  --bg-hover: #222224;
+  
+  /* Borders - derived from bg */
+  --border-primary: #27272a;
+  --border-subtle: #27272a;
+  --border-default: #3f3f46;
+  --border-strong: #52525b;
+  --border-secondary: #3f3f46;
+  
+  /* Text - can be customized */
+  --text-primary: #e4e4e7;
+  --text-secondary: #a1a1aa;
+  --text-muted: #52525b;
+  --text-accent: #ffffff;
+  
+  /* Status colors */
+  --status-active: #22c55e;
+  --status-success: #22c55e;
+  --status-warning: #facc15;
+  --status-error: #f87171;
+  --status-info: #60a5fa;
+  
+  /* Legacy compatibility */
+  --background: var(--bg-primary);
+  --foreground: var(--text-primary);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Base body styling */
+html {
+  font-size: 13px;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hide scrollbars for horizontal scrolling */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
-  scroll-behavior: smooth;
-  /* Force hardware acceleration for smoother scrolling */
-  -webkit-overflow-scrolling: touch;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Safari and Chrome */
+/* ============================================================================
+   SCROLLBARS (Minimal)
+   ============================================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-/* Hide scrollbars for tab navigation */
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-default);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) var(--bg-secondary);
+}
+
+/* ============================================================================
+   FOCUS & SELECTION
+   ============================================================================ */
+
+*:focus {
+  outline: 1px solid var(--border-strong);
+  outline-offset: -1px;
+}
+
+*:focus-visible {
+  outline: 1px solid var(--border-strong);
+  outline-offset: -1px;
+}
+
+::selection {
+  background: var(--border-default);
+  color: var(--text-accent);
+}
+
+/* ============================================================================
+   COMPONENT UTILITIES
+   ============================================================================ */
+
+/* Module section pattern */
+.module-section {
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
+}
+
+.module-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+
+/* Data table pattern */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th {
+  padding: 0.5rem 0.75rem;
+  border-right: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  text-align: left;
+}
+
+.data-table td {
+  padding: 0.5rem 0.75rem;
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.data-table tr:hover td {
+  background: var(--bg-hover);
+}
+
+/* Grid lines background (optional) */
+.grid-lines {
+  background-image:
+    linear-gradient(to right, var(--bg-tertiary) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--bg-tertiary) 1px, transparent 1px);
+  background-size: 1rem 1rem;
+}
+
+/* Status dot indicators */
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  display: inline-block;
+}
+
+.status-dot-active { background: var(--status-active); }
+.status-dot-warning { background: var(--status-warning); }
+.status-dot-error { background: var(--status-error); }
+.status-dot-info { background: var(--status-info); }
+
+/* Terminal-style label */
+.terminal-label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+}
+
+/* Bracket notation for metadata */
+.bracket-label::before {
+  content: '[';
+  color: var(--text-muted);
+}
+.bracket-label::after {
+  content: ']';
+  color: var(--text-muted);
+}
+
+/* Tabular numbers for data alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ============================================================================
+   BUTTON PATTERNS
+   ============================================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  transition: all 100ms ease;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--text-accent);
+  color: var(--bg-primary);
+  border-color: var(--text-accent);
+}
+
+.btn-primary:hover {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+}
+
+/* ============================================================================
+   INPUT PATTERNS
+   ============================================================================ */
+
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.875rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  transition: border-color 100ms ease;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:focus {
+  border-color: var(--border-strong);
+  outline: none;
+}
+
+/* ============================================================================
+   LEGACY UTILITIES (for gradual migration)
+   ============================================================================ */
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-/* Smooth tab transitions */
 .tab-panel {
-  animation: fadeIn 0.2s ease-in-out;
+  animation: fadeIn 0.15s ease-in-out;
 }
 
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -58,21 +293,11 @@ body {
   }
 }
 
-/* Timeline date typography optimization for scanability */
+/* Timeline date typography (terminal-style) */
 .timeline-date-aligned {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
   display: inline-flex;
   align-items: baseline;
-  gap: 0.125rem; /* Small gap between parts */
-}
-
-.timeline-date-weekday {
-  width: 2rem; /* Fixed width for weekday */
-  flex-shrink: 0;
-}
-
-.timeline-date-month-day {
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
+  gap: 0.125rem;
 }

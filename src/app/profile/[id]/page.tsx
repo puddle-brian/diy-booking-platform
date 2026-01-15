@@ -226,10 +226,10 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <div className="animate-spin h-8 w-8 border border-text-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-text-secondary font-mono">Loading profile...</p>
         </div>
       </div>
     );
@@ -237,16 +237,16 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center">
-          <div className="text-6xl mb-4">😕</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">{error}</h1>
-          <p className="text-gray-600 mb-6">The profile you're looking for doesn't exist or couldn't be loaded.</p>
+          <div className="text-4xl mb-4 text-text-muted">😕</div>
+          <h1 className="text-xl font-mono text-text-primary mb-2">// {error.toUpperCase().replace(/ /g, '_')}</h1>
+          <p className="text-text-secondary font-mono mb-6">The profile you're looking for doesn't exist or couldn't be loaded.</p>
           <button
             onClick={() => router.back()}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+            className="border border-text-primary text-text-primary px-4 py-2 font-mono hover:bg-text-primary hover:text-bg-primary transition-colors"
           >
-            Go Back
+            [GO_BACK]
           </button>
         </div>
       </div>
@@ -258,43 +258,41 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-bg-primary py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Back Navigation */}
         <div className="mb-6">
           <button
             onClick={() => router.push('/')}
-            className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center space-x-2 text-text-secondary hover:text-text-primary transition-colors font-mono"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            <span>Back to Browse</span>
+            <span>&lt;&lt;</span>
+            <span>[BACK_TO_BROWSE]</span>
           </button>
         </div>
 
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-bg-secondary border border-border-primary p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+              <div className="w-16 h-16 bg-bg-tertiary border border-border-primary flex items-center justify-center text-text-primary font-mono text-xl">
                 {profile.name.split(' ').map(n => n.charAt(0)).join('').toUpperCase().slice(0, 2)}
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{profile.name}</h1>
+                <h1 className="text-xl font-mono text-text-primary">{profile.name}</h1>
               </div>
             </div>
           </div>
           
           {profile.bio && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <p className="text-gray-700">{profile.bio}</p>
+            <div className="mt-4 pt-4 border-t border-border-primary">
+              <p className="text-text-secondary font-mono text-sm">{profile.bio}</p>
             </div>
           )}
 
           {/* Message Button - Only show if user is logged in and it's not their own profile */}
           {user && user.id !== profile.id && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="mt-4 pt-4 border-t border-border-primary">
               <MessageButton
                 recipientId={profile.id}
                 recipientName={profile.name}
@@ -311,28 +309,28 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
         {/* Profile Content - Single container with tab titles */}
         {user && user.id === profile.id && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="bg-bg-secondary border border-border-primary p-6 mb-6">
             {/* Tab Titles */}
-            <div className="flex space-x-8 mb-6">
+            <div className="flex space-x-6 mb-6 border-b border-border-primary pb-4">
               <button
                 onClick={() => setActiveSection('memberships')}
-                className={`text-lg transition-colors ${
+                className={`font-mono transition-colors ${
                   activeSection === 'memberships'
-                    ? 'font-semibold text-gray-900'
-                    : 'font-normal text-gray-500 hover:text-gray-700'
+                    ? 'text-text-primary border-b-2 border-status-active pb-1'
+                    : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
-                Memberships
+                [MEMBERSHIPS]
               </button>
               <button
                 onClick={() => setActiveSection('favorites')}
-                className={`text-lg transition-colors ${
+                className={`font-mono transition-colors ${
                   activeSection === 'favorites'
-                    ? 'font-semibold text-gray-900'
-                    : 'font-normal text-gray-500 hover:text-gray-700'
+                    ? 'text-text-primary border-b-2 border-status-active pb-1'
+                    : 'text-text-secondary hover:text-text-primary'
                 }`}
               >
-                Favorites ({favorites.length})
+                [FAVORITES] <span className="text-status-active">{favorites.length}</span>
               </button>
             </div>
 
@@ -347,7 +345,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                       href={`/${membership.entityType}s/${membership.entityId}`}
                       className="block"
                     >
-                      <div className="bg-white rounded-xl overflow-hidden cursor-pointer group shadow-sm hover:shadow-md transition-all duration-200">
+                      <div className="bg-bg-tertiary border border-border-primary overflow-hidden cursor-pointer group hover:border-status-active transition-all duration-200">
                         <div className="aspect-square relative">
                           <img 
                             src={(() => {
@@ -361,25 +359,24 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                             })()}
                             alt={membership.entityName}
                             className="w-full h-full object-cover transition-all duration-200 group-hover:brightness-75"
-                            style={{ borderRadius: '1.25rem' }}
                             onError={(e) => {
                               e.currentTarget.src = membership.entityType === 'artist' ? '/api/placeholder/band' : '/api/placeholder/other';
                             }}
                           />
                           
-                          <div className="absolute top-3 left-3 bg-black bg-opacity-70 text-white px-2 py-1 rounded-full text-xs font-medium">
-                            {membership.role}
+                          <div className="absolute top-2 left-2 bg-bg-primary/90 text-text-primary px-2 py-1 text-2xs font-mono border border-border-primary">
+                            [{membership.role.toUpperCase()}]
                           </div>
                         </div>
                         
                         <div className="p-3">
-                          <h3 className="font-bold text-gray-900 truncate text-sm">{membership.entityName}</h3>
-                          <p className="text-xs text-gray-600">
+                          <h3 className="font-mono text-text-primary truncate text-sm">{membership.entityName}</h3>
+                          <p className="text-2xs text-text-secondary font-mono">
                             {membership.city && membership.state 
                               ? `${membership.city}, ${membership.state} • ` 
                               : ''
                             }
-                            <span className="capitalize">{membership.entityType}</span>
+                            <span className="uppercase">{membership.entityType}</span>
                           </p>
                         </div>
                       </div>
@@ -388,17 +385,17 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <div className="w-12 h-12 border border-border-primary flex items-center justify-center mx-auto mb-3 text-text-muted">
                     🎭
                   </div>
-                  <h3 className="text-sm font-medium text-gray-900 mb-2">No memberships yet</h3>
-                  <p className="text-xs text-gray-600 mb-4">Join an artist or venue to start managing your music career.</p>
+                  <h3 className="text-sm font-mono text-text-primary mb-2">// NO_MEMBERSHIPS</h3>
+                  <p className="text-xs text-text-secondary font-mono mb-4">Join an artist or venue to start managing your music career.</p>
                   <div className="flex justify-center space-x-2">
-                    <a href="/artists/submit" className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800 transition-colors">
-                      Add Artist
+                    <a href="/artists/submit" className="border border-text-primary text-text-primary px-4 py-2 text-sm font-mono hover:bg-text-primary hover:text-bg-primary transition-colors">
+                      [ADD_ARTIST]
                     </a>
-                    <a href="/venues/submit" className="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-700 transition-colors">
-                      Add Venue
+                    <a href="/venues/submit" className="border border-border-primary text-text-secondary px-4 py-2 text-sm font-mono hover:border-text-primary hover:text-text-primary transition-colors">
+                      [ADD_VENUE]
                     </a>
                   </div>
                 </div>
@@ -407,34 +404,34 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               /* Favorites Content */
               <div>
                 <div className="flex justify-center mb-6">
-                  <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                  <div className="flex items-center space-x-1 border border-border-primary p-1">
                     <button
                       onClick={() => setFavoritesTab('venues')}
-                      className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                      className={`px-4 py-2 text-sm font-mono transition-colors ${
                         favoritesTab === 'venues'
-                          ? 'bg-white text-black shadow-sm'
-                          : 'text-gray-600 hover:text-black'
+                          ? 'bg-bg-tertiary text-text-primary border border-status-active'
+                          : 'text-text-secondary hover:text-text-primary border border-transparent'
                       }`}
                     >
-                      Venues ({getFavoritesByType('VENUE').length})
+                      [VENUES] <span className="text-status-active">{getFavoritesByType('VENUE').length}</span>
                     </button>
                     <button
                       onClick={() => setFavoritesTab('artists')}
-                      className={`px-6 py-3 rounded-md text-sm font-medium transition-colors ${
+                      className={`px-4 py-2 text-sm font-mono transition-colors ${
                         favoritesTab === 'artists'
-                          ? 'bg-white text-black shadow-sm'
-                          : 'text-gray-600 hover:text-black'
+                          ? 'bg-bg-tertiary text-text-primary border border-status-active'
+                          : 'text-text-secondary hover:text-text-primary border border-transparent'
                       }`}
                     >
-                      Artists ({getFavoritesByType('ARTIST').length})
+                      [ARTISTS] <span className="text-status-active">{getFavoritesByType('ARTIST').length}</span>
                     </button>
                   </div>
                 </div>
 
                 {favoritesLoading ? (
                   <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black mx-auto mb-2"></div>
-                    <p className="text-sm text-gray-600">Loading favorites...</p>
+                    <div className="animate-spin h-6 w-6 border border-text-primary border-t-transparent mx-auto mb-2"></div>
+                    <p className="text-sm text-text-secondary font-mono">Loading favorites...</p>
                   </div>
                 ) : (
                   <div>
@@ -570,42 +567,42 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
         {/* Messages Section - Only show for current user */}
         {user && user.id === profile.id && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="bg-bg-secondary border border-border-primary p-6 mb-6">
             <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-2">
-                <h2 className="text-lg font-semibold text-gray-900">Recent Messages</h2>
+              <div className="flex items-center space-x-3">
+                <h2 className="font-mono text-text-primary">&gt; RECENT_MESSAGES</h2>
                 {unreadCount > 0 && (
-                  <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                    {unreadCount} unread
+                  <span className="bg-status-info/20 text-status-info text-xs px-2 py-1 font-mono">
+                    [{unreadCount}] unread
                   </span>
                 )}
               </div>
               <a 
                 href="/messages" 
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                className="text-sm text-text-secondary hover:text-text-primary font-mono"
               >
-                View All →
+                [VIEW_ALL] &gt;&gt;
               </a>
             </div>
 
             {loadingConversations ? (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                <p className="text-sm text-gray-600">Loading conversations...</p>
+                <div className="animate-spin h-6 w-6 border border-text-primary border-t-transparent mx-auto mb-2"></div>
+                <p className="text-sm text-text-secondary font-mono">Loading conversations...</p>
               </div>
             ) : conversations.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 border border-border-primary flex items-center justify-center mx-auto mb-3 text-text-muted">
                   💬
                 </div>
-                <h3 className="text-sm font-medium text-gray-900 mb-2">No conversations yet</h3>
-                <p className="text-xs text-gray-600 mb-4">Start messaging artists and venues to see your conversations here.</p>
+                <h3 className="text-sm font-mono text-text-primary mb-2">// NO_CONVERSATIONS</h3>
+                <p className="text-xs text-text-secondary font-mono mb-4">Start messaging artists and venues to see your conversations here.</p>
                 <div className="flex justify-center space-x-2">
-                  <a href="/artists" className="bg-blue-600 text-white px-3 py-1.5 rounded text-xs hover:bg-blue-700 transition-colors">
-                    Browse Artists
+                  <a href="/artists" className="border border-status-info text-status-info px-3 py-1.5 text-xs font-mono hover:bg-status-info hover:text-bg-primary transition-colors">
+                    [BROWSE_ARTISTS]
                   </a>
-                  <a href="/venues" className="bg-gray-600 text-white px-3 py-1.5 rounded text-xs hover:bg-gray-700 transition-colors">
-                    Browse Venues
+                  <a href="/venues" className="border border-border-primary text-text-secondary px-3 py-1.5 text-xs font-mono hover:border-text-primary hover:text-text-primary transition-colors">
+                    [BROWSE_VENUES]
                   </a>
                 </div>
               </div>
@@ -688,17 +685,17 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         )}
 
         {/* Contact Info (if available) */}
-        <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Contact</h2>
-          <div className="space-y-2">
+        <div className="mt-6 bg-bg-secondary border border-border-primary p-6">
+          <h2 className="font-mono text-text-primary mb-4">&gt; CONTACT</h2>
+          <div className="space-y-2 font-mono text-sm">
             <div className="flex items-center space-x-2">
-              <span className="text-gray-500">📧</span>
-              <span className="text-gray-700">{profile.email}</span>
+              <span className="text-text-muted">EMAIL:</span>
+              <span className="text-text-secondary">{profile.email}</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-gray-500">📅</span>
-              <span className="text-gray-700">
-                Member since {new Date(profile.joinedAt).toLocaleDateString()}
+              <span className="text-text-muted">MEMBER_SINCE:</span>
+              <span className="text-text-secondary">
+                {new Date(profile.joinedAt).toLocaleDateString()}
               </span>
             </div>
           </div>

@@ -8,76 +8,106 @@ export type StatusType =
   | 'open' 
   | 'cancelled'
   | 'hold'
-  | 'frozen';
+  | 'frozen'
+  | 'expired';
 
 interface StatusBadgeProps {
-  status: StatusType;
+  status?: StatusType;
+  type?: StatusType;
+  text?: string;
   variant?: 'default' | 'compact';
   className?: string;
 }
 
 /**
- * Universal status badge component with consistent styling
- * Maintains semantic color meaning while ensuring visual consistency
+ * Terminal-style status badge component
+ * Uses Gibson Swarm status colors for semantic meaning
  */
 export function StatusBadge({ 
-  status, 
+  status,
+  type,
+  text,
   variant = 'default', 
   className = '' 
 }: StatusBadgeProps) {
   
-  const getStatusConfig = (status: StatusType) => {
-    const configs = {
+  // Support both 'status' and 'type' props for backwards compatibility
+  const statusValue = status || type || 'pending';
+  
+  const getStatusConfig = (s: StatusType) => {
+    const configs: Record<StatusType, { color: string; text: string; dotColor: string }> = {
       confirmed: {
-        className: 'bg-green-100 text-green-800 border-green-300',
-        text: 'Confirmed'
+        color: 'text-status-active border-status-active/30',
+        text: 'CONFIRMED',
+        dotColor: 'bg-status-active'
       },
       accepted: {
-        className: 'bg-emerald-100 text-emerald-800 border-emerald-300',
-        text: 'Accepted'
+        color: 'text-status-active border-status-active/30',
+        text: 'ACCEPTED',
+        dotColor: 'bg-status-active'
       },
       pending: {
-        className: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-        text: 'Pending'
+        color: 'text-status-warning border-status-warning/30',
+        text: 'PENDING',
+        dotColor: 'bg-status-warning'
       },
       open: {
-        className: 'bg-blue-100 text-blue-800 border-blue-300',
-        text: 'Open'
+        color: 'text-status-info border-status-info/30',
+        text: 'OPEN',
+        dotColor: 'bg-status-info'
       },
       declined: {
-        className: 'bg-red-100 text-red-800 border-red-300',
-        text: 'Declined'
+        color: 'text-status-error border-status-error/30',
+        text: 'DECLINED',
+        dotColor: 'bg-status-error'
       },
       cancelled: {
-        className: 'bg-gray-100 text-gray-800 border-gray-300',
-        text: 'Cancelled'
+        color: 'text-text-muted border-border-subtle',
+        text: 'CANCELLED',
+        dotColor: 'bg-text-muted'
       },
       hold: {
-        className: 'bg-violet-100 text-violet-800 border-violet-300',
-        text: 'On Hold'
+        color: 'text-status-info border-status-info/30',
+        text: 'ON HOLD',
+        dotColor: 'bg-status-info'
       },
       frozen: {
-        className: 'bg-slate-100 text-slate-800 border-slate-300',
-        text: 'Frozen'
+        color: 'text-text-secondary border-border-default',
+        text: 'FROZEN',
+        dotColor: 'bg-text-secondary'
+      },
+      expired: {
+        color: 'text-text-muted border-border-subtle',
+        text: 'EXPIRED',
+        dotColor: 'bg-text-muted'
       }
     };
     
-    return configs[status] || configs.pending;
+    return configs[s] || configs.pending;
   };
   
-  const statusConfig = getStatusConfig(status);
+  const statusConfig = getStatusConfig(statusValue);
+  const displayText = text || statusConfig.text;
   
   const sizeClasses = {
-    default: 'px-2 py-1 text-xs',
-    compact: 'px-1.5 py-0.5 text-xs'
+    default: 'px-2 py-1 text-2xs',
+    compact: 'px-1.5 py-0.5 text-2xs'
   };
   
-  const baseClasses = "inline-flex items-center font-medium rounded-full border";
-  const sizeClass = sizeClasses[variant];
-  
   return (
-    <span className={`${baseClasses} ${sizeClass} ${statusConfig.className} ${className}`}>
-      {statusConfig.text}
+    <span className={`
+      inline-flex items-center gap-1.5
+      uppercase tracking-wider font-medium
+      bg-bg-tertiary border
+      ${sizeClasses[variant]}
+      ${statusConfig.color}
+      ${className}
+    `}>
+      <span className={`w-1.5 h-1.5 ${statusConfig.dotColor}`}></span>
+      {displayText}
     </span>
   );
-} 
+}
+
+// Default export for backwards compatibility
+export default StatusBadge;

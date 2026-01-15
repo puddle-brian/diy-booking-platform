@@ -317,21 +317,21 @@ export function UnifiedBookingTimeline({
       )}
 
       {/* Simple Month Navigation */}
-      <div className="px-6 py-3 border-b border-gray-200 bg-gray-50">
-        <div className="flex space-x-2">
+      <div className="px-6 py-3 border-b border-border-primary bg-bg-secondary">
+        <div className="flex space-x-1">
           {stableMonthTabs.map((month) => (
             <button
               key={month.monthKey}
               onClick={() => setActiveMonthTab(month.monthKey)}
-              className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+              className={`px-4 py-2 text-sm font-mono transition-colors ${
                 activeMonthTab === month.monthKey
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-100'
+                  ? 'bg-bg-tertiary text-text-primary border border-status-active'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-transparent'
               }`}
             >
-              {month.monthLabel}
+              {month.monthLabel.toUpperCase()}
               {month.count > 0 && (
-                <span className="ml-1 text-xs">({month.count})</span>
+                <span className="ml-1 text-status-active">[{month.count}]</span>
               )}
             </button>
           ))}
@@ -339,23 +339,23 @@ export function UnifiedBookingTimeline({
       </div>
 
       {/* Table Content */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto bg-bg-primary">
         <table className="w-full min-w-[1000px] table-fixed">
           {/* Simple Table Header */}
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-bg-secondary border-b border-border-primary">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[3%]"></th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">Date</th>
+              <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[3%]"></th>
+              <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[12%]">Date</th>
               {!venueId && (
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[14%]">Location</th>
+                <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[14%]">Location</th>
               )}
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[20%]">
+              <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[20%]">
                 {perspective === 'ARTIST' ? 'Venue' : 'Artist'}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[8%]">Source</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[10%]">Capacity</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-[12%]">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[10%]">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[8%]">Source</th>
+              <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[10%]">Capacity</th>
+              <th className="px-4 py-3 text-left text-xs font-mono text-text-secondary uppercase tracking-wider w-[12%]">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">

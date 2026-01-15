@@ -15,15 +15,15 @@ export function ItineraryLoadingStates({
 }: ItineraryLoadingStatesProps) {
   if (loading) {
     return (
-      <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
+      <div className="bg-bg-secondary border border-border-primary p-6">
         <div className="animate-pulse">
-          <div className="h-4 bg-gray-300 rounded w-1/4 mb-6"></div>
+          <div className="h-4 bg-bg-tertiary w-1/4 mb-6"></div>
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="border border-gray-200 rounded-lg p-4">
-                <div className="h-4 bg-gray-300 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-300 rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-gray-300 rounded w-full"></div>
+              <div key={i} className="border border-border-primary p-4">
+                <div className="h-4 bg-bg-tertiary w-3/4 mb-2"></div>
+                <div className="h-3 bg-bg-tertiary w-1/2 mb-2"></div>
+                <div className="h-3 bg-bg-tertiary w-full"></div>
               </div>
             ))}
           </div>
@@ -34,14 +34,14 @@ export function ItineraryLoadingStates({
 
   if (fetchError) {
     return (
-      <div className="bg-white border border-gray-200 shadow-md rounded-xl p-6">
-        <div className="text-red-600 text-center">
-          <p>Error loading itinerary: {fetchError}</p>
+      <div className="bg-bg-secondary border border-border-primary p-6">
+        <div className="text-status-error text-center font-mono">
+          <p>// ERROR: {fetchError}</p>
           <button 
             onClick={onRetry}
-            className="mt-2 text-sm underline hover:no-underline"
+            className="mt-2 text-sm text-text-secondary hover:text-text-primary underline"
           >
-            Try again
+            [RETRY]
           </button>
         </div>
       </div>

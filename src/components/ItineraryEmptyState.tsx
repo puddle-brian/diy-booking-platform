@@ -17,24 +17,24 @@ export function ItineraryEmptyState({
 }: ItineraryEmptyStateProps) {
   return (
     <tr>
-      <td colSpan={venueId ? 9 : 10} className="px-6 py-8 text-center text-gray-500">
-        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-2xl">📅</span>
+      <td colSpan={venueId ? 9 : 10} className="px-6 py-8 text-center">
+        <div className="w-16 h-16 border border-border-secondary flex items-center justify-center mx-auto mb-4">
+          <span className="text-2xl text-text-muted">📅</span>
         </div>
         {stableMonthTabs.every(tab => tab.count === 0) ? (
           <>
-            <p className="mb-2 font-medium">No shows booked</p>
-            <p className="text-sm">
+            <p className="mb-2 font-mono text-text-primary">// NO_SHOWS_BOOKED</p>
+            <p className="text-sm font-mono text-text-secondary">
               {editable 
-                ? "Get started by adding your first date below"
+                ? "Add your first date below to get started"
                 : "Confirmed bookings will appear here"
               }
             </p>
           </>
         ) : (
           <>
-            <p className="mb-2">No shows this month</p>
-            <p className="text-sm">Check other months for upcoming shows</p>
+            <p className="mb-2 font-mono text-text-primary">// NO_SHOWS_THIS_MONTH</p>
+            <p className="text-sm font-mono text-text-secondary">Check other months for upcoming shows</p>
           </>
         )}
       </td>

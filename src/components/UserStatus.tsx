@@ -9,7 +9,6 @@ export default function UserStatus() {
 
   const handleLogout = async () => {
     await logout();
-    // Redirect to home
     window.location.href = '/';
   };
 
@@ -25,69 +24,71 @@ export default function UserStatus() {
   if (loading) {
     return (
       <div className="flex items-center space-x-2">
-        <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin"></div>
-        <span className="text-sm text-gray-600">Loading...</span>
+        <span className="text-2xs text-text-muted uppercase tracking-wider animate-pulse">
+          [LOADING...]
+        </span>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-3">
         <Link 
           href="/auth/login" 
-          className="text-gray-700 hover:text-black font-medium"
+          className="text-xs text-text-secondary hover:text-text-accent uppercase tracking-wider transition-colors"
         >
-          Sign In
+          [SIGN IN]
         </Link>
-        {/* Always show admin link for debug access */}
         <Link 
           href="/admin"
-          className="text-xs text-blue-600 hover:text-blue-800"
+          className="text-xs text-status-info hover:text-status-info/80 uppercase tracking-wider transition-colors"
         >
-          Admin
+          [ADMIN]
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center space-x-4">
-      {/* User Avatar Circle with Message Notification */}
+    <div className="flex items-center space-x-3">
+      {/* User Avatar - Terminal Style */}
       <div className="relative">
         <Link 
           href={`/profile/${user.id}`} 
-          className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+          className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
           title={`${user.name} - View Profile`}
         >
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-            <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-8 h-8 border border-border-default flex items-center justify-center bg-bg-tertiary">
+            <span className="text-xs font-medium text-text-accent">
               {getInitials(user.name)}
-            </div>
+            </span>
           </div>
+          <span className="hidden md:block text-xs text-text-secondary uppercase tracking-wider">
+            {user.name.split(' ')[0]}
+          </span>
         </Link>
-        {/* Message Notification Badge - separate clickable area */}
+        {/* Message Notification Badge */}
         <Link href="/messages" title="View Messages">
           <MessageNotificationBadge className="absolute -top-1 -right-1 cursor-pointer hover:scale-110 transition-transform" />
         </Link>
       </div>
       
       <div className="flex items-center space-x-2">
-        {/* Always show admin link for debug purposes */}
         <Link 
           href="/admin"
-          className="text-sm text-blue-600 hover:text-blue-800"
+          className="text-2xs text-status-info hover:text-status-info/80 uppercase tracking-wider transition-colors"
         >
-          Admin
+          [ADMIN]
         </Link>
         
         <button
           onClick={handleLogout}
-          className="text-sm text-gray-600 hover:text-black"
+          className="text-2xs text-text-muted hover:text-status-error uppercase tracking-wider transition-colors"
         >
-          Sign Out
+          [OUT]
         </button>
       </div>
     </div>
   );
-} 
+}

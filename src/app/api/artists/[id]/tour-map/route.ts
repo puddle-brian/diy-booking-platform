@@ -14,6 +14,10 @@ export async function GET(
   try {
     const { id: artistId } = await params;
 
+    if (!artistId) {
+      return NextResponse.json({ dates: [], count: 0, missingCoordinates: 0 });
+    }
+
     // Get all date entries for this artist that have confirmed/hold/pending status
     const dateEntries = await prisma.dateEntry.findMany({
       where: {
@@ -62,10 +66,13 @@ export async function GET(
     });
   } catch (error) {
     console.error('Error fetching tour map data:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch tour map data' },
-      { status: 500 }
-    );
+    // Return empty data instead of error to prevent UI from breaking
+    return NextResponse.json({
+      dates: [],
+      count: 0,
+      missingCoordinates: 0,
+      error: 'Could not load tour dates'
+    });
   }
 }
 
