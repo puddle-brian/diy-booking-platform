@@ -30,22 +30,22 @@ export function UnifiedTimelineRow({
   };
 
   const getStatusBadgeClass = (status: string, type: string): string => {
-    const baseClass = 'inline-flex px-2 py-0.5 text-xs font-medium rounded-full';
+    const baseClass = 'inline-flex px-2 py-0.5 text-xs font-mono';
     
     switch (status.toLowerCase()) {
       case 'confirmed':
       case 'accepted':
-        return `${baseClass} bg-green-100 text-green-800`;
+        return `${baseClass} border border-status-success text-status-success bg-status-success/10`;
       case 'pending':
       case 'open':
-        return `${baseClass} bg-blue-100 text-blue-800`;
+        return `${baseClass} border border-status-info text-status-info bg-status-info/10`;
       case 'declined':
       case 'cancelled':
-        return `${baseClass} bg-red-100 text-red-800`;
+        return `${baseClass} border border-status-error text-status-error bg-status-error/10`;
       case 'hold':
-        return `${baseClass} bg-yellow-100 text-yellow-800`;
+        return `${baseClass} border border-status-warning text-status-warning bg-status-warning/10`;
       default:
-        return `${baseClass} bg-gray-100 text-gray-800`;
+        return `${baseClass} border border-border-primary text-text-secondary`;
     }
   };
 
@@ -129,28 +129,28 @@ export function UnifiedTimelineRow({
     if (!isExpanded) return null;
 
     return (
-      <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+      <div className="px-6 py-4 bg-bg-tertiary border-t border-border-primary">
         {item.type === 'show-request' && item.relatedBids && item.relatedBids.length > 0 && (
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">
-              Venue Responses ({item.relatedBids.length})
+            <h4 className="font-mono text-text-primary mb-3">
+              &gt; VENUE_RESPONSES [{item.relatedBids.length}]
             </h4>
             <div className="space-y-3">
               {item.relatedBids.map((bid) => (
-                <div key={bid.id} className="bg-white p-4 rounded border">
+                <div key={bid.id} className="bg-bg-secondary p-4 border border-border-primary">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h5 className="font-medium text-gray-900">{bid.venueName}</h5>
-                      <p className="text-sm text-gray-600">{bid.message}</p>
-                      <div className="mt-2 space-x-4 text-sm text-gray-500">
+                      <h5 className="font-mono text-text-primary">{bid.venueName}</h5>
+                      <p className="text-sm text-text-secondary font-mono">{bid.message}</p>
+                      <div className="mt-2 space-x-4 text-sm text-text-muted font-mono">
                         <span>💰 ${bid.guarantee || 'Door deal'}</span>
-                        <span>👥 {bid.capacity} capacity</span>
+                        <span>👥 {bid.capacity} cap</span>
                         <span>🕒 {bid.showTime}</span>
                       </div>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className={getStatusBadgeClass(bid.status, 'bid')}>
-                        {bid.status}
+                        {bid.status.toUpperCase()}
                       </span>
                       {onBidAction && (
                         <BidActionButtons
@@ -172,25 +172,25 @@ export function UnifiedTimelineRow({
 
         {item.type === 'show' && (
           <div>
-            <h4 className="font-medium text-gray-900 mb-3">Show Details</h4>
-            <div className="bg-white p-4 rounded border">
-              <div className="grid grid-cols-2 gap-4 text-sm">
+            <h4 className="font-mono text-text-primary mb-3">&gt; SHOW_DETAILS</h4>
+            <div className="bg-bg-secondary p-4 border border-border-primary">
+              <div className="grid grid-cols-2 gap-4 text-sm font-mono">
                 <div>
-                  <span className="font-medium text-gray-700">Venue:</span>
-                  <span className="ml-2 text-gray-900">{item.venueName}</span>
+                  <span className="text-text-muted">VENUE:</span>
+                  <span className="ml-2 text-text-primary">{item.venueName}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Date:</span>
-                  <span className="ml-2 text-gray-900">{formatDate(item.date)}</span>
+                  <span className="text-text-muted">DATE:</span>
+                  <span className="ml-2 text-text-primary">{formatDate(item.date)}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Location:</span>
-                  <span className="ml-2 text-gray-900">{item.location}</span>
+                  <span className="text-text-muted">LOCATION:</span>
+                  <span className="ml-2 text-text-primary">{item.location}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-gray-700">Status:</span>
+                  <span className="text-text-muted">STATUS:</span>
                   <span className={`ml-2 ${getStatusBadgeClass(item.status, 'show')}`}>
-                    {item.status}
+                    {item.status.toUpperCase()}
                   </span>
                 </div>
               </div>
@@ -202,7 +202,7 @@ export function UnifiedTimelineRow({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg bg-white shadow-sm">
+    <div className="border border-border-primary bg-bg-secondary">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
@@ -210,17 +210,17 @@ export function UnifiedTimelineRow({
               <span className="text-lg">{getTypeIcon(item.type)}</span>
               <div>
                 <div className="flex items-center space-x-2">
-                  <h3 className="font-medium text-gray-900">{item.title}</h3>
+                  <h3 className="font-mono text-text-primary">{item.title}</h3>
                   <span className={getStatusBadgeClass(item.status, item.type)}>
-                    {item.status}
+                    {item.status.toUpperCase()}
                   </span>
                 </div>
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">{formatDate(item.date)}</span>
-                  <span className="mx-2">•</span>
+                <div className="text-sm text-text-secondary font-mono">
+                  <span>{formatDate(item.date)}</span>
+                  <span className="mx-2 text-text-muted">•</span>
                   <span>{item.location}</span>
-                  <span className="mx-2">•</span>
-                  <span>{getTypeLabel(item.type)}</span>
+                  <span className="mx-2 text-text-muted">•</span>
+                  <span className="text-text-muted">{getTypeLabel(item.type)}</span>
                 </div>
               </div>
             </div>
@@ -232,7 +232,7 @@ export function UnifiedTimelineRow({
             {hasExpandableContent() && (
               <button
                 onClick={handleToggleExpansion}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-2 text-text-muted hover:text-text-primary transition-colors"
                 title={isExpanded ? 'Collapse' : 'Expand'}
               >
                 <svg 

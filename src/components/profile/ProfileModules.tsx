@@ -9,30 +9,30 @@ import { VENUE_TYPE_LABELS, ARTIST_TYPE_LABELS } from '../../../types/index';
 // Centralized Module Styling Configuration
 // Change these values to update the appearance of all profile modules from one place
 export const MODULE_STYLES = {
-  // Border and background styles for different priority levels
+  // Border and background styles for different priority levels - Gibson Swarm Dark Theme
   primary: {
-    background: 'bg-white',
-    border: 'border border-gray-200',
-    shadow: 'shadow-md',
-    borderRadius: 'rounded-xl'
+    background: 'bg-bg-secondary',
+    border: 'border border-border-primary',
+    shadow: '',
+    borderRadius: ''
   },
   secondary: {
-    background: 'bg-white',
-    border: 'border border-gray-200', 
-    shadow: 'shadow-md',
-    borderRadius: 'rounded-xl'
+    background: 'bg-bg-secondary',
+    border: 'border border-border-primary', 
+    shadow: '',
+    borderRadius: ''
   },
   tertiary: {
-    background: 'bg-gray-50',
-    border: 'border border-gray-100',
-    shadow: 'shadow-sm',
-    borderRadius: 'rounded-xl'
+    background: 'bg-bg-tertiary',
+    border: 'border border-border-primary',
+    shadow: '',
+    borderRadius: ''
   },
   admin: {
-    background: 'bg-red-50',
-    border: 'border border-red-200',
-    shadow: 'shadow-sm',
-    borderRadius: 'rounded-xl'
+    background: 'bg-status-error/10',
+    border: 'border border-status-error/30',
+    shadow: '',
+    borderRadius: ''
   },
   
   // Padding styles for different sizes
@@ -170,7 +170,7 @@ export const TeamThumbnails: React.FC<TeamThumbnailsProps> = ({
             className="relative group cursor-pointer"
             title={`${member.name || 'Team Member'} (${member.role || 'Member'})`}
           >
-            <div className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-bg-tertiary border-2 border-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
               {member.avatar ? (
                 <img
                   src={member.avatar}
@@ -194,7 +194,7 @@ export const TeamThumbnails: React.FC<TeamThumbnailsProps> = ({
             {/* Hover tooltip */}
             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
               {member.name || 'Team Member'}
-              <div className="text-gray-300">{member.role || 'Member'}</div>
+              <div className="text-text-muted">{member.role || 'Member'}</div>
               {showMessageBadges && member.unreadCount && member.unreadCount > 0 && (
                 <div className="text-blue-300 font-medium">{member.unreadCount} unread message{member.unreadCount !== 1 ? 's' : ''}</div>
               )}
@@ -204,10 +204,10 @@ export const TeamThumbnails: React.FC<TeamThumbnailsProps> = ({
         
         {remainingCount > 0 && (
           <div 
-            className="w-8 h-8 rounded-full bg-gray-100 border-2 border-white shadow-sm flex items-center justify-center cursor-pointer relative"
+            className="w-8 h-8 rounded-full bg-bg-tertiary border-2 border-white shadow-sm flex items-center justify-center cursor-pointer relative"
             title={`${remainingCount} more team member${remainingCount !== 1 ? 's' : ''}`}
           >
-            <span className="text-xs font-medium text-gray-600">+{remainingCount}</span>
+            <span className="text-xs font-medium text-text-secondary">+{remainingCount}</span>
             
             {/* Aggregate notification badge for remaining members */}
             {showMessageBadges && (() => {
@@ -229,7 +229,7 @@ export const TeamThumbnails: React.FC<TeamThumbnailsProps> = ({
       
       {/* Only show member count on mobile or when explicitly requested */}
       {className.includes('show-count') && members.length > 0 && (
-        <span className="text-xs text-gray-500 ml-2">
+        <span className="text-xs text-text-muted ml-2">
           {members.length} member{members.length !== 1 ? 's' : ''}
         </span>
       )}
@@ -257,7 +257,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ entity, context, m
         {/* Top Row: Thumbnail + Name + Location/Info + Team Thumbnails */}
         <div className="flex items-start gap-3 sm:gap-4">
           {/* Entity Thumbnail */}
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-bg-tertiary flex-shrink-0">
             <img
               src={entity.images?.[0] || `/api/placeholder/${isArtist ? artist?.artistType : 'other'}`}
               alt={entity.name}
@@ -272,36 +272,36 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ entity, context, m
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
-                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 leading-tight mb-2">
+                <h1 className="text-3xl sm:text-4xl font-bold text-text-primary leading-tight mb-2">
                   {entity.name}
                 </h1>
                 
                 {/* Location & Key Details */}
                 <div className="space-y-1">
-                  <p className="text-base text-gray-600">
+                  <p className="text-base text-text-secondary">
                     {entity.city}, {entity.state}
                     {isArtist && artist?.artistType && (
                       <>
-                        <span className="text-gray-400 mx-2">•</span>
+                        <span className="text-text-muted mx-2">•</span>
                         <span className="capitalize">{ARTIST_TYPE_LABELS[artist.artistType] || artist.artistType.replace('-', ' ')}</span>
                       </>
                     )}
                     {!isArtist && venue?.capacity && (
                       <>
-                        <span className="text-gray-400 mx-2">•</span>
+                        <span className="text-text-muted mx-2">•</span>
                         <span>{venue.capacity >= 1000 ? `${(venue.capacity / 1000).toFixed(venue.capacity % 1000 === 0 ? 0 : 1)}k` : venue.capacity} cap</span>
                       </>
                     )}
-                    <span className="text-gray-400 mx-2">•</span>
+                    <span className="text-text-muted mx-2">•</span>
                     {entity.rating && entity.rating > 0 ? (
-                      <span className="text-gray-700">★ {entity.rating.toFixed(1)}</span>
+                      <span className="text-text-secondary">★ {entity.rating.toFixed(1)}</span>
                     ) : (
-                      <span className="text-gray-400">★ N/A</span>
+                      <span className="text-text-muted">★ N/A</span>
                     )}
                   </p>
                   
                   {/* Additional context info */}
-                  <div className="text-sm text-gray-500 space-x-3">
+                  <div className="text-sm text-text-muted space-x-3">
                     {isArtist && artist?.yearFormed && (
                       <span>Est. {artist.yearFormed}</span>
                     )}
@@ -408,7 +408,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ entity, context, m
           {context.canEdit && (
             <Link
               href={`/${context.entityType}s/${entity.id}/edit`}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-text-secondary bg-white border border-border-primary rounded-lg hover:bg-gray-50 transition-colors"
             >
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -446,7 +446,7 @@ export const BookingStatusCard: React.FC<BookingStatusCardProps> = ({ entity, co
   return (
     <ProfileCard priority="primary" size="large" className={className}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-900">Show Dates</h2>
+        <h2 className="text-xl font-semibold text-text-primary">Show Dates</h2>
         {context.canEdit && (
           <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
             Manage Dates
@@ -456,12 +456,12 @@ export const BookingStatusCard: React.FC<BookingStatusCardProps> = ({ entity, co
       
       {/* This will be replaced with TabbedTourItinerary component */}
       <div className="bg-gray-50 rounded-lg p-6 text-center">
-        <div className="text-gray-500 mb-2">
+        <div className="text-text-muted mb-2">
           <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-text-secondary">
           Tour itinerary component will be integrated here
         </p>
       </div>
@@ -486,7 +486,7 @@ export const TeamCredibilityCard: React.FC<TeamCredibilityCardProps> = ({
   return (
     <ProfileCard priority="secondary" size="medium" className={className}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Team</h3>
+        <h3 className="text-lg font-semibold text-text-primary">Team</h3>
         {context.canEdit && members.length > 0 && (
           <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
             Manage Team
@@ -498,27 +498,27 @@ export const TeamCredibilityCard: React.FC<TeamCredibilityCardProps> = ({
         <div className="space-y-3">
           {members.slice(0, 4).map((member, index) => (
             <div key={index} className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gray-200 rounded-full flex-shrink-0"></div>
+              <div className="w-8 h-8 bg-bg-tertiary rounded-full flex-shrink-0"></div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{member.name || 'Team Member'}</p>
-                <p className="text-xs text-gray-500">{member.role || 'Member'}</p>
+                <p className="text-sm font-medium text-text-primary truncate">{member.name || 'Team Member'}</p>
+                <p className="text-xs text-text-muted">{member.role || 'Member'}</p>
               </div>
             </div>
           ))}
           {members.length > 4 && (
-            <p className="text-xs text-gray-500 text-center pt-2">
+            <p className="text-xs text-text-muted text-center pt-2">
               +{members.length - 4} more members
             </p>
           )}
         </div>
       ) : (
         <div className="text-center py-4">
-          <div className="text-gray-400 mb-2">
+          <div className="text-text-muted mb-2">
             <svg className="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
             </svg>
           </div>
-          <p className="text-sm text-gray-500">No team members yet</p>
+          <p className="text-sm text-text-muted">No team members yet</p>
           {context.canEdit && (
             <button className="text-xs text-blue-600 hover:text-blue-800 mt-1">
               Invite members
@@ -543,7 +543,7 @@ export const MediaShowcaseCard: React.FC<MediaShowcaseCardProps> = ({ entity, co
   return (
     <ProfileCard priority="secondary" size="medium" className={className}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Media</h3>
+        <h3 className="text-lg font-semibold text-text-primary">Media</h3>
         {context.canEdit && (
           <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
             Add Media
@@ -554,7 +554,7 @@ export const MediaShowcaseCard: React.FC<MediaShowcaseCardProps> = ({ entity, co
       {hasMedia ? (
         <div className="grid grid-cols-2 gap-2">
           {entity.images.slice(0, 4).map((image, index) => (
-            <div key={index} className="aspect-square rounded-lg overflow-hidden bg-gray-100">
+            <div key={index} className="aspect-square rounded-lg overflow-hidden bg-bg-tertiary">
               <img
                 src={image}
                 alt={`${entity.name} photo ${index + 1}`}
@@ -565,12 +565,12 @@ export const MediaShowcaseCard: React.FC<MediaShowcaseCardProps> = ({ entity, co
         </div>
       ) : (
         <div className="text-center py-6">
-          <div className="text-gray-400 mb-2">
+          <div className="text-text-muted mb-2">
             <svg className="w-8 h-8 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
-          <p className="text-sm text-gray-500">No media yet</p>
+          <p className="text-sm text-text-muted">No media yet</p>
           {context.canEdit && (
             <button className="text-xs text-blue-600 hover:text-blue-800 mt-1">
               Add photos or videos
@@ -580,7 +580,7 @@ export const MediaShowcaseCard: React.FC<MediaShowcaseCardProps> = ({ entity, co
       )}
       
       {hasMedia && entity.images.length > 4 && (
-        <p className="text-xs text-gray-500 text-center mt-2">
+        <p className="text-xs text-text-muted text-center mt-2">
           +{entity.images.length - 4} more photos
         </p>
       )}
@@ -602,31 +602,31 @@ export const ContactEssentialCard: React.FC<ContactEssentialCardProps> = ({ enti
 
   return (
     <ProfileCard priority="secondary" size="medium" className={className}>
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Essential Info</h3>
+      <h3 className="text-lg font-semibold text-text-primary mb-4">Essential Info</h3>
       
       <div className="space-y-3">
         {/* Contact Email */}
         <div className="flex items-center space-x-3">
-          <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
           </svg>
-          <span className="text-sm text-gray-700">{entity.contact.email}</span>
+          <span className="text-sm text-text-secondary">{entity.contact.email}</span>
         </div>
 
         {/* Phone */}
         {entity.contact.phone && (
           <div className="flex items-center space-x-3">
-            <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
             </svg>
-            <span className="text-sm text-gray-700">{entity.contact.phone}</span>
+            <span className="text-sm text-text-secondary">{entity.contact.phone}</span>
           </div>
         )}
 
         {/* Website */}
         {entity.contact.website && (
           <div className="flex items-center space-x-3">
-            <svg className="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-text-muted flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9m0 9c-5 0-9-4-9-9s4-9 9-9" />
             </svg>
             <a href={entity.contact.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 truncate">
@@ -640,12 +640,12 @@ export const ContactEssentialCard: React.FC<ContactEssentialCardProps> = ({ enti
           <div className="pt-2 border-t border-gray-100">
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="text-gray-500">Members:</span>
-                <span className="ml-1 text-gray-700">{artist.members || 'N/A'}</span>
+                <span className="text-text-muted">Members:</span>
+                <span className="ml-1 text-text-secondary">{artist.members || 'N/A'}</span>
               </div>
               <div>
-                <span className="text-gray-500">Draw:</span>
-                <span className="ml-1 text-gray-700">{artist.expectedDraw || 'N/A'}</span>
+                <span className="text-text-muted">Draw:</span>
+                <span className="ml-1 text-text-secondary">{artist.expectedDraw || 'N/A'}</span>
               </div>
             </div>
           </div>
@@ -655,12 +655,12 @@ export const ContactEssentialCard: React.FC<ContactEssentialCardProps> = ({ enti
           <div className="pt-2 border-t border-gray-100">
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span className="text-gray-500">Guarantee:</span>
-                <span className="ml-1 text-gray-700">${venue.pricing.guarantee}</span>
+                <span className="text-text-muted">Guarantee:</span>
+                <span className="ml-1 text-text-secondary">${venue.pricing.guarantee}</span>
               </div>
               <div>
-                <span className="text-gray-500">Door:</span>
-                <span className="ml-1 text-gray-700">{venue.pricing.door ? 'Yes' : 'No'}</span>
+                <span className="text-text-muted">Door:</span>
+                <span className="ml-1 text-text-secondary">{venue.pricing.door ? 'Yes' : 'No'}</span>
               </div>
             </div>
           </div>
@@ -694,9 +694,9 @@ export const DetailCard: React.FC<DetailCardProps> = ({
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center justify-between text-left"
       >
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <h3 className="text-lg font-semibold text-text-primary">{title}</h3>
         <svg 
-          className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+          className={`w-5 h-5 text-text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -741,19 +741,19 @@ export const BookingContactCard: React.FC<BookingContactCardProps> = ({
 
   return (
     <ProfileCard priority="secondary" size="medium" className={className}>
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Booking & Contact</h3>
+      <h3 className="text-lg font-semibold text-text-primary mb-4">Booking & Contact</h3>
       
       {/* Date Availability Check - Only for venues */}
       {!isArtist && (
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Check Date Availability</label>
+          <label className="block text-sm font-medium text-text-secondary mb-2">Check Date Availability</label>
           <input
             type="date"
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-border-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             min={new Date().toISOString().split('T')[0]}
             placeholder="Select a date to check availability"
           />
-          <p className="text-xs text-gray-500 mt-1">Select a date to check if the venue is available</p>
+          <p className="text-xs text-text-muted mt-1">Select a date to check if the venue is available</p>
         </div>
       )}
       
@@ -776,7 +776,7 @@ export const BookingContactCard: React.FC<BookingContactCardProps> = ({
         {hasSentInquiry && (
           <button
             onClick={onBookingInquiry}
-            className="block text-sm text-gray-600 hover:text-gray-800 py-1 w-full text-center"
+            className="block text-sm text-text-secondary hover:text-gray-800 py-1 w-full text-center"
           >
             Send Another Inquiry
           </button>
@@ -785,7 +785,7 @@ export const BookingContactCard: React.FC<BookingContactCardProps> = ({
 
       {/* Contact Information Note */}
       <div className="mt-4 pt-4 border-t border-gray-100">
-        <p className="text-xs text-gray-600">
+        <p className="text-xs text-text-secondary">
           {isArtist 
             ? "Booking inquiries will be sent directly to the artist's management team."
             : "Show requests will be sent to the venue's booking coordinator."

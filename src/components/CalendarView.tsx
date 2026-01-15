@@ -343,32 +343,34 @@ export default function CalendarView({
   const mainColHeader = entityType === 'venue' ? 'artist' : 'venue';
 
   return (
-    <div className="bg-white border border-gray-300 rounded overflow-hidden font-mono text-sm">
+    <div className="bg-bg-secondary border border-border-primary overflow-hidden font-mono text-sm">
       {/* Header */}
-      <div className="border-b border-gray-300 bg-gray-50 px-4 py-2 flex items-center justify-between">
+      <div className="border-b border-border-primary bg-bg-tertiary px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          {showTitle && <span className="font-bold">{title}</span>}
-          <span className="text-gray-500">{dateGroups.length} dates</span>
+          {showTitle && <span className="text-text-primary">&gt;&gt; {title?.toUpperCase()}</span>}
+          <span className="text-text-secondary">[{dateGroups.length}] dates</span>
         </div>
         {editable && (
           <button 
             onClick={() => setShowAgentChat(true)}
-            className="px-3 py-1.5 bg-gray-800 text-white hover:bg-gray-700 rounded text-xs flex items-center gap-1.5"
+            className="px-3 py-1.5 border border-border-primary text-text-secondary hover:border-text-primary hover:text-text-primary text-xs flex items-center gap-1.5 transition-colors"
           >
-            <span>💬</span> agent
+            <span>💬</span> [AGENT]
           </button>
         )}
       </div>
 
       {/* Month tabs */}
-      <div className="border-b border-gray-300 bg-gray-100 flex overflow-x-auto">
+      <div className="border-b border-border-primary bg-bg-secondary flex overflow-x-auto">
         <button
           onClick={() => setSelectedMonth('all')}
-          className={`px-3 py-1.5 text-xs border-r border-gray-300 ${
-            selectedMonth === 'all' ? 'bg-white font-bold' : 'hover:bg-gray-200'
+          className={`px-3 py-2 text-xs border-r border-border-primary transition-colors ${
+            selectedMonth === 'all' 
+              ? 'bg-bg-tertiary text-text-primary border-b-2 border-b-status-active' 
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-hover'
           }`}
         >
-          all
+          ALL
         </button>
         {MONTHS.map((month, i) => {
           const count = monthCounts[i] || 0;
@@ -377,24 +379,26 @@ export default function CalendarView({
             <button
               key={month}
               onClick={() => setSelectedMonth(i)}
-              className={`px-3 py-1.5 text-xs border-r border-gray-300 ${
-                selectedMonth === i ? 'bg-white font-bold' : 'hover:bg-gray-200'
-              } ${isCurrent && selectedMonth !== i ? 'text-blue-600' : ''}`}
+              className={`px-3 py-2 text-xs border-r border-border-primary transition-colors ${
+                selectedMonth === i 
+                  ? 'bg-bg-tertiary text-text-primary border-b-2 border-b-status-active' 
+                  : 'hover:bg-bg-hover'
+              } ${isCurrent && selectedMonth !== i ? 'text-status-info' : count > 0 ? 'text-text-secondary' : 'text-text-muted'}`}
             >
-              {month.toLowerCase()}
-              {count > 0 && <span className="ml-1 text-gray-400">({count})</span>}
+              {month.toUpperCase()}
+              {count > 0 && <span className="ml-1 text-status-active">[{count}]</span>}
             </button>
           );
         })}
       </div>
 
       {/* Column headers */}
-      <div className="grid grid-cols-12 border-b border-gray-300 bg-gray-100 text-xs text-gray-600">
-        <div className="col-span-2 px-3 py-2 border-r border-gray-200">date</div>
-        <div className="col-span-4 px-3 py-2 border-r border-gray-200">{mainColHeader}</div>
-        <div className="col-span-2 px-3 py-2 border-r border-gray-200">status</div>
-        <div className="col-span-2 px-3 py-2 border-r border-gray-200">terms</div>
-        <div className="col-span-2 px-3 py-2"></div>
+      <div className="grid grid-cols-12 border-b border-border-primary bg-bg-tertiary text-xs text-text-secondary uppercase">
+        <div className="col-span-2 px-3 py-2 border-r border-border-primary">Date</div>
+        <div className="col-span-4 px-3 py-2 border-r border-border-primary">{mainColHeader}</div>
+        <div className="col-span-2 px-3 py-2 border-r border-border-primary">Status</div>
+        <div className="col-span-2 px-3 py-2 border-r border-border-primary">Terms</div>
+        <div className="col-span-2 px-3 py-2">Actions</div>
       </div>
 
       {/* Rows */}

@@ -334,10 +334,10 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading venue...</p>
+          <div className="animate-spin h-8 w-8 border border-text-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-text-secondary font-mono">Loading venue...</p>
         </div>
       </div>
     );
@@ -345,11 +345,11 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
 
   if (!venue || !transformedVenue) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Venue not found</h1>
-          <Link href="/?tab=venues" className="text-blue-600 hover:text-blue-800">
-            ← Back to spaces
+          <h1 className="text-xl font-mono text-text-primary mb-4">// VENUE_NOT_FOUND</h1>
+          <Link href="/?tab=venues" className="text-text-secondary hover:text-text-primary font-mono">
+            &lt;&lt; [BACK_TO_SPACES]
           </Link>
         </div>
       </div>
@@ -357,19 +357,17 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-bg-primary">
       {/* Header */}
-      <header className="border-b border-gray-200">
+      <header className="border-b border-border-primary bg-bg-secondary">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link 
               href="/?tab=venues"
-              className="inline-flex items-center text-gray-600 hover:text-black"
+              className="inline-flex items-center text-text-secondary hover:text-text-primary font-mono"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to spaces
+              <span className="mr-2">&lt;&lt;</span>
+              [BACK_TO_SPACES]
             </Link>
             
             {/* User Status - Shows notifications and user menu */}
@@ -381,8 +379,10 @@ export default function VenueDetail({ params }: { params: Promise<{ id: string }
       {/* Status Message */}
       {bookingStatus && (
         <div className="container mx-auto px-4 pt-4">
-          <div className={`p-4 rounded-lg ${
-            bookingStatus.includes('sent') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+          <div className={`p-4 border font-mono ${
+            bookingStatus.includes('sent') 
+              ? 'border-status-success bg-status-success/10 text-status-success' 
+              : 'border-status-info bg-status-info/10 text-status-info'
           }`}>
             {bookingStatus}
           </div>

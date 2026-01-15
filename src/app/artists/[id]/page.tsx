@@ -416,10 +416,10 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading artist...</p>
+          <div className="animate-spin h-8 w-8 border border-text-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-text-secondary font-mono">Loading artist...</p>
         </div>
       </div>
     );
@@ -427,20 +427,20 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center max-w-md">
-          <div className="text-6xl mb-4">🎸</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Oops! Something went wrong</h1>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <div className="text-4xl mb-4 text-text-muted">🎸</div>
+          <h1 className="text-xl font-mono text-text-primary mb-4">// ERROR_OCCURRED</h1>
+          <p className="text-text-secondary font-mono mb-6">{error}</p>
           <div className="space-y-3">
             <button
               onClick={() => window.location.reload()}
-              className="block w-full bg-black text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors"
+              className="block w-full border border-text-primary text-text-primary py-2 px-4 font-mono hover:bg-text-primary hover:text-bg-primary transition-colors"
             >
-              Try Again
+              [RETRY]
             </button>
-            <Link href="/?tab=artists" className="block text-blue-600 hover:text-blue-800">
-              ← Back to artists
+            <Link href="/?tab=artists" className="block text-text-secondary hover:text-text-primary font-mono">
+              &lt;&lt; [BACK_TO_ARTISTS]
             </Link>
           </div>
         </div>
@@ -450,11 +450,11 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
 
   if (!artist || !transformedArtist) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Artist not found</h1>
-          <Link href="/?tab=artists" className="text-blue-600 hover:text-blue-800">
-            ← Back to artists
+          <h1 className="text-xl font-mono text-text-primary mb-4">// ARTIST_NOT_FOUND</h1>
+          <Link href="/?tab=artists" className="text-text-secondary hover:text-text-primary font-mono">
+            &lt;&lt; [BACK_TO_ARTISTS]
           </Link>
         </div>
       </div>
@@ -462,19 +462,17 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-bg-primary">
       {/* Header */}
-      <header className="border-b border-gray-200">
+      <header className="border-b border-border-primary bg-bg-secondary">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link 
               href="/?tab=artists"
-              className="inline-flex items-center text-gray-600 hover:text-black"
+              className="inline-flex items-center text-text-secondary hover:text-text-primary font-mono"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-              Back to artists
+              <span className="mr-2">&lt;&lt;</span>
+              [BACK_TO_ARTISTS]
             </Link>
             
             {/* User Status - Shows notifications and user menu */}
@@ -486,8 +484,10 @@ export default function ArtistDetail({ params }: { params: Promise<{ id: string 
       {/* Status Message */}
       {contactStatus && (
         <div className="container mx-auto px-4 pt-4">
-          <div className={`p-4 rounded-lg ${
-            contactStatus.includes('sent') || contactStatus.includes('submitted') ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'
+          <div className={`p-4 border font-mono ${
+            contactStatus.includes('sent') || contactStatus.includes('submitted') 
+              ? 'border-status-success bg-status-success/10 text-status-success' 
+              : 'border-status-info bg-status-info/10 text-status-info'
           }`}>
             {contactStatus}
           </div>
