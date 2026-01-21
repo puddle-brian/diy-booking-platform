@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '../../../../../lib/stripe';
 import { prisma } from '../../../../../lib/prisma';
 
+// Mark as dynamic to prevent build-time execution
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/stripe/portal
  * Creates a Stripe Customer Portal session for managing subscription

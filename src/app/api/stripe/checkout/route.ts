@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe, STRIPE_PRICES } from '../../../../../lib/stripe';
 import { prisma } from '../../../../../lib/prisma';
 
+// Mark as dynamic to prevent build-time execution
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/stripe/checkout
  * Creates a Stripe Checkout session for subscription

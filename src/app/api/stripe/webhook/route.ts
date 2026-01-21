@@ -3,6 +3,9 @@ import { stripe, PRICE_TO_TIER, WEBHOOK_EVENTS } from '../../../../../lib/stripe
 import { prisma } from '../../../../../lib/prisma';
 import Stripe from 'stripe';
 
+// Mark as dynamic to prevent build-time execution
+export const dynamic = 'force-dynamic';
+
 /**
  * POST /api/stripe/webhook
  * Handles Stripe webhook events

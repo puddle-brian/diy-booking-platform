@@ -1,9 +1,34 @@
 import Stripe from 'stripe';
 
-// Initialize Stripe with your secret key
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-01-27.acacia',
-  typescript: true,
+// Lazy initialization to avoid build-time errors
+// Stripe will only be initialized when actually used at runtime
+let stripeInstance: Stripe | null = null;
+
+function initializeStripe(): Stripe {
+  if (!stripeInstance) {
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripeInstance = new Stripe(secretKey, {
+      apiVersion: '2025-01-27.acacia',
+      typescript: true,
+    });
+  }
+  return stripeInstance;
+}
+
+// Export a proxy that initializes Stripe on first access
+// This prevents initialization during build time
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    const instance = initializeStripe();
+    const value = instance[prop as keyof Stripe];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
 });
 
 // Your Stripe Price IDs - create these in your Stripe Dashboard
