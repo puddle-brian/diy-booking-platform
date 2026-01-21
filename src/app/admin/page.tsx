@@ -350,6 +350,7 @@ export default function AdminPage() {
   const tabs = [
     { id: 'debug', label: 'DEBUG', icon: '⚙' },
     { id: 'content', label: 'CONTENT', icon: '📁' },
+    { id: 'staging', label: 'DATABASE BUILDER', icon: '🔍', href: '/admin/staging' },
     { id: 'feedback', label: `FEEDBACK [${feedback.filter(f => f.status === 'NEW').length}]`, icon: '💬' },
     { id: 'analytics', label: 'ANALYTICS', icon: '📊' },
     { id: 'settings', label: 'SETTINGS', icon: '🎨' },
@@ -408,17 +409,27 @@ export default function AdminPage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex">
             {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`px-6 py-3 text-2xs font-medium uppercase tracking-wider border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-text-accent text-text-accent bg-bg-secondary'
-                    : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-hover'
-                }`}
-              >
-                {tab.icon} {tab.label}
-              </button>
+              tab.href ? (
+                <a
+                  key={tab.id}
+                  href={tab.href}
+                  className="px-6 py-3 text-2xs font-medium uppercase tracking-wider border-b-2 border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
+                >
+                  {tab.icon} {tab.label}
+                </a>
+              ) : (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-6 py-3 text-2xs font-medium uppercase tracking-wider border-b-2 transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-text-accent text-text-accent bg-bg-secondary'
+                      : 'border-transparent text-text-secondary hover:text-text-primary hover:bg-bg-hover'
+                  }`}
+                >
+                  {tab.icon} {tab.label}
+                </button>
+              )
             ))}
           </div>
         </div>

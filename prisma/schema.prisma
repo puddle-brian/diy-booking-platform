@@ -1195,3 +1195,63 @@ enum UsageType {
   SEARCH
   BOOKING_CONFIRMED
 }
+
+// =============================================================================
+// 🔍 DATABASE BUILDER: Staged Entities for AI Discovery
+// =============================================================================
+// AI discovers venues/artists via web search and stages them here.
+// Admin reviews and approves before they go live.
+// =============================================================================
+
+model StagedEntity {
+  id            String        @id @default(cuid())
+  entityType    StagedEntityType
+  
+  // The discovered data (varies by entity type)
+  // For VENUE: { name, city, state, country, venueType, capacity, description, contactEmail, website, etc. }
+  // For ARTIST: { name, city, state, country, artistType, genres, description, website, etc. }
+  data          Json
+  
+  // Discovery metadata
+  sourceUrl     String?       // URL where this was found
+  sourceType    String?       // "web_search", "bandcamp", "instagram", "manual", etc.
+  searchQuery   String?       // The search that found this
+  confidence    Int           @default(50)  // 0-100 confidence score
+  aiNotes       String?       @db.Text      // AI's notes/reasoning about this discovery
+  
+  // Review status
+  status        StagedStatus  @default(PENDING)
+  reviewedAt    DateTime?
+  reviewedBy    String?       // User ID who reviewed
+  reviewNotes   String?       @db.Text      // Admin notes on why approved/rejected
+  
+  // If approved, link to created entity
+  createdEntityId String?
+  
+  // Prevent re-discovering rejected items
+  rejectionReason String?
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  
+  @@index([entityType])
+  @@index([status])
+  @@index([confidence])
+  @@index([createdAt])
+  @@index([sourceType])
+  @@map("staged_entities")
+}
+
+enum StagedEntityType {
+  VENUE
+  ARTIST
+  SCENE_INFRASTRUCTURE
+}
+
+enum StagedStatus {
+  PENDING       // Awaiting review
+  APPROVED      // Approved and created in live DB
+  REJECTED      // Rejected (won't re-discover)
+  DUPLICATE     // Already exists in DB
+  NEEDS_INFO    // Need more data before approving
+}
