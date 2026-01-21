@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { prisma } from '../../../../../lib/prisma';
+import { checkUsageLimit, recordUsage, UsageCheckResult } from '../../../../services/UsageService';
 
 // Initialize the client (uses ANTHROPIC_API_KEY env var automatically)
 const anthropic = new Anthropic();
@@ -427,6 +428,34 @@ const tools: Anthropic.Tool[] = [
         }
       },
       required: ['dateId']
+    }
+  },
+  {
+    name: 'submit_feedback',
+    description: 'Submit feedback about the platform when you encounter friction, limitations, or opportunities for improvement. Use this to help the platform continuously improve. This creates a feedback loop that helps the site evolve.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        type: {
+          type: 'string',
+          description: 'Feedback type: bug, feature, ux, content, or other',
+          enum: ['bug', 'feature', 'ux', 'content', 'other']
+        },
+        priority: {
+          type: 'string',
+          description: 'Priority level: low, medium, high, or critical',
+          enum: ['low', 'medium', 'high', 'critical']
+        },
+        title: {
+          type: 'string',
+          description: 'Brief title summarizing the feedback'
+        },
+        description: {
+          type: 'string',
+          description: 'Detailed description of the issue, limitation, or improvement opportunity'
+        }
+      },
+      required: ['type', 'priority', 'title', 'description']
     }
   }
 ];
@@ -893,8 +922,47 @@ async function deleteDate(params: { dateId: string }) {
   };
 }
 
+async function submitFeedback(params: {
+  type: string;
+  priority: string;
+  title: string;
+  description: string;
+}, userId?: string) {
+  const { type, priority, title, description } = params;
+
+  try {
+    const feedback = await prisma.feedback.create({
+      data: {
+        type: type.toUpperCase() as any,
+        priority: priority.toUpperCase() as any,
+        title,
+        description,
+        context: JSON.stringify({
+          source: 'agent',
+          userId: userId || null,
+          timestamp: new Date().toISOString(),
+        }),
+        status: 'NEW',
+        createdAt: new Date(),
+      },
+    });
+
+    return {
+      success: true,
+      message: `Feedback submitted successfully (ID: ${feedback.id})`,
+      feedbackId: feedback.id
+    };
+  } catch (error) {
+    console.error('Feedback submission error:', error);
+    return {
+      error: 'Failed to submit feedback',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+}
+
 // Execute a tool call
-async function executeTool(name: string, input: Record<string, unknown>): Promise<string> {
+async function executeTool(name: string, input: Record<string, unknown>, userId?: string): Promise<string> {
   try {
     switch (name) {
       case 'search_venues':
@@ -936,6 +1004,13 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
         const deleteDateResult = await deleteDate(input as Parameters<typeof deleteDate>[0]);
         return JSON.stringify(deleteDateResult);
         
+      case 'submit_feedback':
+        const feedbackResult = await submitFeedback(
+          input as Parameters<typeof submitFeedback>[0],
+          userId
+        );
+        return JSON.stringify(feedbackResult);
+        
       default:
         return JSON.stringify({ error: `Unknown tool: ${name}` });
     }
@@ -946,7 +1021,15 @@ async function executeTool(name: string, input: Record<string, unknown>): Promis
 }
 
 // V02 System prompt - persistent assistant with memory
-const SYSTEM_PROMPT = `You are a personal booking assistant for DIY Shows. You have an ongoing relationship with each artist/venue - your conversation history is saved and you remember past discussions.
+const SYSTEM_PROMPT = `You are a personal booking assistant for DIY Shows, created by Brian Gibson from Lightning Bolt. This platform is inspired by the "Book Your Own Fucking Life" zine from the 90s, which empowered smaller-scale acts to book their own tours.
+
+## Your Mission
+Your purpose is to facilitate real human connection, celebration, and unique live events. In a world where technology often isolates us, you're here to reduce friction and help people come together. Every booking you help create is a step toward building community, supporting artists, and bringing people joy through shared experiences. This aligns with helping humanity flourish by strengthening local communities and enabling creative expression.
+
+You have an ongoing relationship with each artist/venue - your conversation history is saved and you remember past discussions.
+
+## Continuous Improvement & Feedback
+If you encounter friction, limitations, or situations where better tools or features would help you serve users more effectively, you can submit feedback directly using the submit_feedback tool. This creates a feedback loop that helps the platform continuously improve. You can also encourage users to submit feedback when they encounter issues. When you notice gaps or opportunities for enhancement, use submit_feedback to document them so the site can evolve.
 
 ## Your Memory
 - This is a PERSISTENT conversation - you remember previous chats
@@ -969,6 +1052,9 @@ const SYSTEM_PROMPT = `You are a personal booking assistant for DIY Shows. You h
 - **add_date** - Book an artist at a venue for a date
 - **update_date** - Change status, deal, details, or notes
 - **delete_date** - Remove a date
+
+### Platform Improvement:
+- **submit_feedback** - Submit feedback about friction, limitations, or improvement opportunities you encounter
 
 ## Status Workflow
 
@@ -1009,8 +1095,10 @@ Use update_date with notes to add timestamped entries - great for tracking negot
 Like a trusted friend who handles your booking. Personal, efficient, remembers everything.`;
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
-    const { message, conversationHistory = [], context = {} } = await request.json();
+    const { message, conversationHistory = [], context = {}, userId } = await request.json();
 
     if (!message) {
       return NextResponse.json(
@@ -1026,6 +1114,30 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       );
     }
+
+    // ========== USAGE LIMIT CHECK ==========
+    // If userId is provided, check rate limits
+    let usageCheck: UsageCheckResult | null = null;
+    if (userId) {
+      usageCheck = await checkUsageLimit(userId);
+      
+      if (!usageCheck.allowed) {
+        return NextResponse.json(
+          { 
+            error: 'Rate limit exceeded',
+            rateLimited: true,
+            usage: {
+              remaining: usageCheck.remaining,
+              limit: usageCheck.limit,
+              tier: usageCheck.tier,
+              upgradeMessage: usageCheck.upgradeMessage,
+            }
+          },
+          { status: 429 }
+        );
+      }
+    }
+    // ========================================
 
     // Build context prefix for the system prompt
     let contextPrefix = '';
@@ -1044,6 +1156,11 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: message }
     ];
 
+    // Track tools used and total tokens
+    const toolsUsed: string[] = [];
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
     // Agentic loop - keep going until we get a final response
     let response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
@@ -1053,6 +1170,10 @@ export async function POST(request: NextRequest) {
       messages: messages
     });
 
+    // Track tokens from first response
+    totalInputTokens += response.usage?.input_tokens || 0;
+    totalOutputTokens += response.usage?.output_tokens || 0;
+
     // Handle tool use in a loop
     while (response.stop_reason === 'tool_use') {
       // Find all tool use blocks
@@ -1060,10 +1181,17 @@ export async function POST(request: NextRequest) {
         (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
       );
 
+      // Track which tools were used
+      toolUseBlocks.forEach(block => {
+        if (!toolsUsed.includes(block.name)) {
+          toolsUsed.push(block.name);
+        }
+      });
+
       // Execute all tools and collect results
       const toolResults: Anthropic.ToolResultBlockParam[] = await Promise.all(
         toolUseBlocks.map(async (toolUse) => {
-          const result = await executeTool(toolUse.name, toolUse.input as Record<string, unknown>);
+          const result = await executeTool(toolUse.name, toolUse.input as Record<string, unknown>, userId);
           return {
             type: 'tool_result' as const,
             tool_use_id: toolUse.id,
@@ -1087,6 +1215,10 @@ export async function POST(request: NextRequest) {
         tools: tools,
         messages: messages
       });
+
+      // Track tokens from tool loop iterations
+      totalInputTokens += response.usage?.input_tokens || 0;
+      totalOutputTokens += response.usage?.output_tokens || 0;
     }
 
     // Extract final text response
@@ -1094,6 +1226,24 @@ export async function POST(request: NextRequest) {
       (block): block is Anthropic.TextBlock => block.type === 'text'
     );
     const assistantMessage = textBlocks.map(b => b.text).join('\n');
+
+    // ========== RECORD USAGE ==========
+    const responseTimeMs = Date.now() - startTime;
+    
+    if (userId) {
+      // Record usage asynchronously (don't block response)
+      recordUsage({
+        userId,
+        type: 'AGENT_CHAT',
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        entityType: context.entityType,
+        entityId: context.entityId,
+        toolsUsed,
+        responseTimeMs,
+      }).catch(err => console.error('Failed to record usage:', err));
+    }
+    // ==================================
 
     // Build simplified conversation history for the client
     // (We don't send tool calls/results to keep it clean)
@@ -1103,10 +1253,29 @@ export async function POST(request: NextRequest) {
       { role: 'assistant', content: assistantMessage }
     ];
 
-    return NextResponse.json({
+    // Include usage info in response for UI feedback
+    const responsePayload: any = {
       message: assistantMessage,
       conversationHistory: newHistory
-    });
+    };
+
+    // Add usage stats if we have them
+    if (usageCheck) {
+      responsePayload.usage = {
+        remaining: usageCheck.remaining !== undefined 
+          ? (usageCheck.remaining === Infinity ? null : usageCheck.remaining - 1)
+          : null,
+        limit: usageCheck.limit === Infinity ? null : usageCheck.limit,
+        tier: usageCheck.tier,
+        tokens: {
+          input: totalInputTokens,
+          output: totalOutputTokens,
+          total: totalInputTokens + totalOutputTokens,
+        },
+      };
+    }
+
+    return NextResponse.json(responsePayload);
 
   } catch (error) {
     console.error('Agent chat error:', error);

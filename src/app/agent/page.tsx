@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -8,9 +9,12 @@ interface Message {
 }
 
 export default function AgentPage() {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [usageInfo, setUsageInfo] = useState<{remaining: number | null; limit: number | null; tier: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -22,7 +26,7 @@ export default function AgentPage() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || rateLimited) return;
 
     const userMessage = input.trim();
     setInput('');
@@ -37,11 +41,28 @@ export default function AgentPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage,
-          conversationHistory: messages
+          conversationHistory: messages,
+          userId: user?.id, // Include for usage tracking
         })
       });
 
       const data = await response.json();
+
+      // Handle rate limit
+      if (response.status === 429 || data.rateLimited) {
+        setRateLimited(true);
+        setUsageInfo(data.usage);
+        setMessages([...newMessages, { 
+          role: 'assistant', 
+          content: `⚠️ Daily limit reached (${data.usage?.limit} messages/day on Free tier). Upgrade to Pro for unlimited access!` 
+        }]);
+        return;
+      }
+
+      // Update usage info
+      if (data.usage) {
+        setUsageInfo(data.usage);
+      }
 
       if (data.error) {
         setMessages([...newMessages, { 
@@ -99,8 +120,32 @@ export default function AgentPage() {
               <h1 className="text-sm font-medium text-text-accent uppercase tracking-wider">DIYSHOWS AGENT</h1>
               <p className="text-2xs text-text-muted uppercase tracking-wider">Booking Assistant v0.1</p>
             </div>
+            {/* Usage indicator */}
+            {usageInfo && usageInfo.remaining !== null && (
+              <span className={`text-xs px-2 py-1 border ${
+                usageInfo.remaining === 0 
+                  ? 'border-red-500 text-red-400' 
+                  : usageInfo.remaining <= 1 
+                    ? 'border-yellow-500 text-yellow-400'
+                    : 'border-border-subtle text-text-muted'
+              }`}>
+                {usageInfo.remaining}/{usageInfo.limit} LEFT
+              </span>
+            )}
           </div>
-          <a href="/" className="btn text-2xs">&lt;&lt; BACK</a>
+          <div className="flex items-center gap-4">
+            {user ? (
+              <span className="text-2xs text-text-muted">{user.email}</span>
+            ) : (
+              <a href="/auth/login" className="text-2xs text-text-accent hover:underline">LOG IN</a>
+            )}
+            {usageInfo?.tier === 'FREE' && (
+              <a href="/upgrade" className="text-2xs px-2 py-1 bg-text-accent text-bg-primary hover:opacity-80">
+                UPGRADE
+              </a>
+            )}
+            <a href="/" className="btn text-2xs">&lt;&lt; BACK</a>
+          </div>
         </div>
       </header>
 
@@ -184,31 +229,46 @@ export default function AgentPage() {
       {/* Input Area */}
       <footer className="border-t border-border-subtle bg-bg-secondary">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex items-center bg-bg-tertiary border border-border-subtle focus-within:border-border-strong transition-colors">
-            <span className="px-4 text-text-muted">&gt;&gt;</span>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="TYPE YOUR MESSAGE..."
-              className="flex-1 bg-transparent py-3 text-sm text-text-primary placeholder-text-muted outline-none"
-              disabled={isLoading}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
-              className="px-6 py-3 text-xs uppercase tracking-wider font-medium border-l border-border-subtle transition-colors disabled:text-text-muted disabled:cursor-not-allowed text-text-accent hover:bg-bg-hover"
-            >
-              {isLoading ? 'SENDING...' : 'SEND'}
-            </button>
-          </div>
+          {rateLimited ? (
+            <div className="text-center py-4">
+              <p className="text-red-400 text-sm mb-3">DAILY LIMIT REACHED</p>
+              <a 
+                href="/upgrade" 
+                className="inline-block px-6 py-3 bg-text-accent text-bg-primary text-sm uppercase tracking-wider hover:opacity-80"
+              >
+                UPGRADE TO PRO - $10/MO
+              </a>
+              <p className="text-text-muted text-2xs mt-2">Unlimited conversations • No transaction fees</p>
+            </div>
+          ) : (
+            <div className="flex items-center bg-bg-tertiary border border-border-subtle focus-within:border-border-strong transition-colors">
+              <span className="px-4 text-text-muted">&gt;&gt;</span>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="TYPE YOUR MESSAGE..."
+                className="flex-1 bg-transparent py-3 text-sm text-text-primary placeholder-text-muted outline-none"
+                disabled={isLoading}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={isLoading || !input.trim()}
+                className="px-6 py-3 text-xs uppercase tracking-wider font-medium border-l border-border-subtle transition-colors disabled:text-text-muted disabled:cursor-not-allowed text-text-accent hover:bg-bg-hover"
+              >
+                {isLoading ? 'SENDING...' : 'SEND'}
+              </button>
+            </div>
+          )}
           
           {/* Quick actions hint */}
-          <div className="mt-2 text-2xs text-text-muted">
-            <span className="uppercase tracking-wider">[ENTER]</span> to send • 
-            <span className="uppercase tracking-wider ml-2">[SHIFT+ENTER]</span> for new line
-          </div>
+          {!rateLimited && (
+            <div className="mt-2 text-2xs text-text-muted">
+              <span className="uppercase tracking-wider">[ENTER]</span> to send • 
+              <span className="uppercase tracking-wider ml-2">[SHIFT+ENTER]</span> for new line
+            </div>
+          )}
         </div>
       </footer>
     </div>

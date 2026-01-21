@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * CalendarView - V02 Booking Spreadsheet
@@ -221,6 +222,7 @@ export default function CalendarView({
   highlightedDateId,
   onDateHover,
 }: CalendarViewProps) {
+  const { user } = useAuth();
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(now.getMonth());
   const [expandedDates, setExpandedDates] = useState<Set<string>>(new Set());
@@ -459,6 +461,7 @@ export default function CalendarView({
           entityId={entityId}
           entityName={entityName}
           selectedEntry={selectedEntry}
+          userId={user?.id}
           onClose={() => {
             setShowAgentChat(false);
             setSelectedEntry(null);
@@ -898,24 +901,28 @@ function DetailsModal({
   );
 }
 
-// Agent Panel - with persistent conversation history
+// Agent Panel - with persistent conversation history and usage tracking
 function AgentPanel({
   entityType,
   entityId,
   entityName,
   selectedEntry,
   onClose,
+  userId,
 }: {
   entityType: 'artist' | 'venue';
   entityId: string;
   entityName: string;
   selectedEntry: DateEntry | null;
   onClose: () => void;
+  userId?: string;
 }) {
   const [messages, setMessages] = useState<Array<{role: 'user' | 'assistant', content: string, timestamp?: string}>>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
+  const [rateLimited, setRateLimited] = useState(false);
+  const [usageInfo, setUsageInfo] = useState<{remaining: number | null; limit: number | null; tier: string} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load conversation history on mount
@@ -943,7 +950,7 @@ function AgentPanel({
 
   const sendMessage = async () => {
     const userMessage = input.trim();
-    if (!userMessage || isLoading) return;
+    if (!userMessage || isLoading || rateLimited) return;
     
     setInput('');
     setIsLoading(true);
@@ -953,13 +960,14 @@ function AgentPanel({
     setMessages(prev => [...prev, { role: 'user', content: userMessage, timestamp }]);
 
     try {
-      // Send to agent
+      // Send to agent (include userId for rate limiting)
       const response = await fetch('/api/agent/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: userMessage,
           conversationHistory: messages.slice(-20), // Last 20 messages for context
+          userId, // Include for usage tracking
           context: { 
             entityType, 
             entityId, 
@@ -973,7 +981,25 @@ function AgentPanel({
       });
 
       const data = await response.json();
+      
+      // Handle rate limit error
+      if (response.status === 429 || data.rateLimited) {
+        setRateLimited(true);
+        setUsageInfo(data.usage);
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `⚠️ Daily limit reached (${data.usage?.limit} messages/day on Free tier). ${data.usage?.upgradeMessage || 'Upgrade for unlimited access!'}`,
+          timestamp: new Date().toISOString() 
+        }]);
+        return;
+      }
+      
       const assistantMessage = data.message || 'error';
+      
+      // Update usage info if provided
+      if (data.usage) {
+        setUsageInfo(data.usage);
+      }
       
       // Add assistant message to UI
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage, timestamp: new Date().toISOString() }]);
@@ -1032,6 +1058,17 @@ function AgentPanel({
           <div className="flex items-center gap-2">
             <span className="font-medium">agent</span>
             <span className="text-gray-400 text-xs">• {entityName}</span>
+            {usageInfo && usageInfo.remaining !== null && (
+              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                usageInfo.remaining === 0 
+                  ? 'bg-red-100 text-red-600' 
+                  : usageInfo.remaining <= 1 
+                    ? 'bg-yellow-100 text-yellow-700'
+                    : 'bg-gray-100 text-gray-500'
+              }`}>
+                {usageInfo.remaining}/{usageInfo.limit} left
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
@@ -1081,24 +1118,37 @@ function AgentPanel({
 
         {/* Input */}
         <div className="border-t border-gray-300 p-3 bg-white">
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
-              placeholder="> type here"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded font-mono text-sm focus:outline-none focus:border-gray-400"
-              disabled={isLoading}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={isLoading || !input.trim()}
-              className="px-4 py-2 bg-gray-800 text-white hover:bg-gray-700 rounded disabled:opacity-50"
-            >
-              →
-            </button>
-          </div>
+          {rateLimited ? (
+            <div className="text-center py-2">
+              <p className="text-red-600 text-sm mb-2">Daily limit reached</p>
+              <a 
+                href="/upgrade" 
+                className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+              >
+                Upgrade to Pro - $10/mo
+              </a>
+              <p className="text-gray-400 text-xs mt-2">Unlimited conversations • No transaction fees</p>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder="> type here"
+                className="flex-1 px-3 py-2 border border-gray-300 rounded font-mono text-sm focus:outline-none focus:border-gray-400"
+                disabled={isLoading}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={isLoading || !input.trim()}
+                className="px-4 py-2 bg-gray-800 text-white hover:bg-gray-700 rounded disabled:opacity-50"
+              >
+                →
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

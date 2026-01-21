@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -14,10 +15,12 @@ interface AgentChatProps {
 }
 
 export default function AgentChat({ initialPrompt, entityType, onClose }: AgentChatProps) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [rateLimited, setRateLimited] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -38,7 +41,7 @@ export default function AgentChat({ initialPrompt, entityType, onClose }: AgentC
 
   const sendMessage = async (messageText?: string) => {
     const textToSend = messageText || input.trim();
-    if (!textToSend || isLoading) return;
+    if (!textToSend || isLoading || rateLimited) return;
 
     if (!messageText) {
       setInput('');
@@ -61,11 +64,22 @@ export default function AgentChat({ initialPrompt, entityType, onClose }: AgentC
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: textToSend,
-          conversationHistory: messages
+          conversationHistory: messages,
+          userId: user?.id, // Include for usage tracking
         })
       });
 
       const data = await response.json();
+
+      // Handle rate limit
+      if (response.status === 429 || data.rateLimited) {
+        setRateLimited(true);
+        setMessages([...newMessages, { 
+          role: 'assistant', 
+          content: `⚠️ Daily limit reached. ${data.usage?.upgradeMessage || 'Upgrade to Pro for unlimited access!'}` 
+        }]);
+        return;
+      }
 
       if (data.error) {
         setMessages([...newMessages, { 
@@ -146,24 +160,36 @@ export default function AgentChat({ initialPrompt, entityType, onClose }: AgentC
 
       {/* Input */}
       <footer className="border-t border-gray-200 p-4 bg-gray-50">
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
-            className="flex-1 bg-white border border-gray-300 rounded-full px-4 py-3 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-            disabled={isLoading}
-          />
-          <button
-            onClick={() => sendMessage()}
-            disabled={isLoading || !input.trim()}
-            className="px-5 py-3 bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 rounded-full font-medium text-white text-sm transition-colors"
-          >
-            Send
-          </button>
-        </div>
+        {rateLimited ? (
+          <div className="text-center py-2">
+            <p className="text-red-600 text-sm mb-2">Daily limit reached</p>
+            <a 
+              href="/upgrade" 
+              className="inline-block px-4 py-2 bg-black text-white rounded-full text-sm hover:bg-gray-800"
+            >
+              Upgrade to Pro - $10/mo
+            </a>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Type a message..."
+              className="flex-1 bg-white border border-gray-300 rounded-full px-4 py-3 text-gray-900 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              disabled={isLoading}
+            />
+            <button
+              onClick={() => sendMessage()}
+              disabled={isLoading || !input.trim()}
+              className="px-5 py-3 bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:text-gray-500 rounded-full font-medium text-white text-sm transition-colors"
+            >
+              Send
+            </button>
+          </div>
+        )}
       </footer>
     </div>
   );

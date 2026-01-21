@@ -36,6 +36,10 @@ model User {
   venueOffers             VenueOffer[]
   submittedVenues         Venue[]
   initiatedBookingOpportunities BookingOpportunity[] @relation("BookingOpportunityInitiator")
+  // 💰 MONETIZATION
+  subscription            Subscription?
+  usageRecords            UsageRecord[]
+  dailyUsageSummaries     DailyUsageSummary[]
 
   @@index([email])
   @@index([role])
@@ -1077,4 +1081,117 @@ enum BookingSourceType {
   SHOW_REQUEST
   VENUE_OFFER
   SHOW_LINEUP
+}
+
+// =============================================================================
+// 💰 MONETIZATION: Usage Tracking & Subscriptions
+// =============================================================================
+
+model Subscription {
+  id            String           @id @default(cuid())
+  userId        String           @unique
+  tier          SubscriptionTier @default(FREE)
+  status        SubscriptionStatus @default(ACTIVE)
+  
+  // Payment info
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  
+  // Billing cycle
+  currentPeriodStart   DateTime  @default(now())
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  
+  // Timestamps
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  
+  // Relations
+  user          User             @relation(fields: [userId], references: [id])
+  
+  @@index([userId])
+  @@index([tier])
+  @@index([status])
+  @@index([stripeCustomerId])
+  @@map("subscriptions")
+}
+
+model UsageRecord {
+  id            String       @id @default(cuid())
+  userId        String
+  
+  // What was used
+  type          UsageType    @default(AGENT_CHAT)
+  
+  // Token tracking (for cost analysis)
+  inputTokens   Int          @default(0)
+  outputTokens  Int          @default(0)
+  totalTokens   Int          @default(0)
+  
+  // Context
+  entityType    EntityType?
+  entityId      String?
+  toolsUsed     String[]     @default([])
+  
+  // Timing
+  responseTimeMs Int?
+  
+  // Cost tracking (in cents)
+  estimatedCost Int          @default(0)
+  
+  createdAt     DateTime     @default(now())
+  
+  // Relations
+  user          User         @relation(fields: [userId], references: [id])
+  
+  @@index([userId, createdAt])
+  @@index([userId, type])
+  @@index([createdAt])
+  @@map("usage_records")
+}
+
+model DailyUsageSummary {
+  id            String       @id @default(cuid())
+  userId        String
+  date          DateTime     @db.Date
+  
+  // Counts
+  agentChats    Int          @default(0)
+  totalTokens   Int          @default(0)
+  
+  // Cost tracking (in cents)
+  estimatedCost Int          @default(0)
+  
+  // Rate limit tracking
+  limitReached  Boolean      @default(false)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  user          User         @relation(fields: [userId], references: [id])
+  
+  @@unique([userId, date])
+  @@index([userId, date])
+  @@index([date])
+  @@map("daily_usage_summaries")
+}
+
+enum SubscriptionTier {
+  FREE           // 3 agent chats/day, 3% transaction fee
+  PRO            // Unlimited chats, no transaction fee, $10/mo
+  VENUE_PRO      // Everything + bulk tools, $25/mo
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  PAUSED
+}
+
+enum UsageType {
+  AGENT_CHAT
+  SEARCH
+  BOOKING_CONFIRMED
 }
