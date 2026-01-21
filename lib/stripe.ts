@@ -31,18 +31,30 @@ export const stripe = new Proxy({} as Stripe, {
   },
 });
 
-// Your Stripe Price IDs - create these in your Stripe Dashboard
-// Products > Create Product > Add Prices
+// Your Stripe Price IDs - use functions to avoid build-time evaluation
+export function getStripePrices() {
+  return {
+    PRO: process.env.STRIPE_PRICE_PRO || 'price_pro_placeholder',
+    VENUE_PRO: process.env.STRIPE_PRICE_VENUE_PRO || 'price_venue_pro_placeholder',
+  };
+}
+
+// For backwards compatibility - will be evaluated at runtime
 export const STRIPE_PRICES = {
-  PRO: process.env.STRIPE_PRICE_PRO || 'price_pro_placeholder',
-  VENUE_PRO: process.env.STRIPE_PRICE_VENUE_PRO || 'price_venue_pro_placeholder',
+  get PRO() { return process.env.STRIPE_PRICE_PRO || 'price_pro_placeholder'; },
+  get VENUE_PRO() { return process.env.STRIPE_PRICE_VENUE_PRO || 'price_venue_pro_placeholder'; },
 };
 
-// Map Stripe price IDs back to tier names
-export const PRICE_TO_TIER: Record<string, 'PRO' | 'VENUE_PRO'> = {
-  [STRIPE_PRICES.PRO]: 'PRO',
-  [STRIPE_PRICES.VENUE_PRO]: 'VENUE_PRO',
-};
+// Map Stripe price IDs back to tier names - use function for runtime evaluation
+export function getPriceToTier(priceId: string): 'PRO' | 'VENUE_PRO' | undefined {
+  const prices = getStripePrices();
+  if (priceId === prices.PRO) return 'PRO';
+  if (priceId === prices.VENUE_PRO) return 'VENUE_PRO';
+  return undefined;
+}
+
+// Legacy export for backwards compatibility
+export const PRICE_TO_TIER: Record<string, 'PRO' | 'VENUE_PRO'> = {};
 
 // Webhook event types we care about
 export const WEBHOOK_EVENTS = {

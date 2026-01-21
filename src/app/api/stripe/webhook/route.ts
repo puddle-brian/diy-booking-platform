@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, PRICE_TO_TIER, WEBHOOK_EVENTS } from '../../../../../lib/stripe';
+import { stripe, getPriceToTier, WEBHOOK_EVENTS } from '../../../../../lib/stripe';
 import { prisma } from '../../../../../lib/prisma';
 import Stripe from 'stripe';
 
@@ -129,7 +129,7 @@ async function handleSubscriptionUpdated(subscription: Stripe.Subscription) {
 
   // Determine tier from price ID
   const priceId = subscription.items.data[0]?.price.id;
-  const tier = priceId ? PRICE_TO_TIER[priceId] : undefined;
+  const tier = priceId ? getPriceToTier(priceId) : undefined;
 
   // Map Stripe status to our status
   let status: 'ACTIVE' | 'PAST_DUE' | 'CANCELLED' | 'PAUSED' = 'ACTIVE';
