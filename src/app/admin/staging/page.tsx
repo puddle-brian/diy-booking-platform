@@ -249,6 +249,12 @@ export default function StagingPage() {
             </div>
             <div className="flex items-center space-x-4">
               <a href="/admin" className="btn text-2xs">&lt;&lt; ADMIN HOME</a>
+              <a 
+                href="/admin/staging/discover"
+                className="btn text-2xs bg-status-info/20 border-status-info/40 hover:bg-status-info/30 text-status-info"
+              >
+                🔍 DISCOVERY AGENT
+              </a>
               <button 
                 onClick={() => setShowAddModal(true)}
                 className="btn text-2xs bg-status-active/20 border-status-active/40 hover:bg-status-active/30"
@@ -304,7 +310,6 @@ export default function StagingPage() {
               <option value="">All Types</option>
               <option value="VENUE">Venues</option>
               <option value="ARTIST">Artists</option>
-              <option value="SCENE_INFRASTRUCTURE">Infrastructure</option>
             </select>
             <button 
               onClick={loadEntities} 
@@ -575,6 +580,15 @@ export default function StagingPage() {
                     Click on any entry to review its details, edit the data, 
                     and approve or reject it.
                   </p>
+                  
+                  <div className="pt-3 border-t border-border-subtle">
+                    <p className="text-2xs text-text-muted mb-2">How to add entries:</p>
+                    <ul className="text-2xs space-y-1">
+                      <li><span className="text-status-info">🔍 Discovery Agent</span> - AI searches web & stages findings</li>
+                      <li><span className="text-status-active">+ Add Manually</span> - Enter data yourself for review</li>
+                    </ul>
+                  </div>
+                  
                   <div className="pt-3 border-t border-border-subtle">
                     <p className="text-2xs text-text-muted mb-2">Status meanings:</p>
                     <ul className="text-2xs space-y-1">
