@@ -261,61 +261,53 @@ export default function OfferFormCore({
   const defaultSubtitle = subtitle || `Invite a specific artist to play at ${venueName}`;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
+    <div className="bg-bg-primary border border-border-subtle p-6">
       {/* Header */}
       <div className="mb-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          {existingBid ? '✏️ Update Your Bid' : title}
+        <h3 className="text-sm font-medium text-text-accent mb-2 uppercase tracking-wider">
+          <span className="text-text-muted mr-2">&gt;</span>
+          {existingBid ? 'UPDATE_BID' : title.toUpperCase().replace(/\s+/g, '_')}
         </h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-xs text-text-secondary">
           {existingBid ? `Updating your existing bid for this show request` : defaultSubtitle}
         </p>
       </div>
 
       {/* 🎯 EXISTING BID INDICATOR: Show when updating existing bid */}
       {existingBid && (
-        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+        <div className="mb-6 p-4 bg-status-warning/10 border border-status-warning/30">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
-              <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center">
-                <svg className="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
+              <span className="text-status-warning">[!]</span>
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-semibold text-amber-900 mb-3">You already have a bid on this request</h4>
+              <h4 className="text-xs font-medium text-status-warning mb-3 uppercase tracking-wider">EXISTING_BID_DETECTED</h4>
               
               {/* Compact inline layout */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-amber-800 mb-3">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-text-secondary mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-700">Current bid:</span>
-                  <span className="px-2 py-1 bg-amber-100 text-amber-900 font-semibold rounded">
-                    ${existingBid.guarantee || existingBid.amount || 'No amount'}
+                  <span className="text-text-muted uppercase">CURRENT:</span>
+                  <span className="px-2 py-1 bg-bg-tertiary text-status-success font-semibold border border-border-subtle">
+                    ${existingBid.guarantee || existingBid.amount || '--'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-700">Status:</span>
-                  <span className="px-2 py-1 bg-white text-amber-900 font-medium rounded border border-amber-200 capitalize">
+                  <span className="text-text-muted uppercase">STATUS:</span>
+                  <span className="px-2 py-1 bg-bg-tertiary text-text-primary font-medium border border-border-subtle uppercase">
                     {existingBid.status}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-amber-700">Updated:</span>
-                  <span className="font-medium text-amber-900">
+                  <span className="text-text-muted uppercase">UPDATED:</span>
+                  <span className="font-medium text-text-primary">
                     {new Date(existingBid.updatedAt).toLocaleDateString()}
                   </span>
                 </div>
               </div>
               
-              <div className="flex items-start gap-2">
-                <svg className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                <p className="text-xs text-amber-700 leading-relaxed">
-                  Any changes you make will <strong>update your existing bid</strong> rather than creating a new one.
-                </p>
-              </div>
+              <p className="text-2xs text-text-muted leading-relaxed">
+                Changes will <span className="text-status-warning">UPDATE</span> your existing bid rather than creating a new one.
+              </p>
             </div>
           </div>
         </div>
@@ -323,33 +315,31 @@ export default function OfferFormCore({
 
       {/* Error Display */}
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
+        <div className="mb-4 p-3 bg-status-error/10 border border-status-error/30 text-status-error text-xs">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 🎯 CENTERPIECE: OFFER FIELD - Most important info first */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-bg-secondary border border-border-subtle p-4">
           <div className="flex items-center gap-2 mb-3">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-            </svg>
-            <h4 className="text-base font-semibold text-blue-900">Your Offer</h4>
+            <span className="text-text-accent">$</span>
+            <h4 className="text-xs font-medium text-text-accent uppercase tracking-wider">YOUR_OFFER</h4>
           </div>
           <OfferInput
             value={offerData}
             onChange={(data) => setOfferData(data)}
-            placeholder="e.g., $500 guarantee, 70/30 door split after $300, $400 + 80% after costs"
-            className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            placeholder="e.g., $500 guarantee, 70/30 door split after $300"
+            className="w-full p-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
           />
         </div>
 
         {/* Artist Selection - Only show if not pre-selected */}
         {!preSelectedArtist && (
           <div className="relative">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Artist *
+            <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              SELECT_ARTIST *
             </label>
             <input
               type="text"
@@ -364,21 +354,21 @@ export default function OfferFormCore({
               onBlur={() => {
                 setTimeout(() => setShowArtistDropdown(false), 200);
               }}
-              placeholder="Search for artist by name, genre, or location"
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Search by name, genre, or location"
+              className="w-full p-3 border border-border-default bg-bg-secondary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
             />
             
             {/* Artist Search Dropdown */}
             {showArtistDropdown && filteredArtists.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-bg-secondary border border-border-default shadow-lg max-h-60 overflow-y-auto">
                 {filteredArtists.map((artist) => (
                   <div
                     key={artist.id}
                     onClick={() => handleArtistSelect(artist)}
-                    className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0"
+                    className="p-3 hover:bg-bg-hover cursor-pointer border-b border-border-subtle last:border-b-0"
                   >
-                    <div className="font-medium text-gray-900">{artist.name}</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-medium text-text-primary text-sm">{artist.name}</div>
+                    <div className="text-xs text-text-muted">
                       {artist.genres.slice(0, 2).join(', ')} • {artist.city}, {artist.state}
                     </div>
                   </div>
@@ -387,8 +377,8 @@ export default function OfferFormCore({
             )}
             
             {formData.artistId && (
-              <p className="text-sm text-green-600 mt-1">
-                ✓ Selected: {formData.artistName}
+              <p className="text-xs text-status-success mt-1 uppercase">
+                ✓ SELECTED: {formData.artistName}
               </p>
             )}
           </div>
@@ -396,12 +386,10 @@ export default function OfferFormCore({
 
         {/* Show selected artist info if pre-selected */}
         {preSelectedArtist && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-status-success/10 border border-status-success/30 p-4">
             <div className="flex items-center gap-2">
-              <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="font-medium text-green-900">Making offer to: {preSelectedArtist.name}</span>
+              <span className="text-status-success">✓</span>
+              <span className="font-medium text-status-success text-sm uppercase">MAKING OFFER TO: {preSelectedArtist.name}</span>
             </div>
           </div>
         )}
@@ -409,8 +397,8 @@ export default function OfferFormCore({
         {/* Show Details - Consistent grouping */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Proposed Date *
+            <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              PROPOSED_DATE *
             </label>
             <input
               type="date"
@@ -418,20 +406,20 @@ export default function OfferFormCore({
               value={formData.proposedDate}
               onChange={(e) => setFormData(prev => ({ ...prev, proposedDate: e.target.value }))}
               min={new Date().toISOString().split('T')[0]}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-border-default bg-bg-secondary text-text-primary focus:outline-none focus:border-text-accent"
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Age Restriction
+            <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              AGE_RESTRICTION
             </label>
             <select
               value={formData.ageRestriction}
               onChange={(e) => setFormData(prev => ({ ...prev, ageRestriction: e.target.value as any }))}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full p-3 border border-border-default bg-bg-secondary text-text-primary focus:outline-none focus:border-text-accent"
             >
-              <option value="all-ages">All Ages</option>
+              <option value="all-ages">ALL_AGES</option>
               <option value="18+">18+</option>
               <option value="21+">21+</option>
             </select>
@@ -439,105 +427,93 @@ export default function OfferFormCore({
         </div>
 
         {/* Billing Position - Clean, professional section */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-bg-secondary border border-border-subtle p-4">
           <div className="flex items-center gap-2 mb-3">
-            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <h4 className="text-base font-semibold text-blue-900">Billing Position *</h4>
+            <span className="text-text-accent">#</span>
+            <h4 className="text-xs font-medium text-text-accent uppercase tracking-wider">BILLING_POSITION *</h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-blue-800 mb-2">
-                What role are you offering?
+              <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+                ROLE
               </label>
               <select
                 required
                 value={formData.billingPosition}
                 onChange={(e) => setFormData(prev => ({ ...prev, billingPosition: e.target.value as any }))}
-                className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full p-3 border border-border-default bg-bg-tertiary text-text-primary focus:outline-none focus:border-text-accent"
               >
-                <option value="headliner">Headliner</option>
-                <option value="support">Support</option>
-                <option value="local-support">Local Support</option>
-                <option value="co-headliner">Co-Headliner</option>
+                <option value="headliner">HEADLINER</option>
+                <option value="support">SUPPORT</option>
+                <option value="local-support">LOCAL_SUPPORT</option>
+                <option value="co-headliner">CO_HEADLINER</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-blue-800 mb-2">
-                Set Length (minutes)
+              <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+                SET_LENGTH (min)
               </label>
               <input
                 type="number"
                 value={formData.setLength || ''}
                 onChange={(e) => setFormData(prev => ({ ...prev, setLength: e.target.value }))}
-                placeholder="e.g. 60"
+                placeholder="60"
                 min="15"
                 max="180"
-                className="w-full p-3 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full p-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               />
             </div>
           </div>
-          <p className="text-xs text-blue-600 mt-2">
-            {formData.billingPosition === 'headliner' && 'Main draw, top billing, longest set (typically 45-90 min)'}
-            {formData.billingPosition === 'support' && 'Opening act, shorter set time (typically 30-45 min)'}
-            {formData.billingPosition === 'local-support' && 'Local opener, builds community (typically 20-30 min)'}
-            {formData.billingPosition === 'co-headliner' && 'Shared top billing with touring act (typically 45-75 min)'}
+          <p className="text-2xs text-text-muted mt-2 uppercase">
+            {formData.billingPosition === 'headliner' && '→ Main draw, top billing (45-90 min)'}
+            {formData.billingPosition === 'support' && '→ Opening act (30-45 min)'}
+            {formData.billingPosition === 'local-support' && '→ Local opener (20-30 min)'}
+            {formData.billingPosition === 'co-headliner' && '→ Shared top billing (45-75 min)'}
           </p>
           
           {/* Smart validation warning for potential billing conflicts */}
           {formData.billingPosition === 'headliner' && formData.proposedDate && (
-            <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-              <div className="flex items-center gap-1">
-                <svg className="w-3 h-3 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-                <span className="font-medium">Headliner Booking:</span>
-              </div>
-              <span>Make sure this date doesn't conflict with other headliner shows. Consider if you need support acts to fill the lineup.</span>
+            <div className="mt-2 p-2 bg-status-warning/10 border border-status-warning/30 text-2xs text-status-warning">
+              <span className="font-medium uppercase">[!] HEADLINER: </span>
+              <span>Ensure no date conflicts. Consider support acts.</span>
             </div>
           )}
           
           {formData.billingPosition === 'co-headliner' && formData.proposedDate && (
-            <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs text-amber-800">
-              <div className="flex items-center gap-1">
-                <svg className="w-3 h-3 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span className="font-medium">Co-Headliner Booking:</span>
-              </div>
-              <span>Make sure you have another headliner confirmed for this date, or specify in your message who they'll be co-headlining with.</span>
+            <div className="mt-2 p-2 bg-status-warning/10 border border-status-warning/30 text-2xs text-status-warning">
+              <span className="font-medium uppercase">[!] CO_HEADLINER: </span>
+              <span>Confirm other headliner or specify in message.</span>
             </div>
           )}
         </div>
 
         {/* Personal Message */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Personal Message (Optional)
+          <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+            MESSAGE (optional)
           </label>
           <textarea
             value={formData.message}
             onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
-            placeholder="Tell the artist why you'd like them to play at your venue..."
+            placeholder="Tell the artist why you'd like them to play..."
             rows={4}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full p-3 border border-border-default bg-bg-secondary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
           />
-          <p className="text-sm text-gray-500 mt-1">
-            A default message is provided. Feel free to customize it or leave as-is.
+          <p className="text-2xs text-text-muted mt-1">
+            Customize or leave default message.
           </p>
         </div>
 
         {/* Submit Buttons */}
-        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+        <div className="flex justify-between items-center pt-4 border-t border-border-subtle">
           {/* 🎯 UX IMPROVEMENT: Cancel on left - just backing out */}
           <div>
             <button
               type="button"
               onClick={onCancel}
-              className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              className="px-4 py-2 text-text-secondary bg-bg-secondary border border-border-default hover:bg-bg-hover transition-colors text-xs uppercase tracking-wider"
             >
-              Cancel
+              [CANCEL]
             </button>
           </div>
           
@@ -569,7 +545,7 @@ export default function OfferFormCore({
                   }
                 }}
                 disabled={loading || isDeleting}
-                className="px-4 py-2 text-red-700 bg-red-100 hover:bg-red-200 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2 font-medium"
+                className="px-4 py-2 text-status-error bg-status-error/10 border border-status-error/30 hover:bg-status-error/20 disabled:opacity-50 transition-colors flex items-center gap-2 text-xs uppercase tracking-wider"
               >
                 {isDeleting && (
                   <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -577,14 +553,14 @@ export default function OfferFormCore({
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
                 )}
-                {isDeleting ? 'Removing...' : (existingBid ? 'Delete Offer' : 'Not Interested')}
+                {isDeleting ? '[REMOVING...]' : (existingBid ? '[DELETE]' : '[NOT_INTERESTED]')}
               </button>
             )}
             
             <button
               type="submit"
               disabled={loading || isDeleting || (!preSelectedArtist && !formData.artistId) || !formData.proposedDate || !formData.billingPosition}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2 font-medium"
+              className="px-6 py-2 bg-text-accent text-bg-primary hover:bg-text-primary transition-colors disabled:opacity-50 flex items-center gap-2 text-xs uppercase tracking-wider font-medium"
             >
               {loading && (
                 <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
@@ -592,7 +568,7 @@ export default function OfferFormCore({
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               )}
-              {loading ? (existingBid ? 'Updating Bid...' : 'Sending Offer...') : (existingBid ? 'Update Bid' : submitButtonText)}
+              {loading ? (existingBid ? '[UPDATING...]' : '[SENDING...]') : (existingBid ? '[UPDATE_BID]' : `[${submitButtonText.toUpperCase().replace(/\s+/g, '_')}]`)}
             </button>
           </div>
         </div>

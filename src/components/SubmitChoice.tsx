@@ -11,7 +11,7 @@ interface SubmitChoiceProps {
 export default function SubmitChoice({ entityType, children }: SubmitChoiceProps) {
   const [mode, setMode] = useState<'agent' | 'form'>('agent');
 
-  const title = entityType === 'venue' ? 'Add Your Space' : 'Add Your Artist';
+  const title = entityType === 'venue' ? 'ADD_SPACE' : 'ADD_ARTIST';
   const agentPrompt = entityType === 'venue' 
     ? "Hi! I'd like to add my venue to DIY Shows."
     : "Hi! I'd like to add my band/artist to DIY Shows.";
@@ -35,23 +35,24 @@ export default function SubmitChoice({ entityType, children }: SubmitChoiceProps
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
             onClick={() => setMode('form')}
           />
           
           {/* Modal */}
-          <div className="relative w-full max-w-xl mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+          <div className="relative w-full max-w-xl mx-4 bg-bg-primary border border-border-default overflow-hidden">
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-bg-secondary">
+              <h2 className="text-sm font-medium text-text-accent uppercase tracking-wider">
+                <span className="text-text-muted mr-2">&gt;</span>
+                {title}
+              </h2>
               <button 
                 onClick={() => setMode('form')}
-                className="text-gray-400 hover:text-gray-600 p-1"
+                className="text-text-muted hover:text-text-primary transition-colors"
                 aria-label="Close"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <span className="text-lg">[×]</span>
               </button>
             </div>
             
@@ -62,14 +63,14 @@ export default function SubmitChoice({ entityType, children }: SubmitChoiceProps
             />
             
             {/* Footer */}
-            <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
-              <p className="text-center text-sm text-gray-500">
-                Prefer to do it yourself?{' '}
+            <div className="px-6 py-3 bg-bg-secondary border-t border-border-subtle">
+              <p className="text-center text-xs text-text-muted uppercase tracking-wider">
+                Prefer manual?{' '}
                 <button 
                   onClick={() => setMode('form')}
-                  className="text-gray-700 underline hover:text-black"
+                  className="text-text-accent hover:text-text-primary underline"
                 >
-                  Fill out the form instead
+                  [FILL_FORM]
                 </button>
               </p>
             </div>
@@ -81,15 +82,15 @@ export default function SubmitChoice({ entityType, children }: SubmitChoiceProps
       <div className={mode === 'agent' ? 'opacity-50' : ''}>
         {/* Banner to reopen agent */}
         {mode === 'form' && (
-          <div className="bg-gray-900 text-white">
+          <div className="bg-bg-secondary border-b border-border-subtle">
             <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-              <span className="text-sm text-gray-400">Filling out the form manually</span>
+              <span className="text-xs text-text-muted uppercase tracking-wider">MANUAL_FORM_MODE</span>
               <button 
                 onClick={() => setMode('agent')}
-                className="text-white hover:text-gray-200 flex items-center gap-2 text-sm font-medium"
+                className="text-text-accent hover:text-text-primary flex items-center gap-2 text-xs font-medium uppercase tracking-wider"
               >
-                <span>💬</span>
-                Chat with agent instead
+                <span>⚡</span>
+                [CHAT_WITH_AGENT]
               </button>
             </div>
           </div>

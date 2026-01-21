@@ -225,19 +225,20 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
   };
 
   return (
-    <div className={`bg-white rounded-lg shadow ${className}`}>
+    <div className={`bg-bg-primary ${className}`}>
       {/* Header */}
       {!className.includes('border-0 shadow-none') && (
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-border-subtle bg-bg-secondary">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="flex items-center justify-between w-full text-left"
           >
-            <h3 className="text-lg font-semibold text-gray-900">
-              Show Request Templates ({templates.length})
+            <h3 className="text-sm font-medium text-text-accent uppercase tracking-wider">
+              <span className="text-text-muted mr-2">&gt;</span>
+              TEMPLATES [{templates.length}]
             </h3>
             <svg 
-              className={`w-5 h-5 text-gray-500 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+              className={`w-4 h-4 text-text-muted transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -245,8 +246,8 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </button>
-          <p className="text-sm text-gray-600 mt-1">
-            Save your technical requirements and business terms to auto-fill show requests
+          <p className="text-2xs text-text-muted mt-1 uppercase tracking-wider">
+            Save requirements and terms for auto-fill
           </p>
         </div>
       )}
@@ -256,23 +257,20 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
         <div className="p-6">
           {loading ? (
             <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span className="text-sm text-gray-600">Loading templates...</span>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-text-accent"></div>
+              <span className="text-xs text-text-muted uppercase tracking-wider">LOADING_TEMPLATES...</span>
             </div>
           ) : (
             <div className="space-y-4">
               {/* Info about default templates */}
               {templates.length > 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="bg-bg-secondary border border-border-subtle p-3">
                   <div className="flex items-start gap-2">
-                    <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="text-sm">
-                      <p className="text-blue-800 font-medium">Default Template Auto-Fill</p>
-                      <p className="text-blue-700 mt-1">
-                        Your default template (marked with ✓) will automatically fill new show request forms. 
-                        This saves time by pre-populating your usual requirements and terms.
+                    <span className="text-text-accent flex-shrink-0">[i]</span>
+                    <div className="text-xs">
+                      <p className="text-text-accent font-medium uppercase">DEFAULT_AUTO_FILL</p>
+                      <p className="text-text-secondary mt-1">
+                        Your default template (marked with ✓) will automatically fill new show request forms.
                       </p>
                     </div>
                   </div>
@@ -281,44 +279,44 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
 
               {/* Templates List */}
               {templates.length > 0 ? (
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {templates.map((template) => (
                     <div 
                       key={template.id} 
-                      className={`border rounded-lg p-4 transition-all ${
+                      className={`border p-4 transition-all ${
                         template.isDefault 
-                          ? 'border-blue-300 bg-blue-50 ring-1 ring-blue-200' 
-                          : 'border-gray-200 bg-white'
+                          ? 'border-text-accent bg-bg-tertiary' 
+                          : 'border-border-subtle bg-bg-secondary'
                       }`}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-gray-900">
+                            <h4 className="font-medium text-text-primary text-sm uppercase">
                               {template.name}
                             </h4>
                             {template.isDefault && (
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                ✓ Default
+                              <span className="inline-flex items-center px-2 py-1 text-2xs font-medium bg-text-accent/20 text-text-accent border border-text-accent/30 uppercase">
+                                ✓ DEFAULT
                               </span>
                             )}
                           </div>
                           
                           {template.description && (
-                            <p className="text-sm text-gray-600 mb-2">{template.description}</p>
+                            <p className="text-xs text-text-secondary mb-2">{template.description}</p>
                           )}
                           
-                          <div className="text-xs text-gray-500 flex flex-wrap gap-1">
-                            {template.equipment?.needsPA && <span className="bg-gray-100 px-2 py-1 rounded">PA</span>}
-                            {template.equipment?.needsMics && <span className="bg-gray-100 px-2 py-1 rounded">Mics</span>}
-                            {template.equipment?.needsDrums && <span className="bg-gray-100 px-2 py-1 rounded">Drums</span>}
-                            {template.equipment?.needsAmps && <span className="bg-gray-100 px-2 py-1 rounded">Amps</span>}
+                          <div className="text-2xs text-text-muted flex flex-wrap gap-1">
+                            {template.equipment?.needsPA && <span className="bg-bg-tertiary border border-border-subtle px-2 py-1 uppercase">PA</span>}
+                            {template.equipment?.needsMics && <span className="bg-bg-tertiary border border-border-subtle px-2 py-1 uppercase">MICS</span>}
+                            {template.equipment?.needsDrums && <span className="bg-bg-tertiary border border-border-subtle px-2 py-1 uppercase">DRUMS</span>}
+                            {template.equipment?.needsAmps && <span className="bg-bg-tertiary border border-border-subtle px-2 py-1 uppercase">AMPS</span>}
                             {template.guaranteeRange?.min && (
-                              <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
-                                ${template.guaranteeRange.min} min
+                              <span className="bg-status-success/10 text-status-success border border-status-success/30 px-2 py-1 uppercase">
+                                ${template.guaranteeRange.min}+
                               </span>
                             )}
-                            <span className="bg-gray-100 px-2 py-1 rounded capitalize">
+                            <span className="bg-bg-tertiary border border-border-subtle px-2 py-1 uppercase">
                               {template.travelMethod}
                             </span>
                           </div>
@@ -328,35 +326,35 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                           {!template.isDefault && (
                             <button
                               onClick={() => handleSetDefault(template.id, true)}
-                              className="text-xs text-blue-600 hover:text-blue-800 px-2 py-1 rounded border border-blue-200 hover:bg-blue-50 transition-colors"
+                              className="text-2xs text-text-accent hover:text-text-primary px-2 py-1 border border-text-accent/30 hover:bg-text-accent/10 transition-colors uppercase"
                               title="Set as default template"
                             >
-                              Set Default
+                              [SET_DEFAULT]
                             </button>
                           )}
                           
                           {template.isDefault && (
                             <button
                               onClick={() => handleSetDefault(template.id, false)}
-                              className="text-xs text-gray-600 hover:text-gray-800 px-2 py-1 rounded border border-gray-200 hover:bg-gray-50 transition-colors"
+                              className="text-2xs text-text-muted hover:text-text-primary px-2 py-1 border border-border-subtle hover:bg-bg-hover transition-colors uppercase"
                               title="Remove as default"
                             >
-                              Remove Default
+                              [REMOVE]
                             </button>
                           )}
                           
                           <button
                             onClick={() => handleEdit(template)}
-                            className="text-blue-600 hover:text-blue-800 text-sm px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+                            className="text-status-info hover:text-text-primary text-2xs px-2 py-1 hover:bg-status-info/10 transition-colors uppercase"
                           >
-                            Edit
+                            [EDIT]
                           </button>
                           
                           <button
                             onClick={() => handleDelete(template.id)}
-                            className="text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded hover:bg-red-50 transition-colors"
+                            className="text-status-error hover:text-text-primary text-2xs px-2 py-1 hover:bg-status-error/10 transition-colors uppercase"
                           >
-                            Delete
+                            [DELETE]
                           </button>
                         </div>
                       </div>
@@ -364,18 +362,19 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <div className="text-4xl mb-2">🎸</div>
-                  <p>No templates yet</p>
-                  <p className="text-sm">Create your first template to save time on show requests!</p>
+                <div className="text-center py-8 text-text-muted border border-border-subtle bg-bg-secondary">
+                  <div className="text-2xl mb-2">◇</div>
+                  <p className="text-text-secondary uppercase text-xs tracking-wider">NO_TEMPLATES</p>
+                  <p className="text-2xs mt-1">Create your first template to save time</p>
                 </div>
               )}
 
               {/* Create/Edit Form */}
               {showCreateForm ? (
-                <form onSubmit={handleSubmit} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                  <h4 className="font-medium text-gray-900 mb-4">
-                    {editingTemplate ? 'Edit Template' : 'Create New Template'}
+                <form onSubmit={handleSubmit} className="border border-border-subtle p-4 bg-bg-secondary">
+                  <h4 className="font-medium text-text-accent mb-4 text-xs uppercase tracking-wider">
+                    <span className="text-text-muted mr-2">&gt;</span>
+                    {editingTemplate ? 'EDIT_TEMPLATE' : 'NEW_TEMPLATE'}
                   </h4>
                   
                   {/* 🎯 USE SHARED TEMPLATE FORM CORE - Single Source of Truth */}
@@ -389,28 +388,26 @@ const TemplateManager: React.FC<TemplateManagerProps> = ({ artistId, className =
                   <div className="mt-6 flex items-center gap-3">
                     <button
                       type="submit"
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                      className="bg-text-accent text-bg-primary px-4 py-2 hover:bg-text-primary transition-colors text-xs uppercase tracking-wider font-medium"
                     >
-                      {editingTemplate ? 'Update Template' : 'Create Template'}
+                      {editingTemplate ? '[UPDATE]' : '[CREATE]'}
                     </button>
                     <button
                       type="button"
                       onClick={resetForm}
-                      className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition-colors"
+                      className="bg-bg-tertiary border border-border-default text-text-secondary px-4 py-2 hover:bg-bg-hover transition-colors text-xs uppercase tracking-wider"
                     >
-                      Cancel
+                      [CANCEL]
                     </button>
                   </div>
                 </form>
               ) : (
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-bg-secondary border border-border-default text-text-accent py-3 px-4 hover:bg-bg-hover hover:border-text-accent transition-colors flex items-center justify-center gap-2 text-xs uppercase tracking-wider font-medium"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                  </svg>
-                  Create New Template
+                  <span>+</span>
+                  CREATE_NEW_TEMPLATE
                 </button>
               )}
             </div>

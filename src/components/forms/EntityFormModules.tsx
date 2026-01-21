@@ -101,18 +101,21 @@ export const ExpandableSection: React.FC<ExpandableSectionProps> = ({
   className = ""
 }) => {
   return (
-    <section className={`bg-gray-50 rounded-xl p-6 ${className}`}>
+    <section className={`bg-bg-secondary border border-border-subtle p-6 ${className}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-xl font-semibold">{title}</h3>
-          {subtitle && <p className="text-sm text-gray-600 mt-1">{subtitle}</p>}
+          <h3 className="text-sm font-medium text-text-accent uppercase tracking-wider">
+            <span className="text-text-muted mr-2">&gt;</span>
+            {title.toUpperCase().replace(/\s+/g, '_')}
+          </h3>
+          {subtitle && <p className="text-2xs text-text-muted mt-1">{subtitle}</p>}
         </div>
         <button
           type="button"
           onClick={onToggle}
-          className="flex items-center space-x-2 text-sm font-medium text-black hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 rounded-lg px-3 py-2"
+          className="flex items-center space-x-2 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors px-3 py-2 border border-border-default hover:border-border-strong uppercase tracking-wider"
         >
-          <span>{expanded ? 'Hide Details' : 'Show Details'}</span>
+          <span>{expanded ? '[HIDE]' : '[SHOW]'}</span>
           <svg
             className={`w-4 h-4 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
             fill="none"
@@ -195,14 +198,14 @@ export const DetailedInfoModule: React.FC<DetailedInfoModuleProps> = ({
     <div className="space-y-8">
       {/* Images Section */}
       <div>
-        <h4 className="text-lg font-semibold mb-4">Images</h4>
+        <h4 className="text-xs font-medium text-text-accent mb-4 uppercase tracking-wider">IMAGES</h4>
         
         {/* Image Upload */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Upload Images
+          <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+            UPLOAD_IMAGES
           </label>
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+          <div className="border-2 border-dashed border-border-default p-6 text-center hover:border-text-accent transition-colors bg-bg-tertiary">
             <input
               type="file"
               accept="image/*"
@@ -219,18 +222,16 @@ export const DetailedInfoModule: React.FC<DetailedInfoModuleProps> = ({
               className={`cursor-pointer ${uploadingImage ? 'opacity-50' : ''}`}
             >
               <div className="space-y-2">
-                <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                  <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <div className="text-sm text-gray-600">
-                  {uploadingImage ? 'Uploading...' : 'Click to upload an image'}
+                <div className="text-3xl text-text-muted">◇</div>
+                <div className="text-xs text-text-secondary uppercase tracking-wider">
+                  {uploadingImage ? 'UPLOADING...' : 'CLICK_TO_UPLOAD'}
                 </div>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+                <p className="text-2xs text-text-muted">PNG, JPG, GIF up to 10MB</p>
               </div>
             </label>
           </div>
           {uploadError && (
-            <p className="mt-2 text-sm text-red-600">{uploadError}</p>
+            <p className="mt-2 text-xs text-status-error">{uploadError}</p>
           )}
         </div>
 
@@ -242,12 +243,12 @@ export const DetailedInfoModule: React.FC<DetailedInfoModuleProps> = ({
                 <img
                   src={image}
                   alt={`${entityType} image ${index + 1}`}
-                  className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                  className="w-full h-32 object-cover border border-border-subtle"
                 />
                 <button
                   type="button"
                   onClick={() => handleImageRemove(index)}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  className="absolute top-2 right-2 bg-status-error text-white w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                 >
                   ×
                 </button>
@@ -260,7 +261,7 @@ export const DetailedInfoModule: React.FC<DetailedInfoModuleProps> = ({
       {/* Media Embeds Section */}
       {entityId && (
         <div>
-          <h4 className="text-lg font-semibold mb-4">Media & Links</h4>
+          <h4 className="text-xs font-medium text-text-accent mb-4 uppercase tracking-wider">MEDIA_&_LINKS</h4>
           <MediaEmbedSection
             entityType={entityType}
             entityId={entityId}
@@ -270,18 +271,18 @@ export const DetailedInfoModule: React.FC<DetailedInfoModuleProps> = ({
 
       {/* Additional Description */}
       <div>
-        <h4 className="text-lg font-semibold mb-4">Additional Information</h4>
+        <h4 className="text-xs font-medium text-text-accent mb-4 uppercase tracking-wider">ADDITIONAL_INFO</h4>
         <div>
-          <label htmlFor="detailed-description" className="block text-sm font-medium text-gray-700 mb-2">
-            Detailed Description
+          <label htmlFor="detailed-description" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+            DETAILED_DESCRIPTION
           </label>
           <textarea
             id="detailed-description"
             rows={6}
             value={formData.description || ''}
             onChange={(e) => onChange({ description: e.target.value })}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
-            placeholder={`Tell us more about ${entityType === 'venue' ? 'your space, what makes it special, any unique features or history' : 'your music, influences, experience, and what makes you unique as an artist'}`}
+            className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
+            placeholder={`Tell us more about ${entityType === 'venue' ? 'your space, what makes it special' : 'your music, influences, and what makes you unique'}`}
           />
         </div>
       </div>
@@ -312,26 +313,24 @@ export const AdminOnlyModule: React.FC<AdminOnlyModuleProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   return (
-    <div className={`bg-red-50 border border-red-200 rounded-xl ${className}`}>
+    <div className={`bg-status-error/5 border border-status-error/30 ${className}`}>
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-red-100 transition-colors rounded-xl"
+        className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-status-error/10 transition-colors"
       >
         <div className="flex items-center space-x-3">
           <div className="flex-shrink-0">
-            <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+            <span className="text-status-error text-lg">⚠</span>
           </div>
           <div>
-            <h3 className="text-xl font-semibold text-red-900">Admin Controls</h3>
-            <p className="text-sm text-red-700">Administrative tools and settings</p>
+            <h3 className="text-sm font-medium text-status-error uppercase tracking-wider">ADMIN_CONTROLS</h3>
+            <p className="text-2xs text-text-muted">Administrative tools and settings</p>
           </div>
         </div>
         <div className="flex-shrink-0">
           <svg 
-            className={`w-5 h-5 text-red-600 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+            className={`w-4 h-4 text-status-error transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
             fill="none" 
             stroke="currentColor" 
             viewBox="0 0 24 24"
@@ -345,61 +344,61 @@ export const AdminOnlyModule: React.FC<AdminOnlyModuleProps> = ({
         <div className="px-6 pb-6 space-y-6">
           {/* Account Management */}
           <div>
-            <h4 className="text-lg font-medium text-red-900 mb-3">Account Status</h4>
+            <h4 className="text-xs font-medium text-text-accent mb-3 uppercase tracking-wider">ACCOUNT_STATUS</h4>
             <div className="space-y-3">
               <label className="flex items-center">
                 <input
                   type="checkbox"
                   checked={data.hasAccount !== false}
                   onChange={(e) => onChange('hasAccount', e.target.checked)}
-                  className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-text-accent focus:ring-text-accent border-border-default bg-bg-tertiary"
                 />
-                <span className="ml-2 text-sm text-gray-700">
-                  {entityType === 'venue' ? 'Venue' : 'Artist'} has platform account
+                <span className="ml-2 text-xs text-text-secondary uppercase">
+                  {entityType === 'venue' ? 'VENUE' : 'ARTIST'}_HAS_ACCOUNT
                 </span>
               </label>
-              <p className="text-xs text-gray-500 ml-6">
-                Uncheck if this {entityType} was added by admin but doesn't have their own account yet
+              <p className="text-2xs text-text-muted ml-6">
+                Uncheck if added by admin but no account yet
               </p>
             </div>
           </div>
 
           {/* Admin Notes Section */}
           <div>
-            <h4 className="text-lg font-medium text-red-900 mb-3">Admin Notes</h4>
+            <h4 className="text-xs font-medium text-text-accent mb-3 uppercase tracking-wider">ADMIN_NOTES</h4>
             <textarea
               value={data.adminNotes || ''}
               onChange={(e) => onChange('adminNotes', e.target.value)}
               rows={3}
-              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-              placeholder="Internal notes for admin use only (not visible to users)"
+              className="w-full p-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
+              placeholder="Internal notes (not visible to users)"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              These notes are only visible to administrators
+            <p className="text-2xs text-text-muted mt-1">
+              Only visible to administrators
             </p>
           </div>
 
           {/* Quick Actions */}
           <div>
-            <h4 className="text-lg font-medium text-red-900 mb-3">Quick Actions</h4>
+            <h4 className="text-xs font-medium text-text-accent mb-3 uppercase tracking-wider">QUICK_ACTIONS</h4>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => {
                   alert('Verification email sent (feature to be implemented)');
                 }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                className="px-3 py-2 bg-status-info/10 border border-status-info/30 text-status-info hover:bg-status-info/20 transition-colors text-2xs uppercase tracking-wider"
               >
-                Send Verification Email
+                [VERIFY_EMAIL]
               </button>
               <button
                 type="button"
                 onClick={() => {
                   alert('Password reset initiated (feature to be implemented)');
                 }}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+                className="px-3 py-2 bg-status-warning/10 border border-status-warning/30 text-status-warning hover:bg-status-warning/20 transition-colors text-2xs uppercase tracking-wider"
               >
-                Reset Password
+                [RESET_PWD]
               </button>
               {entityId && (
                 <button
@@ -407,9 +406,9 @@ export const AdminOnlyModule: React.FC<AdminOnlyModuleProps> = ({
                   onClick={() => {
                     window.open(`/${entityType}s/${entityId}`, '_blank');
                   }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  className="px-3 py-2 bg-status-success/10 border border-status-success/30 text-status-success hover:bg-status-success/20 transition-colors text-2xs uppercase tracking-wider"
                 >
-                  View Public Profile
+                  [VIEW_PUBLIC]
                 </button>
               )}
               <button
@@ -419,13 +418,13 @@ export const AdminOnlyModule: React.FC<AdminOnlyModuleProps> = ({
                     alert('Account suspended (feature to be implemented)');
                   }
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm"
+                className="px-3 py-2 bg-status-error/10 border border-status-error/30 text-status-error hover:bg-status-error/20 transition-colors text-2xs uppercase tracking-wider"
               >
-                Suspend Account
+                [SUSPEND]
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
-              These actions will be implemented in future updates
+            <p className="text-2xs text-text-muted mt-2">
+              Actions to be implemented in future updates
             </p>
           </div>
         </div>
@@ -457,36 +456,30 @@ export const FormWrapper: React.FC<FormWrapperProps> = ({
   submitMessage
 }) => {
   return (
-    <div className="min-h-screen bg-white py-12">
+    <div className="min-h-screen bg-bg-primary py-12">
       <div className="max-w-2xl mx-auto px-4">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center space-x-3 mb-6">
-            <img 
-              src="/logo.png" 
-              alt="diyshows logo" 
-              className="w-8 h-8 rounded-sm"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
-            <div className="w-8 h-8 bg-black rounded-sm flex items-center justify-center hidden">
-              <span className="text-white font-bold text-sm">B</span>
+            <div className="w-8 h-8 border border-border-default flex items-center justify-center">
+              <span className="text-text-accent font-bold text-sm">⚡</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">diyshows <span className="text-sm font-normal text-gray-500">beta</span></h1>
+            <h1 className="text-sm font-medium text-text-primary uppercase tracking-wider">DIYSHOWS <span className="text-text-muted">beta</span></h1>
           </div>
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">{title}</h2>
-          {subtitle && <p className="text-lg text-gray-600">{subtitle}</p>}
+          <h2 className="text-xl font-medium text-text-accent mb-4 uppercase tracking-wider">
+            <span className="text-text-muted mr-2">&gt;</span>
+            {title.toUpperCase().replace(/\s+/g, '_')}
+          </h2>
+          {subtitle && <p className="text-xs text-text-muted">{subtitle}</p>}
         </div>
 
         {/* Success/Error Message */}
         {submitMessage && (
-          <div className={`mb-6 p-4 rounded-lg ${
+          <div className={`mb-6 p-4 ${
             submitMessage.startsWith('Error') 
-              ? 'bg-red-100 text-red-700' 
-              : 'bg-green-100 text-green-700'
-          }`}>
+              ? 'bg-status-error/10 border border-status-error/30 text-status-error' 
+              : 'bg-status-success/10 border border-status-success/30 text-status-success'
+          } text-sm`}>
             {submitMessage}
           </div>
         )}
@@ -500,24 +493,24 @@ export const FormWrapper: React.FC<FormWrapperProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-black text-white py-4 px-6 rounded-lg hover:bg-gray-800 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="flex-1 bg-text-accent text-bg-primary py-4 px-6 hover:bg-text-primary transition-colors font-medium text-sm uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? 'Submitting...' : submitText}
+              {isSubmitting ? '[SUBMITTING...]' : `[${submitText.toUpperCase().replace(/\s+/g, '_')}]`}
             </button>
             {onCancel && (
               <button
                 type="button"
                 onClick={onCancel}
-                className="flex-1 border border-gray-300 text-gray-700 py-4 px-6 rounded-lg hover:bg-gray-50 transition-colors font-medium text-lg"
+                className="flex-1 border border-border-default bg-bg-secondary text-text-secondary py-4 px-6 hover:bg-bg-hover transition-colors font-medium text-sm uppercase tracking-wider"
               >
-                Cancel
+                [CANCEL]
               </button>
             )}
           </div>
 
-          <p className="text-sm text-gray-600 text-center">
+          <p className="text-2xs text-text-muted text-center uppercase tracking-wider">
             By submitting, you agree to our{' '}
-            <a href="/guidelines" className="text-black hover:underline">community guidelines</a>.
+            <a href="/guidelines" className="text-text-accent hover:text-text-primary underline">GUIDELINES</a>.
           </p>
         </form>
       </div>
@@ -615,8 +608,8 @@ export const AdditionalDetailsModule: React.FC<AdditionalDetailsModuleProps> = (
       <div className="space-y-8">
         {/* Description */}
         <div>
-          <h4 className="text-lg font-medium text-gray-800 mb-3">Description</h4>
-          <p className="text-sm text-gray-600 mb-4">
+          <h4 className="text-xs font-medium text-text-accent mb-3 uppercase tracking-wider">DESCRIPTION</h4>
+          <p className="text-2xs text-text-muted mb-4">
             Tell artists about your {context.entityType}, the vibe, what makes it special...
           </p>
           <textarea
@@ -625,22 +618,22 @@ export const AdditionalDetailsModule: React.FC<AdditionalDetailsModuleProps> = (
             rows={4}
             value={data.description}
             onChange={handleDescriptionChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+            className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
             placeholder={`Describe your ${context.entityType} - atmosphere, style, what makes it unique...`}
           />
         </div>
 
         {/* Images & Media Submodule */}
-        <div className="border-t border-gray-200 pt-6">
-          <h4 className="text-lg font-medium text-gray-800 mb-3">Images & Media</h4>
+        <div className="border-t border-border-subtle pt-6">
+          <h4 className="text-xs font-medium text-text-accent mb-3 uppercase tracking-wider">IMAGES_&_MEDIA</h4>
           
           {/* Image Upload */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Upload Images
+            <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              UPLOAD_IMAGES
             </label>
             <div 
-              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+              className="border-2 border-dashed border-border-default p-6 text-center hover:border-text-accent transition-colors cursor-pointer bg-bg-tertiary"
               onDrop={(e) => {
                 e.preventDefault();
                 const files = Array.from(e.dataTransfer.files);
@@ -670,27 +663,23 @@ export const AdditionalDetailsModule: React.FC<AdditionalDetailsModuleProps> = (
                 className={`cursor-pointer ${uploadingImage ? 'opacity-50' : ''}`}
               >
                 <div className="space-y-2">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-3xl text-text-muted">◇</div>
+                  <div className="text-xs text-text-secondary uppercase tracking-wider">
                     {uploadingImage ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                        <span>Uploading...</span>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-text-accent"></div>
+                        <span>UPLOADING...</span>
                       </div>
                     ) : (
-                      <>
-                        <span className="font-semibold">Click to upload</span> or drag and drop
-                      </>
+                      <>CLICK_TO_UPLOAD or drag and drop</>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, WebP up to 10MB</p>
+                  <p className="text-2xs text-text-muted">PNG, JPG, WebP up to 10MB</p>
                 </div>
               </label>
             </div>
             {uploadError && (
-              <p className="mt-2 text-sm text-red-600">{uploadError}</p>
+              <p className="mt-2 text-xs text-status-error">{uploadError}</p>
             )}
           </div>
 
@@ -702,12 +691,12 @@ export const AdditionalDetailsModule: React.FC<AdditionalDetailsModuleProps> = (
                   <img
                     src={image}
                     alt={`${context.entityType} image ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                    className="w-full h-32 object-cover border border-border-subtle"
                   />
                   <button
                     type="button"
                     onClick={() => handleImageRemove(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    className="absolute top-2 right-2 bg-status-error text-white w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     ×
                   </button>
@@ -719,7 +708,7 @@ export const AdditionalDetailsModule: React.FC<AdditionalDetailsModuleProps> = (
           {/* Media Embeds Section */}
           {entityId ? (
             <div>
-              <h5 className="text-md font-medium text-gray-700 mb-3">Media & Links</h5>
+              <h5 className="text-2xs font-medium text-text-secondary mb-3 uppercase tracking-wider">MEDIA_&_LINKS</h5>
               <MediaEmbedSection
                 entityType={context.entityType}
                 entityId={entityId}
@@ -727,18 +716,14 @@ export const AdditionalDetailsModule: React.FC<AdditionalDetailsModuleProps> = (
             </div>
           ) : (
             <div>
-              <h5 className="text-md font-medium text-gray-700 mb-3">Media & Links</h5>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="text-2xs font-medium text-text-secondary mb-3 uppercase tracking-wider">MEDIA_&_LINKS</h5>
+              <div className="bg-bg-tertiary border border-border-subtle p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
+                  <span className="text-text-accent flex-shrink-0">[i]</span>
                   <div>
-                    <h6 className="text-sm font-medium text-blue-800">Media content available after creation</h6>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Once your {context.entityType} is created, you'll be able to add YouTube videos, Spotify tracks, SoundCloud sets, and other media content to showcase your work.
+                    <h6 className="text-xs font-medium text-text-accent uppercase">AVAILABLE_AFTER_CREATION</h6>
+                    <p className="text-2xs text-text-muted mt-1">
+                      Once your {context.entityType} is created, you can add YouTube, Spotify, SoundCloud, and other media.
                     </p>
                   </div>
                 </div>
@@ -860,8 +845,8 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
       <div className="space-y-8">
         {/* Description */}
         <div>
-          <h4 className="text-lg font-medium text-gray-800 mb-3">Artist Description</h4>
-          <p className="text-sm text-gray-600 mb-4">
+          <h4 className="text-xs font-medium text-text-accent mb-3 uppercase tracking-wider">ARTIST_DESCRIPTION</h4>
+          <p className="text-2xs text-text-muted mb-4">
             Describe your sound, influences, what makes you unique...
           </p>
           <textarea
@@ -870,22 +855,22 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
             rows={4}
             value={data.description}
             onChange={handleDescriptionChange}
-            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+            className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
             placeholder="Tell venues about your music, style, influences, and what makes you special..."
           />
         </div>
 
         {/* Images & Media Submodule */}
-        <div className="border-t border-gray-200 pt-6">
-          <h4 className="text-lg font-medium text-gray-800 mb-3">Images & Media</h4>
+        <div className="border-t border-border-subtle pt-6">
+          <h4 className="text-xs font-medium text-text-accent mb-3 uppercase tracking-wider">IMAGES_&_MEDIA</h4>
           
           {/* Image Upload */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Upload Images
+            <label className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              UPLOAD_IMAGES
             </label>
             <div 
-              className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
+              className="border-2 border-dashed border-border-default p-6 text-center hover:border-text-accent transition-colors cursor-pointer bg-bg-tertiary"
               onDrop={(e) => {
                 e.preventDefault();
                 const files = Array.from(e.dataTransfer.files);
@@ -915,27 +900,23 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
                 className={`cursor-pointer ${uploadingImage ? 'opacity-50' : ''}`}
               >
                 <div className="space-y-2">
-                  <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-3xl text-text-muted">◇</div>
+                  <div className="text-xs text-text-secondary uppercase tracking-wider">
                     {uploadingImage ? (
                       <div className="flex items-center justify-center space-x-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                        <span>Uploading...</span>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-text-accent"></div>
+                        <span>UPLOADING...</span>
                       </div>
                     ) : (
-                      <>
-                        <span className="font-semibold">Click to upload</span> or drag and drop
-                      </>
+                      <>CLICK_TO_UPLOAD or drag and drop</>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500">PNG, JPG, WebP up to 10MB</p>
+                  <p className="text-2xs text-text-muted">PNG, JPG, WebP up to 10MB</p>
                 </div>
               </label>
             </div>
             {uploadError && (
-              <p className="mt-2 text-sm text-red-600">{uploadError}</p>
+              <p className="mt-2 text-xs text-status-error">{uploadError}</p>
             )}
           </div>
 
@@ -947,12 +928,12 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
                   <img
                     src={image}
                     alt={`${context.entityType} image ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                    className="w-full h-32 object-cover border border-border-subtle"
                   />
                   <button
                     type="button"
                     onClick={() => handleImageRemove(index)}
-                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    className="absolute top-2 right-2 bg-status-error text-white w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     ×
                   </button>
@@ -963,8 +944,8 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
 
           {/* Social Media */}
           <div className="mb-6">
-            <label htmlFor="social-handles" className="block text-sm font-medium text-gray-700 mb-2">
-              Social Media (optional)
+            <label htmlFor="social-handles" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              SOCIAL_MEDIA (optional)
             </label>
             <input
               id="social-handles"
@@ -972,7 +953,7 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
               type="text"
               value={data.socialLinks || ''}
               onChange={handleSocialLinksChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="@yourband on Instagram, Facebook, etc."
             />
           </div>
@@ -980,7 +961,7 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
           {/* Media Embeds Section */}
           {entityId ? (
             <div>
-              <h5 className="text-md font-medium text-gray-700 mb-3">Media & Links</h5>
+              <h5 className="text-2xs font-medium text-text-secondary mb-3 uppercase tracking-wider">MEDIA_&_LINKS</h5>
               <MediaEmbedSection
                 entityType={context.entityType}
                 entityId={entityId}
@@ -988,18 +969,14 @@ export const ArtistAdditionalDetailsModule: React.FC<ArtistAdditionalDetailsModu
             </div>
           ) : (
             <div>
-              <h5 className="text-md font-medium text-gray-700 mb-3">Media & Links</h5>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="text-2xs font-medium text-text-secondary mb-3 uppercase tracking-wider">MEDIA_&_LINKS</h5>
+              <div className="bg-bg-tertiary border border-border-subtle p-4">
                 <div className="flex items-start space-x-3">
-                  <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
+                  <span className="text-text-accent flex-shrink-0">[i]</span>
                   <div>
-                    <h6 className="text-sm font-medium text-blue-800">Media content available after creation</h6>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Once your {context.entityType} is created, you'll be able to add YouTube videos, Spotify tracks, SoundCloud sets, and other media content to showcase your work.
+                    <h6 className="text-xs font-medium text-text-accent uppercase">AVAILABLE_AFTER_CREATION</h6>
+                    <p className="text-2xs text-text-muted mt-1">
+                      Once your {context.entityType} is created, you can add YouTube, Spotify, SoundCloud, and other media.
                     </p>
                   </div>
                 </div>

@@ -19,25 +19,24 @@ const TemplateModal: React.FC<TemplateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-bg-primary border border-border-default max-w-4xl w-full max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-border-subtle bg-bg-secondary flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Show Request Templates
+            <h2 className="text-sm font-medium text-text-accent uppercase tracking-wider">
+              <span className="text-text-muted mr-2">&gt;</span>
+              SHOW_REQUEST_TEMPLATES
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Manage templates for {artistName}
+            <p className="text-2xs text-text-muted mt-1 uppercase tracking-wider">
+              Managing templates for {artistName}
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-text-muted hover:text-text-primary transition-colors"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <span className="text-lg">[×]</span>
           </button>
         </div>
 

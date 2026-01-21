@@ -195,12 +195,12 @@ function ArtistForm() {
       */}
       
       {/* Basic Information */}
-      <section className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-6">Basic Information</h3>
+      <section className="bg-bg-secondary border border-border-subtle p-6">
+        <h3 className="text-sm font-medium text-text-accent mb-6 uppercase tracking-wider">Basic Information</h3>
         
         <div className="space-y-6">
           <div>
-            <label htmlFor="artist-name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="artist-name" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
               Artist/Band Name *
             </label>
             <input
@@ -210,7 +210,7 @@ function ArtistForm() {
               required
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="Your artist or band name"
             />
           </div>
@@ -227,7 +227,7 @@ function ArtistForm() {
           />
 
           <div>
-            <label htmlFor="artist-type" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="artist-type" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
               Artist Type *
             </label>
             <select
@@ -236,7 +236,7 @@ function ArtistForm() {
               required
               value={formData.artistType}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
             >
               <option value="">Select artist type...</option>
               {Object.entries(ARTIST_TYPE_LABELS).map(([value, label]) => (
@@ -251,8 +251,8 @@ function ArtistForm() {
 
       {/* Genres Section - only show for artist types that have genres */}
       {artistTypeHasGenres(formData.artistType) && (
-        <section className="bg-gray-50 rounded-xl p-6">
-          <h3 className="text-xl font-semibold mb-6">
+        <section className="bg-bg-secondary border border-border-subtle p-6">
+          <h3 className="text-sm font-medium text-text-accent mb-6 uppercase tracking-wider">
             {formData.artistType === 'dj' ? 'Electronic Styles' : 
              formData.artistType === 'rapper' ? 'Hip-Hop Styles' :
              formData.artistType === 'comedian' ? 'Comedy Styles' :
@@ -305,13 +305,13 @@ function ArtistForm() {
       )}
 
       {/* Contact & Links */}
-      <section className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-6">Contact & Links</h3>
+      <section className="bg-bg-secondary border border-border-subtle p-6">
+        <h3 className="text-sm font-medium text-text-accent mb-6 uppercase tracking-wider">Contact & Links</h3>
         
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="contact-email" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
                 Email *
               </label>
               <input
@@ -321,12 +321,12 @@ function ArtistForm() {
                 required
                 value={formData.contactEmail}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
                 placeholder="booking@yourband.com"
               />
             </div>
             <div>
-              <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="contact-phone" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
                 Phone (optional)
               </label>
               <input
@@ -335,14 +335,14 @@ function ArtistForm() {
                 type="tel"
                 value={formData.contactPhone}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
                 placeholder="Phone number"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="website" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="website" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
               Website (optional)
             </label>
             <input
@@ -351,7 +351,7 @@ function ArtistForm() {
               type="url"
               value={formData.website}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="https://yourband.com"
             />
           </div>

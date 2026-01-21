@@ -367,61 +367,64 @@ export default function UniversalMakeOfferModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-bg-primary border border-border-default max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {loading ? (
           <div className="p-6">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading your venue information...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-text-accent mx-auto mb-4"></div>
+              <p className="text-text-muted text-xs uppercase tracking-wider">LOADING_VENUE_DATA...</p>
             </div>
           </div>
         ) : error ? (
           <div className="p-6">
             <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Cannot Make Offer</h3>
-              <div className="mb-4 p-4 bg-red-100 border border-red-300 rounded-lg text-red-700">
+              <h3 className="text-sm font-medium text-text-accent mb-4 uppercase tracking-wider">ERROR: CANNOT_MAKE_OFFER</h3>
+              <div className="mb-4 p-4 bg-status-error/10 border border-status-error/30 text-status-error text-sm">
                 {error}
               </div>
               <div className="flex justify-center space-x-3">
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  className="px-4 py-2 text-text-secondary bg-bg-secondary border border-border-default hover:bg-bg-hover transition-colors text-xs uppercase tracking-wider"
                 >
-                  Close
+                  [CLOSE]
                 </button>
                 <a
                   href="/venues/create"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-text-accent text-bg-primary hover:bg-text-primary transition-colors text-xs uppercase tracking-wider"
                 >
-                  Create Venue
+                  [CREATE_VENUE]
                 </a>
               </div>
             </div>
           </div>
         ) : venues.length > 1 && !selectedVenue ? (
           <div className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Venue</h3>
-            <p className="text-gray-600 mb-4">
-              You're a member of multiple venues. Which venue would you like to make this offer from?
+            <h3 className="text-sm font-medium text-text-accent mb-4 uppercase tracking-wider">
+              <span className="text-text-muted mr-2">&gt;</span>
+              SELECT_VENUE
+            </h3>
+            <p className="text-text-secondary text-xs mb-4">
+              You're a member of multiple venues. Select which venue to make this offer from:
             </p>
             <div className="space-y-2 mb-6">
               {venues.map((venue: Venue) => (
                 <button
                   key={venue.id}
                   onClick={() => setSelectedVenue(venue)}
-                  className="w-full p-3 text-left border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-500 transition-colors"
+                  className="w-full p-3 text-left border border-border-default bg-bg-secondary hover:bg-bg-hover hover:border-text-accent transition-colors"
                 >
-                  <div className="font-medium text-gray-900">{venue.name}</div>
+                  <div className="font-medium text-text-primary text-sm uppercase">{venue.name}</div>
                 </button>
               ))}
             </div>
             <div className="flex justify-end">
               <button
                 onClick={handleClose}
-                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-2 text-text-secondary bg-bg-secondary border border-border-default hover:bg-bg-hover transition-colors text-xs uppercase tracking-wider"
               >
-                Cancel
+                [CANCEL]
               </button>
             </div>
           </div>

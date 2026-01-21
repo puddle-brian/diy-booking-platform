@@ -224,13 +224,16 @@ function VenueForm() {
       */}
       
       {/* Basic Information */}
-      <section className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-6">Basic Information</h3>
+      <section className="bg-bg-secondary border border-border-subtle p-6">
+        <h3 className="text-sm font-medium text-text-accent mb-6 uppercase tracking-wider">
+          <span className="text-text-muted mr-2">&gt;</span>
+          BASIC_INFORMATION
+        </h3>
         
         <div className="space-y-6">
           <div>
-            <label htmlFor="space-name" className="block text-sm font-medium text-gray-700 mb-2">
-              Space Name *
+            <label htmlFor="space-name" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              SPACE_NAME *
             </label>
             <input
               id="space-name"
@@ -239,15 +242,15 @@ function VenueForm() {
               required
               value={formData.name}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="The space name (e.g., Joe's Basement, The Red House)"
             />
           </div>
 
           {/* Address Fields */}
           <div>
-            <label htmlFor="street-address" className="block text-sm font-medium text-gray-700 mb-2">
-              Street Address
+            <label htmlFor="street-address" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              STREET_ADDRESS
             </label>
             <input
               id="street-address"
@@ -255,15 +258,15 @@ function VenueForm() {
               type="text"
               value={formData.streetAddress}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="123 Main Street (optional but helpful for touring bands)"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="address-line-2" className="block text-sm font-medium text-gray-700 mb-2">
-                Apt/Suite/Unit (optional)
+              <label htmlFor="address-line-2" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+                APT/SUITE/UNIT (optional)
               </label>
               <input
                 id="address-line-2"
@@ -271,13 +274,13 @@ function VenueForm() {
                 type="text"
                 value={formData.addressLine2}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
                 placeholder="Apt 2B, Suite 100, etc."
               />
             </div>
             <div>
-              <label htmlFor="postal-code" className="block text-sm font-medium text-gray-700 mb-2">
-                ZIP/Postal Code
+              <label htmlFor="postal-code" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+                ZIP/POSTAL_CODE
               </label>
               <input
                 id="postal-code"
@@ -285,15 +288,15 @@ function VenueForm() {
                 type="text"
                 value={formData.postalCode}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
                 placeholder="12345"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="neighborhood" className="block text-sm font-medium text-gray-700 mb-2">
-              Neighborhood/District (optional)
+            <label htmlFor="neighborhood" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              NEIGHBORHOOD/DISTRICT (optional)
             </label>
             <input
               id="neighborhood"
@@ -301,7 +304,7 @@ function VenueForm() {
               type="text"
               value={formData.neighborhood}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="e.g., East Village, Five Points, Williamsburg"
             />
           </div>
@@ -318,8 +321,8 @@ function VenueForm() {
           />
 
           <div>
-            <label htmlFor="space-type" className="block text-sm font-medium text-gray-700 mb-2">
-              Space Type *
+            <label htmlFor="space-type" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              SPACE_TYPE *
             </label>
             <select
               id="space-type"
@@ -327,7 +330,7 @@ function VenueForm() {
               required
               value={formData.venueType}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary focus:outline-none focus:border-text-accent"
             >
               <option value="">Select space type...</option>
               {Object.entries(VENUE_TYPE_LABELS).map(([value, label]) => (
@@ -341,21 +344,24 @@ function VenueForm() {
       </section>
 
       {/* Space Details */}
-      <section className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-6">Space Details</h3>
+      <section className="bg-bg-secondary border border-border-subtle p-6">
+        <h3 className="text-sm font-medium text-text-accent mb-6 uppercase tracking-wider">
+          <span className="text-text-muted mr-2">&gt;</span>
+          SPACE_DETAILS
+        </h3>
         
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="capacity" className="block text-sm font-medium text-gray-700 mb-2">
-                Minimum Capacity
+              <label htmlFor="capacity" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+                MIN_CAPACITY
               </label>
               <select
                 id="capacity"
                 name="capacity"
                 value={formData.capacity}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary focus:outline-none focus:border-text-accent"
               >
                 <option value="">Select capacity...</option>
                 {CAPACITY_OPTIONS.map((option) => (
@@ -366,17 +372,17 @@ function VenueForm() {
               </select>
             </div>
             <div>
-              <label htmlFor="age-policy" className="block text-sm font-medium text-gray-700 mb-2">
-                Age Policy
+              <label htmlFor="age-policy" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+                AGE_POLICY
               </label>
               <select
                 id="age-policy"
                 name="agePolicy"
                 value={formData.agePolicy}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary focus:outline-none focus:border-text-accent"
               >
-                <option value="all-ages">All Ages</option>
+                <option value="all-ages">ALL_AGES</option>
                 <option value="18+">18+</option>
                 <option value="21+">21+</option>
               </select>
@@ -386,13 +392,16 @@ function VenueForm() {
       </section>
 
       {/* Contact & Booking */}
-      <section className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-6">Contact & Booking</h3>
+      <section className="bg-bg-secondary border border-border-subtle p-6">
+        <h3 className="text-sm font-medium text-text-accent mb-6 uppercase tracking-wider">
+          <span className="text-text-muted mr-2">&gt;</span>
+          CONTACT_&_BOOKING
+        </h3>
         
         <div className="space-y-6">
           <div>
-            <label htmlFor="contact-name" className="block text-sm font-medium text-gray-700 mb-2">
-              Booking Contact Name *
+            <label htmlFor="contact-name" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
+              BOOKING_CONTACT_NAME *
             </label>
             <input
               id="contact-name"
@@ -401,14 +410,14 @@ function VenueForm() {
               required
               value={formData.contactName}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="Who should bands contact for booking?"
             />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="contact-email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="contact-email" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
                 Email *
               </label>
               <input
@@ -418,12 +427,12 @@ function VenueForm() {
                 required
                 value={formData.contactEmail}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
                 placeholder="booking@email.com"
               />
             </div>
             <div>
-              <label htmlFor="contact-phone" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="contact-phone" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
                 Phone (optional)
               </label>
               <input
@@ -432,14 +441,14 @@ function VenueForm() {
                 type="tel"
                 value={formData.contactPhone}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
                 placeholder="Phone number"
               />
             </div>
           </div>
 
           <div>
-            <label htmlFor="contact-website" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="contact-website" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
               Website (optional)
             </label>
             <input
@@ -448,13 +457,13 @@ function VenueForm() {
               type="url"
               value={formData.contactWebsite}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
               placeholder="https://example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="preferred-contact" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="preferred-contact" className="block text-2xs font-medium text-text-muted mb-2 uppercase tracking-wider">
               Preferred Contact Method
             </label>
             <select
@@ -462,7 +471,7 @@ function VenueForm() {
               name="preferredContact"
               value={formData.preferredContact}
               onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+              className="w-full px-4 py-3 border border-border-default bg-bg-tertiary text-text-primary placeholder-text-muted focus:outline-none focus:border-text-accent"
             >
               <option value="email">Email</option>
               <option value="phone">Phone</option>
@@ -474,8 +483,8 @@ function VenueForm() {
       </section>
 
       {/* Artist Types Welcome */}
-      <section className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-xl font-semibold mb-6">Artist Types Welcome</h3>
+      <section className="bg-bg-secondary border border-border-subtle p-6">
+        <h3 className="text-sm font-medium text-text-accent mb-6 uppercase tracking-wider">Artist Types Welcome</h3>
         
         <div className="space-y-6">
           {/* All Artist Types Welcome Checkbox */}
