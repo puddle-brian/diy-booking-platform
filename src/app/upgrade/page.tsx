@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -64,7 +64,24 @@ const tiers: PricingTier[] = [
   },
 ];
 
+// Wrapper component to handle Suspense for useSearchParams
 export default function UpgradePage() {
+  return (
+    <Suspense fallback={<UpgradePageLoading />}>
+      <UpgradePageContent />
+    </Suspense>
+  );
+}
+
+function UpgradePageLoading() {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="text-gray-500">Loading...</div>
+    </div>
+  );
+}
+
+function UpgradePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
