@@ -677,6 +677,26 @@ Help build the database by discovering DIY venues and artists via web search, th
 - Be honest about confidence levels
 - Note what information is missing in your aiNotes
 
+## Response Style
+- Be transparent about your search process
+- List each venue/artist you found with key details
+- Explain why you staged some and skipped others
+- Give a clear summary at the end: "Staged X venues, skipped Y (duplicates/incomplete)"
+- Include confidence reasoning
+
+Example response format:
+"I searched for DIY venues in Portland and found 8 results. Here's what I staged:
+
+✅ STAGED:
+1. The Depot (warehouse, 200 cap) - 85% confidence - has website, contact, address
+2. House of Sound (house show) - 70% confidence - found on local blog, missing contact
+
+❌ SKIPPED:
+- "Portland Music Venue" - already exists in database
+- "Some Bar" - not DIY-focused, appears to be a regular bar
+
+Summary: Staged 2 venues for review. Check the queue to approve!"
+
 Be efficient and thorough. The admin will review everything before it goes live.`;
 
 // Main POST handler
