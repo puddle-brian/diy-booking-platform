@@ -24,6 +24,17 @@ interface StagedEntity {
   aiNotes: string | null;
 }
 
+interface UsageStats {
+  thisMonth: {
+    stagedEntities: number;
+    estimatedSearches: number;
+  };
+  tavilyInfo: {
+    freeTierLimit: number;
+    dashboardUrl: string;
+  };
+}
+
 export default function DiscoverPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -31,6 +42,8 @@ export default function DiscoverPage() {
   const [conversationHistory, setConversationHistory] = useState<Message[]>([]);
   const [stagedEntities, setStagedEntities] = useState<StagedEntity[]>([]);
   const [sessionStaged, setSessionStaged] = useState<string[]>([]); // IDs staged this session
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+  const [sessionSearches, setSessionSearches] = useState(0); // Track searches this session
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,10 +61,24 @@ export default function DiscoverPage() {
     }
   }, []);
 
+  // Load usage stats
+  const loadUsageStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/discovery/usage');
+      if (res.ok) {
+        const data = await res.json();
+        setUsageStats(data);
+      }
+    } catch (error) {
+      console.error('Failed to load usage stats:', error);
+    }
+  }, []);
+
   // Initial load and polling during search
   useEffect(() => {
     loadStagedEntities();
-  }, [loadStagedEntities]);
+    loadUsageStats();
+  }, [loadStagedEntities, loadUsageStats]);
 
   // Poll for updates while loading
   useEffect(() => {
@@ -98,6 +125,7 @@ export default function DiscoverPage() {
     // Add user message to display
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
+    setSessionSearches(prev => prev + 1); // Track search
 
     try {
       const res = await fetch('/api/admin/discovery/chat', {
@@ -216,6 +244,26 @@ export default function DiscoverPage() {
               <span className="text-2xs text-text-muted uppercase tracking-wider">AI-Powered Database Builder</span>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Usage Stats */}
+              <div className="text-right border-r border-border-subtle pr-4 mr-2">
+                <div className="text-2xs text-text-muted">
+                  This session: <span className="text-text-accent">{sessionSearches}</span> searches
+                </div>
+                {usageStats && (
+                  <div className="text-2xs text-text-muted">
+                    This month: ~<span className="text-text-secondary">{usageStats.thisMonth.estimatedSearches}</span> searches
+                    {' '}
+                    <a 
+                      href={usageStats.tavilyInfo.dashboardUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-status-info hover:underline"
+                    >
+                      (check exact →)
+                    </a>
+                  </div>
+                )}
+              </div>
               <a href="/admin/staging" className="btn text-2xs">&lt;&lt; FULL REVIEW QUEUE</a>
               <button onClick={clearChat} className="btn text-2xs">CLEAR CHAT</button>
             </div>

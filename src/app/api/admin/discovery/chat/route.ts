@@ -179,6 +179,17 @@ Tips for effective searches:
   }
 ];
 
+// Track Tavily usage for the session
+let lastTavilyUsage: { creditsUsed?: number; creditsRemaining?: number } | null = null;
+
+// Get Tavily usage/credits info
+async function getTavilyCredits(): Promise<{ creditsUsed?: number; creditsRemaining?: number; error?: string }> {
+  if (lastTavilyUsage) {
+    return lastTavilyUsage;
+  }
+  return { error: 'No search performed yet' };
+}
+
 // Web search using a search API
 async function webSearch(query: string): Promise<string> {
   // Use Tavily, Serper, or similar search API
@@ -197,7 +208,7 @@ async function webSearch(query: string): Promise<string> {
         body: JSON.stringify({
           api_key: tavilyApiKey,
           query: query,
-          search_depth: 'advanced',
+          search_depth: 'basic', // Use basic to conserve credits (advanced uses more)
           include_answer: true,
           max_results: 10
         })
@@ -205,6 +216,16 @@ async function webSearch(query: string): Promise<string> {
       
       if (response.ok) {
         const data = await response.json();
+        
+        // Track usage info if provided
+        if (data.api_credits_used !== undefined || data.credits_used !== undefined) {
+          lastTavilyUsage = {
+            creditsUsed: data.api_credits_used || data.credits_used || 1
+          };
+        } else {
+          // Basic search uses 1 credit, advanced uses 2
+          lastTavilyUsage = { creditsUsed: 1 };
+        }
         
         // Format results for the AI
         let formatted = `Search results for: "${query}"\n\n`;
@@ -221,6 +242,8 @@ async function webSearch(query: string): Promise<string> {
             formatted += `    ${result.content}\n\n`;
           });
         }
+        
+        formatted += `\n[Search used ~1 API credit]`;
         
         return formatted;
       }
