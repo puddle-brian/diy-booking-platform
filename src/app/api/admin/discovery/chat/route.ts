@@ -29,6 +29,29 @@ Tips for effective searches:
     }
   },
   {
+    name: 'scrape_url',
+    description: `Fetch and read content from a specific URL. Use this when the user provides a link to a venue list, blog post, spreadsheet, database, or any page with venue/artist information.
+
+Great for:
+- Venue list pages or directories
+- Blog posts about local scenes
+- Exported spreadsheets (Google Sheets published to web)
+- Wiki pages with venue info
+- Scene reports or guides
+
+The tool returns the text content of the page. You should then parse it to extract venue/artist information and stage what you find.`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: {
+          type: 'string',
+          description: 'The URL to fetch and read'
+        }
+      },
+      required: ['url']
+    }
+  },
+  {
     name: 'stage_venue',
     description: 'Stage a discovered venue for admin review. Call this after finding venue information via web search.',
     input_schema: {
@@ -181,6 +204,119 @@ Tips for effective searches:
 
 // Track Tavily usage for the session
 let lastTavilyUsage: { creditsUsed?: number; creditsRemaining?: number } | null = null;
+
+// Scrape a URL and extract text content
+async function scrapeUrl(url: string): Promise<string> {
+  try {
+    // Validate URL
+    const parsedUrl = new URL(url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      return JSON.stringify({ error: 'Invalid URL protocol. Use http:// or https://' });
+    }
+
+    // Fetch the page
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; DIYShowsBot/1.0; +https://diyshows.com)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(15000) // 15 second timeout
+    });
+
+    if (!response.ok) {
+      return JSON.stringify({ 
+        error: `Failed to fetch URL: ${response.status} ${response.statusText}` 
+      });
+    }
+
+    const contentType = response.headers.get('content-type') || '';
+    const text = await response.text();
+
+    // Handle different content types
+    if (contentType.includes('application/json')) {
+      // JSON data - return formatted
+      try {
+        const json = JSON.parse(text);
+        return `JSON data from ${url}:\n\n${JSON.stringify(json, null, 2)}`;
+      } catch {
+        return text;
+      }
+    }
+
+    if (contentType.includes('text/csv') || url.endsWith('.csv')) {
+      // CSV data - return as-is, it's already readable
+      return `CSV data from ${url}:\n\n${text}`;
+    }
+
+    if (contentType.includes('text/html')) {
+      // HTML - strip tags and extract text
+      const cleanText = stripHtml(text);
+      
+      // Truncate if too long (keep it under ~8000 chars for context window)
+      const maxLength = 8000;
+      if (cleanText.length > maxLength) {
+        return `Content from ${url} (truncated to ${maxLength} chars):\n\n${cleanText.substring(0, maxLength)}...\n\n[Content truncated - page was ${cleanText.length} characters]`;
+      }
+      
+      return `Content from ${url}:\n\n${cleanText}`;
+    }
+
+    // Plain text or other
+    const maxLength = 8000;
+    if (text.length > maxLength) {
+      return `Content from ${url} (truncated):\n\n${text.substring(0, maxLength)}...`;
+    }
+    
+    return `Content from ${url}:\n\n${text}`;
+
+  } catch (error) {
+    console.error('Scrape error:', error);
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return JSON.stringify({ error: 'Request timed out after 15 seconds' });
+      }
+      return JSON.stringify({ error: `Failed to scrape URL: ${error.message}` });
+    }
+    return JSON.stringify({ error: 'Failed to scrape URL' });
+  }
+}
+
+// Simple HTML to text converter
+function stripHtml(html: string): string {
+  // Remove script and style elements entirely
+  let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+  text = text.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+  
+  // Remove HTML comments
+  text = text.replace(/<!--[\s\S]*?-->/g, '');
+  
+  // Replace common block elements with newlines
+  text = text.replace(/<\/(p|div|h[1-6]|li|tr|br|hr)[^>]*>/gi, '\n');
+  text = text.replace(/<(br|hr)[^>]*\/?>/gi, '\n');
+  
+  // Replace list items with bullet points
+  text = text.replace(/<li[^>]*>/gi, '• ');
+  
+  // Remove all remaining HTML tags
+  text = text.replace(/<[^>]+>/g, ' ');
+  
+  // Decode HTML entities
+  text = text.replace(/&nbsp;/g, ' ');
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&quot;/g, '"');
+  text = text.replace(/&#39;/g, "'");
+  text = text.replace(/&mdash;/g, '—');
+  text = text.replace(/&ndash;/g, '–');
+  
+  // Clean up whitespace
+  text = text.replace(/[ \t]+/g, ' '); // Multiple spaces to single
+  text = text.replace(/\n\s*\n/g, '\n\n'); // Multiple newlines to double
+  text = text.trim();
+  
+  return text;
+}
 
 // Get Tavily usage/credits info
 async function getTavilyCredits(): Promise<{ creditsUsed?: number; creditsRemaining?: number; error?: string }> {
@@ -630,6 +766,9 @@ async function executeTool(name: string, input: Record<string, unknown>, searchQ
     case 'web_search':
       return webSearch(input.query as string);
     
+    case 'scrape_url':
+      return scrapeUrl(input.url as string);
+    
     case 'stage_venue':
       return stageVenue({ ...input, searchQuery } as Parameters<typeof stageVenue>[0]);
     
@@ -655,70 +794,110 @@ Help build the database by discovering DIY venues and artists via web search, th
 
 ## Your Tools
 - **web_search** - Search the web for venues, artists, scenes
+- **scrape_url** - Fetch and read content from a specific URL (venue lists, blogs, spreadsheets)
 - **check_existing** - Check if something already exists before staging
 - **stage_venue** - Add a discovered venue to the review queue
 - **stage_artist** - Add a discovered artist to the review queue  
 - **get_staging_summary** - See what's been staged
 
 ## Workflow
+
+### For general discovery:
 1. User asks to find venues/artists in a location or genre
 2. Use web_search to find information
 3. Use check_existing to avoid duplicates
 4. Use stage_venue or stage_artist to add to review queue
 5. Report what you found and staged
 
+### When user provides a URL:
+1. User shares a link to a venue list, spreadsheet, or database
+2. Use scrape_url to fetch and read the page content
+3. Parse the content to identify venues/artists with their details
+4. Use check_existing for each one to avoid duplicates
+5. Use stage_venue or stage_artist for each entry
+6. Report what you extracted and staged
+
 ## Data Quality Guidelines
-- **High confidence (80-100)**: Has name, location, venue type/genre, contact or website
-- **Medium confidence (50-79)**: Has name and location, missing some details
-- **Low confidence (0-49)**: Incomplete data, may need verification
+- **High confidence (80-100)**: Has name, location, type, AND contact info (email, website, or phone)
+- **Medium confidence (50-79)**: Has name and location, missing contact info
+- **Low confidence (0-49)**: Minimal data, needs significant verification
 
-## What to Look For
+## Priority Fields to Find
 
-### Venues
-- House show spaces, basements, warehouses
-- DIY-friendly bars and clubs
-- Record stores that host shows
-- VFW halls, community centers
-- All-ages venues
-- Art galleries with music
+### For Venues (in order of importance):
+1. **Name** - Required
+2. **City, State** - Required  
+3. **Contact email** - Very important for booking
+4. **Website or social media** - Important for verification
+5. **Phone number** - Helpful if available
+6. **Street address** - Helpful but often private for house shows
+7. **Venue type** - House show, bar, warehouse, etc.
+8. **Capacity** - Helpful for booking decisions
+9. **Description** - Vibe, what genres they book, etc.
 
-### Artists  
-- Local bands in the DIY/punk/indie scene
-- Touring acts mentioned in show listings
-- Artists from Bandcamp, local blogs, venue calendars
+### For Artists:
+1. **Name** - Required
+2. **City, State** - Required (home base)
+3. **Booking email** - Very important
+4. **Website/Bandcamp** - Important
+5. **Genres** - Important for matching
+6. **Artist type** - Band, solo, DJ, etc.
 
-## Tips
-- Search for "[city] DIY venue" or "[city] house shows"
-- Check local music blogs and scene reports
-- Look at venue calendars and show listings
-- Bandcamp is great for finding artists by location
-- Reddit communities often discuss local scenes
+## Search Strategies
+
+### Finding Contact Info:
+- Search "[venue name] booking contact"
+- Search "[venue name] email"  
+- Look for "book a show" or "contact" pages on venue websites
+- Check Instagram/Facebook bios for booking emails
+- Look at show flyers which often have venue contact
+
+### Finding Venues:
+- "[city] DIY venue" or "[city] house shows"
+- "[city] all ages venue"
+- "[city] punk venue booking"
+- Look at local music blogs and scene reports
+- Check event listings on Resident Advisor, Songkick
+
+### Finding Artists:
+- Bandcamp: "[city] punk bandcamp" or browse by location
+- "[city] local bands booking"
+- Check venue calendars for who's playing
 
 ## Important
 - Always check_existing before staging to avoid duplicates
-- Include source URLs when possible
-- Be honest about confidence levels
-- Note what information is missing in your aiNotes
+- Include source URLs - helps verify data later
+- Be honest about confidence - lower score if missing contact info
+- In aiNotes, LIST what info is missing (e.g., "Missing: email, phone")
+- If you only find a name and city, stage with low confidence and note what's needed
 
 ## Response Style
 - Be transparent about your search process
 - List each venue/artist you found with key details
-- Explain why you staged some and skipped others
-- Give a clear summary at the end: "Staged X venues, skipped Y (duplicates/incomplete)"
-- Include confidence reasoning
+- Show what contact info you DID and DIDN'T find
+- Explain confidence scores based on data completeness
+- Give a clear summary at the end
 
 Example response format:
 "I searched for DIY venues in Portland and found 8 results. Here's what I staged:
 
 ✅ STAGED:
-1. The Depot (warehouse, 200 cap) - 85% confidence - has website, contact, address
-2. House of Sound (house show) - 70% confidence - found on local blog, missing contact
+1. **The Depot** (warehouse, 200 cap) - 85% confidence
+   📧 booking@thedepot.com | 🌐 thedepot.com
+   Missing: phone, street address
+
+2. **House of Sound** (house show) - 55% confidence
+   🌐 instagram.com/houseofsound
+   Missing: email, phone, address - found on local blog, needs more research
 
 ❌ SKIPPED:
 - "Portland Music Venue" - already exists in database
-- "Some Bar" - not DIY-focused, appears to be a regular bar
+- "Random Bar" - not DIY-focused, commercial venue
 
-Summary: Staged 2 venues for review. Check the queue to approve!"
+📊 Summary: Staged 2 venues. 1 has good contact info, 1 needs more research."
+
+If contact info is hard to find, say so! Example:
+"Note: DIY venues often don't publish contact info publicly. You may need to reach out via Instagram DM or find them through scene connections."
 
 Be efficient and thorough. The admin will review everything before it goes live.`;
 
