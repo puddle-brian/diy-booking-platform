@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function AdminLoginPage() {
+// Inner component that uses useSearchParams
+function AdminLoginForm() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -119,5 +120,23 @@ export default function AdminLoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Loading fallback
+function LoginLoading() {
+  return (
+    <div className="min-h-screen bg-bg-primary flex items-center justify-center">
+      <div className="text-text-muted">Loading...</div>
+    </div>
+  );
+}
+
+// Main export wrapped in Suspense
+export default function AdminLoginPage() {
+  return (
+    <Suspense fallback={<LoginLoading />}>
+      <AdminLoginForm />
+    </Suspense>
   );
 }
