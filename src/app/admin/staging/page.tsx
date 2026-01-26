@@ -261,6 +261,15 @@ export default function StagingPage() {
               >
                 + ADD MANUALLY
               </button>
+              <button
+                onClick={async () => {
+                  await fetch('/api/admin/auth', { method: 'DELETE' });
+                  window.location.href = '/admin/login';
+                }}
+                className="btn text-2xs text-red-400 border-red-500/40 hover:bg-red-500/20"
+              >
+                LOGOUT
+              </button>
             </div>
           </div>
         </div>

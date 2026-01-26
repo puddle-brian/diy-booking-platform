@@ -389,6 +389,15 @@ export default function AdminPage() {
             <div className="flex items-center space-x-4">
               <a href="/" className="btn text-2xs">&lt;&lt; BACK TO SITE</a>
               
+              <button
+                onClick={async () => {
+                  await fetch('/api/admin/auth', { method: 'DELETE' });
+                  window.location.href = '/admin/login';
+                }}
+                className="btn text-2xs text-red-400 border-red-500/40 hover:bg-red-500/20"
+              >
+                LOGOUT
+              </button>
               {user ? (
                 <div className="text-right">
                   <div className="text-xs text-text-accent">{user.name}</div>
@@ -397,7 +406,7 @@ export default function AdminPage() {
                   </div>
                 </div>
               ) : (
-                <span className="text-2xs text-text-muted">[NOT LOGGED IN]</span>
+                <span className="text-2xs text-text-muted">[ADMIN SESSION]</span>
               )}
             </div>
           </div>
