@@ -1360,6 +1360,8 @@ enum DiscoveryJobType {
   GENRE_CITY      // Search for specific genre in city
   URL_SCRAPE      // Scrape a specific URL
   FOLLOWUP        // Follow up on a previous search for more details
+  FIND_SOURCES    // Phase 1: Find scene sources (blogs, calendars, forums)
+  DIG_SOURCES     // Phase 2: Dig into found sources for venues
 }
 
 enum DiscoveryJobStatus {

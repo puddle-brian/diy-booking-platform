@@ -16,44 +16,126 @@ const DEFAULT_DAILY_COST_LIMIT = 100; // $1
 const DEFAULT_MONTHLY_SEARCH_LIMIT = 1000;
 const DEFAULT_MONTHLY_COST_LIMIT = 2000; // $20
 
-// Extraction prompt - optimized for token efficiency
-const EXTRACTION_PROMPT = `Extract DIY venues and artists from this search data. Return JSON only.
+// =============================================================================
+// EXTRACTION PROMPTS - Different strategies for different job types
+// =============================================================================
 
-For each VENUE found, include all available fields:
+// Phase 1: Find SOURCES (blogs, calendars, forums) - extract URLs to dig into later
+const SOURCE_EXTRACTION_PROMPT = `You're finding DIY music scene SOURCES - blogs, show calendars, forums, zines.
+
+From these search results, extract:
+1. URLs to show calendars or event listings
+2. URLs to local music blogs or scene reports  
+3. URLs to forums/reddit threads about local venues
+4. URLs to venue or promoter websites
+5. Any venue names mentioned (we'll verify later)
+
+Return JSON array:
+[
+  {
+    "type": "source",
+    "url": "https://...",
+    "sourceType": "calendar|blog|forum|venue-site|promoter|social",
+    "description": "What this source contains",
+    "venuesMentioned": ["Venue Name 1", "Venue Name 2"]
+  },
+  {
+    "type": "venue",
+    "name": "...",
+    "city": "...",
+    "state": "XX",
+    "venueType": "house-show|basement|bar|warehouse|community-center|vfw|art-gallery|record-store|other",
+    "genres": ["punk", "hardcore"],
+    "description": "...",
+    "website": "...",
+    "confidence": 0-100
+  }
+]
+
+IMPORTANT: 
+- We want UNDERGROUND venues, not mainstream clubs
+- House shows, basements, DIY spaces, all-ages venues are GOLD
+- Lower confidence if venue seems mainstream/commercial
+- Include URLs even if you're not sure - we'll scrape them later
+Return [] if nothing found.`;
+
+// Phase 2: Deep extraction from sources - get all the details
+const DEEP_EXTRACTION_PROMPT = `Extract DIY venues and artists from this content. We want UNDERGROUND, under-the-radar spots.
+
+PRIORITIZE:
+- House shows, basement venues, DIY spaces
+- All-ages venues, community centers
+- Record stores, coffee shops, art galleries that host shows
+- VFW halls, American Legion, Elks lodges
+- Warehouses, practice spaces
+
+LOWER PRIORITY (but still include):
+- Bars that book DIY/punk (mark as "bar" type)
+- Small clubs focused on underground music
+
+SKIP:
+- Major commercial venues (Live Nation, etc.)
+- Large capacity mainstream clubs
+- Venues that only book cover bands/tribute acts
+
+For each VENUE:
 {
   "type": "venue",
   "name": "...",
   "city": "...",
   "state": "XX",
-  "venueType": "house-show|basement|bar|warehouse|community-center|other",
-  "genres": ["punk", "hardcore", ...],
-  "capacity": 100,
+  "venueType": "house-show|basement|warehouse|vfw|community-center|record-store|art-gallery|coffee-shop|bar|other",
+  "genres": ["punk", "hardcore", "noise", "experimental", "metal", "emo", "indie"],
   "ageRestriction": "all-ages|18+|21+",
-  "description": "...",
+  "capacity": 50,
+  "description": "What makes this spot special, vibe, who runs it",
+  "bookingInfo": "How to book, who to contact",
   "contactEmail": "...",
   "website": "...",
-  "confidence": 0-100
+  "socialLinks": {"instagram": "...", "facebook": "..."},
+  "confidence": 0-100,
+  "notes": "Any other useful info"
 }
 
-For each ARTIST found:
+For each ARTIST:
 {
-  "type": "artist",
+  "type": "artist", 
   "name": "...",
   "city": "...",
   "state": "XX",
-  "artistType": "band|solo|dj|other",
-  "genres": ["punk", ...],
-  "subgenres": ["powerviolence", ...],
+  "artistType": "band|solo|duo|dj|collective",
+  "genres": ["punk"],
+  "subgenres": ["powerviolence", "crust"],
+  "forFansOf": ["Black Flag", "Discharge"],
   "description": "...",
-  "contactEmail": "...",
-  "website": "...",
   "bandcampUrl": "...",
+  "website": "...",
+  "contactEmail": "...",
   "confidence": 0-100
 }
 
-Be SPECIFIC with genres. Higher confidence = more data found.
-Return array of objects: [{"type":"venue",...}, {"type":"artist",...}]
-If nothing found, return [].`;
+Be SPECIFIC with genres and subgenres. 
+Confidence: 80+ if you have contact info, 60-79 if just name/location/type, below 60 if uncertain.
+Return [] if nothing relevant found.`;
+
+// Legacy prompt for basic searches
+const BASIC_EXTRACTION_PROMPT = `Extract DIY venues and artists from this search data. Focus on UNDERGROUND spots - house shows, basements, all-ages venues, DIY spaces. Skip mainstream commercial venues.
+
+Return JSON array of:
+{
+  "type": "venue" or "artist",
+  "name": "...",
+  "city": "...",
+  "state": "XX",
+  "venueType": "house-show|basement|bar|warehouse|community-center|other",
+  "genres": ["punk", "hardcore", ...],
+  "description": "...",
+  "contactEmail": "...",
+  "website": "...",
+  "confidence": 0-100
+}
+
+Return [] if nothing found.`;
 
 // Check if we're within budget
 async function checkBudget(): Promise<{ canProceed: boolean; reason?: string }> {
@@ -189,18 +271,36 @@ async function tavilySearch(query: string): Promise<string> {
 }
 
 // Extract entities using Haiku
-async function extractEntities(searchResults: string, context: string): Promise<any[]> {
+async function extractEntities(
+  searchResults: string, 
+  context: string, 
+  jobType: string
+): Promise<any[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
 
   const anthropic = new Anthropic({ apiKey });
+
+  // Choose prompt based on job type
+  let prompt: string;
+  switch (jobType) {
+    case 'FIND_SOURCES':
+      prompt = SOURCE_EXTRACTION_PROMPT;
+      break;
+    case 'DIG_SOURCES':
+    case 'URL_SCRAPE':
+      prompt = DEEP_EXTRACTION_PROMPT;
+      break;
+    default:
+      prompt = BASIC_EXTRACTION_PROMPT;
+  }
 
   const response = await anthropic.messages.create({
     model: HAIKU_MODEL,
     max_tokens: 2000,
     messages: [{
       role: 'user',
-      content: `Context: Searching for ${context}\n\nSearch results:\n${searchResults}\n\n${EXTRACTION_PROMPT}`
+      content: `Context: ${context}\n\nSearch results:\n${searchResults}\n\n${prompt}`
     }]
   });
 
@@ -222,17 +322,98 @@ async function extractEntities(searchResults: string, context: string): Promise<
   }
 }
 
-// Stage extracted entities
-async function stageEntities(entities: any[], sourceQuery: string): Promise<{ venues: number; artists: number }> {
+// Stage extracted entities (venues, artists, and sources)
+async function stageEntities(
+  entities: any[], 
+  sourceQuery: string,
+  defaultCity?: string,
+  defaultState?: string
+): Promise<{ venues: number; artists: number; sources: number }> {
   let venues = 0;
   let artists = 0;
+  let sources = 0;
 
   for (const entity of entities) {
-    if (!entity.name || !entity.city || !entity.state) continue;
+    // Handle SOURCE type - queue URLs for later scraping
+    if (entity.type === 'source' && entity.url) {
+      // Create a URL_SCRAPE job for this source
+      const existingJob = await prisma.discoveryJob.findFirst({
+        where: {
+          jobType: 'URL_SCRAPE',
+          parameters: {
+            path: ['url'],
+            equals: entity.url
+          }
+        }
+      });
+
+      if (!existingJob) {
+        await prisma.discoveryJob.create({
+          data: {
+            jobType: 'URL_SCRAPE',
+            parameters: {
+              url: entity.url,
+              city: defaultCity,
+              state: defaultState,
+              sourceType: entity.sourceType,
+              description: entity.description
+            },
+            priority: 80, // High priority for source scraping
+          }
+        });
+        sources++;
+      }
+
+      // Also stage any venues mentioned in the source
+      if (entity.venuesMentioned && Array.isArray(entity.venuesMentioned)) {
+        for (const venueName of entity.venuesMentioned) {
+          if (typeof venueName === 'string' && venueName.length > 2) {
+            // Create a low-confidence staged entry for mentioned venues
+            const exists = await prisma.stagedEntity.findFirst({
+              where: {
+                entityType: 'VENUE',
+                data: { path: ['name'], string_contains: venueName }
+              }
+            });
+            
+            if (!exists && defaultCity && defaultState) {
+              await prisma.stagedEntity.create({
+                data: {
+                  entityType: 'VENUE',
+                  data: {
+                    name: venueName,
+                    city: defaultCity,
+                    state: defaultState,
+                    needsVerification: true
+                  },
+                  sourceType: 'automated',
+                  sourceUrl: entity.url,
+                  searchQuery: sourceQuery,
+                  confidence: 30, // Low confidence - just a mention
+                  aiNotes: `Mentioned in source: ${entity.url}. Needs verification.`,
+                  status: 'NEEDS_INFO'
+                }
+              });
+              venues++;
+            }
+          }
+        }
+      }
+      continue;
+    }
+
+    // Handle VENUE and ARTIST types
+    if (!entity.name) continue;
+    
+    // Use default city/state if not provided
+    const city = entity.city || defaultCity;
+    const state = entity.state || defaultState;
+    
+    if (!city || !state) continue;
 
     const entityType = entity.type === 'venue' ? 'VENUE' : 'ARTIST';
 
-    // Check for existing
+    // Check for existing staged
     const existing = await prisma.stagedEntity.findFirst({
       where: {
         entityType,
@@ -251,7 +432,7 @@ async function stageEntities(entities: any[], sourceQuery: string): Promise<{ ve
       const existingVenue = await prisma.venue.findFirst({
         where: {
           name: { equals: entity.name, mode: 'insensitive' },
-          location: { city: { equals: entity.city, mode: 'insensitive' } }
+          location: { city: { equals: city, mode: 'insensitive' } }
         }
       });
       if (existingVenue) continue;
@@ -262,17 +443,41 @@ async function stageEntities(entities: any[], sourceQuery: string): Promise<{ ve
       if (existingArtist) continue;
     }
 
-    // Stage it
-    const { type, confidence, ...data } = entity;
+    // Clean up the data object
+    const { type, confidence, ...rawData } = entity;
+    const data = {
+      ...rawData,
+      city,
+      state
+    };
+
+    // Determine confidence based on data completeness
+    let finalConfidence = confidence || 50;
+    if (data.contactEmail || data.website) finalConfidence = Math.max(finalConfidence, 70);
+    if (data.contactEmail && data.website) finalConfidence = Math.max(finalConfidence, 80);
+    if (data.genres && data.genres.length > 0) finalConfidence += 5;
+    if (data.description && data.description.length > 50) finalConfidence += 5;
+    finalConfidence = Math.min(finalConfidence, 95);
+
+    // Build AI notes
+    const missingFields = [];
+    if (!data.contactEmail) missingFields.push('email');
+    if (!data.website) missingFields.push('website');
+    if (!data.genres || data.genres.length === 0) missingFields.push('genres');
+    
+    const aiNotes = `Automated discovery. Confidence: ${finalConfidence}%.${
+      missingFields.length > 0 ? ` Missing: ${missingFields.join(', ')}` : ' Complete data!'
+    }`;
+
     await prisma.stagedEntity.create({
       data: {
         entityType,
         data,
         sourceType: 'automated',
         searchQuery: sourceQuery,
-        confidence: confidence || 50,
-        aiNotes: `Discovered via automated search. Confidence: ${confidence || 50}%`,
-        status: 'PENDING'
+        confidence: finalConfidence,
+        aiNotes,
+        status: finalConfidence >= 60 ? 'PENDING' : 'NEEDS_INFO'
       }
     });
 
@@ -280,43 +485,79 @@ async function stageEntities(entities: any[], sourceQuery: string): Promise<{ ve
     else artists++;
   }
 
-  return { venues, artists };
+  return { venues, artists, sources };
 }
 
 // Run a single discovery job
-async function runJob(job: any): Promise<{ searchesUsed: number; tokensUsed: number; costCents: number; venuesFound: number; artistsFound: number }> {
-  const params = job.parameters as { city: string; state: string; genre?: string };
+async function runJob(job: any): Promise<{ searchesUsed: number; tokensUsed: number; costCents: number; venuesFound: number; artistsFound: number; sourcesFound: number }> {
+  const params = job.parameters as { 
+    city: string; 
+    state: string; 
+    genre?: string;
+    region?: string;
+    searchQuery?: string;
+    url?: string;
+  };
   
   // Build search query based on job type
   let query: string;
   let context: string;
   
   switch (job.jobType) {
+    case 'FIND_SOURCES':
+      // Use custom query if provided, otherwise build one
+      query = params.searchQuery || `${params.city} ${params.state} DIY punk house shows venue calendar`;
+      context = `Finding DIY scene sources (blogs, calendars, forums) in ${params.city}, ${params.state}`;
+      break;
+    case 'DIG_SOURCES':
+      query = params.searchQuery || `${params.city} ${params.genre || 'punk'} basement house show venue booking`;
+      context = `Digging for underground venues in ${params.city}, ${params.state}${params.genre ? ` (${params.genre})` : ''}`;
+      break;
     case 'CITY_VENUES':
-      query = `DIY venues house shows all ages ${params.city} ${params.state}`;
+      query = params.searchQuery || `${params.city} ${params.state} DIY venue house shows basement all ages punk`;
       context = `DIY venues in ${params.city}, ${params.state}`;
       break;
     case 'CITY_ARTISTS':
-      query = `local bands artists booking ${params.city} ${params.state} bandcamp`;
-      context = `local bands/artists in ${params.city}, ${params.state}`;
+      query = params.searchQuery || `${params.city} ${params.state} local bands punk hardcore bandcamp booking`;
+      context = `Local bands/artists in ${params.city}, ${params.state}`;
       break;
     case 'GENRE_CITY':
-      query = `${params.genre} venue shows booking ${params.city} ${params.state}`;
+      query = params.searchQuery || `${params.city} ${params.genre} venue shows house basement all ages`;
       context = `${params.genre} venues/artists in ${params.city}, ${params.state}`;
+      break;
+    case 'URL_SCRAPE':
+      // For URL scrape, we fetch the URL directly instead of searching
+      if (!params.url) throw new Error('URL required for URL_SCRAPE job');
+      query = params.url;
+      context = `Extracting venues from ${params.url}`;
       break;
     default:
       throw new Error(`Unknown job type: ${job.jobType}`);
   }
 
-  // Search
-  const searchResults = await tavilySearch(query);
-  const searchesUsed = 1;
+  // Search (or scrape for URL jobs)
+  let searchResults: string;
+  let searchesUsed = 0;
+  
+  if (job.jobType === 'URL_SCRAPE') {
+    // Direct fetch for URL scraping
+    searchResults = await scrapeUrl(params.url!);
+    searchesUsed = 0; // No Tavily credit used
+  } else {
+    searchResults = await tavilySearch(query);
+    searchesUsed = 1;
+  }
+  
+  // Estimate prompt size for token calculation
+  const promptLength = job.jobType === 'FIND_SOURCES' 
+    ? SOURCE_EXTRACTION_PROMPT.length 
+    : DEEP_EXTRACTION_PROMPT.length;
   
   // Estimate search result tokens (roughly 4 chars per token)
-  const inputTokens = Math.ceil((searchResults.length + EXTRACTION_PROMPT.length) / 4);
+  const inputTokens = Math.ceil((searchResults.length + promptLength) / 4);
   
-  // Extract entities
-  const entities = await extractEntities(searchResults, context);
+  // Extract entities with job-type-specific prompt
+  const entities = await extractEntities(searchResults, context, job.jobType);
   
   // Estimate output tokens
   const outputTokens = Math.ceil(JSON.stringify(entities).length / 4);
@@ -324,18 +565,16 @@ async function runJob(job: any): Promise<{ searchesUsed: number; tokensUsed: num
   
   // Calculate cost in cents
   const costCents = Math.ceil(
-    TAVILY_SEARCH_COST + 
+    (searchesUsed * TAVILY_SEARCH_COST) + 
     (inputTokens / 1000) * HAIKU_INPUT_COST + 
     (outputTokens / 1000) * HAIKU_OUTPUT_COST
   );
 
-  // Stage entities
-  const { venues: venuesFound, artists: artistsFound } = await stageEntities(entities, query);
+  // Stage entities (and count sources)
+  const { venues: venuesFound, artists: artistsFound, sources: sourcesFound } = await stageEntities(entities, query, params.city, params.state);
 
   // Record progress
-  const searchKey = params.genre 
-    ? `${params.city.toLowerCase()}-${params.state.toLowerCase()}-${params.genre}`
-    : `${params.city.toLowerCase()}-${params.state.toLowerCase()}-${job.jobType === 'CITY_VENUES' ? 'venues' : 'artists'}`;
+  const searchKey = `${params.city.toLowerCase()}-${params.state.toLowerCase()}-${job.jobType.toLowerCase()}${params.genre ? `-${params.genre}` : ''}`;
 
   await prisma.discoveryProgress.upsert({
     where: { searchKey },
@@ -357,7 +596,43 @@ async function runJob(job: any): Promise<{ searchesUsed: number; tokensUsed: num
     }
   });
 
-  return { searchesUsed, tokensUsed, costCents, venuesFound, artistsFound };
+  return { searchesUsed, tokensUsed, costCents, venuesFound, artistsFound, sourcesFound };
+}
+
+// Scrape a URL directly (for URL_SCRAPE jobs)
+async function scrapeUrl(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; DIYShowsBot/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!response.ok) {
+      return `Error fetching ${url}: ${response.status}`;
+    }
+
+    const text = await response.text();
+    
+    // Basic HTML stripping
+    let cleaned = text
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Truncate if too long
+    if (cleaned.length > 8000) {
+      cleaned = cleaned.substring(0, 8000) + '... [truncated]';
+    }
+
+    return `Content from ${url}:\n\n${cleaned}`;
+  } catch (error) {
+    return `Error scraping ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`;
+  }
 }
 
 // Main cron handler
@@ -449,6 +724,7 @@ export async function GET(request: NextRequest) {
       result: {
         venuesFound: result.venuesFound,
         artistsFound: result.artistsFound,
+        sourcesQueued: result.sourcesFound,
         estimatedCost: `$${(result.costCents / 100).toFixed(3)}`
       }
     });

@@ -230,23 +230,53 @@ export default function AutomationPage() {
           </div>
         )}
 
+        {/* Regional Strategy */}
+        <div className="module-section">
+          <div className="module-header">&gt; REGIONAL STRATEGY (starts from Providence, radiates outward)</div>
+          <div className="p-4 space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-2xs">
+              {['New England', 'Northeast Corridor', 'Mid-Atlantic & Rust Belt', 'Midwest', 'Southeast', 'Florida', 'Texas & Southwest', 'Mountain West', 'Pacific Northwest', 'California'].map((region) => (
+                <button
+                  key={region}
+                  onClick={() => handleAction('seed_region', { region })}
+                  disabled={actionLoading !== null}
+                  className="btn px-2 py-2 text-left bg-bg-tertiary hover:bg-status-active/20 border-border-subtle"
+                >
+                  {region}
+                </button>
+              ))}
+            </div>
+            <p className="text-2xs text-text-muted">
+              Click a region to queue smart DIY source searches (blogs, calendars, forums) for all cities in that region.
+              The system finds underground sources first, then digs into them for venues.
+            </p>
+          </div>
+        </div>
+
         {/* Quick Actions */}
         <div className="module-section">
           <div className="module-header">&gt; QUICK ACTIONS</div>
           <div className="p-4 flex flex-wrap gap-3">
             <button
+              onClick={() => handleAction('seed_region', { region: 'New England' })}
+              disabled={actionLoading !== null}
+              className="btn text-2xs bg-green-500/20 border-green-500/40 hover:bg-green-500/30 text-green-400"
+            >
+              {actionLoading === 'seed_region' ? '...' : '🏠 Start: New England (Home)'}
+            </button>
+            <button
               onClick={() => handleAction('seed_cities')}
               disabled={actionLoading !== null}
               className="btn text-2xs bg-status-active/20 border-status-active/40 hover:bg-status-active/30"
             >
-              {actionLoading === 'seed_cities' ? '...' : '🏙️ Seed All Cities (Venues)'}
+              {actionLoading === 'seed_cities' ? '...' : '🏙️ Seed All Regions'}
             </button>
             <button
-              onClick={() => handleAction('seed_genres')}
+              onClick={() => handleAction('seed_genres', { region: 'New England' })}
               disabled={actionLoading !== null}
               className="btn text-2xs bg-status-info/20 border-status-info/40 hover:bg-status-info/30"
             >
-              {actionLoading === 'seed_genres' ? '...' : '🎵 Seed Genre Searches'}
+              {actionLoading === 'seed_genres' ? '...' : '🎵 Genre Deep-Dive (New England)'}
             </button>
             <button
               onClick={() => handleRunJobs(1)}
