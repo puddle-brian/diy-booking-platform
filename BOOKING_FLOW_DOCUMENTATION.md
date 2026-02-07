@@ -5,6 +5,72 @@
 
 ---
 
+## 🏆 THE VISION: The Ultimate DIY Database
+
+**Our Competitive Advantage**: DIY Shows aims to be THE most comprehensive, searchable database of DIY venues and touring artists in existence. This is our moat.
+
+### Why This Matters
+
+The DIY/underground music scene has always struggled with fragmented, word-of-mouth booking. Information is scattered across:
+- Personal contacts and scene knowledge
+- Facebook groups and Instagram DMs  
+- Outdated venue lists and blogs
+- Regional zines and message boards
+
+**DIY Shows solves this** by building a single, comprehensive, searchable database where:
+
+1. **Artists can find EXACTLY the right venues** by:
+   - Location & region
+   - Genres they book (specific: "powerviolence" not just "punk")
+   - Capacity & age restrictions
+   - Equipment provided (PA, drums, backline)
+   - Typical deal structures
+   - Scene context & vibe
+
+2. **Venues can find EXACTLY the right artists** by:
+   - Home base & tour status
+   - Genres & style (with "For Fans Of" references)
+   - Draw & experience level
+   - Equipment needs
+   - Typical guarantee range
+   - Tour history
+
+### Data Philosophy
+
+Every entry should be **RICH, SEARCHABLE, and USEFUL**:
+
+**For Venues, we capture:**
+- Basic: Name, location, neighborhood, venue type
+- Booking: Genres booked, preferences, typical bill structure
+- Logistics: Capacity, age restriction, equipment, load-in, parking
+- Financial: Typical deals (door split, guarantee range)
+- Contact: Email, phone, website, social links
+- Scene: Description, history, who runs it, years active
+- Status: Is it active? Last known show date?
+
+**For Artists, we capture:**
+- Basic: Name, location, artist type, members, year formed
+- Music: Genres, subgenres, "For Fans Of" references
+- Touring: Status, history, typical draw, typical guarantee
+- Logistics: Equipment needs, travel method
+- Contact: Booking email, website, Bandcamp, social links
+- Releases: Discography, label
+- Scene: Description, community connections
+- Status: Is the band active? Last activity?
+
+### Building the Database
+
+We use an **AI Discovery Agent** with human-in-the-loop approval:
+
+1. **Discovery**: Agent searches web, scrapes lists, extracts comprehensive data
+2. **Staging**: Entries go to admin review queue with confidence scores
+3. **Review**: Human approves/rejects/edits before going live
+4. **Quality**: Every approved entry enriches the database
+
+The more fields we capture, the more useful the search becomes.
+
+---
+
 ## 🎯 Core Concept: The Booking Lifecycle
 
 Every booking opportunity flows through these stages:

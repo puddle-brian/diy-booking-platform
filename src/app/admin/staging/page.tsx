@@ -2,18 +2,143 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 
+// Helper component for data sections
+function DataSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const hasContent = React.Children.toArray(children).some(child => {
+    if (React.isValidElement(child) && child.props.value !== undefined && child.props.value !== null && child.props.value !== '') {
+      return true;
+    }
+    return false;
+  });
+  
+  if (!hasContent) return null;
+  
+  return (
+    <div>
+      <h4 className="text-2xs uppercase tracking-wider text-text-muted border-b border-border-subtle pb-1 mb-2">
+        {title}
+      </h4>
+      <div className="space-y-1 text-xs">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Helper component for data rows
+function DataRow({ 
+  label, 
+  value, 
+  isArray, 
+  isObject, 
+  isUrl, 
+  isEmail 
+}: { 
+  label: string; 
+  value: unknown; 
+  isArray?: boolean; 
+  isObject?: boolean;
+  isUrl?: boolean;
+  isEmail?: boolean;
+}) {
+  if (value === undefined || value === null || value === '') return null;
+  if (isArray && Array.isArray(value) && value.length === 0) return null;
+  if (isObject && typeof value === 'object' && Object.keys(value as object).length === 0) return null;
+  
+  let displayValue: React.ReactNode;
+  
+  if (isArray && Array.isArray(value)) {
+    displayValue = (
+      <div className="flex flex-wrap gap-1">
+        {value.map((item, i) => (
+          <span key={i} className="px-1 py-0.5 bg-bg-tertiary border border-border-subtle text-2xs">
+            {String(item)}
+          </span>
+        ))}
+      </div>
+    );
+  } else if (isObject && typeof value === 'object') {
+    displayValue = (
+      <div className="text-2xs">
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+          <span key={k} className="mr-2">
+            {k}: {String(v)}
+          </span>
+        ))}
+      </div>
+    );
+  } else if (isUrl) {
+    displayValue = (
+      <a href={String(value)} target="_blank" rel="noopener noreferrer" className="text-status-info hover:underline truncate block">
+        {String(value)}
+      </a>
+    );
+  } else if (isEmail) {
+    displayValue = (
+      <a href={`mailto:${String(value)}`} className="text-status-info hover:underline">
+        {String(value)}
+      </a>
+    );
+  } else {
+    displayValue = <span className="text-text-primary">{String(value)}</span>;
+  }
+  
+  return (
+    <div className="flex justify-between items-start gap-2">
+      <span className="text-text-muted shrink-0">{label}:</span>
+      <div className="text-right overflow-hidden">{displayValue}</div>
+    </div>
+  );
+}
+
 interface StagedEntityData {
+  // Basic
   name: string;
   city?: string;
   state?: string;
   country?: string;
+  neighborhood?: string;
+  
+  // Venue-specific
   venueType?: string;
-  artistType?: string;
+  ageRestriction?: string;
   capacity?: number;
+  bookingPreferences?: string;
+  typicalBill?: string;
+  equipmentProvided?: object;
+  loadInInfo?: string;
+  typicalDeal?: string;
+  sceneNotes?: string;
+  yearsActive?: string;
+  lastKnownShow?: string;
+  
+  // Artist-specific
+  artistType?: string;
+  members?: number;
+  yearFormed?: number;
+  subgenres?: string[];
+  forFansOf?: string[];
+  tourStatus?: string;
+  tourHistory?: string;
+  typicalDraw?: string;
+  typicalGuarantee?: string;
+  equipmentNeeds?: object;
+  travelMethod?: string;
+  bandcampUrl?: string;
+  discography?: string;
+  label?: string;
+  sceneConnections?: string;
+  lastKnownActivity?: string;
+  
+  // Shared
   genres?: string[];
   description?: string;
   website?: string;
   contactEmail?: string;
+  contactPhone?: string;
+  socialLinks?: object;
+  isActive?: boolean;
+  
   [key: string]: unknown;
 }
 
@@ -255,6 +380,12 @@ export default function StagingPage() {
               >
                 🔍 DISCOVERY AGENT
               </a>
+              <a 
+                href="/admin/staging/automation"
+                className="btn text-2xs bg-purple-500/20 border-purple-500/40 hover:bg-purple-500/30 text-purple-400"
+              >
+                🤖 AUTOMATION
+              </a>
               <button 
                 onClick={() => setShowAddModal(true)}
                 className="btn text-2xs bg-status-active/20 border-status-active/40 hover:bg-status-active/30"
@@ -422,13 +553,13 @@ export default function StagingPage() {
                     </span>
                   </div>
 
-                  {/* Data Fields */}
-                  <div className="space-y-2">
-                    <h4 className="text-2xs uppercase tracking-wider text-text-muted border-b border-border-subtle pb-1">
-                      Data Fields
-                    </h4>
+                  {/* Data Fields - Organized by Category */}
+                  <div className="space-y-3">
                     {editingData ? (
                       <div className="space-y-2">
+                        <h4 className="text-2xs uppercase tracking-wider text-text-muted border-b border-border-subtle pb-1">
+                          Edit Data
+                        </h4>
                         <input
                           type="text"
                           value={editingData.name || ''}
@@ -457,6 +588,23 @@ export default function StagingPage() {
                           className="w-full bg-bg-tertiary border border-border-subtle text-text-primary text-xs px-2 py-1"
                           placeholder="Website"
                         />
+                        <input
+                          type="text"
+                          value={editingData.contactEmail || ''}
+                          onChange={(e) => setEditingData({ ...editingData, contactEmail: e.target.value })}
+                          className="w-full bg-bg-tertiary border border-border-subtle text-text-primary text-xs px-2 py-1"
+                          placeholder="Contact Email"
+                        />
+                        <input
+                          type="text"
+                          value={(editingData.genres as string[])?.join(', ') || ''}
+                          onChange={(e) => setEditingData({ 
+                            ...editingData, 
+                            genres: e.target.value.split(',').map(g => g.trim()).filter(Boolean) 
+                          })}
+                          className="w-full bg-bg-tertiary border border-border-subtle text-text-primary text-xs px-2 py-1"
+                          placeholder="Genres (comma-separated)"
+                        />
                         <textarea
                           value={editingData.description || ''}
                           onChange={(e) => setEditingData({ ...editingData, description: e.target.value })}
@@ -480,16 +628,137 @@ export default function StagingPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="text-xs space-y-1">
-                        {Object.entries(selectedEntity.data).map(([key, value]) => (
-                          <div key={key} className="flex justify-between">
-                            <span className="text-text-muted">{key}:</span>
-                            <span className="text-text-primary text-right max-w-[60%] truncate">
-                              {Array.isArray(value) ? value.join(', ') : String(value || '—')}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                      <>
+                        {/* Data Completeness Score */}
+                        {(() => {
+                          const data = selectedEntity.data;
+                          const filledFields = Object.entries(data).filter(([, v]) => 
+                            v !== undefined && v !== null && v !== '' && 
+                            !(Array.isArray(v) && v.length === 0) &&
+                            !(typeof v === 'object' && !Array.isArray(v) && Object.keys(v).length === 0)
+                          ).length;
+                          const maxFields = selectedEntity.entityType === 'VENUE' ? 20 : 22;
+                          const percentage = Math.round((filledFields / maxFields) * 100);
+                          return (
+                            <div className="bg-bg-tertiary p-2 border border-border-subtle">
+                              <div className="flex justify-between items-center text-2xs mb-1">
+                                <span className="text-text-muted">Data Completeness</span>
+                                <span className={percentage >= 70 ? 'text-green-400' : percentage >= 40 ? 'text-yellow-400' : 'text-red-400'}>
+                                  {filledFields}/{maxFields} fields ({percentage}%)
+                                </span>
+                              </div>
+                              <div className="h-1 bg-bg-primary rounded">
+                                <div 
+                                  className={`h-1 rounded ${percentage >= 70 ? 'bg-green-500' : percentage >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        {/* Basic Info */}
+                        <DataSection title="📍 LOCATION">
+                          <DataRow label="Name" value={selectedEntity.data.name} />
+                          <DataRow label="City" value={selectedEntity.data.city} />
+                          <DataRow label="State" value={selectedEntity.data.state} />
+                          <DataRow label="Country" value={selectedEntity.data.country} />
+                          {selectedEntity.data.neighborhood && <DataRow label="Neighborhood" value={selectedEntity.data.neighborhood} />}
+                        </DataSection>
+
+                        {/* Type & Style */}
+                        <DataSection title="🎵 TYPE & GENRES">
+                          {selectedEntity.entityType === 'VENUE' && (
+                            <>
+                              <DataRow label="Venue Type" value={selectedEntity.data.venueType} />
+                              <DataRow label="Age Policy" value={selectedEntity.data.ageRestriction as string} />
+                            </>
+                          )}
+                          {selectedEntity.entityType === 'ARTIST' && (
+                            <>
+                              <DataRow label="Artist Type" value={selectedEntity.data.artistType} />
+                              <DataRow label="Members" value={selectedEntity.data.members as number} />
+                              <DataRow label="Year Formed" value={selectedEntity.data.yearFormed as number} />
+                            </>
+                          )}
+                          <DataRow label="Genres" value={selectedEntity.data.genres} isArray />
+                          {selectedEntity.data.subgenres && <DataRow label="Subgenres" value={selectedEntity.data.subgenres as string[]} isArray />}
+                          {selectedEntity.data.forFansOf && <DataRow label="For Fans Of" value={selectedEntity.data.forFansOf as string[]} isArray />}
+                        </DataSection>
+
+                        {/* Booking Info */}
+                        {(selectedEntity.data.capacity || selectedEntity.data.typicalDeal || 
+                          selectedEntity.data.bookingPreferences || selectedEntity.data.tourStatus) && (
+                          <DataSection title="📋 BOOKING">
+                            {selectedEntity.entityType === 'VENUE' && (
+                              <>
+                                <DataRow label="Capacity" value={selectedEntity.data.capacity} />
+                                <DataRow label="Typical Deal" value={selectedEntity.data.typicalDeal as string} />
+                                <DataRow label="Booking Prefs" value={selectedEntity.data.bookingPreferences as string} />
+                                <DataRow label="Typical Bill" value={selectedEntity.data.typicalBill as string} />
+                              </>
+                            )}
+                            {selectedEntity.entityType === 'ARTIST' && (
+                              <>
+                                <DataRow label="Tour Status" value={selectedEntity.data.tourStatus as string} />
+                                <DataRow label="Tour History" value={selectedEntity.data.tourHistory as string} />
+                                <DataRow label="Typical Draw" value={selectedEntity.data.typicalDraw as string} />
+                                <DataRow label="Typical Guarantee" value={selectedEntity.data.typicalGuarantee as string} />
+                              </>
+                            )}
+                          </DataSection>
+                        )}
+
+                        {/* Equipment */}
+                        {(selectedEntity.data.equipmentProvided || selectedEntity.data.equipmentNeeds || selectedEntity.data.loadInInfo) && (
+                          <DataSection title="🎸 EQUIPMENT">
+                            {selectedEntity.entityType === 'VENUE' && (
+                              <>
+                                <DataRow label="Equipment" value={selectedEntity.data.equipmentProvided as object} isObject />
+                                <DataRow label="Load-In" value={selectedEntity.data.loadInInfo as string} />
+                              </>
+                            )}
+                            {selectedEntity.entityType === 'ARTIST' && (
+                              <>
+                                <DataRow label="Equipment Needs" value={selectedEntity.data.equipmentNeeds as object} isObject />
+                                <DataRow label="Travel Method" value={selectedEntity.data.travelMethod as string} />
+                              </>
+                            )}
+                          </DataSection>
+                        )}
+
+                        {/* Contact */}
+                        <DataSection title="📞 CONTACT">
+                          <DataRow label="Email" value={selectedEntity.data.contactEmail} isEmail />
+                          <DataRow label="Phone" value={selectedEntity.data.contactPhone as string} />
+                          <DataRow label="Website" value={selectedEntity.data.website} isUrl />
+                          {selectedEntity.data.bandcampUrl && <DataRow label="Bandcamp" value={selectedEntity.data.bandcampUrl as string} isUrl />}
+                          {selectedEntity.data.socialLinks && <DataRow label="Social" value={selectedEntity.data.socialLinks as object} isObject />}
+                        </DataSection>
+
+                        {/* Context */}
+                        {(selectedEntity.data.description || selectedEntity.data.sceneNotes || selectedEntity.data.sceneConnections) && (
+                          <DataSection title="📝 CONTEXT">
+                            {selectedEntity.data.description && (
+                              <div className="text-2xs text-text-secondary mb-2">{selectedEntity.data.description}</div>
+                            )}
+                            <DataRow label="Scene Notes" value={selectedEntity.data.sceneNotes as string} />
+                            <DataRow label="Scene Connections" value={selectedEntity.data.sceneConnections as string} />
+                            <DataRow label="Years Active" value={selectedEntity.data.yearsActive as string} />
+                            {selectedEntity.data.discography && <DataRow label="Discography" value={selectedEntity.data.discography as string} />}
+                            {selectedEntity.data.label && <DataRow label="Label" value={selectedEntity.data.label as string} />}
+                          </DataSection>
+                        )}
+
+                        {/* Status */}
+                        <DataSection title="📊 STATUS">
+                          <DataRow 
+                            label="Active" 
+                            value={selectedEntity.data.isActive !== false ? 'Yes' : 'No'} 
+                          />
+                          <DataRow label="Last Activity" value={selectedEntity.data.lastKnownShow as string || selectedEntity.data.lastKnownActivity as string} />
+                        </DataSection>
+                      </>
                     )}
                   </div>
 

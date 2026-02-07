@@ -53,10 +53,13 @@ The tool returns the text content of the page. You should then parse it to extra
   },
   {
     name: 'stage_venue',
-    description: 'Stage a discovered venue for admin review. Call this after finding venue information via web search.',
+    description: `Stage a discovered venue for admin review. Extract as much information as possible to build the most comprehensive DIY venue database.
+
+The goal is to create THE definitive database of DIY venues - every field you can fill helps artists find the right venues.`,
     input_schema: {
       type: 'object' as const,
       properties: {
+        // === BASIC INFO ===
         name: {
           type: 'string',
           description: 'Name of the venue'
@@ -73,37 +76,110 @@ The tool returns the text content of the page. You should then parse it to extra
           type: 'string',
           description: 'Country (default: USA)'
         },
+        neighborhood: {
+          type: 'string',
+          description: 'Neighborhood or area within the city (e.g., "Williamsburg", "East Side")'
+        },
         venueType: {
           type: 'string',
-          description: 'Type: house-show, basement, bar, club, warehouse, coffee-shop, record-store, vfw-hall, community-center, other'
+          description: 'Type: house-show, basement, bar, club, warehouse, coffee-shop, record-store, vfw-hall, community-center, art-gallery, church, brewery, other'
         },
+        
+        // === CAPACITY & ACCESS ===
         capacity: {
           type: 'number',
-          description: 'Estimated capacity'
+          description: 'Estimated capacity (number of people)'
         },
-        description: {
+        ageRestriction: {
           type: 'string',
-          description: 'Description of the venue'
+          description: 'Age policy: all-ages, 18+, 21+'
+        },
+        
+        // === GENRES & BOOKING ===
+        genres: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Genres they book (e.g., ["punk", "hardcore", "noise", "indie", "metal", "folk", "experimental", "hip-hop", "electronic"]). Be specific!'
+        },
+        bookingPreferences: {
+          type: 'string',
+          description: 'What they look for in acts: touring bands, local openers, specific styles, DIY ethics, etc.'
+        },
+        typicalBill: {
+          type: 'string',
+          description: 'How shows are typically structured: "3-4 local bands", "touring headliner + 2 locals", etc.'
+        },
+        
+        // === EQUIPMENT & LOGISTICS ===
+        equipmentProvided: {
+          type: 'object',
+          description: 'Equipment available: { pa: true/false, drums: true/false, backline: true/false, mics: true/false, monitors: true/false }'
+        },
+        loadInInfo: {
+          type: 'string',
+          description: 'Load-in details: street level, stairs, parking situation, etc.'
+        },
+        
+        // === FINANCIAL ===
+        typicalDeal: {
+          type: 'string',
+          description: 'Typical deal structure: "door deal 80/20", "$200-400 guarantee", "pass the hat", etc.'
+        },
+        
+        // === CONTACT & SOCIAL ===
+        contactEmail: {
+          type: 'string',
+          description: 'Booking email'
+        },
+        contactPhone: {
+          type: 'string',
+          description: 'Phone number if available'
         },
         website: {
           type: 'string',
-          description: 'Website URL if found'
+          description: 'Website URL'
         },
-        contactEmail: {
+        socialLinks: {
+          type: 'object',
+          description: 'Social media: { instagram: "url", facebook: "url", twitter: "url" }'
+        },
+        
+        // === SCENE CONTEXT ===
+        description: {
           type: 'string',
-          description: 'Contact email if found'
+          description: 'Description of the venue - vibe, history, what makes it special'
         },
+        sceneNotes: {
+          type: 'string',
+          description: 'Context about the local scene, who runs it, notable shows hosted, community connections'
+        },
+        yearsActive: {
+          type: 'string',
+          description: 'How long they\'ve been hosting shows (e.g., "since 2015", "10+ years")'
+        },
+        
+        // === STATUS ===
+        isActive: {
+          type: 'boolean',
+          description: 'Is the venue currently booking shows? (false if closed, hiatus, or uncertain)'
+        },
+        lastKnownShow: {
+          type: 'string',
+          description: 'Date or approximate time of last known show (e.g., "March 2024", "recently active")'
+        },
+        
+        // === META ===
         sourceUrl: {
           type: 'string',
           description: 'URL where this information was found'
         },
         confidence: {
           type: 'number',
-          description: 'Confidence score 0-100 based on data quality/completeness'
+          description: 'Confidence score 0-100. Higher if more fields filled, verified sources, recent info.'
         },
         notes: {
           type: 'string',
-          description: 'Your notes about this discovery (data quality, missing info, etc.)'
+          description: 'Your notes: data quality, what\'s missing, verification needs, etc.'
         }
       },
       required: ['name', 'city', 'state']
@@ -111,17 +187,20 @@ The tool returns the text content of the page. You should then parse it to extra
   },
   {
     name: 'stage_artist',
-    description: 'Stage a discovered artist/band for admin review. Call this after finding artist information via web search.',
+    description: `Stage a discovered artist/band for admin review. Extract as much information as possible to build the most comprehensive DIY artist database.
+
+The goal is to create THE definitive database of DIY/touring artists - every field helps venues find the right acts.`,
     input_schema: {
       type: 'object' as const,
       properties: {
+        // === BASIC INFO ===
         name: {
           type: 'string',
           description: 'Name of the artist/band'
         },
         city: {
           type: 'string',
-          description: 'City where the artist is based'
+          description: 'Home base city'
         },
         state: {
           type: 'string',
@@ -133,36 +212,128 @@ The tool returns the text content of the page. You should then parse it to extra
         },
         artistType: {
           type: 'string',
-          description: 'Type: band, solo, collective, dj, other'
+          description: 'Type: band, solo, duo, collective, dj, rapper, singer-songwriter, other'
         },
+        
+        // === MUSIC & STYLE ===
         genres: {
           type: 'array',
           items: { type: 'string' },
-          description: 'List of genres'
+          description: 'Primary genres (e.g., ["punk", "hardcore"]). Use common genre tags.'
         },
-        description: {
+        subgenres: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'More specific styles (e.g., ["powerviolence", "d-beat", "crust", "post-punk", "shoegaze"])'
+        },
+        forFansOf: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Similar artists for reference (e.g., ["Black Flag", "Fugazi", "Melvins"])'
+        },
+        
+        // === BAND DETAILS ===
+        members: {
+          type: 'number',
+          description: 'Number of members'
+        },
+        yearFormed: {
+          type: 'number',
+          description: 'Year the band/project started'
+        },
+        
+        // === TOURING & BOOKING ===
+        tourStatus: {
           type: 'string',
-          description: 'Description of the artist'
+          description: 'Current status: actively-touring, regional-only, local-only, hiatus, seeking-shows, inactive'
+        },
+        tourHistory: {
+          type: 'string',
+          description: 'Brief touring history: "3 US tours", "plays locally", "toured Europe 2023", etc.'
+        },
+        typicalDraw: {
+          type: 'string',
+          description: 'Expected crowd size in their home market: "50-100", "20-30", "150+", etc.'
+        },
+        typicalGuarantee: {
+          type: 'string',
+          description: 'What they typically get/ask for: "$200-400", "gas money", "door deal", etc.'
+        },
+        
+        // === EQUIPMENT & LOGISTICS ===
+        equipmentNeeds: {
+          type: 'object',
+          description: 'What they need provided: { drums: true/false, amps: true/false, pa: true/false, backline: "full/partial/none" }'
+        },
+        travelMethod: {
+          type: 'string',
+          description: 'How they travel: van, car, flying, etc.'
+        },
+        
+        // === CONTACT & SOCIAL ===
+        contactEmail: {
+          type: 'string',
+          description: 'Booking email'
+        },
+        contactPhone: {
+          type: 'string',
+          description: 'Phone if available'
         },
         website: {
           type: 'string',
-          description: 'Website or Bandcamp URL if found'
+          description: 'Official website'
         },
-        contactEmail: {
+        bandcampUrl: {
           type: 'string',
-          description: 'Booking email if found'
+          description: 'Bandcamp page URL'
         },
+        socialLinks: {
+          type: 'object',
+          description: 'Social media: { instagram: "url", facebook: "url", twitter: "url", spotify: "url" }'
+        },
+        
+        // === RELEASES ===
+        discography: {
+          type: 'string',
+          description: 'Notable releases: "2 LPs, 3 EPs", "debut album 2023", etc.'
+        },
+        label: {
+          type: 'string',
+          description: 'Record label if any (or "self-released", "DIY")'
+        },
+        
+        // === CONTEXT ===
+        description: {
+          type: 'string',
+          description: 'Description of their sound, style, and what makes them notable'
+        },
+        sceneConnections: {
+          type: 'string',
+          description: 'Scene context: what community they\'re part of, notable collaborations, etc.'
+        },
+        
+        // === STATUS ===
+        isActive: {
+          type: 'boolean',
+          description: 'Is the artist currently active? (false if broken up, hiatus, uncertain)'
+        },
+        lastKnownActivity: {
+          type: 'string',
+          description: 'Last known show or release: "played 3/2024", "released EP 2023"'
+        },
+        
+        // === META ===
         sourceUrl: {
           type: 'string',
           description: 'URL where this information was found'
         },
         confidence: {
           type: 'number',
-          description: 'Confidence score 0-100 based on data quality/completeness'
+          description: 'Confidence score 0-100. Higher if more fields filled, verified sources, recent info.'
         },
         notes: {
           type: 'string',
-          description: 'Your notes about this discovery'
+          description: 'Your notes: data quality, what\'s missing, verification needs, etc.'
         }
       },
       required: ['name', 'city', 'state']
@@ -435,17 +606,40 @@ For now, you can manually provide information about venues/artists you want to s
 Example: "Stage a venue called The Depot in Portland, OR - it's a warehouse space that holds about 200 people"`;
 }
 
-// Stage a venue
+// Stage a venue - comprehensive data collection for THE ultimate DIY venue database
 async function stageVenue(params: {
+  // Basic
   name: string;
   city: string;
   state: string;
   country?: string;
+  neighborhood?: string;
   venueType?: string;
+  // Capacity & Access
   capacity?: number;
-  description?: string;
-  website?: string;
+  ageRestriction?: string;
+  // Genres & Booking
+  genres?: string[];
+  bookingPreferences?: string;
+  typicalBill?: string;
+  // Equipment & Logistics
+  equipmentProvided?: object;
+  loadInInfo?: string;
+  // Financial
+  typicalDeal?: string;
+  // Contact & Social
   contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  socialLinks?: object;
+  // Scene Context
+  description?: string;
+  sceneNotes?: string;
+  yearsActive?: string;
+  // Status
+  isActive?: boolean;
+  lastKnownShow?: string;
+  // Meta
   sourceUrl?: string;
   confidence?: number;
   notes?: string;
@@ -492,21 +686,51 @@ async function stageVenue(params: {
       });
     }
 
+    // Build comprehensive data object - every field helps make this THE database
+    const venueData: Record<string, unknown> = {
+      // Basic
+      name: params.name,
+      city: params.city,
+      state: params.state,
+      country: params.country || 'USA',
+      neighborhood: params.neighborhood,
+      venueType: params.venueType || 'other',
+      // Capacity & Access
+      capacity: params.capacity,
+      ageRestriction: params.ageRestriction,
+      // Genres & Booking
+      genres: params.genres || [],
+      bookingPreferences: params.bookingPreferences,
+      typicalBill: params.typicalBill,
+      // Equipment & Logistics
+      equipmentProvided: params.equipmentProvided,
+      loadInInfo: params.loadInInfo,
+      // Financial
+      typicalDeal: params.typicalDeal,
+      // Contact & Social
+      contactEmail: params.contactEmail,
+      contactPhone: params.contactPhone,
+      website: params.website,
+      socialLinks: params.socialLinks,
+      // Scene Context
+      description: params.description,
+      sceneNotes: params.sceneNotes,
+      yearsActive: params.yearsActive,
+      // Status
+      isActive: params.isActive !== false, // Default to true
+      lastKnownShow: params.lastKnownShow,
+    };
+
+    // Remove undefined values for cleaner storage
+    Object.keys(venueData).forEach(key => {
+      if (venueData[key] === undefined) delete venueData[key];
+    });
+
     // Create staged entry
     const staged = await prisma.stagedEntity.create({
       data: {
         entityType: 'VENUE',
-        data: {
-          name: params.name,
-          city: params.city,
-          state: params.state,
-          country: params.country || 'USA',
-          venueType: params.venueType || 'other',
-          capacity: params.capacity,
-          description: params.description,
-          website: params.website,
-          contactEmail: params.contactEmail
-        },
+        data: venueData,
         sourceUrl: params.sourceUrl,
         sourceType: params.sourceUrl ? 'web_search' : 'manual',
         searchQuery: params.searchQuery,
@@ -516,11 +740,21 @@ async function stageVenue(params: {
       }
     });
 
+    // Count how many fields were filled for feedback
+    const filledFields = Object.keys(venueData).filter(k => 
+      venueData[k] !== undefined && 
+      venueData[k] !== null && 
+      venueData[k] !== '' &&
+      !(Array.isArray(venueData[k]) && (venueData[k] as unknown[]).length === 0)
+    ).length;
+
     return JSON.stringify({
       success: true,
       message: `Staged "${params.name}" for review`,
       stagedId: staged.id,
-      confidence: params.confidence || 50
+      confidence: params.confidence || 50,
+      fieldsCollected: filledFields,
+      dataCompleteness: `${filledFields}/20 fields filled`
     });
   } catch (error) {
     console.error('Error staging venue:', error);
@@ -531,17 +765,45 @@ async function stageVenue(params: {
   }
 }
 
-// Stage an artist
+// Stage an artist - comprehensive data collection for THE ultimate DIY artist database
 async function stageArtist(params: {
+  // Basic
   name: string;
   city: string;
   state: string;
   country?: string;
   artistType?: string;
+  // Music & Style
   genres?: string[];
-  description?: string;
-  website?: string;
+  subgenres?: string[];
+  forFansOf?: string[];
+  // Band Details
+  members?: number;
+  yearFormed?: number;
+  // Touring & Booking
+  tourStatus?: string;
+  tourHistory?: string;
+  typicalDraw?: string;
+  typicalGuarantee?: string;
+  // Equipment & Logistics
+  equipmentNeeds?: object;
+  travelMethod?: string;
+  // Contact & Social
   contactEmail?: string;
+  contactPhone?: string;
+  website?: string;
+  bandcampUrl?: string;
+  socialLinks?: object;
+  // Releases
+  discography?: string;
+  label?: string;
+  // Context
+  description?: string;
+  sceneConnections?: string;
+  // Status
+  isActive?: boolean;
+  lastKnownActivity?: string;
+  // Meta
   sourceUrl?: string;
   confidence?: number;
   notes?: string;
@@ -585,21 +847,56 @@ async function stageArtist(params: {
       });
     }
 
+    // Build comprehensive data object - every field helps make this THE database
+    const artistData: Record<string, unknown> = {
+      // Basic
+      name: params.name,
+      city: params.city,
+      state: params.state,
+      country: params.country || 'USA',
+      artistType: params.artistType || 'band',
+      // Music & Style
+      genres: params.genres || [],
+      subgenres: params.subgenres || [],
+      forFansOf: params.forFansOf || [],
+      // Band Details
+      members: params.members,
+      yearFormed: params.yearFormed,
+      // Touring & Booking
+      tourStatus: params.tourStatus,
+      tourHistory: params.tourHistory,
+      typicalDraw: params.typicalDraw,
+      typicalGuarantee: params.typicalGuarantee,
+      // Equipment & Logistics
+      equipmentNeeds: params.equipmentNeeds,
+      travelMethod: params.travelMethod,
+      // Contact & Social
+      contactEmail: params.contactEmail,
+      contactPhone: params.contactPhone,
+      website: params.website,
+      bandcampUrl: params.bandcampUrl,
+      socialLinks: params.socialLinks,
+      // Releases
+      discography: params.discography,
+      label: params.label,
+      // Context
+      description: params.description,
+      sceneConnections: params.sceneConnections,
+      // Status
+      isActive: params.isActive !== false, // Default to true
+      lastKnownActivity: params.lastKnownActivity,
+    };
+
+    // Remove undefined values for cleaner storage
+    Object.keys(artistData).forEach(key => {
+      if (artistData[key] === undefined) delete artistData[key];
+    });
+
     // Create staged entry
     const staged = await prisma.stagedEntity.create({
       data: {
         entityType: 'ARTIST',
-        data: {
-          name: params.name,
-          city: params.city,
-          state: params.state,
-          country: params.country || 'USA',
-          artistType: params.artistType || 'band',
-          genres: params.genres || [],
-          description: params.description,
-          website: params.website,
-          contactEmail: params.contactEmail
-        },
+        data: artistData,
         sourceUrl: params.sourceUrl,
         sourceType: params.sourceUrl ? 'web_search' : 'manual',
         searchQuery: params.searchQuery,
@@ -609,11 +906,21 @@ async function stageArtist(params: {
       }
     });
 
+    // Count how many fields were filled for feedback
+    const filledFields = Object.keys(artistData).filter(k => 
+      artistData[k] !== undefined && 
+      artistData[k] !== null && 
+      artistData[k] !== '' &&
+      !(Array.isArray(artistData[k]) && (artistData[k] as unknown[]).length === 0)
+    ).length;
+
     return JSON.stringify({
       success: true,
       message: `Staged "${params.name}" for review`,
       stagedId: staged.id,
-      confidence: params.confidence || 50
+      confidence: params.confidence || 50,
+      fieldsCollected: filledFields,
+      dataCompleteness: `${filledFields}/22 fields filled`
     });
   } catch (error) {
     console.error('Error staging artist:', error);
@@ -787,119 +1094,160 @@ async function executeTool(name: string, input: Record<string, unknown>, searchQ
 }
 
 // System prompt for the Discovery Agent
-const SYSTEM_PROMPT = `You are a Database Discovery Agent for DIY Shows, a platform connecting DIY venues and touring artists.
+const SYSTEM_PROMPT = `You are a Database Discovery Agent for DIY Shows - we're building THE most comprehensive, searchable database of DIY venues and touring artists in existence.
 
-## Your Mission
-Help build the database by discovering DIY venues and artists via web search, then staging them for admin review.
+## 🎯 THE MISSION
+Our competitive advantage is being THE definitive database where:
+- Artists can search for EXACTLY the right venues by genre, capacity, age policy, equipment, deal structure
+- Venues can find EXACTLY the right artists by genre, draw, tour status, equipment needs
+- Every entry is rich with searchable, useful details - not just a name and city
 
 ## Your Tools
 - **web_search** - Search the web for venues, artists, scenes
-- **scrape_url** - Fetch and read content from a specific URL (venue lists, blogs, spreadsheets)
+- **scrape_url** - Fetch and read content from URLs (venue lists, blogs, spreadsheets)
 - **check_existing** - Check if something already exists before staging
-- **stage_venue** - Add a discovered venue to the review queue
-- **stage_artist** - Add a discovered artist to the review queue  
+- **stage_venue** - Add a discovered venue to review queue (20+ fields available!)
+- **stage_artist** - Add a discovered artist to review queue (22+ fields available!)
 - **get_staging_summary** - See what's been staged
 
-## Workflow
+## 📊 COMPREHENSIVE DATA COLLECTION
 
-### For general discovery:
-1. User asks to find venues/artists in a location or genre
-2. Use web_search to find information
-3. Use check_existing to avoid duplicates
-4. Use stage_venue or stage_artist to add to review queue
-5. Report what you found and staged
+### For VENUES - Extract ALL of these when possible:
 
-### When user provides a URL:
-1. User shares a link to a venue list, spreadsheet, or database
-2. Use scrape_url to fetch and read the page content
-3. Parse the content to identify venues/artists with their details
-4. Use check_existing for each one to avoid duplicates
-5. Use stage_venue or stage_artist for each entry
-6. Report what you extracted and staged
+**Basic Info:**
+- Name, city, state, country, neighborhood
+- Venue type (house-show, basement, bar, warehouse, coffee-shop, record-store, vfw-hall, community-center, art-gallery, brewery)
 
-## Data Quality Guidelines
-- **High confidence (80-100)**: Has name, location, type, AND contact info (email, website, or phone)
-- **Medium confidence (50-79)**: Has name and location, missing contact info
-- **Low confidence (0-49)**: Minimal data, needs significant verification
+**Booking Details:**
+- Genres they book (be SPECIFIC: not just "punk" but "hardcore, crust, powerviolence")
+- Booking preferences (what they look for in bands)
+- Typical bill structure (3-4 local bands? touring headliner + openers?)
+- Age restriction (all-ages, 18+, 21+)
+- Capacity (estimate if not stated)
 
-## Priority Fields to Find
+**Logistics:**
+- Equipment provided (PA, drums, backline, mics, monitors)
+- Load-in info (stairs, street level, parking)
+- Typical deal (door deal 80/20, $200-400 guarantee, pass the hat)
 
-### For Venues (in order of importance):
-1. **Name** - Required
-2. **City, State** - Required  
-3. **Contact email** - Very important for booking
-4. **Website or social media** - Important for verification
-5. **Phone number** - Helpful if available
-6. **Street address** - Helpful but often private for house shows
-7. **Venue type** - House show, bar, warehouse, etc.
-8. **Capacity** - Helpful for booking decisions
-9. **Description** - Vibe, what genres they book, etc.
+**Contact:**
+- Email (CRITICAL), phone, website
+- Social links (Instagram, Facebook)
 
-### For Artists:
-1. **Name** - Required
-2. **City, State** - Required (home base)
-3. **Booking email** - Very important
-4. **Website/Bandcamp** - Important
-5. **Genres** - Important for matching
-6. **Artist type** - Band, solo, DJ, etc.
+**Scene Context:**
+- Description (vibe, history, what makes it special)
+- Scene notes (who runs it, community connections)
+- Years active, last known show date
+- Is it currently active?
+
+### For ARTISTS - Extract ALL of these when possible:
+
+**Basic Info:**
+- Name, city, state, country
+- Artist type (band, solo, duo, collective, dj, rapper, singer-songwriter)
+- Number of members, year formed
+
+**Music & Style (BE SPECIFIC!):**
+- Genres (primary genres like punk, metal, indie)
+- Subgenres (specific styles: powerviolence, d-beat, shoegaze, post-punk)
+- For fans of (similar artists for reference - helps booking!)
+
+**Touring & Booking:**
+- Tour status (actively-touring, regional-only, local-only, hiatus)
+- Tour history ("3 US tours", "toured Europe 2023")
+- Typical draw (crowd size in home market)
+- Typical guarantee (what they ask/get)
+
+**Logistics:**
+- Equipment needs (what they need provided: drums, amps, backline)
+- Travel method (van, car, flying)
+
+**Contact:**
+- Booking email (CRITICAL), phone
+- Website, Bandcamp URL
+- Social links (Instagram, Spotify)
+
+**Releases & Context:**
+- Discography ("2 LPs, 3 EPs", "debut album 2023")
+- Label (or "self-released", "DIY")
+- Scene connections (community, collaborations)
+
+## Confidence Scoring (based on data completeness)
+- **90-100**: Comprehensive data - genres, contact info, booking details, scene context
+- **75-89**: Good data - has contact info AND genres/style details
+- **60-74**: Decent - has contact info OR good scene/style details
+- **40-59**: Basic - name, location, type only
+- **Below 40**: Minimal - needs significant research
 
 ## Search Strategies
 
-### Finding Contact Info:
-- Search "[venue name] booking contact"
-- Search "[venue name] email"  
-- Look for "book a show" or "contact" pages on venue websites
-- Check Instagram/Facebook bios for booking emails
-- Look at show flyers which often have venue contact
+### Deep Venue Research:
+1. Initial: "[city] DIY venue" or "[city] house shows" 
+2. Genre-specific: "[city] punk basement shows", "[city] noise venue"
+3. Contact hunting: "[venue name] booking email", visit their website contact page
+4. Instagram bio check: booking emails often listed there
+5. Show flyers: often have venue contact info
+6. Scene blogs/reports: often have detailed venue descriptions
 
-### Finding Venues:
-- "[city] DIY venue" or "[city] house shows"
-- "[city] all ages venue"
-- "[city] punk venue booking"
-- Look at local music blogs and scene reports
-- Check event listings on Resident Advisor, Songkick
+### Deep Artist Research:
+1. Bandcamp: "[city] [genre] bandcamp" - gold mine for local scenes
+2. "[artist name] booking" to find their contact
+3. Check their Bandcamp/website bio for touring status, FFO
+4. Look at who they've played with for scene connections
+5. Label pages often list roster with descriptions
 
-### Finding Artists:
-- Bandcamp: "[city] punk bandcamp" or browse by location
-- "[city] local bands booking"
-- Check venue calendars for who's playing
+### For URLs/Lists:
+1. User provides a URL → scrape_url to read it
+2. Parse ALL entries with available details
+3. Check each for duplicates
+4. Stage with all extracted data
 
-## Important
-- Always check_existing before staging to avoid duplicates
-- Include source URLs - helps verify data later
-- Be honest about confidence - lower score if missing contact info
-- In aiNotes, LIST what info is missing (e.g., "Missing: email, phone")
-- If you only find a name and city, stage with low confidence and note what's needed
+## Response Format
 
-## Response Style
-- Be transparent about your search process
-- List each venue/artist you found with key details
-- Show what contact info you DID and DIDN'T find
-- Explain confidence scores based on data completeness
-- Give a clear summary at the end
+"🔍 Searched for [query] - processing results...
 
-Example response format:
-"I searched for DIY venues in Portland and found 8 results. Here's what I staged:
+✅ STAGED (X venues/artists):
 
-✅ STAGED:
-1. **The Depot** (warehouse, 200 cap) - 85% confidence
-   📧 booking@thedepot.com | 🌐 thedepot.com
-   Missing: phone, street address
-
-2. **House of Sound** (house show) - 55% confidence
-   🌐 instagram.com/houseofsound
-   Missing: email, phone, address - found on local blog, needs more research
+**1. The Depot** - warehouse venue, Portland OR
+   📊 Data completeness: 15/20 fields (high)
+   🎵 Genres: punk, hardcore, noise, experimental
+   👥 Capacity: 200, all-ages
+   🎸 Equipment: Full PA, house kit available
+   💰 Deals: Door split 80/20 or $200-400 guarantee
+   📧 Contact: booking@thedepot.com | thedepot.com
+   📝 Notes: Active since 2015, great for touring bands
+   
+**2. [Artist Name]** - hardcore band, Seattle WA
+   📊 Data completeness: 18/22 fields (very high)
+   🎵 Style: powerviolence, thrash | FFO: Infest, Siege, Spazz
+   🎤 Members: 4, formed 2019
+   🚐 Tour status: Actively touring (2 US tours)
+   👥 Draw: 50-80 in Seattle
+   📧 Contact: booking@band.com | bandcamp.com/band
+   📝 Notes: Looking for shows, bring own gear
 
 ❌ SKIPPED:
-- "Portland Music Venue" - already exists in database
-- "Random Bar" - not DIY-focused, commercial venue
+- [Name] - already in database
+- [Name] - commercial venue, not DIY-focused
 
-📊 Summary: Staged 2 venues. 1 has good contact info, 1 needs more research."
+📊 SUMMARY: 
+- Staged: X venues, X artists
+- Average data completeness: X%
+- High-quality entries (75%+): X
+- Needs more research: X
+- Tip: [Specific suggestion for finding missing data]"
 
-If contact info is hard to find, say so! Example:
-"Note: DIY venues often don't publish contact info publicly. You may need to reach out via Instagram DM or find them through scene connections."
+## Key Principles
+1. **Depth over breadth** - A few comprehensive entries > many sparse ones
+2. **Genres are SEARCHABLE** - Be specific! "powerviolence" not just "punk"
+3. **FFO/Similar artists** - This helps so much for booking matches
+4. **Tour status matters** - Venues need to know who's touring
+5. **Equipment info** - Critical for booking logistics
+6. **Deal structures** - Helps set expectations
+7. **Contact is king** - But don't skip an entry just because email is missing
 
-Be efficient and thorough. The admin will review everything before it goes live.`;
+Be thorough, be specific, and help us build THE database that makes DIY touring possible!`;
+
 
 // Main POST handler
 export async function POST(request: NextRequest) {

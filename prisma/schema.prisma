@@ -1255,3 +1255,118 @@ enum StagedStatus {
   DUPLICATE     // Already exists in DB
   NEEDS_INFO    // Need more data before approving
 }
+
+// =============================================================================
+// 🤖 AUTOMATED DISCOVERY: Cron-based Database Building
+// =============================================================================
+// Systematic discovery with budget controls. Queue searches by city/genre,
+// run them on a schedule, track costs, respect limits.
+// =============================================================================
+
+model DiscoveryJob {
+  id            String            @id @default(cuid())
+  
+  // What to search for
+  jobType       DiscoveryJobType
+  parameters    Json              // { city, state, genres?, searchQuery? }
+  
+  // Scheduling
+  status        DiscoveryJobStatus @default(PENDING)
+  priority      Int               @default(0)  // Higher = run first
+  scheduledFor  DateTime?         // Run after this time (null = ASAP)
+  
+  // Execution tracking
+  startedAt     DateTime?
+  completedAt   DateTime?
+  
+  // Results
+  searchesUsed  Int               @default(0)  // Tavily searches consumed
+  tokensUsed    Int               @default(0)  // Claude tokens consumed
+  venuesFound   Int               @default(0)
+  artistsFound  Int               @default(0)
+  errorMessage  String?
+  
+  // Cost tracking (in cents)
+  estimatedCost Int               @default(0)
+  
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  
+  @@index([status, priority])
+  @@index([status, scheduledFor])
+  @@index([jobType])
+  @@index([createdAt])
+  @@map("discovery_jobs")
+}
+
+model DiscoveryBudget {
+  id            String   @id @default(cuid())
+  
+  // Period tracking
+  period        String   // "2024-02" for monthly, "2024-02-07" for daily
+  periodType    String   // "daily" or "monthly"
+  
+  // Spending
+  searchesUsed  Int      @default(0)
+  tokensUsed    Int      @default(0)
+  costCents     Int      @default(0)  // Total cost in cents
+  
+  // Limits
+  searchLimit   Int      @default(100)  // Max searches per period
+  costLimitCents Int     @default(500)  // Max cost per period (500 = $5)
+  
+  // Results
+  venuesStaged  Int      @default(0)
+  artistsStaged Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@unique([period, periodType])
+  @@index([period])
+  @@index([periodType])
+  @@map("discovery_budgets")
+}
+
+// Track what regions/genres have been searched to avoid redundant searches
+model DiscoveryProgress {
+  id            String   @id @default(cuid())
+  
+  // What was searched
+  searchKey     String   @unique  // "portland-or-punk", "seattle-wa-all"
+  city          String
+  state         String
+  genre         String?  // null = searched for "all DIY venues"
+  
+  // When
+  lastSearched  DateTime
+  searchCount   Int      @default(1)
+  
+  // Results
+  venuesFound   Int      @default(0)
+  artistsFound  Int      @default(0)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([city, state])
+  @@index([lastSearched])
+  @@map("discovery_progress")
+}
+
+enum DiscoveryJobType {
+  CITY_VENUES     // Search for all DIY venues in a city
+  CITY_ARTISTS    // Search for all artists in a city  
+  GENRE_CITY      // Search for specific genre in city
+  URL_SCRAPE      // Scrape a specific URL
+  FOLLOWUP        // Follow up on a previous search for more details
+}
+
+enum DiscoveryJobStatus {
+  PENDING         // Waiting to run
+  RUNNING         // Currently executing
+  COMPLETED       // Finished successfully
+  FAILED          // Failed with error
+  CANCELLED       // Manually cancelled
+  BUDGET_EXCEEDED // Stopped due to budget limits
+}

@@ -9,6 +9,12 @@
   "env": {
     "PRISMA_GENERATE_DATAPROXY": "true"
   },
+  "crons": [
+    {
+      "path": "/api/admin/discovery/cron",
+      "schedule": "0 */6 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
