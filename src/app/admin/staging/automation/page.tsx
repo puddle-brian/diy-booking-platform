@@ -276,6 +276,32 @@ export default function AutomationPage() {
             >
               {loading ? '...' : '🔄 Refresh'}
             </button>
+            <button
+              onClick={async () => {
+                setActionLoading('email');
+                try {
+                  const res = await fetch('/api/admin/discovery/digest', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ preview: false })
+                  });
+                  const result = await res.json();
+                  if (result.emailSent) {
+                    alert('✅ Daily digest sent to brian@drool.ws');
+                  } else {
+                    alert(`Email not sent. Check RESEND_API_KEY is configured.\n\nSummary: ${JSON.stringify(result.summary, null, 2)}`);
+                  }
+                } catch (error) {
+                  alert(`Error: ${error instanceof Error ? error.message : 'Unknown'}`);
+                } finally {
+                  setActionLoading(null);
+                }
+              }}
+              disabled={actionLoading !== null}
+              className="btn text-2xs bg-orange-500/20 border-orange-500/40 hover:bg-orange-500/30 text-orange-400"
+            >
+              {actionLoading === 'email' ? '...' : '📧 Send Test Email'}
+            </button>
           </div>
         </div>
 
@@ -407,8 +433,23 @@ export default function AutomationPage() {
             </div>
 
             <div className="bg-bg-tertiary p-3 border border-border-subtle">
-              <p className="text-text-muted mb-2">Also add a CRON_SECRET to your environment:</p>
-              <pre className="text-green-400 text-2xs">CRON_SECRET=your-random-secret-here</pre>
+              <p className="text-text-muted mb-2">Also add these to your environment:</p>
+              <pre className="text-green-400 text-2xs">{`CRON_SECRET=your-random-secret-here
+RESEND_API_KEY=re_xxxxx  # Get from resend.com (free tier)
+ADMIN_EMAIL=brian@drool.ws`}</pre>
+            </div>
+
+            <div className="bg-bg-tertiary p-3 border border-border-subtle">
+              <p className="text-text-muted mb-2">📧 <strong>Daily Email Digest</strong></p>
+              <p className="text-2xs text-text-secondary">
+                A summary email is sent daily at 6 PM UTC with:
+              </p>
+              <ul className="list-disc list-inside text-2xs text-text-secondary mt-1">
+                <li>Jobs run & venues/artists found</li>
+                <li>Budget usage (daily/monthly)</li>
+                <li>Items awaiting review</li>
+                <li>Any errors that occurred</li>
+              </ul>
             </div>
 
             <div>
