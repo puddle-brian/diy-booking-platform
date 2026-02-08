@@ -213,6 +213,34 @@ export class ActivityNotificationService {
   }
 
   /**
+   * Notify venue owners about touring artists in their area
+   */
+  static async notifyTouringArtist(
+    showRequestId: string, 
+    artistName: string, 
+    venueOwnerId: string, 
+    venueName: string,
+    targetLocations: string[], 
+    showDate: string
+  ): Promise<void> {
+    await this.createNotification({
+      userId: venueOwnerId,
+      type: 'TOURING_ARTIST',
+      title: '🎸 Touring Artist Seeking Shows',
+      summary: `${artistName} is looking for shows in your area on ${showDate}`,
+      entityType: 'SHOW_REQUEST',
+      entityId: showRequestId,
+      actionUrl: `/show-requests/${showRequestId}`,
+      metadata: { 
+        artistName, 
+        venueName,
+        targetLocations,
+        showDate 
+      }
+    });
+  }
+
+  /**
    * Clean up expired notifications
    */
   static async cleanupExpiredNotifications(): Promise<void> {

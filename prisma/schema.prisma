@@ -858,6 +858,7 @@ enum ActivityType {
   SHOW_CONFIRMED
   SHOW_REQUEST
   TOUR_REQUEST
+  TOURING_ARTIST    // New: Artist seeking shows in venue's area
   MEMBER_INVITE
   REVIEW_RECEIVED
   VENUE_OFFER

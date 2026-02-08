@@ -405,6 +405,110 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 🎯 NEW: Notify venues in target locations when artists post general location requests
+    if (!parsedVenueId && body.initiatedBy === 'ARTIST' && cleanTargetLocations.length > 0) {
+      console.log(`🔔 Location-based notification: Notifying venues in ${cleanTargetLocations.join(', ')}`);
+      try {
+        // Parse location strings to find matching venues
+        // Format could be "City, State" or just "City" or "State"
+        const locationConditions = cleanTargetLocations.map((loc: string) => {
+          const parts = loc.split(',').map((p: string) => p.trim().toLowerCase());
+          if (parts.length >= 2) {
+            // City, State format
+            return {
+              location: {
+                OR: [
+                  { city: { contains: parts[0], mode: 'insensitive' as const } },
+                  { stateProvince: { contains: parts[1], mode: 'insensitive' as const } }
+                ]
+              }
+            };
+          } else {
+            // Just city or state
+            return {
+              location: {
+                OR: [
+                  { city: { contains: parts[0], mode: 'insensitive' as const } },
+                  { stateProvince: { contains: parts[0], mode: 'insensitive' as const } }
+                ]
+              }
+            };
+          }
+        });
+
+        // Find venues in target locations
+        const matchingVenues = await prisma.venue.findMany({
+          where: {
+            OR: locationConditions
+          },
+          select: {
+            id: true,
+            name: true,
+            location: {
+              select: { city: true, stateProvince: true }
+            }
+          },
+          take: 50 // Limit to prevent overwhelming notifications
+        });
+
+        console.log(`🔔 Found ${matchingVenues.length} venues in target locations`);
+
+        // Get members of these venues
+        if (matchingVenues.length > 0) {
+          const venueIds = matchingVenues.map(v => v.id);
+          const venueMembers = await prisma.membership.findMany({
+            where: {
+              entityType: 'VENUE',
+              entityId: { in: venueIds },
+              status: 'ACTIVE'
+            },
+            include: {
+              user: { select: { id: true, username: true } }
+            }
+          });
+
+          // Create a map of venue ID to venue name
+          const venueNameMap = new Map(matchingVenues.map(v => [v.id, v.name]));
+
+          const showDate = new Date(body.requestedDate).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            year: 'numeric' 
+          });
+
+          // Notify each venue owner (dedupe by user)
+          const notifiedUsers = new Set<string>();
+          for (const member of venueMembers) {
+            if (notifiedUsers.has(member.user.id)) continue;
+            notifiedUsers.add(member.user.id);
+
+            const venueName = venueNameMap.get(member.entityId) || 'your venue';
+            
+            await ActivityNotificationService.createNotification({
+              userId: member.user.id,
+              type: 'TOURING_ARTIST',
+              title: '🎸 Touring Artist Seeking Shows',
+              summary: `${artist.name} is looking for shows in your area on ${showDate}`,
+              entityType: 'SHOW_REQUEST',
+              entityId: newShowRequest.id,
+              actionUrl: `/show-requests/${newShowRequest.id}`,
+              metadata: { 
+                artistName: artist.name, 
+                venueName: venueName,
+                targetLocations: cleanTargetLocations,
+                requestedDate: showDate 
+              }
+            });
+          }
+          
+          console.log(`📢 Notified ${notifiedUsers.size} venue owners about touring artist in their area`);
+        }
+      } catch (notificationError) {
+        // Don't fail the request if notification fails
+        console.error('Error sending location-based notifications:', notificationError);
+      }
+    }
+
     return NextResponse.json(newShowRequest, { status: 201 });
   } catch (error) {
     console.error('Error creating show request:', error);

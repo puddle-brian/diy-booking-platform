@@ -8,6 +8,7 @@ import LocationSorting from '../components/LocationSorting';
 import CommunitySection from '../components/CommunitySection';
 import UserStatus from '../components/UserStatus';
 import SmartGallery from '../components/SmartGallery';
+import SeekingShowsBanner from '../components/SeekingShowsBanner';
 import { MobileFeedbackButton } from '../components/FeedbackWidget';
 import { useAuth } from '../contexts/AuthContext';
 import AuthLink from '../components/AuthLink';
@@ -668,6 +669,18 @@ function HomeContent() {
             <span className="text-2xs text-text-muted uppercase tracking-wider tabular-nums">
               [RESULTS: {activeTab === 'venues' ? filteredVenues.length : filteredArtists.length} / {activeTab === 'venues' ? venues.length : artists.length}]
             </span>
+          </div>
+        )}
+
+        {/* Touring Artists Seeking Shows Banner - Show on Artists tab */}
+        {activeTab === 'artists' && !loading && tourRequests.length > 0 && (
+          <div className="max-w-7xl mx-auto mb-6">
+            <SeekingShowsBanner showRequests={tourRequests} maxDisplay={3} />
+            <div className="mt-2 text-right">
+              <Link href="/touring-artists" className="text-xs text-text-accent hover:text-text-primary transition-colors">
+                View all touring artists →
+              </Link>
+            </div>
           </div>
         )}
 
