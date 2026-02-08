@@ -635,27 +635,58 @@ async function scrapeUrl(url: string): Promise<string> {
   }
 }
 
-// Main cron handler
-export async function GET(request: NextRequest) {
-  // Verify cron secret (Vercel cron sends this)
-  const authHeader = request.headers.get('authorization');
+// Helper to verify authorization
+function verifyAuth(request: NextRequest, requireSecret: boolean = false): boolean {
   const cronSecret = process.env.CRON_SECRET;
   
-  // Allow in development or with valid secret
-  if (process.env.NODE_ENV === 'production' && cronSecret) {
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // Check for CRON_SECRET in Authorization header
+  const authHeader = request.headers.get('authorization');
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    return true;
   }
+  
+  // Check for CRON_SECRET as URL parameter (easier for cron services)
+  const url = new URL(request.url);
+  const secretParam = url.searchParams.get('secret');
+  if (cronSecret && secretParam === cronSecret) {
+    return true;
+  }
+  
+  // Check for admin session cookie (for UI-triggered calls)
+  const adminCookie = request.cookies.get('diyshows_admin_session');
+  if (adminCookie?.value) {
+    return true;
+  }
+  
+  // In development, allow without auth
+  if (process.env.NODE_ENV !== 'production') {
+    return true;
+  }
+  
+  // For GET (external cron), require secret if set
+  if (requireSecret && cronSecret) {
+    return false;
+  }
+  
+  return false;
+}
 
+// Shared function to execute a single discovery job
+async function executeNextJob(): Promise<{
+  success: boolean;
+  message?: string;
+  reason?: string;
+  job?: any;
+  result?: any;
+}> {
   // Check budget
   const budgetCheck = await checkBudget();
   if (!budgetCheck.canProceed) {
-    return NextResponse.json({ 
+    return { 
       success: false, 
       reason: budgetCheck.reason,
       message: 'Budget limit reached, skipping discovery' 
-    });
+    };
   }
 
   // Get next pending job
@@ -675,10 +706,10 @@ export async function GET(request: NextRequest) {
   });
 
   if (!job) {
-    return NextResponse.json({ 
+    return { 
       success: true, 
       message: 'No pending jobs in queue' 
-    });
+    };
   }
 
   // Mark as running
@@ -714,7 +745,7 @@ export async function GET(request: NextRequest) {
       result.artistsFound
     );
 
-    return NextResponse.json({
+    return {
       success: true,
       job: {
         id: job.id,
@@ -727,7 +758,7 @@ export async function GET(request: NextRequest) {
         sourcesQueued: result.sourcesFound,
         estimatedCost: `$${(result.costCents / 100).toFixed(3)}`
       }
-    });
+    };
 
   } catch (error) {
     // Mark job as failed
@@ -740,34 +771,42 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({
+    return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      jobId: job.id
-    }, { status: 500 });
+      job: { id: job.id, jobType: job.jobType, parameters: job.parameters },
+      message: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 }
 
-// POST - Manual trigger with optional parameters
+// Main cron handler - called by external cron services
+export async function GET(request: NextRequest) {
+  // Verify cron secret for external cron services
+  if (!verifyAuth(request, true)) {
+    return NextResponse.json({ error: 'Unauthorized - set CRON_SECRET header' }, { status: 401 });
+  }
+
+  const result = await executeNextJob();
+  return NextResponse.json(result);
+}
+
+// POST - Manual trigger from admin UI
 export async function POST(request: NextRequest) {
+  // Verify admin session for UI calls
+  if (!verifyAuth(request, false)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const body = await request.json();
   const { maxJobs = 1 } = body;
 
   const results = [];
   
   for (let i = 0; i < maxJobs; i++) {
-    // Check budget before each job
-    const budgetCheck = await checkBudget();
-    if (!budgetCheck.canProceed) {
-      results.push({ skipped: true, reason: budgetCheck.reason });
-      break;
-    }
-
-    // Simulate the GET request
-    const response = await GET(request);
-    const result = await response.json();
+    const result = await executeNextJob();
     results.push(result);
 
+    // Stop if budget exceeded or no more jobs
     if (!result.success || result.message === 'No pending jobs in queue') {
       break;
     }

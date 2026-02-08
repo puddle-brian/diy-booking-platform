@@ -10,10 +10,12 @@ const PROTECTED_PATHS = [
   '/api/admin/discovery',
 ];
 
-// Routes that should NOT be protected (allow access for login)
+// Routes that should NOT be protected (allow access for login and external cron)
 const EXCLUDED_PATHS = [
   '/admin/login',
   '/api/admin/auth',
+  '/api/admin/discovery/cron',   // External cron services (protected by CRON_SECRET)
+  '/api/admin/discovery/digest', // Daily digest cron (protected by CRON_SECRET)
 ];
 
 export function middleware(request: NextRequest) {

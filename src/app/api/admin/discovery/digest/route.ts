@@ -2,16 +2,43 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendDiscoveryDigest } from '@/lib/email';
 
-// GET - Send daily digest email
-export async function GET(request: NextRequest) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization');
+// Helper to verify authorization
+function verifyAuth(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
   
-  if (process.env.NODE_ENV === 'production' && cronSecret) {
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  // Check for CRON_SECRET in Authorization header
+  const authHeader = request.headers.get('authorization');
+  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
+    return true;
+  }
+  
+  // Check for CRON_SECRET as URL parameter (easier for cron services)
+  const url = new URL(request.url);
+  const secretParam = url.searchParams.get('secret');
+  if (cronSecret && secretParam === cronSecret) {
+    return true;
+  }
+  
+  // Check for admin session cookie (for UI-triggered calls)
+  const adminCookie = request.cookies.get('diyshows_admin_session');
+  if (adminCookie?.value) {
+    return true;
+  }
+  
+  // In development, allow without auth
+  if (process.env.NODE_ENV !== 'production') {
+    return true;
+  }
+  
+  // Require secret if set
+  return !cronSecret;
+}
+
+// GET - Send daily digest email (called by external cron)
+export async function GET(request: NextRequest) {
+  // Verify cron secret for external cron services
+  if (!verifyAuth(request)) {
+    return NextResponse.json({ error: 'Unauthorized - set CRON_SECRET header' }, { status: 401 });
   }
 
   const today = new Date().toISOString().split('T')[0];
